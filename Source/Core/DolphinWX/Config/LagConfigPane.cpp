@@ -65,14 +65,13 @@ void LagConfigPane::InitializeGUI() {
 	m_engine_frequency_radio_button_5994Hz->SetToolTip(
 		_("The default setting.\n"
 		"Should be used for 59.94Hz games i.e Melee with the polling drift fix code, "
-		"Which is present for the default Melee iso. Do not use with Melee versions "
-		"that don't have the polling drift fix gecko code."));
+		"which is present in the default Melee iso / Unclepunch's training mode / "
+		"the 20XX training pack."));
 	m_engine_frequency_radio_button_60Hz->SetToolTip(
-	    _("Should be used for 60Hz games, such as Unclepunch's Training Mode or the 20XX Training Pack "
-		  "as they don't use the polling drift fix by default as of this writing. "
-	      "Do not use the 60Hz option for Slippi netplay as that would worsen the experience.\n"
-		  "If you use it for whatever reason (you should probably use a separate Dolphin for solo training), "
-		  "do not forget to revert to the 59.94Hz one before playing online.\n"));
+	    _("Should be used for 60Hz games. Currently, the default Melee iso, Unclepunch's training mode "
+	      "and the 20XX training pack are all clocked at 59.94Hz.\n"
+	      "In particular, do not use the 60Hz option for Slippi netplay as that would worsen the experience.\n"
+		  "If you use it for whatever reason , do not forget to revert to the 59.94Hz one before playing online."));
 
 	const int space5 = FromDIP(5);
 
@@ -241,10 +240,11 @@ void LagConfigPane::On60HzSelected(wxCommandEvent &)
 
 	wxMessageDialog m_60HzConfirmationDialog(this,
 		_("Switching the engine stabilization mode to 60Hz makes it suited for playing 60Hz games. "
-		  "The default Melee ISO configuration used for Slippi Netplay is 59.94Hz, through the use "
-		  "of the 'Polling drift fix + VB'Gecko code. As long as this setting is on 60Hz, "
-		  "you shouldn't netplay.\n"
-		  "If you do switch to 60Hz, don't forget to switch back to 59.94Hz before playing online.\n"
+		  "The default Melee ISO configuration used for Slippi Netplay is 59.94Hz. Unclepunch's "
+		  "training mode and the 20XX training pack are also clocked at 59.94Hz. As long as this "
+		  "setting is on 60Hz, you shouldn't netplay.\n"
+		  "If you do switch to 60Hz, don't forget to switch back to 59.94Hz before using either "
+		  "of these ISOs.\n"
 	      "Continue ?"),
 	    _("Please confirm you know what you're doing."), wxYES_NO | wxSTAY_ON_TOP | wxICON_WARNING, wxDefaultPosition);
 
