@@ -121,7 +121,6 @@ int SlippiMatchmaking::receiveMessage(json &msg, int timeoutMs)
 			buf.insert(buf.end(), netEvent.packet->data, netEvent.packet->data + netEvent.packet->dataLength);
 
 			std::string str(buf.begin(), buf.end());
-			INFO_LOG(SLIPPI_ONLINE, "[Matchmaking] Received: %s", str.c_str());
 			msg = json::parse(str);
 
 			enet_packet_destroy(netEvent.packet);
