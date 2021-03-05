@@ -84,7 +84,7 @@ static const int startApplyingEILVOptimsHz = 290;
 volatile static bool applyEILVOptims = false;
 
 // Outputs a file with the time points queried by the engine
-#define MEASURE_POLLS_FROM_ENGINE 1
+#define MEASURE_POLLS_FROM_ENGINE 0
 
 #if MEASURE_POLLS_FROM_ENGINE
 std::deque<std::chrono::high_resolution_clock::time_point> engine_polls;
