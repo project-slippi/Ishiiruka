@@ -743,6 +743,8 @@ void NetPlayClient::ThreadFunc()
 			dialog->AppendChat("QoS couldn't be enabled, other network activity might interfere with netplay", false);
 	}
 
+	dialog->AppendChat("Dolphin Netplay is no longer needed for single player training for Slippi Online.", false);
+
 	while (m_do_loop.IsSet())
 	{
 		ENetEvent netEvent;
