@@ -278,6 +278,13 @@ void SConfig::SaveCoreSettings(IniFile& ini)
 	core->Set("TimeStretching", bTimeStretching);
 	core->Set("RSHACK", bRSHACK);
 	core->Set("Latency", iLatency);
+	core->Set("IncreaseProcessPriority", bIncreaseProcessPriority);
+	core->Set("SaturatePollingThreadPriority", bSaturatePollingThreadPriority);
+	core->Set("UseEngineStabilization", bUseEngineStabilization);
+	core->Set("Use5994HzStabilization", bUse5994HzStabilization);
+	core->Set("UseSteadyStateEngineStabilization", bUseSteadyStateEngineStabilization);
+	core->Set("UseUsbPollingStabilization", bUseUsbPollingStabilization);
+	core->Set("UseAdapterTimingReconstructionWhenApplicable", bUseAdapterTimingReconstructionWhenApplicable);
 	core->Set("SlippiOnlineDelay", m_slippiOnlineDelay);
 	core->Set("SlippiEnableSpectator", m_enableSpectator);
 	core->Set("SlippiSpectatorLocalPort", m_spectator_local_port);
@@ -611,6 +618,13 @@ void SConfig::LoadCoreSettings(IniFile& ini)
 	core->Get("TimeStretching", &bTimeStretching, false);
 	core->Get("RSHACK", &bRSHACK, false);
 	core->Get("Latency", &iLatency, 0);
+	core->Get("IncreaseProcessPriority", &bIncreaseProcessPriority, true);
+	core->Get("SaturatePollingThreadPriority", &bSaturatePollingThreadPriority, true);
+	core->Get("UseEngineStabilization", &bUseEngineStabilization, true);
+	core->Get("Use5994HzStabilization", &bUse5994HzStabilization, true);
+	core->Get("UseSteadyStateEngineStabilization", &bUseSteadyStateEngineStabilization, true);
+	core->Get("UseUsbPollingStabilization", &bUseUsbPollingStabilization, true);
+	core->Get("UseAdapterTimingReconstructionWhenApplicable", &bUseAdapterTimingReconstructionWhenApplicable, true);
 	core->Get("SlippiEnableSpectator", &m_enableSpectator, true);
 	core->Get("SlippiSpectatorLocalPort", &m_spectator_local_port, 51441);
 	core->Get("SlippiOnlineDelay", &m_slippiOnlineDelay, 2);

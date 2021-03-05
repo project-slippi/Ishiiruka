@@ -121,7 +121,6 @@ int SlippiMatchmaking::receiveMessage(json &msg, int timeoutMs)
 			buf.insert(buf.end(), netEvent.packet->data, netEvent.packet->data + netEvent.packet->dataLength);
 
 			std::string str(buf.begin(), buf.end());
-			INFO_LOG(SLIPPI_ONLINE, "[Matchmaking] Received: %s", str.c_str());
 			msg = json::parse(str);
 
 			enet_packet_destroy(netEvent.packet);
@@ -238,10 +237,8 @@ void SlippiMatchmaking::startMatchmaking()
 	}
 
 	ENetAddress addr;
-	std::string MM_DOUBLES = "104.154.50.102";
-	// std::string MM_DOUBLES = "54.149.65.170";
-	enet_address_set_host(&addr, MM_DOUBLES.c_str());
-	addr.port = 43113;
+	enet_address_set_host(&addr, MM_HOST.c_str());
+	addr.port = MM_PORT;
 
 	m_server = enet_host_connect(m_client, &addr, 3, 0);
 

@@ -5,6 +5,7 @@
 #include "Core/Debugger/Debugger_SymbolMap.h"
 
 #include "Core/Slippi/SlippiPlayback.h"
+#include "Core/Slippi/SlippiPremadeText.h"
 #include "Core/Slippi/SlippiReplayComm.h"
 #include <SlippiGame.h>
 #include <semver/include/semver200.h>
@@ -756,6 +757,13 @@ void CEXISlippi::prepareGameInfo(u8 *payload)
 
 	// Write should resync setting
 	m_read_queue.push_back(replayCommSettings.shouldResync ? 1 : 0);
+
+	// Write display names
+	for (int i = 0; i < 4; i++)
+	{
+		auto displayName = settings->players[i].displayName;
+		m_read_queue.insert(m_read_queue.end(), displayName.begin(), displayName.end());
+	}
 
 	// Return the size of the gecko code list
 	prepareGeckoList();
@@ -2004,7 +2012,7 @@ void CEXISlippi::prepareOnlineMatchState()
 			{
 				if (!matchInfo->remotePlayerSelections[i].isCharacterSelected)
 				{
-					//NOTICE_LOG(SLIPPI_ONLINE, "[%d] Not ready", i);
+					// NOTICE_LOG(SLIPPI_ONLINE, "[%d] Not ready", i);
 					remotePlayersReady = 0;
 				}
 			}
@@ -2059,7 +2067,7 @@ void CEXISlippi::prepareOnlineMatchState()
 
 #ifdef LOCAL_TESTING
 	localPlayerIndex = 0;
-	chatMessageId = localChatMessageId;
+	sentChatMessageId = localChatMessageId;
 	chatMessagePlayerIdx = 0;
 	localChatMessageId = 0;
 	// in CSS p1 is always current player and p2 is opponent
@@ -2067,10 +2075,10 @@ void CEXISlippi::prepareOnlineMatchState()
 	oppName = p2Name = "Player 2";
 #endif
 
-	m_read_queue.push_back(localPlayerReady);  // Local player ready
+	m_read_queue.push_back(localPlayerReady);   // Local player ready
 	m_read_queue.push_back(remotePlayersReady); // Remote players ready
-	m_read_queue.push_back(localPlayerIndex);  // Local player index
-	m_read_queue.push_back(remotePlayerIndex); // Remote player index
+	m_read_queue.push_back(localPlayerIndex);   // Local player index
+	m_read_queue.push_back(remotePlayerIndex);  // Remote player index
 
 	// Set chat message if any
 	if (slippi_netplay)
@@ -2079,8 +2087,15 @@ void CEXISlippi::prepareOnlineMatchState()
 		chatMessageId = remoteMessageSelection.messageId;
 		chatMessagePlayerIdx = remoteMessageSelection.playerIdx;
 		sentChatMessageId = slippi_netplay->GetSlippiRemoteSentChatMessage();
+		// If connection is 1v1 set index 0 for local and 1 for remote
+		if ((matchmaking && matchmaking->RemotePlayerCount() == 1) || !matchmaking)
+		{
+			chatMessagePlayerIdx = sentChatMessageId > 0 ? localPlayerIndex : remotePlayerIndex;
+		}
 		// in CSS p1 is always current player and p2 is opponent
 		localPlayerName = p1Name = userInfo.displayName;
+		INFO_LOG(SLIPPI, "chatMessagePlayerIdx %d %d", chatMessagePlayerIdx,
+		         matchmaking ? matchmaking->RemotePlayerCount() : 0);
 	}
 
 	auto directMode = SlippiMatchmaking::OnlinePlayMode::DIRECT;
@@ -2088,7 +2103,7 @@ void CEXISlippi::prepareOnlineMatchState()
 	std::vector<u8> leftTeamPlayers = {};
 	std::vector<u8> rightTeamPlayers = {};
 
-	//NOTICE_LOG(SLIPPI_ONLINE, "%d, %d", localPlayerReady, remotePlayersReady);
+	// NOTICE_LOG(SLIPPI_ONLINE, "%d, %d", localPlayerReady, remotePlayersReady);
 
 	if (localPlayerReady && remotePlayersReady)
 	{
@@ -2101,27 +2116,27 @@ void CEXISlippi::prepareOnlineMatchState()
 #ifdef LOCAL_TESTING
 		lps.playerIdx = 0;
 
-		for (int i = 0; i < SLIPPI_REMOTE_PLAYER_MAX; i++)
+		// By default Local testing for teams is against
+		// 1 RED TEAM Falco
+		// 2 BLUE TEAM Falco
+		for (int i = 0; i <= SLIPPI_REMOTE_PLAYER_MAX; i++)
 		{
-			if (i == 0)
-			{
+			if(i==0){
 				rps[i].characterColor = 1;
+				rps[i].teamId = 0;
+			}else {
+				rps[i].characterColor = 2;
 				rps[i].teamId = 1;
 			}
-			else
-			{
-				rps[i].characterColor = 2;
-				rps[i].teamId = 2;
-			}
 
-			rps[i].characterId = 0x2 + i;
-			rps[i].playerIdx = i + 1;
+			rps[i].characterId = 0x14;
+			rps[i].playerIdx = i+1;
 			rps[i].isCharacterSelected = true;
 		}
 
 		if (lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::TEAMS)
 		{
-			remotePlayerCount = 4;
+			remotePlayerCount = 3;
 		}
 
 		oppName = std::string("Player");
@@ -2158,14 +2173,10 @@ void CEXISlippi::prepareOnlineMatchState()
 		// Overwrite remote player character
 		for (int i = 0; i < remotePlayerCount; i++)
 		{
-			u8 idx = matchInfo->remotePlayerSelections[i].playerIdx;
-			onlineMatchBlock[0x60 + idx * 0x24] = matchInfo->remotePlayerSelections[i].characterId;
-
-			// Set Char Colors
-			onlineMatchBlock[0x63 + idx * 0x24] = matchInfo->remotePlayerSelections[i].characterColor;
-
-			// Set Team Ids
-			onlineMatchBlock[0x69 + idx * 0x24] = matchInfo->remotePlayerSelections[i].teamId;
+			u8 idx = rps[i].playerIdx;
+			onlineMatchBlock[0x60 + idx * 0x24] = rps[i].characterId;
+			onlineMatchBlock[0x63 + idx * 0x24] = rps[i].characterColor;
+			onlineMatchBlock[0x69 + idx * 0x24] = rps[i].teamId;
 		}
 
 		// Handle Singles/Teams specific logic
@@ -2192,7 +2203,6 @@ void CEXISlippi::prepareOnlineMatchState()
 			// Set p3/p4 player type to human
 			onlineMatchBlock[0x61 + 2 * 0x24] = 0;
 			onlineMatchBlock[0x61 + 3 * 0x24] = 0;
-
 		}
 
 		// TODO: This is annoying, ideally remotePlayerSelections would just include everyone including the local player
@@ -2377,12 +2387,6 @@ void CEXISlippi::setMatchSelections(u8 *payload)
 
 	s.rngOffset = generator() % 0xFFFF;
 
-	if (matchmaking->LocalPlayerIndex() == 1 && firstMatch)
-	{
-		firstMatch = false;
-		s.stageId = getRandomStage();
-	}
-
 	// Merge these selections
 	localSelections.Merge(s);
 
@@ -2444,7 +2448,7 @@ void CEXISlippi::prepareGctLoad(u8 *payload)
 	// This is the address where the codes will be written to
 	auto address = Common::swap32(&payload[0]);
 
-	//for (size_t i = 0, e = gct.size(); i < e; ++i)
+	// for (size_t i = 0, e = gct.size(); i < e; ++i)
 	//	PowerPC::HostWrite_U8(gct[i], (u32)(address + i));
 
 	// Overwrite the instructions which load address pointing to codeset
@@ -2453,15 +2457,70 @@ void CEXISlippi::prepareGctLoad(u8 *payload)
 	PowerPC::ppcState.iCache.Invalidate(0x80001f58); // This should invalidate both instructions
 
 	// Invalidate the codes
-	//for (unsigned int k = address; k < address + gct.size(); k += 32)
+	// for (unsigned int k = address; k < address + gct.size(); k += 32)
 	//	PowerPC::ppcState.iCache.Invalidate(k);
 
 	INFO_LOG(SLIPPI, "Preparing to write gecko codes at: 0x%X. %X, %X", address, 0x3DE00000 | (address >> 16),
-	          0x61EF0000 | (address & 0xFFFF));
+	         0x61EF0000 | (address & 0xFFFF));
 
-	//PatchEngine::ApplyFramePatches();
+	// PatchEngine::ApplyFramePatches();
 
 	m_read_queue.insert(m_read_queue.end(), gct.begin(), gct.end());
+}
+
+std::vector<u8> CEXISlippi::loadPremadeText(u8 *payload)
+{
+	u8 textId = payload[0];
+	std::vector<u8> premadeTextData;
+	auto spt = SlippiPremadeText();
+
+	if (textId >= SlippiPremadeText::SPT_CHAT_P1 && textId <= SlippiPremadeText::SPT_CHAT_P4)
+	{
+		auto port = textId - 1;
+		std::string playerName;
+		if (matchmaking)
+			playerName = matchmaking->GetPlayerName(port);
+#ifdef LOCAL_TESTING
+		std::string defaultNames[] = {"Player 1", "lol u lost 2 dk", "Player 3", "Player 4"};
+		playerName = defaultNames[port];
+#endif
+
+		u8 paramId = payload[1] == 0x83 ? 0x88 : payload[1]; // TODO: Figure out what the hell is going on and fix this
+
+		//		INFO_LOG(SLIPPI, "SLIPPI premade param 0x%x", paramId);
+		//		INFO_LOG(SLIPPI, "SLIPPI premade name 0x%x", textId);
+
+		auto chatMessage = spt.premadeTextsParams[paramId];
+		std::string param = ReplaceAll(chatMessage.c_str(), " ", "<S>");
+		playerName = ReplaceAll(playerName.c_str(), " ", "<S>");
+		premadeTextData = spt.GetPremadeTextData(textId, playerName.c_str(), param.c_str());
+	}
+	else
+	{
+		premadeTextData = spt.GetPremadeTextData(textId);
+	}
+
+	return premadeTextData;
+}
+
+void CEXISlippi::preparePremadeTextLength(u8 *payload)
+{
+	u8 textId = payload[0];
+	std::vector<u8> premadeTextData = loadPremadeText(payload);
+
+	m_read_queue.clear();
+	// Write size to output
+	appendWordToBuffer(&m_read_queue, premadeTextData.size());
+}
+
+void CEXISlippi::preparePremadeTextLoad(u8 *payload)
+{
+	u8 textId = payload[0];
+	std::vector<u8> premadeTextData = loadPremadeText(payload);
+
+	m_read_queue.clear();
+	// Write data to output
+	m_read_queue.insert(m_read_queue.end(), premadeTextData.begin(), premadeTextData.end());
 }
 
 void CEXISlippi::handleChatMessage(u8 *payload)
@@ -2473,7 +2532,7 @@ void CEXISlippi::handleChatMessage(u8 *payload)
 	INFO_LOG(SLIPPI, "SLIPPI CHAT INPUT: 0x%x", messageId);
 
 #ifdef LOCAL_TESTING
-	localChatMessageId = 11;
+	localChatMessageId = messageId;
 #endif
 
 	if (slippi_netplay)
@@ -2581,7 +2640,6 @@ void CEXISlippi::handleConnectionCleanup()
 
 	// Clear character selections
 	localSelections.Reset();
-	firstMatch = true;
 
 	// Reset random stage pool
 	stagePool.clear();
@@ -2632,6 +2690,22 @@ void CEXISlippi::handleReportGame(u8 *payload)
 
 	gameReporter->StartReport(r);
 #endif
+}
+
+void CEXISlippi::prepareDelayResponse()
+{
+	m_read_queue.clear();
+	m_read_queue.push_back(1); // Indicate this is a real response
+	
+	if (NetPlay::IsNetPlayRunning())
+	{
+		// If we are using the old netplay, we don't want to add any additional delay, so return 0
+		m_read_queue.push_back(0);
+	}
+	else
+	{
+		m_read_queue.push_back((u8)SConfig::GetInstance().m_slippiOnlineDelay);
+	}
 }
 
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
@@ -2741,6 +2815,12 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		case CMD_FILE_LOAD:
 			prepareFileLoad(&memPtr[bufLoc + 1]);
 			break;
+		case CMD_PREMADE_TEXT_LENGTH:
+			preparePremadeTextLength(&memPtr[bufLoc + 1]);
+			break;
+		case CMD_PREMADE_TEXT_LOAD:
+			preparePremadeTextLoad(&memPtr[bufLoc + 1]);
+			break;
 		case CMD_OPEN_LOGIN:
 			handleLogInRequest();
 			break;
@@ -2773,6 +2853,9 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_GCT_LOAD:
 			prepareGctLoad(&memPtr[bufLoc + 1]);
+			break;
+		case CMD_GET_DELAY:
+			prepareDelayResponse();
 			break;
 		default:
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "");
