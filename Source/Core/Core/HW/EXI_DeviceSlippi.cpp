@@ -1842,9 +1842,10 @@ void CEXISlippi::startFindMatch(u8 *payload)
 			forcedError = "The character you selected is not allowed in this mode";
 			return;
 		}
-		
+
 		// Stage check
-		if (localSelections.isStageSelected && std::find(singlesStages.begin(), singlesStages.end(), localSelections.stageId) == singlesStages.end())
+		if (localSelections.isStageSelected &&
+		    std::find(singlesStages.begin(), singlesStages.end(), localSelections.stageId) == singlesStages.end())
 		{
 			forcedError = "The stage being requested is not allowed in this mode";
 			return;
@@ -2049,16 +2050,19 @@ void CEXISlippi::prepareOnlineMatchState()
 		// 2 BLUE TEAM Falco
 		for (int i = 0; i <= SLIPPI_REMOTE_PLAYER_MAX; i++)
 		{
-			if(i==0){
+			if (i == 0)
+			{
 				rps[i].characterColor = 1;
 				rps[i].teamId = 0;
-			}else {
+			}
+			else
+			{
 				rps[i].characterColor = 2;
 				rps[i].teamId = 1;
 			}
 
 			rps[i].characterId = 0x14;
-			rps[i].playerIdx = i+1;
+			rps[i].playerIdx = i + 1;
 			rps[i].isCharacterSelected = true;
 		}
 
@@ -2112,7 +2116,7 @@ void CEXISlippi::prepareOnlineMatchState()
 				prepareOnlineMatchState();
 				return;
 			}
-			
+
 			if (!remoteCharOk)
 			{
 				handleConnectionCleanup();
@@ -2179,7 +2183,8 @@ void CEXISlippi::prepareOnlineMatchState()
 
 		// Turn pause off in unranked/ranked, on in other modes
 		u8 *gameBitField3 = (u8 *)&onlineMatchBlock[2];
-		*gameBitField3 = SlippiMatchmaking::IsFixedRulesMode(lastSearch.mode) ? *gameBitField3 | 0x8 : *gameBitField3 & 0xF7;
+		*gameBitField3 =
+		    SlippiMatchmaking::IsFixedRulesMode(lastSearch.mode) ? *gameBitField3 | 0x8 : *gameBitField3 & 0xF7;
 		//*gameBitField3 = *gameBitField3 | 0x8;
 
 		// Group players into left/right side for team splash screen display
@@ -2281,12 +2286,12 @@ void CEXISlippi::prepareOnlineMatchState()
 }
 
 std::vector<u16> CEXISlippi::singlesStages = {
-  // 0x2,  // FoD
-  0x3,  // Pokemon
-  0x8,  // Yoshi's Story
-  0x1C, // Dream Land
-  0x1F, // Battlefield
-  0x20, // Final Destination
+    // 0x2,  // FoD
+    0x3,  // Pokemon
+    0x8,  // Yoshi's Story
+    0x1C, // Dream Land
+    0x1F, // Battlefield
+    0x20, // Final Destination
 };
 
 u16 CEXISlippi::getRandomStage()
@@ -2396,7 +2401,8 @@ void CEXISlippi::prepareGctLoad(u8 *payload)
 
 	// Overwrite the instructions which load address pointing to codeset
 	PowerPC::HostWrite_U32(0x3DE00000 | (address >> 16), 0x80001f58); // lis r15, 0xXXXX # top half of address
-	PowerPC::HostWrite_U32(0x61EF0000 | (address & 0xFFFF), 0x80001f5C); // ori r15, r15, 0xXXXX # bottom half of address
+	PowerPC::HostWrite_U32(0x61EF0000 | (address & 0xFFFF),
+	                       0x80001f5C);              // ori r15, r15, 0xXXXX # bottom half of address
 	PowerPC::ppcState.iCache.Invalidate(0x80001f58); // This should invalidate both instructions
 
 	// Invalidate the codes
@@ -2639,7 +2645,7 @@ void CEXISlippi::prepareDelayResponse()
 {
 	m_read_queue.clear();
 	m_read_queue.push_back(1); // Indicate this is a real response
-	
+
 	if (NetPlay::IsNetPlayRunning())
 	{
 		// If we are using the old netplay, we don't want to add any additional delay, so return 0
