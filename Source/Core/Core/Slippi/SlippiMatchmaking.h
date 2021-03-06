@@ -56,9 +56,10 @@ class SlippiMatchmaking
 	std::vector<SlippiUser::UserInfo> GetPlayerInfo();
 	std::string GetPlayerName(u8 port);
 	u8 RemotePlayerCount();
+	static bool IsFixedRulesMode(OnlinePlayMode mode);
 
   protected:
-	const std::string MM_HOST_DEV = "104.154.50.102"; // Dev host
+	const std::string MM_HOST_DEV = "35.184.161.98"; // Dev host
 	const std::string MM_HOST_PROD = "104.154.50.102";  // Production host
 	const u16 MM_PORT = 43113;
 

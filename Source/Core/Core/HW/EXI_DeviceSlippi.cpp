@@ -1521,7 +1521,6 @@ bool CEXISlippi::isDisconnected()
 	return status != SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED;
 }
 
-static int tempTestCount = 0;
 void CEXISlippi::handleOnlineInputs(u8 *payload)
 {
 	m_read_queue.clear();
@@ -1836,10 +1835,21 @@ void CEXISlippi::startFindMatch(u8 *payload)
 	// someone an early error before they even queue so that they wont enter the queue and make someone
 	// else get force removed from queue and have to requeue
 	auto directMode = SlippiMatchmaking::OnlinePlayMode::DIRECT;
-	if (search.mode < directMode && localSelections.characterId >= 26)
+	if (SlippiMatchmaking::IsFixedRulesMode(search.mode))
 	{
-		forcedError = "The character you selected is not allowed in this mode";
-		return;
+		// Character check
+		if (localSelections.characterId >= 26)
+		{
+			forcedError = "The character you selected is not allowed in this mode";
+			return;
+		}
+		
+		// Stage check
+		if (localSelections.isStageSelected && std::find(singlesStages.begin(), singlesStages.end(), localSelections.stageId) == singlesStages.end())
+		{
+			forcedError = "The stage being requested is not allowed in this mode";
+			return;
+		}
 	}
 
 #ifndef LOCAL_TESTING
@@ -2073,16 +2083,52 @@ void CEXISlippi::prepareOnlineMatchState()
 				remoteCharOk = false;
 		}
 
-		// TODO: Check to make sure that in unranked/ranked the opponent hasn't picked a dumb stage
-
-		if (lastSearch.mode < directMode && (!localCharOk || !remoteCharOk))
+		// TODO: This is annoying, ideally remotePlayerSelections would just include everyone including the local player
+		// TODO: Would also simplify some logic in the Netplay class
+		std::vector<SlippiPlayerSelections> orderedSelections(4);
+		orderedSelections[lps.playerIdx] = lps;
+		for (int i = 0; i < remotePlayerCount; i++)
 		{
-			// If we get here, someone is doing something bad, clear the lobby
-			handleConnectionCleanup();
+			orderedSelections[rps[i].playerIdx] = rps[i];
+		}
+
+		// Overwrite stage information. Make sure everyone loads the same stage
+		u16 stageId = 0x1F; // Default to battlefield if there was no selection
+		for (auto selections : orderedSelections)
+		{
+			if (!selections.isStageSelected)
+				continue;
+
+			// Stage selected by this player, use that selection
+			stageId = selections.stageId;
+			break;
+		}
+
+		if (SlippiMatchmaking::IsFixedRulesMode(lastSearch.mode))
+		{
+			// If we enter one of these conditions, someone is doing something bad, clear the lobby
+
 			if (!localCharOk)
+			{
+				handleConnectionCleanup();
 				forcedError = "The character you selected is not allowed in this mode";
-			prepareOnlineMatchState();
-			return;
+				prepareOnlineMatchState();
+				return;
+			}
+			
+			if (!remoteCharOk)
+			{
+				handleConnectionCleanup();
+				prepareOnlineMatchState();
+				return;
+			}
+
+			if (std::find(singlesStages.begin(), singlesStages.end(), stageId) == singlesStages.end())
+			{
+				handleConnectionCleanup();
+				prepareOnlineMatchState();
+				return;
+			}
 		}
 
 		// Overwrite local player character
@@ -2124,27 +2170,6 @@ void CEXISlippi::prepareOnlineMatchState()
 			// Set p3/p4 player type to human
 			onlineMatchBlock[0x61 + 2 * 0x24] = 0;
 			onlineMatchBlock[0x61 + 3 * 0x24] = 0;
-		}
-
-		// TODO: This is annoying, ideally remotePlayerSelections would just include everyone including the local player
-		// TODO: Would also simplify some logic in the Netplay class
-		std::vector<SlippiPlayerSelections> orderedSelections(4);
-		orderedSelections[lps.playerIdx] = lps;
-		for (int i = 0; i < remotePlayerCount; i++)
-		{
-			orderedSelections[rps[i].playerIdx] = rps[i];
-		}
-
-		// Overwrite stage information. Make sure everyone loads the same stage
-		u16 stageId = 0x1F; // Default to battlefield if there was no selection
-		for (auto selections : orderedSelections)
-		{
-			if (!selections.isStageSelected)
-				continue;
-
-			// Stage selected by this player, use that selection
-			stageId = selections.stageId;
-			break;
 		}
 
 		u16 *stage = (u16 *)&onlineMatchBlock[0xE];
@@ -2258,22 +2283,22 @@ void CEXISlippi::prepareOnlineMatchState()
 	m_read_queue.insert(m_read_queue.end(), onlineMatchBlock.begin(), onlineMatchBlock.end());
 }
 
+std::vector<u16> CEXISlippi::singlesStages = {
+  // 0x2,  // FoD
+  0x3,  // Pokemon
+  0x8,  // Yoshi's Story
+  0x1C, // Dream Land
+  0x1F, // Battlefield
+  0x20, // Final Destination
+};
+
 u16 CEXISlippi::getRandomStage()
 {
 	static u16 selectedStage;
 
-	static std::vector<u16> stages = {
-	    // 0x2,  // FoD
-	    0x3,  // Pokemon
-	    0x8,  // Yoshi's Story
-	    0x1C, // Dream Land
-	    0x1F, // Battlefield
-	    0x20, // Final Destination
-	};
-
 	// Reset stage pool if it's empty
 	if (stagePool.empty())
-		stagePool.insert(stagePool.end(), stages.begin(), stages.end());
+		stagePool.insert(stagePool.end(), singlesStages.begin(), singlesStages.end());
 
 	// Get random stage
 	int randIndex = generator() % stagePool.size();
