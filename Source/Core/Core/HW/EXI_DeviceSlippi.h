@@ -169,7 +169,7 @@ class CEXISlippi : public IEXIDevice
 	std::vector<u8> m_payload;
 
 	// online play stuff
-	u16 getRandomStage();
+	u16 getRandomStage(u8 onlineMode);
 	bool isDisconnected();
 	void handleOnlineInputs(u8 *payload);
 	void prepareOpponentInputs(u8 *payload);

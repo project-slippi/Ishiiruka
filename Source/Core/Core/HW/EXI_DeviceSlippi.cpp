@@ -2286,7 +2286,7 @@ void CEXISlippi::prepareOnlineMatchState()
 }
 
 std::vector<u16> CEXISlippi::singlesStages = {
-    // 0x2,  // FoD
+    0x2,  // FoD
     0x3,  // Pokemon
     0x8,  // Yoshi's Story
     0x1C, // Dream Land
@@ -2294,20 +2294,30 @@ std::vector<u16> CEXISlippi::singlesStages = {
     0x20, // Final Destination
 };
 
-u16 CEXISlippi::getRandomStage()
+u16 CEXISlippi::getRandomStage(u8 onlineMode)
 {
 	static u16 selectedStage;
 
 	// Reset stage pool if it's empty
 	if (stagePool.empty())
+	{
 		stagePool.insert(stagePool.end(), singlesStages.begin(), singlesStages.end());
-
+	}
+		
 	// Get random stage
 	int randIndex = generator() % stagePool.size();
 	selectedStage = stagePool[randIndex];
 
 	// Remove last selection from stage pool
 	stagePool.erase(stagePool.begin() + randIndex);
+
+	// If the mode is teams, don't allow FoD to be selected, re-roll instead. Note that this will
+	// cause a stack overflow exception/infinite recursion in the case the FoD is the only stage in
+	// the singlesStages vector
+	if (onlineMode == (u8)SlippiMatchmaking::OnlinePlayMode::TEAMS && selectedStage == 0x2)
+	{
+		return getRandomStage(onlineMode);
+	}
 
 	return selectedStage;
 }
@@ -2323,12 +2333,13 @@ void CEXISlippi::setMatchSelections(u8 *payload)
 
 	s.stageId = Common::swap16(&payload[4]);
 	u8 stageSelectOption = payload[6];
+	u8 onlineMode = payload[7];
 
 	s.isStageSelected = stageSelectOption == 1 || stageSelectOption == 3;
 	if (stageSelectOption == 3)
 	{
 		// If stage requested is random, select a random stage
-		s.stageId = getRandomStage();
+		s.stageId = getRandomStage(onlineMode);
 	}
 	INFO_LOG(SLIPPI, "LPS set char: %d, iSS: %d, %d, stage: %d, team: %d", s.isCharacterSelected, stageSelectOption,
 	         s.isStageSelected, s.stageId, s.teamId);
