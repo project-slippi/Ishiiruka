@@ -262,5 +262,5 @@ class CEXISlippi : public IEXIDevice
 	std::map<s32, std::unique_ptr<SlippiSavestate>> activeSavestates;
 	std::deque<std::unique_ptr<SlippiSavestate>> availableSavestates;
 
-	static std::vector<u16> singlesStages;
+	static std::vector<u16> legalStages;
 };
