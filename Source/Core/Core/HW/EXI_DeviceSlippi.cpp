@@ -2014,6 +2014,7 @@ void CEXISlippi::prepareOnlineMatchState()
 	// Set chat message if any
 	if (slippi_netplay)
 	{
+		auto isSingleMode = matchmaking && matchmaking->RemotePlayerCount() == 1;
 		sentChatMessageId = slippi_netplay->GetSlippiRemoteSentChatMessage();
 
 		// Prevent processing a message in the same frame
@@ -2022,10 +2023,16 @@ void CEXISlippi::prepareOnlineMatchState()
 			auto remoteMessageSelection = slippi_netplay->GetSlippiRemoteChatMessage();
 			chatMessageId = remoteMessageSelection.messageId;
 			chatMessagePlayerIdx = remoteMessageSelection.playerIdx;
+			if (chatMessageId == SlippiPremadeText::CHAT_MSG_CHAT_DISABLED && !isSingleMode)
+			{
+				// Clear remote chat messages if we are on teams and the player has chat disabled.
+				// Could also be handled on SlippiNetplay if the instance had acccess to the current connection mode
+				chatMessageId = chatMessagePlayerIdx = 0;
+			}
 		}
 
 		// If connection is 1v1 set index 0 for local and 1 for remote
-		if ((matchmaking && matchmaking->RemotePlayerCount() == 1) || !matchmaking)
+		if (isSingleMode || !matchmaking)
 		{
 			chatMessagePlayerIdx = sentChatMessageId > 0 ? localPlayerIndex : remotePlayerIndex;
 		}
@@ -2307,7 +2314,7 @@ u16 CEXISlippi::getRandomStage(u8 onlineMode)
 	{
 		stagePool.insert(stagePool.end(), legalStages.begin(), legalStages.end());
 	}
-		
+
 	// Get random stage
 	int randIndex = generator() % stagePool.size();
 	selectedStage = stagePool[randIndex];
@@ -2438,7 +2445,7 @@ std::vector<u8> CEXISlippi::loadPremadeText(u8 *payload)
 	std::vector<u8> premadeTextData;
 	auto spt = SlippiPremadeText();
 
-	INFO_LOG(SLIPPI, "SLIPPI premade text texture id: 0x%x", payload[0]);
+	//DEBUG_LOG(SLIPPI, "SLIPPI premade text texture id: 0x%x", payload[0]);
 
 	if (textId >= SlippiPremadeText::SPT_CHAT_P1 && textId <= SlippiPremadeText::SPT_CHAT_P4)
 	{
@@ -2451,7 +2458,7 @@ std::vector<u8> CEXISlippi::loadPremadeText(u8 *payload)
 		playerName = defaultNames[port];
 #endif
 
-		INFO_LOG(SLIPPI, "SLIPPI premade text param: 0x%x", payload[1]);
+		//DEBUG_LOG(SLIPPI, "SLIPPI premade text param: 0x%x", payload[1]);
 		u8 paramId = payload[1] == 0x83 ? 0x88 : payload[1]; // TODO: Figure out what the hell is going on and fix this
 
 		auto chatMessage = spt.premadeTextsParams[paramId];
