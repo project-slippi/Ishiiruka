@@ -2437,7 +2437,7 @@ std::vector<u8> CEXISlippi::loadPremadeText(u8 *payload)
 	std::vector<u8> premadeTextData;
 	auto spt = SlippiPremadeText();
 
-    INFO_LOG(SLIPPI, "SLIPPI premade text texture id: 0x%x", payload[0]);
+	INFO_LOG(SLIPPI, "SLIPPI premade text texture id: 0x%x", payload[0]);
 
 	if (textId >= SlippiPremadeText::SPT_CHAT_P1 && textId <= SlippiPremadeText::SPT_CHAT_P4)
 	{
@@ -2450,7 +2450,7 @@ std::vector<u8> CEXISlippi::loadPremadeText(u8 *payload)
 		playerName = defaultNames[port];
 #endif
 
-        INFO_LOG(SLIPPI, "SLIPPI premade text param: 0x%x", payload[1]);
+		INFO_LOG(SLIPPI, "SLIPPI premade text param: 0x%x", payload[1]);
 		u8 paramId = payload[1] == 0x83 ? 0x88 : payload[1]; // TODO: Figure out what the hell is going on and fix this
 
 		auto chatMessage = spt.premadeTextsParams[paramId];

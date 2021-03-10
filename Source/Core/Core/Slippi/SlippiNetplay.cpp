@@ -354,15 +354,16 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 
 	case NP_MSG_SLIPPI_CHAT_MESSAGE:
 	{
-        auto playerSelection = ReadChatMessageFromPacket(packet);
-        INFO_LOG(SLIPPI_ONLINE, "[Netplay] Received chat message from opponent %d: %d", playerSelection->playerIdx, playerSelection->messageId);
+		auto playerSelection = ReadChatMessageFromPacket(packet);
+		INFO_LOG(SLIPPI_ONLINE, "[Netplay] Received chat message from opponent %d: %d", playerSelection->playerIdx,
+		         playerSelection->messageId);
 
 		// if chat is not enabled, automatically send back a message saying so
-		if(!SConfig::GetInstance().m_slippiEnableQuickChat)
+		if (!SConfig::GetInstance().m_slippiEnableQuickChat)
 		{
-            auto packet = std::make_unique<sf::Packet>();
-            WriteChatMessageToPacket(*packet, remoteSentChatMessageId, LocalPlayerPort());
-            SendAsync(std::move(packet));
+			auto packet = std::make_unique<sf::Packet>();
+			WriteChatMessageToPacket(*packet, remoteSentChatMessageId, LocalPlayerPort());
+			SendAsync(std::move(packet));
 			break;
 		}
 
