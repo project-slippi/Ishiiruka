@@ -2014,14 +2014,15 @@ void CEXISlippi::prepareOnlineMatchState()
 	// Set chat message if any
 	if (slippi_netplay)
 	{
-        sentChatMessageId = slippi_netplay->GetSlippiRemoteSentChatMessage();
+		sentChatMessageId = slippi_netplay->GetSlippiRemoteSentChatMessage();
 
 		// Prevent processing a message in the same frame
-		if(sentChatMessageId <= 0) {
-            auto remoteMessageSelection = slippi_netplay->GetSlippiRemoteChatMessage();
-            chatMessageId = remoteMessageSelection.messageId;
-            chatMessagePlayerIdx = remoteMessageSelection.playerIdx;
-        }
+		if (sentChatMessageId <= 0)
+		{
+			auto remoteMessageSelection = slippi_netplay->GetSlippiRemoteChatMessage();
+			chatMessageId = remoteMessageSelection.messageId;
+			chatMessagePlayerIdx = remoteMessageSelection.playerIdx;
+		}
 
 		// If connection is 1v1 set index 0 for local and 1 for remote
 		if ((matchmaking && matchmaking->RemotePlayerCount() == 1) || !matchmaking)
