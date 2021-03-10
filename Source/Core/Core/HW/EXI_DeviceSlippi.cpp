@@ -1037,6 +1037,9 @@ void CEXISlippi::prepareGeckoList()
 	    {0x800055f8, true}, // Common/GetIsFollower.asm
 	    {0x800055fc, true}, // Common/Gecko/ProcessCodeList.asm
 	    {0x8016d294, true}, // Common/IncrementFrameIndex.asm
+	    {0x80376a24, true}, // Common/UseInGameDelay/ApplyInGameDelay.asm
+	    {0x8016e9b0, true}, // Common/UseInGameDelay/InitializeInGameDelay.asm
+	    {0x8000561c, true}, // Common/GetCommonMinorID/GetCommonMinorID.asm
 
 	    {0x801a5b14, true}, // External/Salty Runback/Salty Runback.asm
 	    {0x801a4570, true}, // External/LagReduction/ForceHD/480pDeflickerOff.asm
