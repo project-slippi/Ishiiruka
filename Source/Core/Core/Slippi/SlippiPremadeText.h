@@ -38,6 +38,8 @@ class SlippiPremadeText
 		CHAT_MSG_D_PAD_RIGHT = 0x42,
 		CHAT_MSG_D_PAD_DOWN = 0x44,
 		CHAT_MSG_D_PAD_UP = 0x48,
+
+		CHAT_MSG_CHAT_DISABLED = 0x10,
 	};
 
 	unordered_map<u8, string> premadeTextsParams = {
@@ -60,7 +62,9 @@ class SlippiPremadeText
 	    {CHAT_MSG_D_PAD_UP, "okay"},
 	    {CHAT_MSG_D_PAD_LEFT, "thinking"},
 	    {CHAT_MSG_D_PAD_RIGHT, "lets play again later"},
-	    {CHAT_MSG_D_PAD_DOWN, "bad connection"},
+        {CHAT_MSG_D_PAD_DOWN, "bad connection"},
+
+        {CHAT_MSG_CHAT_DISABLED, "I have chat disabled"},
 	};
 
 	unordered_map<u8, string> premadeTexts = {
