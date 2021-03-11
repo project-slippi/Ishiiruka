@@ -2030,8 +2030,11 @@ void CEXISlippi::prepareOnlineMatchState()
 				chatMessageId = chatMessagePlayerIdx = 0;
 			}
 		}
+		else
+		{
+			chatMessagePlayerIdx = localPlayerIndex;
+		}
 
-		// If connection is 1v1 set index 0 for local and 1 for remote
 		if (isSingleMode || !matchmaking)
 		{
 			chatMessagePlayerIdx = sentChatMessageId > 0 ? localPlayerIndex : remotePlayerIndex;
