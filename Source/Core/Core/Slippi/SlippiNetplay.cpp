@@ -362,8 +362,10 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 		if (!SConfig::GetInstance().m_slippiEnableQuickChat)
 		{
 			auto packet = std::make_unique<sf::Packet>();
+			remoteSentChatMessageId = SlippiPremadeText::CHAT_MSG_CHAT_DISABLED;
 			WriteChatMessageToPacket(*packet, remoteSentChatMessageId, LocalPlayerPort());
 			SendAsync(std::move(packet));
+			remoteSentChatMessageId = 0;
 			break;
 		}
 

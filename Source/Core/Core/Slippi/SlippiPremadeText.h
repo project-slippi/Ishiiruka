@@ -19,6 +19,7 @@ class SlippiPremadeText
 		SPT_CHAT_P3 = 0x3,
 		SPT_CHAT_P4 = 0x4,
 		SPT_LOGOUT = 0x5,
+		SPT_CHAT_DISABLED = 0x6,
 
 		CHAT_MSG_U_PAD_LEFT = 0x81,
 		CHAT_MSG_U_PAD_RIGHT = 0x82,
@@ -65,7 +66,7 @@ class SlippiPremadeText
 	    {CHAT_MSG_D_PAD_RIGHT, "lets play again later"},
 	    {CHAT_MSG_D_PAD_DOWN, "bad connection"},
 
-	    {CHAT_MSG_CHAT_DISABLED, "I have chat disabled"},
+	    {CHAT_MSG_CHAT_DISABLED, "player has chat disabled"},
 	};
 
 	unordered_map<u8, string> premadeTexts = {
@@ -74,6 +75,7 @@ class SlippiPremadeText
 	    {SPT_CHAT_P3, "<LEFT><KERN><COLOR, 255, 203, 4>%s-<S><COLOR, 255, 255, 255>%s<END>"},
 	    {SPT_CHAT_P4, "<LEFT><KERN><COLOR, 0, 178, 2>%s-<S><COLOR, 255, 255, 255>%s<END>"},
 	    {SPT_LOGOUT, "<FIT><COLOR, 243, 75, 75>Are<S>You<COLOR, 0, 175, 75><S>Sure?<END>"},
+	    {SPT_CHAT_DISABLED, "<LEFT><KERN><COLOR, 0, 178, 2>%s<S><COLOR, 255, 255, 255>has<S>chat<S>disabled<S><END>"},
 	};
 
 	// TODO: use va_list to handle any no. or args
