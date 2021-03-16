@@ -1038,6 +1038,9 @@ void CEXISlippi::prepareGeckoList()
 	    {0x800055f8, true}, // Common/GetIsFollower.asm
 	    {0x800055fc, true}, // Common/Gecko/ProcessCodeList.asm
 	    {0x8016d294, true}, // Common/IncrementFrameIndex.asm
+	    {0x80376a24, true}, // Common/UseInGameDelay/ApplyInGameDelay.asm
+	    {0x8016e9b0, true}, // Common/UseInGameDelay/InitializeInGameDelay.asm
+	    {0x8000561c, true}, // Common/GetCommonMinorID/GetCommonMinorID.asm
 
 	    {0x801a5b14, true}, // External/Salty Runback/Salty Runback.asm
 	    {0x801a4570, true}, // External/LagReduction/ForceHD/480pDeflickerOff.asm
@@ -1522,7 +1525,6 @@ bool CEXISlippi::isDisconnected()
 	return status != SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED;
 }
 
-static int tempTestCount = 0;
 void CEXISlippi::handleOnlineInputs(u8 *payload)
 {
 	m_read_queue.clear();
@@ -1847,11 +1849,22 @@ void CEXISlippi::startFindMatch(u8 *payload)
 	// While we do have another condition that checks characters after being connected, it's nice to give
 	// someone an early error before they even queue so that they wont enter the queue and make someone
 	// else get force removed from queue and have to requeue
-	auto directMode = SlippiMatchmaking::OnlinePlayMode::DIRECT;
-	if (search.mode < directMode && localSelections.characterId >= 26)
+	if (SlippiMatchmaking::IsFixedRulesMode(search.mode))
 	{
-		forcedError = "The character you selected is not allowed in this mode";
-		return;
+		// Character check
+		if (localSelections.characterId >= 26)
+		{
+			forcedError = "The character you selected is not allowed in this mode";
+			return;
+		}
+
+		// Stage check
+		if (localSelections.isStageSelected &&
+		    std::find(legalStages.begin(), legalStages.end(), localSelections.stageId) == legalStages.end())
+		{
+			forcedError = "The stage being requested is not allowed in this mode";
+			return;
+		}
 	}
 
 #ifndef LOCAL_TESTING
@@ -2098,8 +2111,6 @@ void CEXISlippi::prepareOnlineMatchState()
 		         matchmaking ? matchmaking->RemotePlayerCount() : 0);
 	}
 
-	auto directMode = SlippiMatchmaking::OnlinePlayMode::DIRECT;
-
 	std::vector<u8> leftTeamPlayers = {};
 	std::vector<u8> rightTeamPlayers = {};
 
@@ -2121,16 +2132,19 @@ void CEXISlippi::prepareOnlineMatchState()
 		// 2 BLUE TEAM Falco
 		for (int i = 0; i <= SLIPPI_REMOTE_PLAYER_MAX; i++)
 		{
-			if(i==0){
+			if (i == 0)
+			{
 				rps[i].characterColor = 1;
 				rps[i].teamId = 0;
-			}else {
+			}
+			else
+			{
 				rps[i].characterColor = 2;
 				rps[i].teamId = 1;
 			}
 
 			rps[i].characterId = 0x14;
-			rps[i].playerIdx = i+1;
+			rps[i].playerIdx = i + 1;
 			rps[i].isCharacterSelected = true;
 		}
 
@@ -2152,16 +2166,52 @@ void CEXISlippi::prepareOnlineMatchState()
 				remoteCharOk = false;
 		}
 
-		// TODO: Check to make sure that in unranked/ranked the opponent hasn't picked a dumb stage
-
-		if (lastSearch.mode < directMode && (!localCharOk || !remoteCharOk))
+		// TODO: This is annoying, ideally remotePlayerSelections would just include everyone including the local player
+		// TODO: Would also simplify some logic in the Netplay class
+		std::vector<SlippiPlayerSelections> orderedSelections(4);
+		orderedSelections[lps.playerIdx] = lps;
+		for (int i = 0; i < remotePlayerCount; i++)
 		{
-			// If we get here, someone is doing something bad, clear the lobby
-			handleConnectionCleanup();
+			orderedSelections[rps[i].playerIdx] = rps[i];
+		}
+
+		// Overwrite stage information. Make sure everyone loads the same stage
+		u16 stageId = 0x1F; // Default to battlefield if there was no selection
+		for (auto selections : orderedSelections)
+		{
+			if (!selections.isStageSelected)
+				continue;
+
+			// Stage selected by this player, use that selection
+			stageId = selections.stageId;
+			break;
+		}
+
+		if (SlippiMatchmaking::IsFixedRulesMode(lastSearch.mode))
+		{
+			// If we enter one of these conditions, someone is doing something bad, clear the lobby
+
 			if (!localCharOk)
+			{
+				handleConnectionCleanup();
 				forcedError = "The character you selected is not allowed in this mode";
-			prepareOnlineMatchState();
-			return;
+				prepareOnlineMatchState();
+				return;
+			}
+
+			if (!remoteCharOk)
+			{
+				handleConnectionCleanup();
+				prepareOnlineMatchState();
+				return;
+			}
+
+			if (std::find(legalStages.begin(), legalStages.end(), stageId) == legalStages.end())
+			{
+				handleConnectionCleanup();
+				prepareOnlineMatchState();
+				return;
+			}
 		}
 
 		// Overwrite local player character
@@ -2205,27 +2255,6 @@ void CEXISlippi::prepareOnlineMatchState()
 			onlineMatchBlock[0x61 + 3 * 0x24] = 0;
 		}
 
-		// TODO: This is annoying, ideally remotePlayerSelections would just include everyone including the local player
-		// TODO: Would also simplify some logic in the Netplay class
-		std::vector<SlippiPlayerSelections> orderedSelections(4);
-		orderedSelections[lps.playerIdx] = lps;
-		for (int i = 0; i < remotePlayerCount; i++)
-		{
-			orderedSelections[rps[i].playerIdx] = rps[i];
-		}
-
-		// Overwrite stage information. Make sure everyone loads the same stage
-		u16 stageId = 0x1F; // Default to battlefield if there was no selection
-		for (auto selections : orderedSelections)
-		{
-			if (!selections.isStageSelected)
-				continue;
-
-			// Stage selected by this player, use that selection
-			stageId = selections.stageId;
-			break;
-		}
-
 		u16 *stage = (u16 *)&onlineMatchBlock[0xE];
 		*stage = Common::swap16(stageId);
 
@@ -2234,9 +2263,10 @@ void CEXISlippi::prepareOnlineMatchState()
 		WARN_LOG(SLIPPI_ONLINE, "Rng Offset: 0x%x", rngOffset);
 		WARN_LOG(SLIPPI_ONLINE, "P1 Char: 0x%X, P2 Char: 0x%X", onlineMatchBlock[0x60], onlineMatchBlock[0x84]);
 
-		// Turn pause on in direct, off in everything else
+		// Turn pause off in unranked/ranked, on in other modes
 		u8 *gameBitField3 = (u8 *)&onlineMatchBlock[2];
-		*gameBitField3 = lastSearch.mode >= directMode ? *gameBitField3 & 0xF7 : *gameBitField3 | 0x8;
+		*gameBitField3 =
+		    SlippiMatchmaking::IsFixedRulesMode(lastSearch.mode) ? *gameBitField3 | 0x8 : *gameBitField3 & 0xF7;
 		//*gameBitField3 = *gameBitField3 | 0x8;
 
 		// Group players into left/right side for team splash screen display
@@ -2337,29 +2367,39 @@ void CEXISlippi::prepareOnlineMatchState()
 	m_read_queue.insert(m_read_queue.end(), onlineMatchBlock.begin(), onlineMatchBlock.end());
 }
 
-u16 CEXISlippi::getRandomStage()
+std::vector<u16> CEXISlippi::legalStages = {
+    0x2,  // FoD
+    0x3,  // Pokemon
+    0x8,  // Yoshi's Story
+    0x1C, // Dream Land
+    0x1F, // Battlefield
+    0x20, // Final Destination
+};
+
+u16 CEXISlippi::getRandomStage(u8 onlineMode)
 {
 	static u16 selectedStage;
 
-	static std::vector<u16> stages = {
-	    // 0x2,  // FoD
-	    0x3,  // Pokemon
-	    0x8,  // Yoshi's Story
-	    0x1C, // Dream Land
-	    0x1F, // Battlefield
-	    0x20, // Final Destination
-	};
-
 	// Reset stage pool if it's empty
 	if (stagePool.empty())
-		stagePool.insert(stagePool.end(), stages.begin(), stages.end());
-
+	{
+		stagePool.insert(stagePool.end(), legalStages.begin(), legalStages.end());
+	}
+		
 	// Get random stage
 	int randIndex = generator() % stagePool.size();
 	selectedStage = stagePool[randIndex];
 
 	// Remove last selection from stage pool
 	stagePool.erase(stagePool.begin() + randIndex);
+
+	// If the mode is teams, don't allow FoD to be selected, re-roll instead. Note that this will
+	// cause a stack overflow exception/infinite recursion in the case where a dev removes all
+	// stages but FoD from the legalStages vector
+	if (onlineMode == (u8)SlippiMatchmaking::OnlinePlayMode::TEAMS && selectedStage == 0x2)
+	{
+		return getRandomStage(onlineMode);
+	}
 
 	return selectedStage;
 }
@@ -2375,12 +2415,13 @@ void CEXISlippi::setMatchSelections(u8 *payload)
 
 	s.stageId = Common::swap16(&payload[4]);
 	u8 stageSelectOption = payload[6];
+	u8 onlineMode = payload[7];
 
 	s.isStageSelected = stageSelectOption == 1 || stageSelectOption == 3;
 	if (stageSelectOption == 3)
 	{
 		// If stage requested is random, select a random stage
-		s.stageId = getRandomStage();
+		s.stageId = getRandomStage(onlineMode);
 	}
 	INFO_LOG(SLIPPI, "LPS set char: %d, iSS: %d, %d, stage: %d, team: %d", s.isCharacterSelected, stageSelectOption,
 	         s.isStageSelected, s.stageId, s.teamId);
@@ -2453,7 +2494,8 @@ void CEXISlippi::prepareGctLoad(u8 *payload)
 
 	// Overwrite the instructions which load address pointing to codeset
 	PowerPC::HostWrite_U32(0x3DE00000 | (address >> 16), 0x80001f58); // lis r15, 0xXXXX # top half of address
-	PowerPC::HostWrite_U32(0x61EF0000 | (address & 0xFFFF), 0x80001f5C); // ori r15, r15, 0xXXXX # bottom half of address
+	PowerPC::HostWrite_U32(0x61EF0000 | (address & 0xFFFF),
+	                       0x80001f5C);              // ori r15, r15, 0xXXXX # bottom half of address
 	PowerPC::ppcState.iCache.Invalidate(0x80001f58); // This should invalidate both instructions
 
 	// Invalidate the codes
@@ -2696,7 +2738,7 @@ void CEXISlippi::prepareDelayResponse()
 {
 	m_read_queue.clear();
 	m_read_queue.push_back(1); // Indicate this is a real response
-	
+
 	if (NetPlay::IsNetPlayRunning())
 	{
 		// If we are using the old netplay, we don't want to add any additional delay, so return 0

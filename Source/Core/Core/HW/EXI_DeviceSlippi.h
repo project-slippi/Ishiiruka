@@ -176,7 +176,7 @@ class CEXISlippi : public IEXIDevice
 	std::vector<u8> m_payload;
 
 	// online play stuff
-	u16 getRandomStage();
+	u16 getRandomStage(u8 onlineMode);
 	bool isDisconnected();
 	void handleOnlineInputs(u8 *payload);
 	void prepareOpponentInputs(u8 *payload);
@@ -271,4 +271,6 @@ class CEXISlippi : public IEXIDevice
 
 	std::map<s32, std::unique_ptr<SlippiSavestate>> activeSavestates;
 	std::deque<std::unique_ptr<SlippiSavestate>> availableSavestates;
+
+	static std::vector<u16> legalStages;
 };

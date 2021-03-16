@@ -948,6 +948,10 @@ bool SConfig::AutoSetup(EBootBS2 _BootBS2)
 				if(pVolume->GetLongNames()[DiscIO::Language::LANGUAGE_ENGLISH].find("20XX") != std::string::npos)
 					m_gameType = GAMETYPE_MELEE_20XX;
 			}
+			else if (m_strGameID == "GTME01")
+			{
+				m_gameType = GAMETYPE_MELEE_UPTM;
+			}
 
 			// Check if we have a Wii disc
 			bWii = pVolume->GetVolumeType() == DiscIO::Platform::WII_DISC;
