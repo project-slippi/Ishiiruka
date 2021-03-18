@@ -1547,12 +1547,12 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 
 		// Reset character selections as they are no longer needed
 		localSelections.Reset();
-		slippi_netplay->StartSlippiGame();
+		if (slippi_netplay)
+			slippi_netplay->StartSlippiGame();
 	}
 
 	if (isDisconnected())
 	{
-		auto status = slippi_netplay->GetSlippiConnectStatus();
 		m_read_queue.push_back(3); // Indicate we disconnected
 		return;
 	}
@@ -1912,13 +1912,13 @@ void CEXISlippi::prepareOnlineMatchState()
 
 	u8 localPlayerReady = localSelections.isCharacterSelected;
 	u8 remotePlayersReady = 0;
-	u8 localPlayerIndex = matchmaking->LocalPlayerIndex();
-	u8 remotePlayerIndex = 1;
 
 	auto userInfo = user->GetUserInfo();
 
 	if (mmState == SlippiMatchmaking::ProcessState::CONNECTION_SUCCESS)
 	{
+		localPlayerIndex = matchmaking->LocalPlayerIndex();
+
 		if (!slippi_netplay)
 		{
 #ifdef LOCAL_TESTING
@@ -2306,7 +2306,7 @@ u16 CEXISlippi::getRandomStage(u8 onlineMode)
 	{
 		stagePool.insert(stagePool.end(), legalStages.begin(), legalStages.end());
 	}
-		
+
 	// Get random stage
 	int randIndex = generator() % stagePool.size();
 	selectedStage = stagePool[randIndex];
