@@ -34,7 +34,7 @@ static void ResetRumbleLockNeeded();
 static void Reset();
 static void Setup();
 
-static std::atomic<bool> s_detected = false;
+static std::atomic<bool> s_detected = {false};
 static libusb_device_handle* s_handle = nullptr;
 static u8 s_controller_type[MAX_SI_CHANNELS] = {
 		ControllerTypes::CONTROLLER_NONE, ControllerTypes::CONTROLLER_NONE,
@@ -78,7 +78,7 @@ static u64 s_last_init = 0;
 static u64 s_consecutive_slow_transfers = 0;
 static double s_read_rate = 0.0;
 
-static std::atomic<bool> external_thread_should_reset_polling_threads = false;
+static std::atomic<bool> external_thread_should_reset_polling_threads = {false};
 static u64 s_consecutive_adapter_errors = 0;
 static u64 s_consecutive_adapter_errors_limit = 100;
 
