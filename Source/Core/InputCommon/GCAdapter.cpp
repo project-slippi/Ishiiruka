@@ -34,7 +34,7 @@ static void ResetRumbleLockNeeded();
 static void Reset();
 static void Setup();
 
-static bool s_detected = false;
+static std::atomic<bool> s_detected = false;
 static libusb_device_handle* s_handle = nullptr;
 static u8 s_controller_type[MAX_SI_CHANNELS] = {
 		ControllerTypes::CONTROLLER_NONE, ControllerTypes::CONTROLLER_NONE,
@@ -77,6 +77,10 @@ static u64 s_last_init = 0;
 
 static u64 s_consecutive_slow_transfers = 0;
 static double s_read_rate = 0.0;
+
+static std::atomic<bool> external_thread_should_reset_polling_threads = false;
+static u64 s_consecutive_adapter_errors = 0;
+static u64 s_consecutive_adapter_errors_limit = 100;
 
 // Schmidtt trigger style, start applying if effective report rate > 290Hz, stop if < 260Hz
 static const int stopApplyingEILVOptimsHz = 260;
@@ -367,13 +371,24 @@ const u8 *Fetch(std::chrono::high_resolution_clock::time_point *tp)
 	return controller_payload_entries.front().controller_payload;
 }
 
+void ResetAdapterIfNecessary()
+{
+	if (external_thread_should_reset_polling_threads)
+		Reset();
+}
+
 bool IsReadingAtReducedRate()
 {
 	return s_consecutive_slow_transfers > 80;
 }
 
-double ReadRate() 
+double ReadRate()
 {
+	if (external_thread_should_reset_polling_threads)
+	{
+		Reset();
+		return 1e10;
+	}
 	return s_read_rate;
 }
 
@@ -400,6 +415,20 @@ static void Read()
 
 		double elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - start).count() / 1000000.0;
 
+		if (adapter_error)
+		{
+			s_consecutive_adapter_errors++;
+			if (s_consecutive_adapter_errors >= s_consecutive_adapter_errors_limit)
+			{
+				s_consecutive_adapter_errors = 0;
+				external_thread_should_reset_polling_threads = true;
+				return;
+			}
+		}
+		else
+		{
+			s_consecutive_adapter_errors = 0;
+		}
 		// Store previous input and restore in the case of an adapter error
 		if (reuseOldInputsEnabled)
 		{
@@ -655,9 +684,11 @@ static bool CheckDeviceAccess(libusb_device* device)
 		}
 		// This call makes Nyko-brand (and perhaps other) adapters work.
 		// However it returns LIBUSB_ERROR_PIPE with Mayflash adapters.
+
 		const int transfer = libusb_control_transfer(s_handle, 0x21, 11, 0x0001, 0, nullptr, 0, 1000);
 		if (transfer < 0)
 			WARN_LOG(SERIALINTERFACE, "libusb_control_transfer failed with error: %d", transfer);
+		
 
 		// this split is needed so that we don't avoid claiming the interface when
 		// detaching the kernel driver is successful
@@ -767,6 +798,8 @@ static void Reset()
 	if (!s_detected)
 		return;
 
+	external_thread_should_reset_polling_threads = false;
+
 	if (s_adapter_thread_running.TestAndClear())
 	{
 		s_adapter_input_thread.join();
@@ -796,6 +829,12 @@ GCPadStatus Input(int chan, std::chrono::high_resolution_clock::time_point *tp)
 
 	if (s_handle == nullptr || !s_detected)
 		return{};
+
+	if (external_thread_should_reset_polling_threads)
+	{
+		Reset();
+		return{};
+	}
 
 	int payload_size = 0;
 	u8 controller_payload_copy[adapter_payload_size];

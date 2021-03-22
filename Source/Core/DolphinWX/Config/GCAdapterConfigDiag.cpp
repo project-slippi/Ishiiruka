@@ -19,6 +19,8 @@ GCAdapterConfigDiag::GCAdapterConfigDiag(wxWindow* const parent, const wxString&
 	const int tab_num)
 	: wxDialog(parent, wxID_ANY, name), m_pad_id(tab_num)
 {
+	GCAdapter::ResetAdapterIfNecessary();
+
 	wxCheckBox* const gamecube_rumble = new wxCheckBox(this, wxID_ANY, _("Rumble"));
 	gamecube_rumble->SetValue(SConfig::GetInstance().m_AdapterRumble[m_pad_id]);
 	gamecube_rumble->Bind(wxEVT_CHECKBOX, &GCAdapterConfigDiag::OnAdapterRumble, this);
