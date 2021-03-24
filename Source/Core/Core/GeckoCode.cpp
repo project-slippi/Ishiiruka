@@ -194,29 +194,43 @@ static bool InstallCodeHandler()
 		std::lock_guard<std::mutex> lk(active_codes_lock);
 
 		int i = 0;
-
+		// First check if we have enough space for all the codes
 		for (const GeckoCode &active_code : active_codes)
 		{
 			if ((active_code.enabled && !IsDisabledMeleeCode(active_code)) || IsEnabledMeleeCode(active_code))
 			{
 				for (const GeckoCode::Code &code : active_code.codes)
 				{
-					// Make sure we have enough memory to hold the code list
-					if ((codelist_base_address + 24 + i) < codelist_end_address)
-					{
-						PowerPC::HostWrite_U32(code.address, codelist_base_address + 8 + i);
-						PowerPC::HostWrite_U32(code.data, codelist_base_address + 12 + i);
-						i += 8;
-					}
-					else
-					{
-						OSD::AddMessage("Ran out of memory applying gecko codes. Too many codes enabled.", 30000,
-						                0xFFFF0000);
+					i += 8;
+				}
+			}
+		}
 
-						ERROR_LOG(SLIPPI, "Ran out of memory applying gecko codes");
-						initialization_failed = true;
-						return false;
-					}
+		auto available = codelist_end_address - (codelist_base_address + 24);
+		INFO_LOG(ACTIONREPLAY, "Code usage: %d/%d", i, available);
+
+		// Write error message if not enough space
+		if ((codelist_base_address + 24 + i) >= codelist_end_address)
+		{
+			auto s = StringFromFormat("Ran out of memory applying gecko codes (%d/%d).", i, available);
+			OSD::AddMessage(s, 30000, 0xFFFF0000);
+			OSD::AddMessage("Codes were not applied, try disabling some codes.", 30000, 0xFFFF0000);
+
+			ERROR_LOG(SLIPPI, "Ran out of memory applying gecko codes");
+			initialization_failed = true;
+			return false;
+		}
+
+		i = 0;
+		for (const GeckoCode &active_code : active_codes)
+		{
+			if ((active_code.enabled && !IsDisabledMeleeCode(active_code)) || IsEnabledMeleeCode(active_code))
+			{
+				for (const GeckoCode::Code &code : active_code.codes)
+				{
+					PowerPC::HostWrite_U32(code.address, codelist_base_address + 8 + i);
+					PowerPC::HostWrite_U32(code.data, codelist_base_address + 12 + i);
+					i += 8;
 				}
 			}
 		}

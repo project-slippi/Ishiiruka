@@ -294,32 +294,41 @@ void SlippiMatchmaking::startMatchmaking()
 	    return;
 	}*/
 
-	// Compute LAN IP, in case 2 people are connecting from one IP we can send them each other's local
-	// IP instead of public. Experimental to allow people from behind one router to connect.
-	char host[256];
-	char lanAddr[30];
-	char *IP;
-	struct hostent *host_entry;
-	int hostname;
-	hostname = gethostname(host, sizeof(host)); // find the host name
-	if (hostname == -1)
-	{
-		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Error finding LAN address");
-	}
-	else
-	{
-		host_entry = gethostbyname(host); // find host information
-		if (host_entry == NULL)
-		{
-			ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Error finding LAN host");
-		}
-		else
-		{
-			IP = inet_ntoa(*((struct in_addr *)host_entry->h_addr_list[0])); // Convert into IP string
-			INFO_LOG(SLIPPI_ONLINE, "[Matchmaking] LAN IP: %s", IP);
-			sprintf(lanAddr, "%s:%d", IP, m_hostPort);
-		}
-	}
+	// The commented code attempts to fetch the LAN IP such that when remote IPs match, the
+	// LAN IP can be tried in order to establish a connection in the case where the players
+	// don't have NAT loopback which allows that type of connection.
+	// Right now though, the logic would replace the WAN IP with the LAN IP and if the LAN
+	// IP connection didn't work but WAN would have, the players can no longer connect.
+	// Two things need to happen to bring this logic back:
+	// 1. The connection must be changed to try both the LAN and WAN IPs in the case of
+	//    matching WAN IPs
+	// 2. The process for fetching LAN IP must be improved. For me, the current method
+	//    would always fetch my VirtualBox IP, which is not correct. I also think perhaps
+	//    it didn't work on Linux/Mac but I haven't tested it.
+	char lanAddr[30] = "";
+	//char host[256];
+	//char *IP;
+	//struct hostent *host_entry;
+	//int hostname;
+	//hostname = gethostname(host, sizeof(host)); // find the host name
+	//if (hostname == -1)
+	//{
+	//	ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Error finding LAN address");
+	//}
+	//else
+	//{
+	//	host_entry = gethostbyname(host); // find host information
+	//	if (host_entry == NULL)
+	//	{
+	//		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Error finding LAN host");
+	//	}
+	//	else
+	//	{
+	//		IP = inet_ntoa(*((struct in_addr *)host_entry->h_addr_list[0])); // Convert into IP string
+	//		INFO_LOG(SLIPPI_ONLINE, "[Matchmaking] LAN IP: %s", IP);
+	//		sprintf(lanAddr, "%s:%d", IP, m_hostPort);
+	//	}
+	//}
 
 	std::vector<u8> connectCodeBuf;
 	connectCodeBuf.insert(connectCodeBuf.end(), m_searchSettings.connectCode.begin(),
@@ -479,6 +488,35 @@ void SlippiMatchmaking::handleMatchmaking()
 	}
 	m_isHost = getResp.value("isHost", false);
 
+	// Get allowed stages. For stage select modes like direct and teams, this will only impact the first map selected
+	m_allowedStages.clear();
+	auto stages = getResp["stages"];
+	if (stages.is_array())
+	{
+		for (json::iterator it = stages.begin(); it != stages.end(); ++it)
+		{
+			json el = *it;
+			auto stageId = el.get<int>();
+			m_allowedStages.push_back(stageId);
+		}
+	}
+	
+	if (m_allowedStages.empty())
+	{
+		// Default case, shouldn't ever really be hit but it's here just in case
+		m_allowedStages.push_back(0x3); // Pokemon
+		m_allowedStages.push_back(0x8); // Yoshi's Story
+		m_allowedStages.push_back(0x1C); // Dream Land
+		m_allowedStages.push_back(0x1F); // Battlefield
+		m_allowedStages.push_back(0x20); // Final Destination
+
+		// Add FoD if singles
+		if (m_playerInfo.size() == 2)
+		{
+			m_allowedStages.push_back(0x2); // FoD
+		}
+	}
+
 	// Disconnect and destroy enet client to mm server
 	terminateMmConnection();
 
@@ -494,6 +532,11 @@ int SlippiMatchmaking::LocalPlayerIndex()
 std::vector<SlippiUser::UserInfo> SlippiMatchmaking::GetPlayerInfo()
 {
 	return m_playerInfo;
+}
+
+std::vector<u16> SlippiMatchmaking::GetStages()
+{
+	return m_allowedStages;
 }
 
 std::string SlippiMatchmaking::GetPlayerName(u8 port)

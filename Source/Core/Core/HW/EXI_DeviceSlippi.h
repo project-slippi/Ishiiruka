@@ -176,7 +176,7 @@ class CEXISlippi : public IEXIDevice
 	std::vector<u8> m_payload;
 
 	// online play stuff
-	u16 getRandomStage(u8 onlineMode);
+	u16 getRandomStage();
 	bool isDisconnected();
 	void handleOnlineInputs(u8 *payload);
 	void prepareOpponentInputs(u8 *payload);
@@ -256,6 +256,11 @@ class CEXISlippi : public IEXIDevice
 	// Used to determine when to detect when a new session has started
 	bool isPlaySessionActive = false;
 
+	// We put these at the class level to preserve values in the case of a disconnect
+	// while loading. Without this, someone could load into a game playing the wrong char
+	u8 localPlayerIndex = 0;
+	u8 remotePlayerIndex = 1;
+
   protected:
 	void TransferByte(u8 &byte) override;
 
@@ -272,5 +277,5 @@ class CEXISlippi : public IEXIDevice
 	std::map<s32, std::unique_ptr<SlippiSavestate>> activeSavestates;
 	std::deque<std::unique_ptr<SlippiSavestate>> availableSavestates;
 
-	static std::vector<u16> legalStages;
+	std::vector<u16> allowedStages;
 };
