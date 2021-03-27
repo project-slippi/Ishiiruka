@@ -208,6 +208,6 @@ class SlippiNetplayClientRepository
 
   private:
 	static std::mutex repo_mutex;
-	static std::list<SlippiNetplayClient> slippiNetplayClients;
+	static std::list<SlippiNetplayClient *> slippiNetplayClients;
 	SlippiNetplayClientRepository() = default;
 };

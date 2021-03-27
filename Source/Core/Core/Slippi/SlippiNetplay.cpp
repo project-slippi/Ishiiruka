@@ -33,35 +33,6 @@
 static std::mutex pad_mutex;
 static std::mutex ack_mutex;
 
-void SlippiNetplayClientRepository::addNetplayClient(SlippiNetplayClient *client)
-{
-	std::lock_guard<std::mutex> lock(repo_mutex);
-	if (std::find(slippiNetplayClients.begin(), slippiNetplayClients.end(), client) == slippiNetplayClients.end())
-		slippiNetplayClients.push_back(client);
-}
-
-void SlippiNetplayClientRepository::removeNetplayClient(SlippiNetplayClient *client)
-{
-	std::lock_guard<std::mutex> lock(repo_mutex);
-	std::remove_if(slippiNetplayClients.begin(), slippiNetplayClients.end(), [](auto it) { return it == client; });
-}
-
-SlippiNetplayClient* SlippiNetplayClientRepository::get() {
-	static bool multipleRegisteredClients = false;
-	size_t len = slippiNetplayClients.size();
-	if (len > 1 && !multipleRegisteredClients)
-	{
-		multipleRegisteredClients = true;
-		WARN_LOG(SLIPPI_ONLINE, "Multiple SlippiNetplayClients exist");
-		return nullptr;
-	}
-	else
-	{
-		multipleRegisteredClients = false;
-		return len == 1 ? &slippiNetplayClients.front() : nullptr;
-	}
-}
-
 // called from ---GUI--- thread
 SlippiNetplayClient::~SlippiNetplayClient()
 {
@@ -758,4 +729,37 @@ s32 SlippiNetplayClient::CalcTimeOffsetUs()
 	}
 
 	return sum / count;
+}
+
+std::mutex SlippiNetplayClientRepository::repo_mutex;
+std::list<SlippiNetplayClient *> SlippiNetplayClientRepository::slippiNetplayClients;
+
+void SlippiNetplayClientRepository::addNetplayClient(SlippiNetplayClient *client)
+{
+	std::lock_guard<std::mutex> lock(SlippiNetplayClientRepository::repo_mutex);
+	if (std::find(slippiNetplayClients.begin(), slippiNetplayClients.end(), client) == slippiNetplayClients.end())
+		slippiNetplayClients.push_back(client);
+}
+
+void SlippiNetplayClientRepository::removeNetplayClient(SlippiNetplayClient *client)
+{
+	std::lock_guard<std::mutex> lock(SlippiNetplayClientRepository::repo_mutex);
+	slippiNetplayClients.remove(client);
+}
+
+SlippiNetplayClient *SlippiNetplayClientRepository::get()
+{
+	static bool multipleRegisteredClients = false;
+	size_t len = slippiNetplayClients.size();
+	if (len > 1 && !multipleRegisteredClients)
+	{
+		multipleRegisteredClients = true;
+		WARN_LOG(SLIPPI_ONLINE, "Multiple SlippiNetplayClients exist");
+		return nullptr;
+	}
+	else
+	{
+		multipleRegisteredClients = false;
+		return len == 1 ? slippiNetplayClients.front() : nullptr;
+	}
 }
