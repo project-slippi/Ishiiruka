@@ -23,6 +23,8 @@
 #include "Core/HW/SystemTimers.h"
 #include "Core/NetPlayProto.h"
 
+#include "Core/Slippi/SlippiNetplay.h"
+
 #include "InputCommon/GCAdapter.h"
 #include "InputCommon/GCPadStatus.h"
 
@@ -791,11 +793,19 @@ static void Reset()
 
 GCPadStatus Input(int chan, std::chrono::high_resolution_clock::time_point *tp)
 {
+	static bool sncPerceived = false;
+
 	if (!UseAdapter())
 		return{};
 
 	if (s_handle == nullptr || !s_detected)
 		return{};
+
+	SlippiNetplayClient* snc = SlippiNetplayClientRepository::get();
+	if (snc && !sncPerceived)
+		WARN_LOG(SLIPPI_ONLINE, "Adapter perceived by Input method");
+	if ((!snc) && sncPerceived)
+		WARN_LOG(SLIPPI_ONLINE, "Adapter perception by Input method stopped");
 
 	int payload_size = 0;
 	u8 controller_payload_copy[adapter_payload_size];

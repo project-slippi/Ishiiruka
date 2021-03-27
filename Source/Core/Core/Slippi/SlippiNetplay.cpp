@@ -33,9 +33,40 @@
 static std::mutex pad_mutex;
 static std::mutex ack_mutex;
 
+void SlippiNetplayClientRepository::addNetplayClient(SlippiNetplayClient *client)
+{
+	std::lock_guard<std::mutex> lock(repo_mutex);
+	if (std::find(slippiNetplayClients.begin(), slippiNetplayClients.end(), client) == slippiNetplayClients.end())
+		slippiNetplayClients.push_back(client);
+}
+
+void SlippiNetplayClientRepository::removeNetplayClient(SlippiNetplayClient *client)
+{
+	std::lock_guard<std::mutex> lock(repo_mutex);
+	std::remove_if(slippiNetplayClients.begin(), slippiNetplayClients.end(), [](auto it) { return it == client; });
+}
+
+SlippiNetplayClient* SlippiNetplayClientRepository::get() {
+	static bool multipleRegisteredClients = false;
+	size_t len = slippiNetplayClients.size();
+	if (len > 1 && !multipleRegisteredClients)
+	{
+		multipleRegisteredClients = true;
+		WARN_LOG(SLIPPI_ONLINE, "Multiple SlippiNetplayClients exist");
+		return nullptr;
+	}
+	else
+	{
+		multipleRegisteredClients = false;
+		return len == 1 ? &slippiNetplayClients.front() : nullptr;
+	}
+}
+
 // called from ---GUI--- thread
 SlippiNetplayClient::~SlippiNetplayClient()
 {
+	SlippiNetplayClientRepository::removeNetplayClient(this);
+
 	m_do_loop.Clear();
 	if (m_thread.joinable())
 		m_thread.join();
@@ -68,6 +99,8 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 r
 {
 	WARN_LOG(SLIPPI_ONLINE, "Initializing Slippi Netplay for port: %d, with host: %s", localPort,
 	         isDecider ? "true" : "false");
+
+	SlippiNetplayClientRepository::addNetplayClient(this);
 
 	this->isDecider = isDecider;
 
