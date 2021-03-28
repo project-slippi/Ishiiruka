@@ -736,7 +736,7 @@ float SlippiNetplayClient::ComputeSampleVariance(float mean, std::vector<u64>& n
 
 	float total = 0;
 	for(u64 i : numbers) {
-		total += pow((i - mean), 2);
+		total += pow(((float)i - mean), (float)2.0);
 	}
 
 	return total / (numbers.size() - 1);
