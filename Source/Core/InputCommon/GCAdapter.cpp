@@ -415,7 +415,7 @@ static void Read()
 
 		double elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - start).count() / 1000000.0;
 
-		if (adapter_error)
+		if (adapter_error && !external_thread_should_reset_polling_threads)
 		{
 			s_consecutive_adapter_errors++;
 			if (s_consecutive_adapter_errors >= s_consecutive_adapter_errors_limit)
