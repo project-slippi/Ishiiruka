@@ -23,7 +23,7 @@
 #include "Core/HW/SystemTimers.h"
 #include "Core/NetPlayProto.h"
 
-//#include "Core/Slippi/SlippiNetplay.h"
+#include "InputCommon/KristalInputJudge.h"
 
 #include "InputCommon/GCAdapter.h"
 #include "InputCommon/GCPadStatus.h"
@@ -145,6 +145,83 @@ void judgeEILVOptimsApplicability() {
 		else if (applyEILVOptims && hz < stopApplyingEILVOptimsHz)
 			applyEILVOptims = false;
 	}
+}
+
+GCPadStatus makePadFrom8ByteArray(uint8_t *byteArray, bool get_origin)
+{
+	GCPadStatus pad = {};
+
+	u8 b1 = byteArray[0];
+	u8 b2 = byteArray[1];
+
+	if (b1 & (1 << 0))
+		pad.button |= PAD_BUTTON_A;
+	if (b1 & (1 << 1))
+		pad.button |= PAD_BUTTON_B;
+	if (b1 & (1 << 2))
+		pad.button |= PAD_BUTTON_X;
+	if (b1 & (1 << 3))
+		pad.button |= PAD_BUTTON_Y;
+
+	if (b1 & (1 << 4))
+		pad.button |= PAD_BUTTON_LEFT;
+	if (b1 & (1 << 5))
+		pad.button |= PAD_BUTTON_RIGHT;
+	if (b1 & (1 << 6))
+		pad.button |= PAD_BUTTON_DOWN;
+	if (b1 & (1 << 7))
+		pad.button |= PAD_BUTTON_UP;
+
+	if (b2 & (1 << 0))
+		pad.button |= PAD_BUTTON_START;
+	if (b2 & (1 << 1))
+		pad.button |= PAD_TRIGGER_Z;
+	if (b2 & (1 << 2))
+		pad.button |= PAD_TRIGGER_R;
+	if (b2 & (1 << 3))
+		pad.button |= PAD_TRIGGER_L;
+
+	if (get_origin)
+		pad.button |= PAD_GET_ORIGIN;
+
+	pad.stickX = byteArray[2];
+	pad.stickY = byteArray[3];
+	pad.substickX = byteArray[4];
+	pad.substickY = byteArray[5];
+	pad.triggerLeft = byteArray[6];
+	pad.triggerRight = byteArray[7];
+
+	return pad;
+}
+
+/*
+* 0 : no start press
+* 1-4 : chan 0-3 start press (lower takes prio)
+*/
+static u8 FindUsedController(u8 *controller_payload)
+{
+	return
+		(controller_payload[1 + 2 + 0*9] & 1) ? 1 :
+		(controller_payload[1 + 2 + 1*9] & 1) ? 2 :
+		(controller_payload[1 + 2 + 2*9] & 1) ? 3 :
+		(controller_payload[1 + 2 + 3*9] & 1) ? 4 :
+		0;
+}
+
+u8 usedControllerChan = 0; // P1 default
+GCPadStatus previousPad{};
+
+static void HandleKristalFunctions(u8 *controller_payload)
+{
+	u8 usedControllerInfo = FindUsedController(controller_payload);
+	if (usedControllerInfo)
+		usedControllerChan = usedControllerInfo - 1;
+	GCPadStatus pad = makePadFrom8ByteArray(controller_payload + 2 + 9 * usedControllerChan, false);
+	if (isKristalInput(pad, previousPad))
+	{
+		WARN_LOG(SLIPPI_ONLINE, "Perceived Kristal Input");
+	}
+	previousPad = pad;
 }
 
 static void Feed(std::chrono::high_resolution_clock::time_point tp, u8 *controller_payload)
@@ -321,6 +398,8 @@ static void Feed(std::chrono::high_resolution_clock::time_point tp, u8 *controll
 
 	if (controller_payload_entries.size() > controller_payload_limit)
 		controller_payload_entries.pop_back();
+
+	HandleKristalFunctions(controller_payload); //TODO Perhaps shouldn't be in USB polling thread ? Performance concerns ?
 }
 
 const u8 *Fetch(std::chrono::high_resolution_clock::time_point *tp)
@@ -789,52 +868,6 @@ static void Reset()
 	if (s_detect_callback != nullptr)
 		s_detect_callback();
 	NOTICE_LOG(SERIALINTERFACE, "GC Adapter detached");
-}
-
-GCPadStatus makePadFrom8ByteArray(uint8_t* byteArray, bool get_origin) {
-	GCPadStatus pad = {};
-
-	u8 b1 = byteArray[0];
-	u8 b2 = byteArray[1];
-
-	if (b1 & (1 << 0))
-		pad.button |= PAD_BUTTON_A;
-	if (b1 & (1 << 1))
-		pad.button |= PAD_BUTTON_B;
-	if (b1 & (1 << 2))
-		pad.button |= PAD_BUTTON_X;
-	if (b1 & (1 << 3))
-		pad.button |= PAD_BUTTON_Y;
-
-	if (b1 & (1 << 4))
-		pad.button |= PAD_BUTTON_LEFT;
-	if (b1 & (1 << 5))
-		pad.button |= PAD_BUTTON_RIGHT;
-	if (b1 & (1 << 6))
-		pad.button |= PAD_BUTTON_DOWN;
-	if (b1 & (1 << 7))
-		pad.button |= PAD_BUTTON_UP;
-
-	if (b2 & (1 << 0))
-		pad.button |= PAD_BUTTON_START;
-	if (b2 & (1 << 1))
-		pad.button |= PAD_TRIGGER_Z;
-	if (b2 & (1 << 2))
-		pad.button |= PAD_TRIGGER_R;
-	if (b2 & (1 << 3))
-		pad.button |= PAD_TRIGGER_L;
-
-	if (get_origin)
-		pad.button |= PAD_GET_ORIGIN;
-
-	pad.stickX = byteArray[2];
-	pad.stickY = byteArray[3];
-	pad.substickX = byteArray[4];
-	pad.substickY = byteArray[5];
-	pad.triggerLeft = byteArray[6];
-	pad.triggerRight = byteArray[7];
-
-	return pad;
 }
 
 GCPadStatus Input(int chan, std::chrono::high_resolution_clock::time_point *tp)
