@@ -839,8 +839,6 @@ GCPadStatus makePadFrom8ByteArray(uint8_t* byteArray, bool get_origin) {
 
 GCPadStatus Input(int chan, std::chrono::high_resolution_clock::time_point *tp)
 {
-	static bool sncPerceived = false;
-
 	if (!UseAdapter())
 		return{};
 

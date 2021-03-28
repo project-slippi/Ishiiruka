@@ -233,20 +233,6 @@ class SlippiNetplayClient
 	u32 m_timebase_frame = 0;
 };
 
-// How NOT to do architecture
-/*class SlippiNetplayClientRepository
-{
-  public:
-	static void addNetplayClient(SlippiNetplayClient *);
-	static void removeNetplayClient(SlippiNetplayClient *);
-	static SlippiNetplayClient *get();
-
-  private:
-	static std::mutex repo_mutex;
-	static std::list<SlippiNetplayClient *> slippiNetplayClients;
-	SlippiNetplayClientRepository() = default;
-};*/
-
 extern SlippiNetplayClient *SLIPPI_NETPLAY; // singleton static pointer
 
 static bool IsOnline()
