@@ -791,6 +791,52 @@ static void Reset()
 	NOTICE_LOG(SERIALINTERFACE, "GC Adapter detached");
 }
 
+GCPadStatus makePadFrom8ByteArray(uint8_t* byteArray, bool get_origin) {
+	GCPadStatus pad = {};
+
+	u8 b1 = byteArray[0];
+	u8 b2 = byteArray[1];
+
+	if (b1 & (1 << 0))
+		pad.button |= PAD_BUTTON_A;
+	if (b1 & (1 << 1))
+		pad.button |= PAD_BUTTON_B;
+	if (b1 & (1 << 2))
+		pad.button |= PAD_BUTTON_X;
+	if (b1 & (1 << 3))
+		pad.button |= PAD_BUTTON_Y;
+
+	if (b1 & (1 << 4))
+		pad.button |= PAD_BUTTON_LEFT;
+	if (b1 & (1 << 5))
+		pad.button |= PAD_BUTTON_RIGHT;
+	if (b1 & (1 << 6))
+		pad.button |= PAD_BUTTON_DOWN;
+	if (b1 & (1 << 7))
+		pad.button |= PAD_BUTTON_UP;
+
+	if (b2 & (1 << 0))
+		pad.button |= PAD_BUTTON_START;
+	if (b2 & (1 << 1))
+		pad.button |= PAD_TRIGGER_Z;
+	if (b2 & (1 << 2))
+		pad.button |= PAD_TRIGGER_R;
+	if (b2 & (1 << 3))
+		pad.button |= PAD_TRIGGER_L;
+
+	if (get_origin)
+		pad.button |= PAD_GET_ORIGIN;
+
+	pad.stickX = byteArray[2];
+	pad.stickY = byteArray[3];
+	pad.substickX = byteArray[4];
+	pad.substickY = byteArray[5];
+	pad.triggerLeft = byteArray[6];
+	pad.triggerRight = byteArray[7];
+
+	return pad;
+}
+
 GCPadStatus Input(int chan, std::chrono::high_resolution_clock::time_point *tp)
 {
 	static bool sncPerceived = false;
@@ -800,12 +846,6 @@ GCPadStatus Input(int chan, std::chrono::high_resolution_clock::time_point *tp)
 
 	if (s_handle == nullptr || !s_detected)
 		return{};
-
-/*	SlippiNetplayClient* snc = SlippiNetplayClientRepository::get();
-	if (snc && !sncPerceived)
-		WARN_LOG(SLIPPI_ONLINE, "Adapter perceived by Input method");
-	if ((!snc) && sncPerceived)
-		WARN_LOG(SLIPPI_ONLINE, "Adapter perception by Input method stopped");*/
 
 	int payload_size = 0;
 	u8 controller_payload_copy[adapter_payload_size];
@@ -817,7 +857,8 @@ GCPadStatus Input(int chan, std::chrono::high_resolution_clock::time_point *tp)
 		payload_size = s_controller_payload_size.load();
 	}
 
-	GCPadStatus pad = {};
+	GCPadStatus pad{};
+
 	if (payload_size != sizeof(controller_payload_copy) ||
 		controller_payload_copy[0] != LIBUSB_DT_HID)
 	{
@@ -841,45 +882,7 @@ GCPadStatus Input(int chan, std::chrono::high_resolution_clock::time_point *tp)
 
 		if (s_controller_type[chan] != ControllerTypes::CONTROLLER_NONE)
 		{
-			u8 b1 = controller_payload_copy[1 + (9 * chan) + 1];
-			u8 b2 = controller_payload_copy[1 + (9 * chan) + 2];
-
-			if (b1 & (1 << 0))
-				pad.button |= PAD_BUTTON_A;
-			if (b1 & (1 << 1))
-				pad.button |= PAD_BUTTON_B;
-			if (b1 & (1 << 2))
-				pad.button |= PAD_BUTTON_X;
-			if (b1 & (1 << 3))
-				pad.button |= PAD_BUTTON_Y;
-
-			if (b1 & (1 << 4))
-				pad.button |= PAD_BUTTON_LEFT;
-			if (b1 & (1 << 5))
-				pad.button |= PAD_BUTTON_RIGHT;
-			if (b1 & (1 << 6))
-				pad.button |= PAD_BUTTON_DOWN;
-			if (b1 & (1 << 7))
-				pad.button |= PAD_BUTTON_UP;
-
-			if (b2 & (1 << 0))
-				pad.button |= PAD_BUTTON_START;
-			if (b2 & (1 << 1))
-				pad.button |= PAD_TRIGGER_Z;
-			if (b2 & (1 << 2))
-				pad.button |= PAD_TRIGGER_R;
-			if (b2 & (1 << 3))
-				pad.button |= PAD_TRIGGER_L;
-
-			if (get_origin)
-				pad.button |= PAD_GET_ORIGIN;
-
-			pad.stickX = controller_payload_copy[1 + (9 * chan) + 3];
-			pad.stickY = controller_payload_copy[1 + (9 * chan) + 4];
-			pad.substickX = controller_payload_copy[1 + (9 * chan) + 5];
-			pad.substickY = controller_payload_copy[1 + (9 * chan) + 6];
-			pad.triggerLeft = controller_payload_copy[1 + (9 * chan) + 7];
-			pad.triggerRight = controller_payload_copy[1 + (9 * chan) + 8];
+			pad = makePadFrom8ByteArray(controller_payload_copy + 2 + (9 * chan), get_origin);
 		}
 		else
 		{

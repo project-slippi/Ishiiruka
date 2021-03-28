@@ -22,7 +22,8 @@
     <ClCompile Include="GCAdapter.cpp" />
     <ClCompile Include="InputConfig.cpp" />
     <ClCompile Include="InputStabilizer.cpp" />
-    <ClCompile Include="ControllerInterface\DInput\DInput.cpp">
+	<ClCompile Include="KristalInputJudge.cpp" />
+	<ClCompile Include="ControllerInterface\DInput\DInput.cpp">
       <Filter>ControllerInterface\DInput</Filter>
     </ClCompile>
     <ClCompile Include="ControllerInterface\DInput\DInputJoystick.cpp">
@@ -57,8 +58,9 @@
     <ClInclude Include="ControllerEmu.h" />
     <ClInclude Include="GCPadStatus.h" />
     <ClInclude Include="InputConfig.h" />
-    <ClCompile Include="InputStabilizer.h" />
-    <ClInclude Include="ControllerInterface\DInput\DInput.h">
+    <ClInclude Include="InputStabilizer.h" />
+	  <ClInclude Include="KristalInputJudge.h" />
+	  <ClInclude Include="ControllerInterface\DInput\DInput.h">
       <Filter>ControllerInterface\DInput</Filter>
     </ClInclude>
     <ClInclude Include="ControllerInterface\DInput\DInputJoystick.h">
