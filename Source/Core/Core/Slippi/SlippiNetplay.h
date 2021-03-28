@@ -199,7 +199,7 @@ class SlippiNetplayClient
 };
 
 // How NOT to do architecture
-class SlippiNetplayClientRepository
+/*class SlippiNetplayClientRepository
 {
   public:
 	static void addNetplayClient(SlippiNetplayClient *);
@@ -210,4 +210,4 @@ class SlippiNetplayClientRepository
 	static std::mutex repo_mutex;
 	static std::list<SlippiNetplayClient *> slippiNetplayClients;
 	SlippiNetplayClientRepository() = default;
-};
+};*/

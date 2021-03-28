@@ -12,6 +12,10 @@ struct GCPadStatus;
 
 namespace GCAdapter
 {
+
+void informNewSlippiNetplayClient(void);
+void informNoSlippiNetplayClient(void);
+
 enum ControllerTypes
 {
 	CONTROLLER_NONE = 0,

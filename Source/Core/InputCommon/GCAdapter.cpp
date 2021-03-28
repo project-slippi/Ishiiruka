@@ -954,4 +954,14 @@ bool IsDriverDetected()
 	return !s_libusb_driver_not_supported;
 }
 
+void informNewSlippiNetplayClient()
+{
+	WARN_LOG(SLIPPI_ONLINE, "New Slippi Netplay Client");
+}
+
+void informNoSlippiNetplayClient()
+{
+	WARN_LOG(SLIPPI_ONLINE, "No Slippi Netplay Client");
+}
+
 }  // end of namespace GCAdapter

@@ -36,7 +36,7 @@ static std::mutex ack_mutex;
 // called from ---GUI--- thread
 SlippiNetplayClient::~SlippiNetplayClient()
 {
-	SlippiNetplayClientRepository::removeNetplayClient(this);
+	GCAdapter::informNewSlippiNetplayClient();
 
 	m_do_loop.Clear();
 	if (m_thread.joinable())
@@ -71,7 +71,7 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 r
 	WARN_LOG(SLIPPI_ONLINE, "Initializing Slippi Netplay for port: %d, with host: %s", localPort,
 	         isDecider ? "true" : "false");
 
-	SlippiNetplayClientRepository::addNetplayClient(this);
+	GCAdapter::informNoSlippiNetplayClient();
 
 	this->isDecider = isDecider;
 
@@ -731,7 +731,7 @@ s32 SlippiNetplayClient::CalcTimeOffsetUs()
 	return sum / count;
 }
 
-std::mutex SlippiNetplayClientRepository::repo_mutex;
+/*std::mutex SlippiNetplayClientRepository::repo_mutex;
 std::list<SlippiNetplayClient *> SlippiNetplayClientRepository::slippiNetplayClients;
 
 void SlippiNetplayClientRepository::addNetplayClient(SlippiNetplayClient *client)
@@ -762,4 +762,4 @@ SlippiNetplayClient *SlippiNetplayClientRepository::get()
 		multipleRegisteredClients = false;
 		return len == 1 ? slippiNetplayClients.front() : nullptr;
 	}
-}
+}*/
