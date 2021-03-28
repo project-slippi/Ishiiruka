@@ -26,7 +26,7 @@
 
 class WXDLLIMPEXP_FWD_CORE wxImageList;
 
-#if !defined(__WXMSW__) || defined(__WXUNIVERSAL__)
+#if !defined(__WXMSW__) && !defined(__WXQT__) || defined(__WXUNIVERSAL__)
     #define wxHAS_GENERIC_TREECTRL
 #endif
 
@@ -362,7 +362,7 @@ public:
 
         // this function is called to compare 2 items and should return -1, 0
         // or +1 if the first item is less than, equal to or greater than the
-        // second one. The base class version performs alphabetic comparaison
+        // second one. The base class version performs alphabetic comparison
         // of item labels (GetText)
     virtual int OnCompareItems(const wxTreeItemId& item1,
                                const wxTreeItemId& item2)
@@ -465,6 +465,8 @@ private:
     #include "wx/generic/treectlg.h"
 #elif defined(__WXMSW__)
     #include "wx/msw/treectrl.h"
+#elif defined(__WXQT__)
+    #include "wx/qt/treectrl.h"
 #else
     #error "unknown native wxTreeCtrl implementation"
 #endif

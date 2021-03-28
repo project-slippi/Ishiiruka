@@ -41,8 +41,8 @@
 // By default, use PNG resource handler if we can, i.e. have support for
 // loading PNG images in the library. This symbol could be predefined as 0 to
 // avoid doing this if anybody ever needs to do it for some reason.
-#if !defined(wxUSE_PNG_RESOURCE_HANDLER) && wxUSE_LIBPNG && wxUSE_IMAGE
-    #define wxUSE_PNG_RESOURCE_HANDLER 1
+#if !defined(wxUSE_PNG_RESOURCE_HANDLER)
+    #define wxUSE_PNG_RESOURCE_HANDLER wxUSE_LIBPNG && wxUSE_IMAGE
 #endif
 
 #if wxUSE_PNG_RESOURCE_HANDLER
@@ -72,10 +72,10 @@ public:
 
     virtual bool LoadFile(wxBitmap *bitmap,
                           const wxString& name, wxBitmapType flags,
-                          int desiredWidth, int desiredHeight);
+                          int desiredWidth, int desiredHeight) wxOVERRIDE;
     virtual bool SaveFile(const wxBitmap *bitmap,
                           const wxString& name, wxBitmapType type,
-                          const wxPalette *palette = NULL) const;
+                          const wxPalette *palette = NULL) const wxOVERRIDE;
 
 private:
     wxDECLARE_DYNAMIC_CLASS(wxBMPFileHandler);
@@ -92,7 +92,7 @@ public:
 
     virtual bool LoadFile(wxBitmap *bitmap,
                           const wxString& name, wxBitmapType flags,
-                          int desiredWidth, int desiredHeight);
+                          int desiredWidth, int desiredHeight) wxOVERRIDE;
 
 private:
     wxDECLARE_DYNAMIC_CLASS(wxBMPResourceHandler);
@@ -112,14 +112,14 @@ public:
                         wxBitmapType WXUNUSED(flags),
                         int WXUNUSED(width),
                         int WXUNUSED(height),
-                        int WXUNUSED(depth) = 1)
+                        int WXUNUSED(depth) = 1) wxOVERRIDE
     {
         return false;
     }
 
     virtual bool Save(const wxGDIImage *WXUNUSED(image),
                       const wxString& WXUNUSED(name),
-                      wxBitmapType WXUNUSED(type)) const
+                      wxBitmapType WXUNUSED(type)) const wxOVERRIDE
     {
         return false;
     }
@@ -127,7 +127,7 @@ public:
     virtual bool Load(wxGDIImage *image,
                       const wxString& name,
                       wxBitmapType flags,
-                      int desiredWidth, int desiredHeight)
+                      int desiredWidth, int desiredHeight) wxOVERRIDE
     {
         wxIcon *icon = wxDynamicCast(image, wxIcon);
         wxCHECK_MSG( icon, false, wxT("wxIconHandler only works with icons") );
@@ -153,7 +153,7 @@ public:
 protected:
     virtual bool LoadIcon(wxIcon *icon,
                           const wxString& name, wxBitmapType flags,
-                          int desiredWidth = -1, int desiredHeight = -1);
+                          int desiredWidth = -1, int desiredHeight = -1) wxOVERRIDE;
 
 private:
     wxDECLARE_DYNAMIC_CLASS(wxICOFileHandler);
@@ -171,7 +171,7 @@ public:
 protected:
     virtual bool LoadIcon(wxIcon *icon,
                           const wxString& name, wxBitmapType flags,
-                          int desiredWidth = -1, int desiredHeight = -1);
+                          int desiredWidth = -1, int desiredHeight = -1) wxOVERRIDE;
 
 private:
     wxDECLARE_DYNAMIC_CLASS(wxICOResourceHandler);
@@ -190,7 +190,7 @@ public:
 
     virtual bool LoadFile(wxBitmap *bitmap,
                           const wxString& name, wxBitmapType flags,
-                          int desiredWidth, int desiredHeight);
+                          int desiredWidth, int desiredHeight) wxOVERRIDE;
 
 private:
     wxDECLARE_DYNAMIC_CLASS(wxPNGResourceHandler);
@@ -348,26 +348,31 @@ bool wxBMPResourceHandler::LoadFile(wxBitmap *bitmap,
                                     int WXUNUSED(desiredHeight))
 {
     // TODO: load colourmap.
-    bitmap->SetHBITMAP((WXHBITMAP)::LoadBitmap(wxGetInstance(), name.t_str()));
-
-    if ( !bitmap->IsOk() )
+    HBITMAP hbmp = ::LoadBitmap(wxGetInstance(), name.t_str());
+    if ( hbmp == NULL )
     {
         // it's probably not found
         wxLogError(wxT("Can't load bitmap '%s' from resources! Check .rc file."),
-                   name.c_str());
+            name.c_str());
 
         return false;
     }
 
+    int w, h, d;
     BITMAP bm;
-    if ( !::GetObject(GetHbitmapOf(*bitmap), sizeof(BITMAP), (LPSTR) &bm) )
+    if (::GetObject(hbmp, sizeof(BITMAP), &bm))
+    {
+        w = bm.bmWidth;
+        h = bm.bmHeight;
+        d = bm.bmBitsPixel;
+    }
+    else
     {
         wxLogLastError(wxT("GetObject(HBITMAP)"));
+        w = h = d = 0;
     }
 
-    bitmap->SetWidth(bm.bmWidth);
-    bitmap->SetHeight(bm.bmHeight);
-    bitmap->SetDepth(bm.bmBitsPixel);
+    bitmap->InitFromHBITMAP((WXHBITMAP)hbmp, w, h, d);
 
     // use 0xc0c0c0 as transparent colour by default
     bitmap->SetMask(new wxMask(*bitmap, *wxLIGHT_GREY));
@@ -468,9 +473,10 @@ bool wxICOFileHandler::LoadIcon(wxIcon *icon,
     }
     else
 #endif
-        // were we asked for a large icon?
-    if ( desiredWidth == ::GetSystemMetrics(SM_CXICON) &&
-         desiredHeight == ::GetSystemMetrics(SM_CYICON) )
+    // were we asked for a large icon?
+    const wxWindow* win = wxTheApp ? wxTheApp->GetTopWindow() : NULL;
+    if ( desiredWidth == wxGetSystemMetrics(SM_CXICON, win) &&
+         desiredHeight == wxGetSystemMetrics(SM_CYICON, win) )
     {
         // get the specified large icon from file
         if ( !::ExtractIconEx(nameReal.t_str(), iconIndex, &hicon, NULL, 1) )
@@ -482,8 +488,8 @@ bool wxICOFileHandler::LoadIcon(wxIcon *icon,
                        name.c_str());
         }
     }
-    else if ( desiredWidth == ::GetSystemMetrics(SM_CXSMICON) &&
-              desiredHeight == ::GetSystemMetrics(SM_CYSMICON) )
+    else if ( desiredWidth == wxGetSystemMetrics(SM_CXSMICON, win) &&
+              desiredHeight == wxGetSystemMetrics(SM_CYSMICON, win) )
     {
         // get the specified small icon from file
         if ( !::ExtractIconEx(nameReal.t_str(), iconIndex, NULL, &hicon, 1) )
@@ -623,7 +629,7 @@ bool wxPNGResourceHandler::LoadFile(wxBitmap *bitmap,
     *bitmap = wxBitmap::NewFromPNGData(pngData, pngSize);
     if ( !bitmap->IsOk() )
     {
-        wxLogError(wxS("Couldn't load resource bitmap \"%s\" as a PNG. "),
+        wxLogError(wxS("Couldn't load resource bitmap \"%s\" as a PNG. ")
                    wxS("Have you registered PNG image handler?"),
                    name);
 
@@ -663,8 +669,9 @@ wxSize wxGetHiconSize(HICON hicon)
     if ( !size.x )
     {
         // use default icon size on this hardware
-        size.x = ::GetSystemMetrics(SM_CXICON);
-        size.y = ::GetSystemMetrics(SM_CYICON);
+        const wxWindow* win = wxTheApp ? wxTheApp->GetTopWindow() : NULL;
+        size.x = wxGetSystemMetrics(SM_CXICON, win);
+        size.y = wxGetSystemMetrics(SM_CYICON, win);
     }
 
     return size;

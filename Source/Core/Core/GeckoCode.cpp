@@ -16,6 +16,8 @@
 #include "Core/NetPlayProto.h"
 #include "Core/PowerPC/PowerPC.h"
 
+#include "VideoCommon/OnScreenDisplay.h"
+
 #include <iostream>
 
 namespace Gecko
@@ -53,6 +55,7 @@ bool GeckoCode::Compare(const GeckoCode& compare) const
 	return exist == codes.size();
 }
 
+static bool initialization_failed = false;
 static bool code_handler_installed = false;
 // the currently active codes
 static std::vector<GeckoCode> active_codes;
@@ -105,11 +108,15 @@ void SetActiveCodes(const std::vector<GeckoCode>& gcodes)
 		}
 	}
 
+	initialization_failed = false;
 	code_handler_installed = false;
 }
 
 static bool InstallCodeHandler()
 {
+	if (initialization_failed)
+		return false;
+
 	std::string data;
 	std::string _rCodeHandlerFilename = File::GetSysDirectory() + GECKO_CODE_HANDLER;
 	if (!File::ReadFileToString(_rCodeHandlerFilename, data))
@@ -143,41 +150,83 @@ static bool InstallCodeHandler()
 	u32 codelist_base_address = INSTALLER_BASE_ADDRESS + (u32)data.length() - 8;
 	u32 codelist_end_address = INSTALLER_END_ADDRESS;
 
+	// Write a magic value to 'gameid' (codehandleronly does not actually read this).
+	PowerPC::HostWrite_U32(0xd01f1bad, INSTALLER_BASE_ADDRESS);
+
 	if(SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_NTSC)
 	{
-		// Move Gecko code handler to the tournament mode region
-		codelist_base_address = 0x801910E0;
-		codelist_end_address = 0x8019AF4C;
-		PowerPC::HostWrite_U32(0x3DE08019, 0x80001f58);
-		PowerPC::HostWrite_U32(0x61EF10E0, 0x80001f5C);
-
 		// Here we are replacing a line in the codehandler with a blr.
 		// The reason for this is that this is the section of the codehandler
 		// that attempts to read/write commands for the USB Gecko. These calls
 		// were sometimes interfering with the Slippi EXI calls and causing
 		// the game to loop infinitely in EXISync.
 		PowerPC::HostWrite_U32(0x4E800020, 0x80001D6C);
-	}
 
-	// Write a magic value to 'gameid' (codehandleronly does not actually read this).
-	PowerPC::HostWrite_U32(0xd01f1bad, INSTALLER_BASE_ADDRESS);
-
-	// Create GCT in memory
-	PowerPC::HostWrite_U32(0x00d0c0de, codelist_base_address);
-	PowerPC::HostWrite_U32(0x00d0c0de, codelist_base_address + 4);
-
-	std::lock_guard<std::mutex> lk(active_codes_lock);
-
-	int i = 0;
-
-	for (const GeckoCode& active_code : active_codes)
-	{
-		if ((active_code.enabled && !IsDisabledMeleeCode(active_code)) || IsEnabledMeleeCode(active_code))
+		// Write GCT loader into memory which will eventually load the real GCT into the heap
+		std::string bootloaderData;
+		std::string _bootloaderFilename = File::GetSysDirectory() + GCT_BOOTLOADER;
+		if (!File::ReadFileToString(_bootloaderFilename, bootloaderData))
 		{
-			for (const GeckoCode::Code& code : active_code.codes)
+			OSD::AddMessage("bootloader.gct not found in Sys folder.", 30000, 0xFFFF0000);
+			ERROR_LOG(ACTIONREPLAY, "Could not enable cheats because bootloader.gct was missing.");
+			initialization_failed = true;
+			return false;
+		}
+
+		if (bootloaderData.length() > codelist_end_address - codelist_base_address)
+		{
+			OSD::AddMessage("Gecko bootloader too large.", 30000, 0xFFFF0000);
+			ERROR_LOG(SLIPPI, "Gecko bootloader too large");
+			initialization_failed = true;
+			return false;
+		}
+
+		// Install bootloader gct
+		for (size_t i = 0, e = bootloaderData.length(); i < e; ++i)
+			PowerPC::HostWrite_U8(bootloaderData[i], (u32)(codelist_base_address + i));
+	}
+	else
+	{
+		// Create GCT in memory
+		PowerPC::HostWrite_U32(0x00d0c0de, codelist_base_address);
+		PowerPC::HostWrite_U32(0x00d0c0de, codelist_base_address + 4);
+
+		std::lock_guard<std::mutex> lk(active_codes_lock);
+
+		int i = 0;
+		// First check if we have enough space for all the codes
+		for (const GeckoCode &active_code : active_codes)
+		{
+			if ((active_code.enabled && !IsDisabledMeleeCode(active_code)) || IsEnabledMeleeCode(active_code))
 			{
-				// Make sure we have enough memory to hold the code list
-				if ((codelist_base_address + 24 + i) < codelist_end_address)
+				for (const GeckoCode::Code &code : active_code.codes)
+				{
+					i += 8;
+				}
+			}
+		}
+
+		auto available = codelist_end_address - (codelist_base_address + 24);
+		INFO_LOG(ACTIONREPLAY, "Code usage: %d/%d", i, available);
+
+		// Write error message if not enough space
+		if ((codelist_base_address + 24 + i) >= codelist_end_address)
+		{
+			auto s = StringFromFormat("Ran out of memory applying gecko codes (%d/%d).", i, available);
+			OSD::AddMessage(s, 30000, 0xFFFF0000);
+			OSD::AddMessage("Codes were not applied, try disabling some codes.", 30000, 0xFFFF0000);
+
+			ERROR_LOG(SLIPPI, "Ran out of memory applying gecko codes");
+			initialization_failed = true;
+			return false;
+		}
+
+		i = 0;
+		for (const GeckoCode &active_code : active_codes)
+		{
+			if ((active_code.enabled && !IsDisabledMeleeCode(active_code)) || IsEnabledMeleeCode(active_code))
+			{
+				for (const GeckoCode::Code &code : active_code.codes)
 				{
 					PowerPC::HostWrite_U32(code.address, codelist_base_address + 8 + i);
 					PowerPC::HostWrite_U32(code.data, codelist_base_address + 12 + i);
@@ -185,10 +234,10 @@ static bool InstallCodeHandler()
 				}
 			}
 		}
-	}
 
-	PowerPC::HostWrite_U32(0xff000000, codelist_base_address + 8 + i);
-	PowerPC::HostWrite_U32(0x00000000, codelist_base_address + 12 + i);
+		PowerPC::HostWrite_U32(0xff000000, codelist_base_address + 8 + i);
+		PowerPC::HostWrite_U32(0x00000000, codelist_base_address + 12 + i);
+	}
 
 	// Turn on codes
 	PowerPC::HostWrite_U8(1, INSTALLER_BASE_ADDRESS + 7);
@@ -218,24 +267,113 @@ void RunCodeHandler()
 			return;
 		}
 
-		if (PC == LR)
+		// Removed this condition and changed a few things with the codehandler run process. This should now only get called once
+		// at the earliest possible moment during boot. It should no longer get called on a timer.
+		// if (PC == LR)
+		//{
+		u32 oldPC = PC;
+		u32 oldLR = LR;
+
+		// Backup all registers
+		// std::vector<u32> oldRegisters(32);
+		// for (int i = 0; i < 32; i++)
+		// oldRegisters[i] = GPR(i);
+
+		PowerPC::CoreMode oldMode = PowerPC::GetMode();
+
+		PC = INSTALLER_BASE_ADDRESS + 0xA8;
+		LR = 0;
+
+		// Execute the code handler in interpreter mode to track when it exits
+		PowerPC::SetMode(PowerPC::MODE_INTERPRETER);
+
+		while (PC != 0)
 		{
-			u32 oldLR = LR;
-			PowerPC::CoreMode oldMode = PowerPC::GetMode();
+			// if ((PC >= 0x80001f54) && (PC <= 0x80001f94))
+			//{
+			//	INFO_LOG(ACTIONREPLAY, "pc=%08x r3=%08x r4=%08x r15=%08x", PC, GPR(3), GPR(4), GPR(15));
+			//}
+			PowerPC::SingleStep();
+		}
 
-			PC = INSTALLER_BASE_ADDRESS + 0xA8;
-			LR = 0;
+		PowerPC::SetMode(oldMode);
 
-			// Execute the code handler in interpreter mode to track when it exits
-			PowerPC::SetMode(PowerPC::MODE_INTERPRETER);
+		//// Restore registers
+		//   for (int i = 0; i < 32; i++)
+		//    PowerPC::ppcState.gpr[i] = oldRegisters[i];
 
-			while (PC != 0)
-				PowerPC::SingleStep();
+		PC = oldPC;
+		LR = oldLR;
+		//}
+	}
+}
 
-			PowerPC::SetMode(oldMode);
-			PC = LR = oldLR;
+u32 GetGctLength()
+{
+	std::lock_guard<std::mutex> lk(active_codes_lock);
+
+	int i = 0;
+
+	for (const GeckoCode &active_code : active_codes)
+	{
+		if ((active_code.enabled && !IsDisabledMeleeCode(active_code)) || IsEnabledMeleeCode(active_code))
+		{
+			for (const GeckoCode::Code &code : active_code.codes)
+			{
+				i += 8;
+			}
 		}
 	}
+
+	return i + 0x10; // 0x10 is the fixed size of the header and terminator
+}
+
+std::vector<u8> uint32ToVector(u32 num)
+{
+	u8 byte0 = num >> 24;
+	u8 byte1 = (num & 0xFF0000) >> 16;
+	u8 byte2 = (num & 0xFF00) >> 8;
+	u8 byte3 = num & 0xFF;
+
+	return std::vector<u8>({byte0, byte1, byte2, byte3});
+}
+
+void appendWordToBuffer(std::vector<u8> *buf, u32 word)
+{
+	auto wordVector = uint32ToVector(word);
+	buf->insert(buf->end(), wordVector.begin(), wordVector.end());
+}
+
+std::vector<u8> GenerateGct()
+{
+	std::vector<u8> res;
+
+	// Write header
+	appendWordToBuffer(&res, 0x00d0c0de);
+	appendWordToBuffer(&res, 0x00d0c0de);
+
+	std::lock_guard<std::mutex> lk(active_codes_lock);
+
+	int i = 0;
+
+	// Write codes
+	for (const GeckoCode &active_code : active_codes)
+	{
+		if ((active_code.enabled && !IsDisabledMeleeCode(active_code)) || IsEnabledMeleeCode(active_code))
+		{
+			for (const GeckoCode::Code &code : active_code.codes)
+			{
+				appendWordToBuffer(&res, code.address);
+				appendWordToBuffer(&res, code.data);
+			}
+		}
+	}
+
+	// Write footer
+	appendWordToBuffer(&res, 0xff000000);
+	appendWordToBuffer(&res, 0x00000000);
+
+	return res;
 }
 
 } // namespace Gecko

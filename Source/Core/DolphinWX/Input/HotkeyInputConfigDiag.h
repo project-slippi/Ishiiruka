@@ -23,7 +23,7 @@ private:
 
 	void InitializeNotebook();
 	wxPanel* CreateGeneralPanel();
-	wxPanel* CreateTASToolsPanel();
+	wxPanel* CreateSlippiPlaybackPanel();
 	wxPanel* CreateDebuggingPanel();
 	wxPanel* CreateWiiPanel();
 	wxPanel* CreateGraphicsPanel();

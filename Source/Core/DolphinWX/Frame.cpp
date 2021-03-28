@@ -30,6 +30,7 @@
 #include <wx/textctrl.h>
 #include <wx/thread.h>
 #include <wx/toolbar.h>
+#include <Core/Slippi/SlippiNetplay.h>
 
 #include "AudioCommon/AudioCommon.h"
 
@@ -617,7 +618,11 @@ void CFrame::OnClose(wxCloseEvent &event)
 		m_LogWindow->RemoveAllListeners();
 
 	// Uninit
-	m_Mgr->UnInit();
+    // As of wxWidgets 3.1.4, this is called automatically - and calling
+    // it here can lead to a doubling of shutdown conditions, which leads
+    // to a "crash" on close on some systems.
+    //
+	// m_Mgr->UnInit();
 }
 
 // Post events
@@ -1448,7 +1453,7 @@ void CFrame::ParseHotkeys()
 		g_Config.bDisableFog = !g_Config.bDisableFog;
 	}
 	Core::SetIsThrottlerTempDisabled(IsHotkey(HK_TOGGLE_THROTTLE, true));
-	if (IsHotkey(HK_DECREASE_EMULATION_SPEED))
+	if (IsHotkey(HK_DECREASE_EMULATION_SPEED) && !IsOnline())
 	{
 		OSDChoice = 5;
 
@@ -1462,7 +1467,7 @@ void CFrame::ParseHotkeys()
 		if (SConfig::GetInstance().m_EmulationSpeed >= 0.95f && SConfig::GetInstance().m_EmulationSpeed <= 1.05f)
 			SConfig::GetInstance().m_EmulationSpeed = 1.0f;
 	}
-	if (IsHotkey(HK_INCREASE_EMULATION_SPEED))
+	if (IsHotkey(HK_INCREASE_EMULATION_SPEED) && !IsOnline())
 	{
 		OSDChoice = 5;
 
@@ -1617,6 +1622,8 @@ void CFrame::ParseHotkeys()
 		State::UndoSaveState();
 #ifdef IS_PLAYBACK
 	// Slippi replay hotkeys and setup
+	if (IsHotkey(HK_HIDE_SEEKBAR))
+		SConfig::GetInstance().m_InterfaceSeekbar = !SConfig::GetInstance().m_InterfaceSeekbar;
 	if (SConfig::GetInstance().m_InterfaceSeekbar && g_playbackStatus && g_playbackStatus->inSlippiPlayback)
 	{		
 		if (IsHotkey(HK_JUMP_BACK))
@@ -1633,7 +1640,7 @@ void CFrame::ParseHotkeys()
 			m_slippi_timer = std::make_unique<SlippiTimer>(this, seekBar, seekBarText);
 			m_slippi_timer->Start(50); 
 		}
-	} 
+	}
 	else if (m_Mgr->GetPane(_("Slippi Pane")).IsShown())
 	{
 		m_Mgr->GetPane(_("Slippi Pane")).Hide();

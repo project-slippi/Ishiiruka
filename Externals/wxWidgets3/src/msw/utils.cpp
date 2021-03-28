@@ -36,6 +36,7 @@
 #include "wx/dynload.h"
 #include "wx/scopeguard.h"
 #include "wx/filename.h"
+#include "wx/fontenc.h"
 
 #include "wx/confbase.h"        // for wxExpandEnvVars()
 
@@ -227,7 +228,7 @@ bool wxGetUserId(wxChar *buf,
     DWORD nSize = maxSize;
     if ( ::GetUserName(buf, &nSize) == 0 )
     {
-        // actually, it does happen on Win9x if the user didn't log on
+        // actually, it does happen if the user didn't log on
         DWORD res = ::GetEnvironmentVariable(wxT("username"), buf, maxSize);
         if ( res == 0 )
         {
@@ -712,11 +713,11 @@ int wxKill(long pid, wxSignal sig, wxKillError *krc, int flags)
 
             default:
                 wxFAIL_MSG( wxT("unexpected WaitForSingleObject() return") );
-                // fall through
+                wxFALLTHROUGH;
 
             case WAIT_FAILED:
                 wxLogLastError(wxT("WaitForSingleObject"));
-                // fall through
+                wxFALLTHROUGH;
 
             case WAIT_TIMEOUT:
                 // Process didn't terminate: normally this is a failure but not
@@ -811,9 +812,9 @@ bool wxShell(const wxString& command)
 {
     wxString cmd;
 
-    wxChar *shell = wxGetenv(wxT("COMSPEC"));
+    const wxChar* shell = wxGetenv(wxT("COMSPEC"));
     if ( !shell )
-        shell = (wxChar*) wxT("\\COMMAND.COM");
+        shell = wxT("\\COMMAND.COM");
 
     if ( !command )
     {
@@ -1073,80 +1074,26 @@ wxString wxGetOsDescription()
     const OSVERSIONINFOEXW info = wxGetWindowsVersionInfo();
     switch ( info.dwPlatformId )
     {
-#ifdef VER_PLATFORM_WIN32_CE
-        case VER_PLATFORM_WIN32_CE:
-            str.Printf(_("Windows CE (%d.%d)"),
-                       info.dwMajorVersion,
-                       info.dwMinorVersion);
-            break;
-#endif
-        case VER_PLATFORM_WIN32s:
-            str = _("Win32s on Windows 3.1");
-            break;
-
-        case VER_PLATFORM_WIN32_WINDOWS:
-            switch (info.dwMinorVersion)
-            {
-                case 0:
-                    if ( info.szCSDVersion[1] == 'B' ||
-                         info.szCSDVersion[1] == 'C' )
-                    {
-                        str = _("Windows 95 OSR2");
-                    }
-                    else
-                    {
-                        str = _("Windows 95");
-                    }
-                    break;
-                case 10:
-                    if ( info.szCSDVersion[1] == 'B' ||
-                         info.szCSDVersion[1] == 'C' )
-                    {
-                        str = _("Windows 98 SE");
-                    }
-                    else
-                    {
-                        str = _("Windows 98");
-                    }
-                    break;
-                case 90:
-                    str = _("Windows ME");
-                    break;
-                default:
-                    str.Printf(_("Windows 9x (%d.%d)"),
-                               info.dwMajorVersion,
-                               info.dwMinorVersion);
-                    break;
-            }
-            if ( !wxIsEmpty(info.szCSDVersion) )
-            {
-                str << wxT(" (") << info.szCSDVersion << wxT(')');
-            }
-            break;
-
         case VER_PLATFORM_WIN32_NT:
             switch ( info.dwMajorVersion )
             {
                 case 5:
                     switch ( info.dwMinorVersion )
                     {
-                        case 0:
-                            str = _("Windows 2000");
-                            break;
-
                         case 2:
                             // we can't distinguish between XP 64 and 2003
                             // as they both are 5.2, so examine the product
                             // type to resolve this ambiguity
                             if ( wxIsWindowsServer() == 1 )
                             {
-                                str = _("Windows Server 2003");
+                                str = "Windows Server 2003";
                                 break;
                             }
                             //else: must be XP, fall through
+                            wxFALLTHROUGH;
 
                         case 1:
-                            str = _("Windows XP");
+                            str = "Windows XP";
                             break;
                     }
                     break;
@@ -1156,40 +1103,40 @@ wxString wxGetOsDescription()
                     {
                         case 0:
                             str = wxIsWindowsServer() == 1
-                                    ? _("Windows Server 2008")
-                                    : _("Windows Vista");
+                                    ? "Windows Server 2008"
+                                    : "Windows Vista";
                             break;
 
                         case 1:
                             str = wxIsWindowsServer() == 1
-                                    ? _("Windows Server 2008 R2")
-                                    : _("Windows 7");
+                                    ? "Windows Server 2008 R2"
+                                    : "Windows 7";
                             break;
 
                         case 2:
                             str = wxIsWindowsServer() == 1
-                                    ? _("Windows Server 2012")
-                                    : _("Windows 8");
+                                    ? "Windows Server 2012"
+                                    : "Windows 8";
                             break;
 
                         case 3:
                             str = wxIsWindowsServer() == 1
-                                    ? _("Windows Server 2012 R2")
-                                    : _("Windows 8.1");
+                                    ? "Windows Server 2012 R2"
+                                    : "Windows 8.1";
                             break;
                     }
                     break;
 
                 case 10:
                     str = wxIsWindowsServer() == 1
-                            ? _("Windows Server 2016")
-                            : _("Windows 10");
+                            ? "Windows Server 2016"
+                            : "Windows 10";
                     break;
             }
 
             if ( str.empty() )
             {
-                str.Printf(_("Windows NT %lu.%lu"),
+                str.Printf("Windows %lu.%lu",
                            info.dwMajorVersion,
                            info.dwMinorVersion);
             }
@@ -1259,11 +1206,6 @@ wxOperatingSystemId wxGetOsVersion(int *verMaj, int *verMin, int *verMicro)
         {
             case VER_PLATFORM_WIN32_NT:
                 s_version.os = wxOS_WINDOWS_NT;
-                break;
-
-            case VER_PLATFORM_WIN32_WINDOWS:
-                s_version.os = wxOS_WINDOWS_9X;
-                break;
         }
 
         s_version.verMaj = info.dwMajorVersion;
@@ -1283,24 +1225,12 @@ wxOperatingSystemId wxGetOsVersion(int *verMaj, int *verMin, int *verMicro)
 
 bool wxCheckOsVersion(int majorVsn, int minorVsn, int microVsn)
 {
-    OSVERSIONINFOEX osvi;
-    wxZeroMemory(osvi);
-    osvi.dwOSVersionInfoSize = sizeof(osvi);
+    int majorCur, minorCur, microCur;
+    wxGetOsVersion(&majorCur, &minorCur, &microCur);
 
-    DWORDLONG const dwlConditionMask =
-        ::VerSetConditionMask(
-        ::VerSetConditionMask(
-        ::VerSetConditionMask(
-        0, VER_MAJORVERSION, VER_GREATER_EQUAL),
-        VER_MINORVERSION, VER_GREATER_EQUAL),
-        VER_BUILDNUMBER, VER_GREATER_EQUAL);
-
-    osvi.dwMajorVersion = majorVsn;
-    osvi.dwMinorVersion = minorVsn;
-    osvi.dwBuildNumber = microVsn;
-
-    return ::VerifyVersionInfo(&osvi,
-        VER_MAJORVERSION | VER_MINORVERSION | VER_BUILDNUMBER, dwlConditionMask) != FALSE;
+    return majorCur > majorVsn
+        || (majorCur == majorVsn && minorCur > minorVsn)
+        || (majorCur == majorVsn && minorCur == minorVsn && microCur >= microVsn);
 }
 
 wxWinVersion wxGetWinVersion()
@@ -1309,38 +1239,12 @@ wxWinVersion wxGetWinVersion()
         verMin;
     switch ( wxGetOsVersion(&verMaj, &verMin) )
     {
-        case wxOS_WINDOWS_9X:
-            if ( verMaj == 4 )
-            {
-                switch ( verMin )
-                {
-                    case 0:
-                        return wxWinVersion_95;
-
-                    case 10:
-                        return wxWinVersion_98;
-
-                    case 90:
-                        return wxWinVersion_ME;
-                }
-            }
-            break;
-
         case wxOS_WINDOWS_NT:
             switch ( verMaj )
             {
-                case 3:
-                    return wxWinVersion_NT3;
-
-                case 4:
-                    return wxWinVersion_NT4;
-
                 case 5:
                     switch ( verMin )
                     {
-                        case 0:
-                            return wxWinVersion_2000;
-
                         case 1:
                             return wxWinVersion_XP;
 
@@ -1370,6 +1274,7 @@ wxWinVersion wxGetWinVersion()
                 case 10:
                     return wxWinVersion_10;
             }
+            break;
         default:
             // Do nothing just to silence GCC warning
             break;
@@ -1466,9 +1371,6 @@ extern WXDLLIMPEXP_BASE long wxEncodingToCharset(wxFontEncoding encoding)
 // looks up the vlaues in the registry and the new one which is more
 // politically correct and has more chances to work on other Windows versions
 // as well but the old version is still needed for !wxUSE_FONTMAP case
-#if wxUSE_FONTMAP
-
-#include "wx/fontmap.h"
 
 extern WXDLLIMPEXP_BASE long wxEncodingToCodepage(wxFontEncoding encoding)
 {
@@ -1517,6 +1419,7 @@ extern WXDLLIMPEXP_BASE long wxEncodingToCodepage(wxFontEncoding encoding)
         case wxFONTENCODING_CP1255:         ret = 1255; break;
         case wxFONTENCODING_CP1256:         ret = 1256; break;
         case wxFONTENCODING_CP1257:         ret = 1257; break;
+        case wxFONTENCODING_CP1258:         ret = 1258; break;
 
         case wxFONTENCODING_EUC_JP:         ret = 20932; break;
 
@@ -1533,7 +1436,7 @@ extern WXDLLIMPEXP_BASE long wxEncodingToCodepage(wxFontEncoding encoding)
         case wxFONTENCODING_MACCENTRALEUR:  ret = 10029; break;
         case wxFONTENCODING_MACCROATIAN:    ret = 10082; break;
         case wxFONTENCODING_MACICELANDIC:   ret = 10079; break;
-        case wxFONTENCODING_MACROMANIAN:    ret = 10009; break;
+        case wxFONTENCODING_MACROMANIAN:    ret = 10010; break;
 
         case wxFONTENCODING_ISO2022_JP:     ret = 50222; break;
 
@@ -1552,6 +1455,10 @@ extern WXDLLIMPEXP_BASE long wxEncodingToCodepage(wxFontEncoding encoding)
 
     return (long) ret;
 }
+
+#if wxUSE_FONTMAP
+
+#include "wx/fontmap.h"
 
 extern long wxCharsetToCodepage(const char *name)
 {

@@ -15,6 +15,10 @@
 #include "Common/Common.h"
 #include "Core/ConfigManager.h"
 
+#include "DolphinWX/Frame.h"
+#include "DolphinWX/Main.h"
+#include "DolphinWX/SlippiAuthWebView/SlippiAuthWebView.h"
+
 #include <codecvt>
 #include <locale>
 
@@ -103,9 +107,9 @@ SlippiUser::~SlippiUser()
 
 bool SlippiUser::AttemptLogin()
 {
-	std::string userFilePath = getUserFilePath();
+	std::string userFilePath = File::GetSlippiUserJSONPath();
 
-	INFO_LOG(SLIPPI_ONLINE, "Looking for file at: %s", userFilePath.c_str());
+	//INFO_LOG(SLIPPI_ONLINE, "Looking for file at: %s", userFilePath.c_str());
 
 	{
 		std::string userFilePathTxt =
@@ -142,36 +146,59 @@ bool SlippiUser::AttemptLogin()
 	return isLoggedIn;
 }
 
+// macOS and Linux have modern WebKit views (in our wxWidgets build) that can pop open and enable login
+// with relative ease; Windows unfortunately requires an extra check as Edge may not be present yet.
+//
+// If it's not, they just get routed to the older method (pop them over to browser and guide
+// them to place the file).
 void SlippiUser::OpenLogInPage()
 {
-	std::string url = "https://slippi.gg/online/enable";
-	std::string path = getUserFilePath();
-
 #ifdef _WIN32
+	if (!SlippiAuthWebView::IsAvailable())
+	{
+		std::string url = "https://slippi.gg/online/enable";
+		std::string path = File::GetSlippiUserJSONPath();
+		;
+
+		// On windows, sometimes the path can have backslashes and slashes mixed, convert all to backslashes
+		path = ReplaceAll(path, "\\", "\\");
+		path = ReplaceAll(path, "/", "\\");
+
+		std::string fullUrl = url + "?path=" + path;
+		INFO_LOG(SLIPPI_ONLINE, "[User] Login at path: %s", fullUrl.c_str());
+
+		std::string command = "explorer \"" + fullUrl + "\"";
+		RunSystemCommand(command);
+		return;
+	}
+
+	// Uncomment this if Windows is in a position to try the login flow.
+	//
+	// if (!SlippiAuthWebView::IsAvailable())
+	// {
+	std::string url = "https://slippi.gg/online/enable";
+	std::string path = File::GetSlippiUserJSONPath();
+	;
+
 	// On windows, sometimes the path can have backslashes and slashes mixed, convert all to backslashes
 	path = ReplaceAll(path, "\\", "\\");
 	path = ReplaceAll(path, "/", "\\");
-#endif
-
-#ifndef __APPLE__
-	char *escapedPath = curl_easy_escape(nullptr, path.c_str(), (int)path.length());
-	path = std::string(escapedPath);
-	curl_free(escapedPath);
-#endif
 
 	std::string fullUrl = url + "?path=" + path;
-
 	INFO_LOG(SLIPPI_ONLINE, "[User] Login at path: %s", fullUrl.c_str());
 
-#ifdef _WIN32
 	std::string command = "explorer \"" + fullUrl + "\"";
-#elif defined(__APPLE__)
-	std::string command = "open \"" + fullUrl + "\"";
-#else
-	std::string command = "xdg-open \"" + fullUrl + "\""; // Linux
+	RunSystemCommand(command);
+	return;
+	// }
 #endif
 
-	RunSystemCommand(command);
+	// macOS and Linux have stable WebView components that we can use to
+	// enable an easier login flow for users. On macOS, this is backed by
+	// the system-integrated WebKit framework. On Linux, this is provided
+	// by linking Webkit2.
+	CFrame *cframe = wxGetApp().GetCFrame();
+	cframe->OpenSlippiAuthenticationDialog();
 }
 
 void SlippiUser::UpdateApp()
@@ -253,26 +280,12 @@ void SlippiUser::FileListenThread()
 		if (AttemptLogin())
 		{
 			runThread = false;
+			main_frame->RaiseRenderWindow();
 			break;
 		}
 
 		Common::SleepCurrentThread(500);
 	}
-}
-
-// On Linux platforms, the user.json file lives in the XDG_CONFIG_HOME/SlippiOnline
-// directory in order to deal with the fact that we want the configuration for AppImage
-// builds to be mutable.
-std::string SlippiUser::getUserFilePath()
-{
-#if defined(__APPLE__)
-	std::string userFilePath = File::GetBundleDirectory() + "/Contents/Resources" + DIR_SEP + "user.json";
-#elif defined(_WIN32)
-	std::string userFilePath = File::GetExeDirectory() + DIR_SEP + "user.json";
-#else
-	std::string userFilePath = File::GetUserPath(F_USERJSON_IDX);
-#endif
-	return userFilePath;
 }
 
 inline std::string readString(json obj, std::string key)
@@ -302,13 +315,14 @@ SlippiUser::UserInfo SlippiUser::parseFile(std::string fileContents)
 	info.playKey = readString(res, "playKey");
 	info.connectCode = readString(res, "connectCode");
 	info.latestVersion = readString(res, "latestVersion");
-
+	info.port = res.value("port", -1);
+	
 	return info;
 }
 
 void SlippiUser::deleteFile()
 {
-	std::string userFilePath = getUserFilePath();
+	std::string userFilePath = File::GetSlippiUserJSONPath();
 	File::Delete(userFilePath);
 }
 
@@ -317,9 +331,18 @@ void SlippiUser::overwriteFromServer()
 	if (!m_curl)
 		return;
 
+	// Generate URL. If this is a beta version, use the beta endpoint
+	std::string url = URL_START;
+	if (scm_slippi_semver_str.find("beta") != std::string::npos)
+	{
+		url = url + "-beta";
+	}
+
+	ERROR_LOG(SLIPPI_ONLINE, "URL: %s", url.c_str());
+
 	// Perform curl request
 	std::string resp;
-	curl_easy_setopt(m_curl, CURLOPT_URL, (URL_START + "/" + userInfo.uid).c_str());
+	curl_easy_setopt(m_curl, CURLOPT_URL, (url + "/" + userInfo.uid).c_str());
 	curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &resp);
 	CURLcode res = curl_easy_perform(m_curl);
 

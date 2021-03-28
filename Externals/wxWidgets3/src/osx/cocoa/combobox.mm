@@ -20,6 +20,7 @@
     #include "wx/dcclient.h"
 #endif
 
+#include "wx/osx/private/available.h"
 #include "wx/osx/cocoa/private/textimpl.h"
 
 // work in progress
@@ -158,6 +159,44 @@
         }
     }
 }
+
+
+- (BOOL)control:(NSControl*)control textView:(NSTextView*)textView doCommandBySelector:(SEL)commandSelector
+{
+    wxUnusedVar(textView);
+    wxUnusedVar(control);
+    
+    BOOL handled = NO;
+
+    // send back key events wx' common code knows how to handle
+    
+    wxWidgetCocoaImpl* impl = (wxWidgetCocoaImpl* ) wxWidgetImpl::FindFromWXWidget( self );
+    if ( impl  )
+    {
+        wxWindow* wxpeer = (wxWindow*) impl->GetWXPeer();
+        if ( wxpeer )
+        {
+            if (commandSelector == @selector(insertNewline:))
+            {
+                [textView insertNewlineIgnoringFieldEditor:self];
+                handled = YES;
+            }
+            else if ( commandSelector == @selector(insertTab:))
+            {
+                [textView insertTabIgnoringFieldEditor:self];
+                handled = YES;
+            }
+            else if ( commandSelector == @selector(insertBacktab:))
+            {
+                [textView insertTabIgnoringFieldEditor:self];
+                handled = YES;
+            }
+        }
+    }
+
+    return handled;
+}
+
 @end
 
 wxNSComboBoxControl::wxNSComboBoxControl( wxComboBox *wxPeer, WXWidget w )
@@ -226,7 +265,23 @@ int wxNSComboBoxControl::GetNumberOfItems() const
 
 void wxNSComboBoxControl::InsertItem(int pos, const wxString& item)
 {
-    [m_comboBox insertItemWithObjectValue:wxCFStringRef( item , m_wxPeer->GetFont().GetEncoding() ).AsNSString() atIndex:pos];
+    wxCFStringRef itemLabel(  item, m_wxPeer->GetFont().GetEncoding() );
+    NSString* const cocoaStr = itemLabel.AsNSString();
+
+    if ( m_wxPeer->HasFlag(wxCB_SORT) )
+    {
+        NSArray* const objectValues = m_comboBox.objectValues;
+
+        pos = [objectValues indexOfObject: cocoaStr
+                            inSortedRange: NSMakeRange(0, objectValues.count)
+                            options: NSBinarySearchingInsertionIndex
+                            usingComparator: ^(id obj1, id obj2)
+                                {
+                                    return [obj1 caseInsensitiveCompare: obj2];
+                                }];
+    }
+
+    [m_comboBox insertItemWithObjectValue:cocoaStr atIndex:pos];
 }
 
 void wxNSComboBoxControl::RemoveItem(int pos)
@@ -264,13 +319,13 @@ int wxNSComboBoxControl::FindString(const wxString& text) const
 void wxNSComboBoxControl::Popup()
 {
     id ax = NSAccessibilityUnignoredDescendant(m_comboBox);
-    [ax accessibilitySetValue: [NSNumber numberWithBool: YES] forAttribute: NSAccessibilityExpandedAttribute];
+    [ax setAccessibilityExpanded: YES];
 }
 
 void wxNSComboBoxControl::Dismiss()
 {
     id ax = NSAccessibilityUnignoredDescendant(m_comboBox);
-    [ax accessibilitySetValue: [NSNumber numberWithBool: NO] forAttribute: NSAccessibilityExpandedAttribute];
+    [ax setAccessibilityExpanded: NO];
 }
 
 void wxNSComboBoxControl::SetEditable(bool editable)
@@ -293,7 +348,10 @@ wxWidgetImplType* wxWidgetImpl::CreateComboBox( wxComboBox* wxpeer,
 {
     NSRect r = wxOSXGetFrameForControl( wxpeer, pos , size ) ;
     wxNSComboBox* v = [[wxNSComboBox alloc] initWithFrame:r];
-    [v setNumberOfVisibleItems:13];
+    if (WX_IS_MACOS_AVAILABLE(10, 13))
+        [v setNumberOfVisibleItems:999];
+    else
+        [v setNumberOfVisibleItems:13];
     if (style & wxCB_READONLY)
         [v setEditable:NO];
     wxNSComboBoxControl* c = new wxNSComboBoxControl( wxpeer, v );

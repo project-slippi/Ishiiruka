@@ -83,6 +83,28 @@ namespace Slippi {
     // Read isFrozenPS byte
     game->settings.isFrozenPS = readByte(data, idx, maxSize, 0);
 
+    // Read minorScene byte
+    game->settings.minorScene = readByte(data, idx, maxSize, 0);
+
+    // Read majorScene byte
+    game->settings.majorScene = readByte(data, idx, maxSize, 0);
+
+    // Read display name for each player
+    std::array<std::array<uint8_t, DISPLAY_NAME_SIZE>, 4> playerDisplayNames;
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < DISPLAY_NAME_SIZE; j++) {
+            playerDisplayNames[i][j] = readByte(data, idx, maxSize, 0);
+        }
+    }
+
+    // Read connectCodes
+    std::array<std::array<uint8_t, CONNECT_CODE_SIZE>, 4> playerConnectCodes;
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < CONNECT_CODE_SIZE; j++) {
+            playerConnectCodes[i][j] = readByte(data, idx, maxSize, 0);
+        }
+    }
+
     // Pull header data into struct
     int player1Pos = 24; // This is the index of the first players character info
     std::array<uint32_t, Slippi::GAME_INFO_HEADER_SIZE> gameInfoHeader = game->settings.header;
@@ -105,6 +127,8 @@ namespace Slippi {
       p.playerType = playerType;
       p.characterColor = playerInfo & 0xFF;
       p.nametag = playerNametags[i];
+      p.displayName = playerDisplayNames[i];
+      p.connectCode = playerConnectCodes[i];
 
       //Add player settings to result
       game->settings.players[i] = p;

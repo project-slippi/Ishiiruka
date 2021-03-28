@@ -22,6 +22,7 @@
 #include <sys/types.h>
 #if defined __APPLE__ || defined __FreeBSD__ || defined __OpenBSD__
 #include <sys/sysctl.h>
+#include <sys/utsname.h>
 #else
 #include <sys/sysinfo.h>
 #endif
@@ -39,6 +40,27 @@ static uintptr_t RoundPage(uintptr_t addr)
 {
 	uintptr_t mask = getpagesize() - 1;
 	return (addr + mask) & ~mask;
+}
+#endif
+
+#if defined __APPLE__
+// On High Sierra, passing MAP_JIT seems to cause weird issues - the hardened runtime only exists
+// from Mojave (10.14) onwards, so there's some clash happening in 10.13. Thus, we just need to branch
+// here for that one OS (18 is the kernel for Mojave)... and this should be removed at some point. 
+static inline int determine_macos_jit_flag()
+{
+	static int jit_flag = -1;
+
+	if (jit_flag == -1)
+	{
+		struct utsname name;
+		uname(&name);
+
+		// Kernel version 18 = Mojave
+		jit_flag = (atoi(name.release) >= 18) ? MAP_JIT : 0;
+	}
+
+	return jit_flag;
 }
 #endif
 
@@ -64,7 +86,7 @@ void* AllocateExecutableMemory(size_t size, bool low)
 
 	int flags = MAP_ANON | MAP_PRIVATE;
 #ifdef __APPLE__
-	flags |= MAP_JIT;
+	flags |= determine_macos_jit_flag();
 #endif
 
 	void* ptr = mmap(map_hint, size, PROT_READ | PROT_WRITE | PROT_EXEC, flags

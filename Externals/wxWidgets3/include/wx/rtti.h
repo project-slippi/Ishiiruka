@@ -62,7 +62,7 @@ public:
     ~wxClassInfo();
 
     wxObject *CreateObject() const
-        { return m_objectConstructor ? (*m_objectConstructor)() : 0; }
+        { return m_objectConstructor ? (*m_objectConstructor)() : NULL; }
     bool IsDynamic() const { return (NULL != m_objectConstructor); }
 
     const wxChar       *GetClassName() const { return m_className; }
@@ -85,10 +85,22 @@ public:
 
     bool IsKindOf(const wxClassInfo *info) const
     {
-        return info != 0 &&
-               ( info == this ||
-                 ( m_baseInfo1 && m_baseInfo1->IsKindOf(info) ) ||
-                 ( m_baseInfo2 && m_baseInfo2->IsKindOf(info) ) );
+        if ( info == this )
+            return true;
+
+        if ( m_baseInfo1 )
+        {
+            if ( m_baseInfo1->IsKindOf(info) )
+                return true;
+        }
+
+        if ( m_baseInfo2 )
+        {
+            if ( m_baseInfo2->IsKindOf(info) )
+                return true;
+        }
+
+        return false;
     }
 
     wxDECLARE_CLASS_INFO_ITERATORS();

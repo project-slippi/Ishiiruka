@@ -24,34 +24,57 @@ EOF
 main() {
     downloader --check
 
-    local _url="https://forums.dolphin-emu.org/attachment.php?aid=16637"
-    say "Downloading kext from ${_url}."
+    # Needed as an argument for downloader type determination in downloader().
+    get_architecture || return 1
+    local _arch="$RETVAL"
+    assert_nz "$_arch" "arch"
 
-    local _file="SmashEnabler.kext.zip"
-    ensure downloader "$_url" "$_file"
+    echo "--------------------------------------------------------------------------------"
+    echo "|                                                                              |"
+    echo "| ❗ IMPORTANT: Always run this with Dolphin closed and adapter unplugged! ❗  |"
+    echo "|                                                                              |"
+    echo "| If your adapter is plugged in, unplug it now.                                |"
+    echo "|                                                                              |"
+    echo "| If you have any instance of Dolphin open, close it completely.               |"
+    echo "|                                                                              |"
+    echo "| If you ran it with the adapter plugged in or Dolphin opened, unplug and/or   |"
+    echo "| close it, and re-run this script.                                            |"
+    echo "|                                                                              |"
+    echo "--------------------------------------------------------------------------------"
 
-    say "Unzipping..."
-    unzip "$_file"
-
-    say "Clearing out old versions if they exist. This may require your password."
+    say "🧹 Clearing out old versions if they exist. This may require your password (it will not look like you are typing, but you are)."
     sudo rm -rf /Library/Extensions/SmashEnabler.kext
     
-    say "Installing kext. This may require your password."
+    local _url="https://forums.dolphin-emu.org/attachment.php?aid=16637"
+    say "🟢 Downloading kext from ${_url}."
+
+    local _file="SmashEnabler.kext.zip"
+    ensure downloader "$_url" "$_file" "$_arch"
+
+    say "📦 Unzipping..."
+    unzip "$_file"
+    
+    say "🎮 Installing kext. This may require your password (it will not look like you are typing, but you are)."
     sudo mv SmashEnabler.kext /Library/Extensions/
     sudo chown -R root:wheel /Library/Extensions/SmashEnabler.kext
-    sudo touch /Library/Extensions
+    sudo kextutil /Library/Extensions/SmashEnabler.kext
+    
+    # This was previously enough to trigger a kext cache rebuild, but in recent macOS versions it doesn't seem to kick it.
+    # The kextutil line above does well enough... but keep this here for now in case it makes sense to revert it (e.g, High Sierra).
+    # sudo touch /Library/Extensions
 
-    say "Cleaning up..."
+    say "🧹 Cleaning up..."
     rm "${_file}"
 
-    say "Kext installed. You should boot into recovery mode and re-enable SIP to be safe."
+    say "🎉 Extension installed."
+    say "❗ IMPORTANT: always make sure you have your adapter plugged in BEFORE opening Dolphin. ❗"
 
     local _retval=$?
     return "$_retval"
 }
 
 say() {
-    printf 'smashenabler-installer: %s\n' "$1"
+    printf '\n%s\n' "$1"
 }
 
 err() {
@@ -149,7 +172,7 @@ check_help_for() {
         # fail to find these options to force fallback
         *darwin*)
         if check_cmd sw_vers; then
-            if [ "$(sw_vers -productVersion | cut -d. -f2)" -lt 13 ]; then
+            if [ "$(sw_vers -productVersion | cut -d. -f1)" -eq 10 ] && [ "$(sw_vers -productVersion | cut -d. -f2)" -lt 13 ]; then
                 # Older than 10.13
                 echo "Warning: Detected OS X platform older than 10.13"
                 return 1
@@ -253,6 +276,70 @@ get_strong_ciphersuites_for() {
         # Begin with SECURE128 (and higher) then remove/add to build cipher suites. Produces same 9 cipher suites as OpenSSL but in slightly different order.
         echo "SECURE128:-VERS-SSL3.0:-VERS-TLS1.0:-VERS-TLS1.1:-VERS-DTLS-ALL:-CIPHER-ALL:-MAC-ALL:-KX-ALL:+AEAD:+ECDHE-ECDSA:+ECDHE-RSA:+AES-128-GCM:+CHACHA20-POLY1305:+AES-256-GCM"
     fi 
+}
+
+# Load the arch type; accounts for most modern possible types (Apple Silicon, Intel, and a few oddities for possible Hackintosh types).
+# RIP PPC.
+get_architecture() {
+    local _ostype _cputype _bitness _arch
+    _ostype="$(uname -s)"
+    _cputype="$(uname -m)"
+
+    if [ "$_ostype" = Darwin ] && [ "$_cputype" = i386 ]; then
+        # Darwin `uname -m` lies
+        if sysctl hw.optional.x86_64 | grep -q ': 1'; then
+            _cputype=x86_64
+        fi
+    fi
+
+    case "$_ostype" in
+
+        Darwin)
+            _ostype=apple-darwin
+            ;;
+
+        *)
+            err "unrecognized OS type: $_ostype"
+            ;;
+
+    esac
+
+    case "$_cputype" in
+
+        i386 | i486 | i686 | i786 | x86)
+            _cputype=i686
+            ;;
+
+        xscale | arm)
+            _cputype=arm
+            ;;
+
+        armv6l)
+            _cputype=arm
+            _ostype="${_ostype}eabihf"
+            ;;
+
+        armv7l | armv8l)
+            _cputype=armv7
+            _ostype="${_ostype}eabihf"
+            ;;
+
+        aarch64 | arm64)
+            _cputype=aarch64
+            ;;
+
+        x86_64 | x86-64 | x64 | amd64)
+            _cputype=x86_64
+            ;;
+
+        *)
+            err "unknown CPU type: $_cputype"
+
+    esac
+
+    _arch="${_cputype}-${_ostype}"
+
+    RETVAL="$_arch"
 }
 
 main "$@" || exit 1

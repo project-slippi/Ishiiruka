@@ -26,10 +26,10 @@ Please read the [FAQ](https://dolphin-emu.org/docs/faq/) before using Dolphin.
 Open the solution file `Source/Dolphin.sln` to build Dolphin on Windows using [Visual Studio 2019](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=16).
 Other compilers might be
 able to build Dolphin on Windows but have not been tested and are not
-recommended to be used. Git and Windows 10 SDK 10.0.17763.0 must be installed. You can [download it here](https://developer.microsoft.com/en-us/windows/downloads/sdk-archive/). Once the solution is loaded, change the Configuration from `Debug Win32` to `Release x64`, this can be done changed in the top toolbar.
+recommended to be used. Git and Windows 10 SDK 10.0.17763.0 must be installed. You can [download it here](https://developer.microsoft.com/en-us/windows/downloads/sdk-archive/). Once the solution is loaded, change the Configuration to `Release x64`, this can be done changed in the top toolbar.
 
 
-You also need the June 2010 DirectX SDK, you can [download it here](http://www.microsoft.com/en-us/download/details.aspx?id=6812). You will most likely have issues installing this, look at [this comment](https://stackoverflow.com/a/9401911) for how to fix it. Not sure everything in it is a hard requirement.
+You also need the June 2010 DirectX SDK, you can [download it here](https://github.com/project-slippi/Ishiiruka/releases/download/v2.2.5/DXSDK_Jun10.exe). You will most likely have issues installing this, look at [this comment](https://stackoverflow.com/a/9401911) for how to fix it. Not sure everything in it is a hard requirement.
 
 If you have trouble with some `.lib` files missing, right click the Externals directory and click rebuild.
 
@@ -55,7 +55,7 @@ An application bundle will be created in `./Binaries`.
 If you are building on Mojave, you will need to install the 10.11 and 10.14 SDKs to build because Quicktime has been removed in the latest SDKs. Find the sdk version here https://github.com/phracker/MacOSX-SDKs and copy it to 
 `/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs`. You should not need to modify the plist file as the project readme seems to indicate.
 
-If you are building on Catalina, you only need to install the 10.14 SDK. However you will also need to install wxWidgets from source. Details on how to do this can be found by reading the CI script (https://github.com/project-slippi/Ishiiruka/blob/slippi/.github/workflows/pr-build.yml#L284).
+If you are building on Catalina, you only need to install the 10.14 SDK.
 
 ### Linux Build Steps:
 There are two builds of Slippi Dolphin, the netplay and playback build. To build each you can use the given build scripts or read them to understand how to do your own.
