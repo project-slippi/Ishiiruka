@@ -109,6 +109,7 @@ void SlippiGameReporter::ReportThreadHandler()
 			request["jitterMean"] = report.jitterMean;
 			request["jitterMax"] = report.jitterMax;
 			request["jitterVariance"] = report.jitterVariance;
+			request["pingMean"] = report.pingMean;
 
 			json players = json::array();
 			for (int i = 0; i < report.players.size(); i++)

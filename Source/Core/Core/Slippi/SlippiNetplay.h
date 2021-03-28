@@ -173,6 +173,8 @@ class SlippiNetplayClient
 	u64 pingUs;
 	std::vector<u64> packetTimestamps;
 	std::recursive_mutex packetTimestampsMutex;
+	std::vector<u64> pings;
+	std::recursive_mutex pingsMutex;
 
 	std::deque<std::unique_ptr<SlippiPad>> localPadQueue;  // most recent inputs at start of deque
 	std::deque<std::unique_ptr<SlippiPad>> remotePadQueue; // most recent inputs at start of deque

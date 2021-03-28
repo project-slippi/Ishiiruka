@@ -248,6 +248,11 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 		ackTimers.Pop();
 
 		pingUs = Common::Timer::GetTimeUs() - sendTime;
+		// Record ping for later reporting
+		{
+			std::lock_guard<std::recursive_mutex> lkq(pingsMutex);
+			pings.push_back(pingUs);
+		}
 		if (g_ActiveConfig.bShowNetPlayPing && frame % SLIPPI_PING_DISPLAY_INTERVAL == 0)
 		{
 			OSD::AddTypedMessage(OSD::MessageType::NetPlayPing, StringFromFormat("Ping: %u", pingUs / 1000),
@@ -549,6 +554,10 @@ void SlippiNetplayClient::StartSlippiGame()
 		std::lock_guard<std::recursive_mutex> lkq(packetTimestampsMutex);
 		packetTimestamps.clear();
 	}
+	{
+		std::lock_guard<std::recursive_mutex> lkq(pingsMutex);
+		pings.clear();
+	}
 }
 
 void SlippiNetplayClient::SendConnectionSelected()
@@ -752,11 +761,20 @@ void SlippiNetplayClient::GetNetworkingStats(SlippiGameReporter::GameReport *rep
 		// For absolutely no reason that I can gather, adjacent_difference puts an exta element at the front of the result vector. Remove it
 		differences.erase(differences.begin());
 	}
-	float sum = 0;
+	float jitterSum = 0;
 	for (u64 i : differences) {
-		sum += i;
+		jitterSum += i;
 	}
-	report->jitterMean = sum / (float)differences.size();
+	report->jitterMean = jitterSum / (float)differences.size();
 	report->jitterMax = (float)*std::max_element(differences.begin(), differences.end());
 	report->jitterVariance = ComputeSampleVariance(report->jitterMean, differences);
+
+	{
+		std::lock_guard<std::recursive_mutex> lkq(pingsMutex);
+		float pingSum = 0;
+		for (u64 i : pings) {
+			pingSum += i;
+		}
+		report->pingMean = pingSum / (float)pings.size();
+	}
 }

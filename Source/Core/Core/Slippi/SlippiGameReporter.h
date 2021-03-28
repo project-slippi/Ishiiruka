@@ -26,6 +26,7 @@ class SlippiGameReporter
     float jitterMean = 0;
     float jitterMax = 0;
     float jitterVariance = 0;
+    float pingMean = 0;
 	};
 
 	SlippiGameReporter(SlippiUser *user);
