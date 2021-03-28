@@ -1584,6 +1584,8 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 	prepareOpponentInputs(payload);
 }
 
+std::vector<double> offsetUss;
+
 bool CEXISlippi::shouldSkipOnlineFrame(s32 frame)
 {
 	auto status = slippi_netplay->GetSlippiConnectStatus();
@@ -1629,6 +1631,19 @@ bool CEXISlippi::shouldSkipOnlineFrame(s32 frame)
 	{
 		auto offsetUs = slippi_netplay->CalcTimeOffsetUs();
 		INFO_LOG(SLIPPI_ONLINE, "[Frame %d] Offset is: %d us", frame, offsetUs);
+
+		offsetUss.push_back(offsetUs);
+		if (offsetUss.size() == 40)
+		{
+			std::ostringstream oss;
+			for (double offset : offsetUss)
+			{
+				oss << offset;
+				oss << " ";
+			}
+			WARN_LOG(SLIPPI_ONLINE, oss.str().c_str());
+			offsetUss.clear();
+		}
 
 		// TODO: figure out a better solution here for doubles?
 		if (offsetUs > 10000)

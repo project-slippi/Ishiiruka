@@ -39,7 +39,7 @@ SlippiNetplayClient *SLIPPI_NETPLAY = nullptr;
 // called from ---GUI--- thread
 SlippiNetplayClient::~SlippiNetplayClient()
 {
-	GCAdapter::informNewSlippiNetplayClient();
+	GCAdapter::informNoSlippiNetplayClient();
 
 	m_do_loop.Clear();
 	if (m_thread.joinable())
@@ -76,7 +76,7 @@ SlippiNetplayClient::SlippiNetplayClient(std::vector<std::string> addrs, std::ve
 	WARN_LOG(SLIPPI_ONLINE, "Initializing Slippi Netplay for port: %d, with host: %s, player idx: %d", localPort,
 	         isDecider ? "true" : "false", playerIdx);
 
-	GCAdapter::informNoSlippiNetplayClient();
+	GCAdapter::informNewSlippiNetplayClient();
 
 	this->isDecider = isDecider;
 	this->m_remotePlayerCount = remotePlayerCount;
