@@ -23,6 +23,9 @@ class SlippiGameReporter
 	{
 		u32 durationFrames = 0;
 		std::vector<PlayerReport> players;
+    float jitterMean = 0;
+    float jitterMax = 0;
+    float jitterVariance = 0;
 	};
 
 	SlippiGameReporter(SlippiUser *user);

@@ -26,8 +26,10 @@
 #include <SlippiGame.h>
 #include <algorithm>
 #include <fstream>
+#include <math.h>
 #include <mbedtls/md5.h>
 #include <memory>
+#include <numeric>
 #include <thread>
 
 static std::mutex pad_mutex;
@@ -147,6 +149,13 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 		// are with respect to the opponent
 
 		u64 curTime = Common::Timer::GetTimeUs();
+
+		// 120 frames to let the game settle before measuring network quality
+		if (frame > 120)
+		{
+			std::lock_guard<std::recursive_mutex> lkq(packetTimestampsMutex);
+			packetTimestamps.push_back(curTime);
+		}
 
 		auto timing = lastFrameTiming;
 		if (!hasGameStarted)
@@ -536,6 +545,10 @@ void SlippiNetplayClient::StartSlippiGame()
 
 	// Reset ack timers
 	ackTimers.Clear();
+	{
+		std::lock_guard<std::recursive_mutex> lkq(packetTimestampsMutex);
+		packetTimestamps.clear();
+	}
 }
 
 void SlippiNetplayClient::SendConnectionSelected()
@@ -713,4 +726,37 @@ s32 SlippiNetplayClient::CalcTimeOffsetUs()
 	}
 
 	return sum / count;
+}
+
+// C++ seriously doesn't have a variance built-in. So we have to make our own
+float SlippiNetplayClient::ComputeSampleVariance(float mean, std::vector<u64>& numbers)
+{
+	if (numbers.size() <= 1)
+	  return 0;
+
+	float total = 0;
+	for(u64 i : numbers) {
+		total += pow((i - mean), 2);
+	}
+
+	return total / (numbers.size() - 1);
+}
+
+void SlippiNetplayClient::GetNetworkingStats(SlippiGameReporter::GameReport *report)
+{
+	std::vector<u64> differences;
+	{
+		std::lock_guard<std::recursive_mutex> lkq(packetTimestampsMutex);
+		differences.resize(packetTimestamps.size()-1);
+		std::adjacent_difference(packetTimestamps.begin(), packetTimestamps.end(), differences.begin());
+		// For absolutely no reason that I can gather, adjacent_difference puts an exta element at the front of the result vector. Remove it
+		differences.erase(differences.begin());
+	}
+	float sum = 0;
+	for (u64 i : differences) {
+		sum += i;
+	}
+	report->jitterMean = sum / (float)differences.size();
+	report->jitterMax = (float)*std::max_element(differences.begin(), differences.end());
+	report->jitterVariance = ComputeSampleVariance(report->jitterMean, differences);
 }

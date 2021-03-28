@@ -11,6 +11,7 @@
 #include "Common/TraversalClient.h"
 #include "Core/NetPlayProto.h"
 #include "Core/Slippi/SlippiPad.h"
+#include "Core/Slippi/SlippiGameReporter.h"
 #include "InputCommon/GCPadStatus.h"
 #include <SFML/Network/Packet.hpp>
 #include <array>
@@ -123,6 +124,7 @@ class SlippiNetplayClient
 	u64 GetSlippiPing();
 	int32_t GetSlippiLatestRemoteFrame();
 	s32 CalcTimeOffsetUs();
+	void GetNetworkingStats(SlippiGameReporter::GameReport *outReport);
 
   protected:
 	struct
@@ -169,6 +171,9 @@ class SlippiNetplayClient
 
 	FrameTiming lastFrameTiming;
 	u64 pingUs;
+	std::vector<u64> packetTimestamps;
+	std::recursive_mutex packetTimestampsMutex;
+
 	std::deque<std::unique_ptr<SlippiPad>> localPadQueue;  // most recent inputs at start of deque
 	std::deque<std::unique_ptr<SlippiPad>> remotePadQueue; // most recent inputs at start of deque
 	Common::FifoQueue<FrameTiming, false> ackTimers;
@@ -184,6 +189,7 @@ class SlippiNetplayClient
 	unsigned int OnData(sf::Packet &packet);
 	void Send(sf::Packet &packet);
 	void Disconnect();
+	float ComputeSampleVariance(float mean, std::vector<u64>& numbers);
 
 	bool m_is_connected = false;
 

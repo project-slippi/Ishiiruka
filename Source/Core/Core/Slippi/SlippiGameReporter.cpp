@@ -106,6 +106,9 @@ void SlippiGameReporter::ReportThreadHandler()
 			request["playKey"] = userInfo.playKey;
 			request["gameIndex"] = gameIndex;
 			request["gameDurationFrames"] = report.durationFrames;
+			request["jitterMean"] = report.jitterMean;
+			request["jitterMax"] = report.jitterMax;
+			request["jitterVariance"] = report.jitterVariance;
 
 			json players = json::array();
 			for (int i = 0; i < report.players.size(); i++)
