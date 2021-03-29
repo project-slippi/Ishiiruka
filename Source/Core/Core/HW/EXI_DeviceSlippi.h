@@ -216,6 +216,9 @@ class CEXISlippi : public IEXIDevice
 	void preparePremadeTextLength(u8 *payload);
 	void preparePremadeTextLoad(u8 *payload);
 
+	// helper functions
+	bool doesTagMatchInput(u8 *input, u8 inputLen, std::string tag);
+
 	std::vector<u8> loadPremadeText(u8 *payload);
 
 	int getCharColor(u8 charId, u8 teamId);

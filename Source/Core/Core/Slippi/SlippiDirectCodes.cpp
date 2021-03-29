@@ -140,6 +140,12 @@ std::string SlippiDirectCodes::get(int index)
 	return (index >= directCodeInfos.size()) ? "1" : "";
 }
 
+int SlippiDirectCodes::length()
+{
+	return (int)directCodeInfos.size();
+}
+
+
 void SlippiDirectCodes::WriteFile()
 {
 	std::string directCodesFilePath = getCodesFilePath();

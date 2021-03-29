@@ -1840,11 +1840,11 @@ void CEXISlippi::startFindMatch(u8 *payload)
 	shiftJisCode.erase(std::find(shiftJisCode.begin(), shiftJisCode.end(), 0x00), shiftJisCode.end());
 
 	// Log the direct code to file.
-	// TODO: Add some behavior so only the codes that result in a 
-	// succesful connection are saved. 
+	// TODO: Add some behavior so only the codes that result in a
+	// succesful connection are saved.
 	if (search.mode == SlippiMatchmaking::DIRECT)
 	{
-		// Make sure to convert to UTF8, otherwise json library will fail when 
+		// Make sure to convert to UTF8, otherwise json library will fail when
 		// calling dump().
 		std::string utf8Code = SHIFTJISToUTF8(shiftJisCode);
 		directCodes->AddOrUpdateCode(utf8Code);
@@ -1905,7 +1905,7 @@ void CEXISlippi::handleNameEntryAutoComplete(u8 *payload)
 	std::string startText = SHIFTJISToUTF8(shiftJisCode);
 
 	std::string autocompletedText = directCodes->Autocomplete(startText);
-	
+
 	m_read_queue.clear();
 
 	std::string jisCode = UTF8ToSHIFTJIS(autocompletedText);
@@ -1921,9 +1921,9 @@ void CEXISlippi::handleNameEntryAutoComplete(u8 *payload)
 			padEveryThirdByte = 0;
 			totalBytes++;
 		}
-		
+
 		totalBytes++;
-	} 
+	}
 
 	// Ensure that the entire tag is overwritten in game.
 	while (totalBytes < 24)
@@ -1931,11 +1931,31 @@ void CEXISlippi::handleNameEntryAutoComplete(u8 *payload)
 		m_read_queue.push_back(0x0);
 		totalBytes++;
 	}
+}
 
+bool CEXISlippi::doesTagMatchInput(u8 *input, u8 inputLen, std::string tag)
+{
+	auto jisTag = UTF8ToSHIFTJIS(tag);
+
+	// Check if this tag matches what has been input so far
+	bool isMatch = true;
+	for (int i = 0; i < inputLen; i++)
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Entered: %X%X. History: %X%X", input[i * 3], input[i * 3 + 1], (u8)jisTag[i * 2],
+		          (u8)jisTag[i * 2 + 1]);
+		if (input[i * 3] != (u8)jisTag[i * 2] || input[i * 3 + 1] != (u8)jisTag[i * 2 + 1])
+		{
+			isMatch = false;
+			break;
+		}
+	}
+
+	return isMatch;
 }
 
 void CEXISlippi::handleNameEntryLoad(u8 *payload)
-{
+	{
+	u8 inputLen = payload[24];
 	u32 initialIndex = payload[25] << 24 | payload[26] << 16 | payload[27] << 8 | payload[28];
 	u8 scrollDirection = payload[29];
 
@@ -1954,9 +1974,35 @@ void CEXISlippi::handleNameEntryLoad(u8 *payload)
 		curIndex = 0;
 	}
 
+	// Scroll to next tag that
+	std::string tagAtIndex = "1";
+	while (curIndex >= 0 && curIndex < (u32)directCodes->length())
+	{
+		tagAtIndex = directCodes->get(curIndex);
+		
+		// Break if we have found a tag that matches
+		if (doesTagMatchInput(payload, inputLen, tagAtIndex))
+			break;
+
+		curIndex = scrollDirection == 2 ? curIndex - 1 : curIndex + 1;
+	}
+
 	ERROR_LOG(SLIPPI_ONLINE, "Idx: %d, InitIdx: %d, Scroll: %d", curIndex, initialIndex, scrollDirection);
 
-	std::string tagAtIndex = directCodes->get(curIndex);
+	tagAtIndex = directCodes->get(curIndex);
+	if (tagAtIndex == "1")
+	{
+		// If we failed to find a tag at the current index, try the initial index again.
+		// If the initial index matches the filter, preserve that suggestion. Without
+		// this logic, the suggestion would get cleared
+		auto initialTag = directCodes->get(initialIndex);
+		if (doesTagMatchInput(payload, inputLen, initialTag))
+		{
+			tagAtIndex = initialTag;
+			curIndex = initialIndex;
+		}
+	}
+
 	ERROR_LOG(SLIPPI_ONLINE, "Retrieved tag: %s", tagAtIndex.c_str());
 	std::string jisCode;
 	m_read_queue.clear();
@@ -1964,12 +2010,13 @@ void CEXISlippi::handleNameEntryLoad(u8 *payload)
 	if (tagAtIndex == "1")
 	{
 		m_read_queue.push_back(0);
-		m_read_queue.insert(m_read_queue.end(), 3 * 8, 0); // Placeholder for suggestion
-		m_read_queue.push_back(0); // Placeholder for suggestion len
+		m_read_queue.insert(m_read_queue.end(), payload, payload + 3 * inputLen);
+		m_read_queue.insert(m_read_queue.end(), 3 * (8 - inputLen), 0);
+		m_read_queue.push_back(inputLen);
 		appendWordToBuffer(&m_read_queue, initialIndex);
 		return;
 	}
-	
+
 	// Indicate we have a suggestion
 	m_read_queue.push_back(1);
 

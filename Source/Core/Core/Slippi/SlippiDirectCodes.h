@@ -26,6 +26,7 @@ class SlippiDirectCodes
 	void ReadFile();
 	void AddOrUpdateCode(std::string code);
 	std::string get(int index);
+	int length();
 	void Sort(u8 sortByProperty = SlippiDirectCodes::SORT_BY_TIME);
 	std::string Autocomplete(std::string startText);
 
