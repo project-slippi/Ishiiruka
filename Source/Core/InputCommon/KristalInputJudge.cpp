@@ -27,10 +27,10 @@ bool isKristalInput(const GCPadStatus& newPad, const GCPadStatus& oldPad)
 	    // Digital (!A -> A, !B -> B, !other <-> other)
 	    ((newPad.button & PAD_BUTTON_A) && !(oldPad.button & PAD_BUTTON_A)) ||
 	    ((newPad.button & PAD_BUTTON_B) && !(oldPad.button & PAD_BUTTON_B)) ||
-	    ((newPad.button & PAD_BUTTON_X) && !(oldPad.button & PAD_BUTTON_A)) ||
-	    ((oldPad.button & PAD_BUTTON_X) && !(newPad.button & PAD_BUTTON_A)) ||
-	    ((newPad.button & PAD_BUTTON_Y) && !(oldPad.button & PAD_BUTTON_A)) ||
-	    ((oldPad.button & PAD_BUTTON_Y) && !(newPad.button & PAD_BUTTON_A)) ||
+	    ((newPad.button & PAD_BUTTON_X) && !(oldPad.button & PAD_BUTTON_X)) ||
+	    ((oldPad.button & PAD_BUTTON_X) && !(newPad.button & PAD_BUTTON_X)) ||
+	    ((newPad.button & PAD_BUTTON_Y) && !(oldPad.button & PAD_BUTTON_Y)) ||
+	    ((oldPad.button & PAD_BUTTON_Y) && !(newPad.button & PAD_BUTTON_Y)) ||
 	    ((newPad.button & PAD_TRIGGER_L) && !(oldPad.button & PAD_TRIGGER_L)) ||
 	    ((oldPad.button & PAD_TRIGGER_L) && !(newPad.button & PAD_TRIGGER_L)) ||
 	    ((newPad.button & PAD_TRIGGER_R) && !(oldPad.button & PAD_TRIGGER_R)) ||
@@ -50,7 +50,7 @@ bool isKristalInput(const GCPadStatus& newPad, const GCPadStatus& oldPad)
 	    ((oldPad.stickY > coord(-0.7)) && (newPad.stickY <= coord(-0.7))) ||       // Crouch
 		// Tap jump during dash = ? //TODO?
 
-	    // C Stick
+	    // C Stick // Should be enriched with diagonals rather than deadzone cardinal checks //TODO
 	    ((oldPad.stickX < coord(0.2875)) && (newPad.stickX >= coord(0.2875))) ||   // Right air
 	    ((oldPad.stickX < coord(0.8)) && (newPad.stickX >= coord(0.8))) ||         // Right smash
 	    ((oldPad.stickX > coord(-0.2875)) && (newPad.stickX <= coord(-0.2875))) || // Left air

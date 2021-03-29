@@ -201,21 +201,23 @@ GCPadStatus makePadFrom8ByteArray(uint8_t *byteArray, bool get_origin)
 static u8 FindUsedController(u8 *controller_payload)
 {
 	return
-		(controller_payload[1 + 2 + 0*9] & 1) ? 1 :
-		(controller_payload[1 + 2 + 1*9] & 1) ? 2 :
-		(controller_payload[1 + 2 + 2*9] & 1) ? 3 :
-		(controller_payload[1 + 2 + 3*9] & 1) ? 4 :
-		0;
+		((controller_payload[1 + 2 + 0*9] & 1) ? 1 :
+		((controller_payload[1 + 2 + 1*9] & 1) ? 2 :
+		((controller_payload[1 + 2 + 2*9] & 1) ? 3 :
+		((controller_payload[1 + 2 + 3*9] & 1) ? 4 : 0))));
 }
 
-u8 usedControllerChan = 0; // P1 default
+volatile u8 usedControllerChan = 0; // P1 default
 GCPadStatus previousPad{};
 
 static void HandleKristalFunctions(u8 *controller_payload)
 {
-	u8 usedControllerInfo = FindUsedController(controller_payload);
-	if (usedControllerInfo)
+	u8 volatile usedControllerInfo = FindUsedController(controller_payload);
+	if (usedControllerInfo != 0 && usedControllerChan != usedControllerInfo - 1)
+	{
 		usedControllerChan = usedControllerInfo - 1;
+		WARN_LOG(SLIPPI_ONLINE, "Found used controller %d", usedControllerInfo);
+	}
 	GCPadStatus pad = makePadFrom8ByteArray(controller_payload + 2 + 9 * usedControllerChan, false);
 	if (isKristalInput(pad, previousPad))
 	{
