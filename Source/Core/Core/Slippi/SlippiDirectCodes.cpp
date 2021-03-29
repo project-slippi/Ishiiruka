@@ -126,7 +126,7 @@ std::string SlippiDirectCodes::Autocomplete(std::string startText)
 	return startText;
 }
 
-std::string SlippiDirectCodes::get(u8 index)
+std::string SlippiDirectCodes::get(int index)
 {
 	Sort();
 

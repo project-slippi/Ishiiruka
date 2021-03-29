@@ -1895,6 +1895,8 @@ void CEXISlippi::startFindMatch(u8 *payload)
 
 void CEXISlippi::handleNameEntryAutoComplete(u8 *payload)
 {
+	ERROR_LOG(SLIPPI_ONLINE, "Auto complete");
+
 	std::string shiftJisCode;
 
 	shiftJisCode.insert(shiftJisCode.begin(), &payload[0], &payload[0] + 18);
@@ -1934,30 +1936,62 @@ void CEXISlippi::handleNameEntryAutoComplete(u8 *payload)
 
 void CEXISlippi::handleNameEntryLoad(u8 *payload)
 {
-	std::string tagAtIndex = directCodes->get(payload[0]);
-	INFO_LOG(SLIPPI_ONLINE, "Retrieved tag: %s", tagAtIndex.c_str());
+	u32 initialIndex = payload[25] << 24 | payload[26] << 16 | payload[27] << 8 | payload[28];
+	u8 scrollDirection = payload[29];
+
+	// Adjust index
+	u32 curIndex = initialIndex;
+	if (scrollDirection == 1)
+	{
+		curIndex++;
+	}
+	else if (scrollDirection == 2)
+	{
+		curIndex = curIndex > 0 ? curIndex - 1 : curIndex;
+	}
+	else if (scrollDirection == 3)
+	{
+		curIndex = 0;
+	}
+
+	ERROR_LOG(SLIPPI_ONLINE, "Idx: %d, InitIdx: %d, Scroll: %d", curIndex, initialIndex, scrollDirection);
+
+	std::string tagAtIndex = directCodes->get(curIndex);
+	ERROR_LOG(SLIPPI_ONLINE, "Retrieved tag: %s", tagAtIndex.c_str());
 	std::string jisCode;
 	m_read_queue.clear();
 
 	if (tagAtIndex == "1")
 	{
-		m_read_queue.insert(m_read_queue.end(), {0x01, 0x00, 0x00});
+		m_read_queue.push_back(0);
+		m_read_queue.insert(m_read_queue.end(), 3 * 8, 0); // Placeholder for suggestion
+		m_read_queue.push_back(0); // Placeholder for suggestion len
+		appendWordToBuffer(&m_read_queue, initialIndex);
 		return;
 	}
 	
+	// Indicate we have a suggestion
+	m_read_queue.push_back(1);
+
+	// Convert to tag to shift jis and write to response
 	jisCode = UTF8ToSHIFTJIS(tagAtIndex);
-	
-	u8 padEveryThirdByte = 0;
-	
-	for (auto it = jisCode.begin(); it != jisCode.end(); ++it)
+
+	// Write out connect code into buffer, injection null terminator after each letter
+	for (int i = 0; i < 8; i++)
 	{
-		m_read_queue.push_back(*it);
-		if (++padEveryThirdByte == 2)
-		{	
-			m_read_queue.push_back(0x0);
-			padEveryThirdByte = 0;
+		for (int j = i * 2; j < i * 2 + 2; j++)
+		{
+			m_read_queue.push_back(j < jisCode.length() ? jisCode[j] : 0);
 		}
+
+		m_read_queue.push_back(0x0);
 	}
+
+	ERROR_LOG(SLIPPI_ONLINE, "New Idx: %d", curIndex);
+
+	// Write length of tag
+	m_read_queue.push_back(tagAtIndex.length());
+	appendWordToBuffer(&m_read_queue, curIndex);
 }
 
 void CEXISlippi::prepareOnlineMatchState()
