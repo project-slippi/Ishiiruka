@@ -1941,8 +1941,8 @@ bool CEXISlippi::doesTagMatchInput(u8 *input, u8 inputLen, std::string tag)
 	bool isMatch = true;
 	for (int i = 0; i < inputLen; i++)
 	{
-		ERROR_LOG(SLIPPI_ONLINE, "Entered: %X%X. History: %X%X", input[i * 3], input[i * 3 + 1], (u8)jisTag[i * 2],
-		          (u8)jisTag[i * 2 + 1]);
+		//ERROR_LOG(SLIPPI_ONLINE, "Entered: %X%X. History: %X%X", input[i * 3], input[i * 3 + 1], (u8)jisTag[i * 2],
+		//          (u8)jisTag[i * 2 + 1]);
 		if (input[i * 3] != (u8)jisTag[i * 2] || input[i * 3 + 1] != (u8)jisTag[i * 2 + 1])
 		{
 			isMatch = false;
@@ -1954,7 +1954,7 @@ bool CEXISlippi::doesTagMatchInput(u8 *input, u8 inputLen, std::string tag)
 }
 
 void CEXISlippi::handleNameEntryLoad(u8 *payload)
-	{
+{
 	u8 inputLen = payload[24];
 	u32 initialIndex = payload[25] << 24 | payload[26] << 16 | payload[27] << 8 | payload[28];
 	u8 scrollDirection = payload[29];
@@ -1979,7 +1979,7 @@ void CEXISlippi::handleNameEntryLoad(u8 *payload)
 	while (curIndex >= 0 && curIndex < (u32)directCodes->length())
 	{
 		tagAtIndex = directCodes->get(curIndex);
-		
+
 		// Break if we have found a tag that matches
 		if (doesTagMatchInput(payload, inputLen, tagAtIndex))
 			break;
@@ -1987,7 +1987,8 @@ void CEXISlippi::handleNameEntryLoad(u8 *payload)
 		curIndex = scrollDirection == 2 ? curIndex - 1 : curIndex + 1;
 	}
 
-	ERROR_LOG(SLIPPI_ONLINE, "Idx: %d, InitIdx: %d, Scroll: %d", curIndex, initialIndex, scrollDirection);
+	ERROR_LOG(SLIPPI_ONLINE, "Idx: %d, InitIdx: %d, Scroll: %d. Len: %d", curIndex, initialIndex, scrollDirection,
+	          inputLen);
 
 	tagAtIndex = directCodes->get(curIndex);
 	if (tagAtIndex == "1")
@@ -2037,7 +2038,7 @@ void CEXISlippi::handleNameEntryLoad(u8 *payload)
 	ERROR_LOG(SLIPPI_ONLINE, "New Idx: %d", curIndex);
 
 	// Write length of tag
-	m_read_queue.push_back(tagAtIndex.length());
+	m_read_queue.push_back(jisCode.length() / 2);
 	appendWordToBuffer(&m_read_queue, curIndex);
 }
 
