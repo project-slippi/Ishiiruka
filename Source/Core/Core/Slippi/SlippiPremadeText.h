@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "../../Common/StringUtil.h"
+#include "Common/StringUtil.h"
 #include <regex>
 #include <stdarg.h>
 #include <string>
