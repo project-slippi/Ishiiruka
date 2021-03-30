@@ -635,19 +635,19 @@ static bool CheckDeviceAccess(libusb_device* device)
 	return false;
 }
 
-static void AddGCAdapter(libusb_device* device)
+static void AddGCAdapter(libusb_device *device)
 {
-	libusb_config_descriptor* config = nullptr;
+	libusb_config_descriptor *config = nullptr;
 	libusb_get_config_descriptor(device, 0, &config);
 	for (u8 ic = 0; ic < config->bNumInterfaces; ic++)
 	{
-		const libusb_interface* interfaceContainer = &config->interface[ic];
+		const libusb_interface *interfaceContainer = &config->interface[ic];
 		for (int i = 0; i < interfaceContainer->num_altsetting; i++)
 		{
-			const libusb_interface_descriptor* interface = &interfaceContainer->altsetting[i];
+			const libusb_interface_descriptor *interface = &interfaceContainer->altsetting[i];
 			for (u8 e = 0; e < interface->bNumEndpoints; e++)
 			{
-				const libusb_endpoint_descriptor* endpoint = &interface->endpoint[e];
+				const libusb_endpoint_descriptor *endpoint = &interface->endpoint[e];
 				if (endpoint->bEndpointAddress & LIBUSB_ENDPOINT_IN)
 					s_endpoint_in = endpoint->bEndpointAddress;
 				else
@@ -669,8 +669,11 @@ static void AddGCAdapter(libusb_device* device)
 
 	#if defined(_WIN32)
 	SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
-	SetThreadPriority(s_adapter_input_thread.native_handle(), THREAD_PRIORITY_TIME_CRITICAL);
-	SetThreadPriority(s_adapter_output_thread.native_handle(), THREAD_PRIORITY_TIME_CRITICAL);
+	if (sconfig.bReduceTimingDispersion)
+	{
+		SetThreadPriority(s_adapter_input_thread.native_handle(), THREAD_PRIORITY_TIME_CRITICAL);
+		SetThreadPriority(s_adapter_output_thread.native_handle(), THREAD_PRIORITY_TIME_CRITICAL);
+	}
 	#endif
 
 	s_detected = true;
