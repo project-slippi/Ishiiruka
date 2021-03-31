@@ -635,6 +635,25 @@ static bool CheckDeviceAccess(libusb_device* device)
 	return false;
 }
 
+#if defined(_WIN32)
+bool threadPrioritiesAreHigh = false;
+static void refreshThreadPriorities(const SConfig &sconfig)
+{
+	if (sconfig.bReduceTimingDispersion && !threadPrioritiesAreHigh)
+	{
+		SetThreadPriority(s_adapter_input_thread.native_handle(), THREAD_PRIORITY_TIME_CRITICAL);
+		SetThreadPriority(s_adapter_output_thread.native_handle(), THREAD_PRIORITY_TIME_CRITICAL);
+		threadPrioritiesAreHigh = true;
+	}
+	else if ((!sconfig.bReduceTimingDispersion) && threadPrioritiesAreHigh)
+	{
+		SetThreadPriority(s_adapter_input_thread.native_handle(), THREAD_PRIORITY_NORMAL);
+		SetThreadPriority(s_adapter_output_thread.native_handle(), THREAD_PRIORITY_NORMAL);
+		threadPrioritiesAreHigh = false;
+	}
+}
+#endif
+
 static void AddGCAdapter(libusb_device *device)
 {
 	libusb_config_descriptor *config = nullptr;
@@ -671,6 +690,7 @@ static void AddGCAdapter(libusb_device *device)
 	SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
 	if (sconfig.bReduceTimingDispersion)
 	{
+		threadPrioritiesAreHigh = true;
 		SetThreadPriority(s_adapter_input_thread.native_handle(), THREAD_PRIORITY_TIME_CRITICAL);
 		SetThreadPriority(s_adapter_output_thread.native_handle(), THREAD_PRIORITY_TIME_CRITICAL);
 	}
@@ -737,6 +757,12 @@ GCPadStatus Input(int chan, std::chrono::high_resolution_clock::time_point *tp)
 
 	if (s_handle == nullptr || !s_detected)
 		return{};
+
+	const SConfig &sconfig = SConfig::GetInstance();
+
+	#if defined(_WIN32)
+	refreshThreadPriorities(sconfig);
+	#endif
 
 	int payload_size = 0;
 	u8 controller_payload_copy[adapter_payload_size];
