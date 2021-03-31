@@ -34,7 +34,6 @@ public:
 		ID_WIIPAGE,
 		ID_PATHSPAGE,
 		ID_ADVANCEDPAGE,
-		ID_LAGPAGE,
 	};
 
 private:
