@@ -2470,6 +2470,7 @@ std::vector<u8> CEXISlippi::loadPremadeText(u8 *payload)
 
 		//DEBUG_LOG(SLIPPI, "SLIPPI premade text param: 0x%x", payload[1]);
 		u8 paramId = payload[1] == 0x83 ? 0x88 : payload[1]; // TODO: Figure out what the hell is going on and fix this
+		playerName = ReplaceAll(playerName.c_str(), " ", "<S>");
 
 		if (paramId == SlippiPremadeText::CHAT_MSG_CHAT_DISABLED)
 		{
@@ -2478,7 +2479,6 @@ std::vector<u8> CEXISlippi::loadPremadeText(u8 *payload)
 
 		auto chatMessage = spt.premadeTextsParams[paramId];
 		std::string param = ReplaceAll(chatMessage.c_str(), " ", "<S>");
-		playerName = ReplaceAll(playerName.c_str(), " ", "<S>");
 		premadeTextData = spt.GetPremadeTextData(textId, playerName.c_str(), param.c_str());
 	}
 	else
