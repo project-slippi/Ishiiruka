@@ -294,41 +294,52 @@ void SlippiMatchmaking::startMatchmaking()
 	    return;
 	}*/
 
-	// The commented code attempts to fetch the LAN IP such that when remote IPs match, the
+	// The following code attempts to fetch the LAN IP such that when remote IPs match, the
 	// LAN IP can be tried in order to establish a connection in the case where the players
 	// don't have NAT loopback which allows that type of connection.
 	// Right now though, the logic would replace the WAN IP with the LAN IP and if the LAN
 	// IP connection didn't work but WAN would have, the players can no longer connect.
-	// Two things need to happen to bring this logic back:
+	// Two things need to happen to improtve this logic:
 	// 1. The connection must be changed to try both the LAN and WAN IPs in the case of
 	//    matching WAN IPs
 	// 2. The process for fetching LAN IP must be improved. For me, the current method
 	//    would always fetch my VirtualBox IP, which is not correct. I also think perhaps
 	//    it didn't work on Linux/Mac but I haven't tested it.
+	// I left this logic on for now under the assumption that it will help more people than
+	// it will hurt
 	char lanAddr[30] = "";
-	//char host[256];
-	//char *IP;
-	//struct hostent *host_entry;
-	//int hostname;
-	//hostname = gethostname(host, sizeof(host)); // find the host name
-	//if (hostname == -1)
-	//{
-	//	ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Error finding LAN address");
-	//}
-	//else
-	//{
-	//	host_entry = gethostbyname(host); // find host information
-	//	if (host_entry == NULL)
-	//	{
-	//		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Error finding LAN host");
-	//	}
-	//	else
-	//	{
-	//		IP = inet_ntoa(*((struct in_addr *)host_entry->h_addr_list[0])); // Convert into IP string
-	//		INFO_LOG(SLIPPI_ONLINE, "[Matchmaking] LAN IP: %s", IP);
-	//		sprintf(lanAddr, "%s:%d", IP, m_hostPort);
-	//	}
-	//}
+
+	char host[256];
+	char *IP;
+	struct hostent *host_entry;
+	int hostname;
+	hostname = gethostname(host, sizeof(host)); // find the host name
+	if (hostname == -1)
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Error finding LAN address");
+	}
+	else
+	{
+		host_entry = gethostbyname(host); // find host information
+		if (host_entry == NULL || host_entry->h_addrtype != AF_INET)
+		{
+			ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Error finding LAN host");
+		}
+		else
+		{
+			// Fetch the last IP (because that was correct for me, not sure if it will be for all)
+			int i = 0;
+			while (host_entry->h_addr_list[i] != 0)
+			{
+				IP = inet_ntoa(*((struct in_addr *)host_entry->h_addr_list[i]));
+				WARN_LOG(SLIPPI_ONLINE, "[Matchmaking] IP at idx %d: %s", i, IP);
+				i++;
+			}
+
+			sprintf(lanAddr, "%s:%d", IP, m_hostPort);
+			WARN_LOG(SLIPPI_ONLINE, "[Matchmaking] Sending LAN address: %s", lanAddr);
+		}
+	}
 
 	std::vector<u8> connectCodeBuf;
 	connectCodeBuf.insert(connectCodeBuf.end(), m_searchSettings.connectCode.begin(),
