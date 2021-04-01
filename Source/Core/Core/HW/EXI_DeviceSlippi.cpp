@@ -1726,6 +1726,12 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 	// Get pad data for each remote player and write each of their latest frame nums to the buf
 	for (int i = 0; i < remotePlayerCount; i++)
 	{
+		/* struct SlippiRemotePadOutput
+		{
+			int32_t latestFrame;
+			u8 playerIdx;
+			std::vector<u8> data;
+		}; */
 		results[i] = slippi_netplay->GetSlippiRemotePad(frame, i);
 
 		//* Reminder that rollback can update multiple frames at a time
@@ -1734,13 +1740,17 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 		// determine offset from which to copy data
 		offset[i] = (results[i]->latestFrame - frame) * SLIPPI_PAD_FULL_SIZE;
 		offset[i] = offset[i] < 0 ? 0 : offset[i];
-
+		//* i.e latestFrame = frame+2 (on a 2 inputs en avance): offset=2, donc on ne copie qu'à partir du 2ème input
+		//* latestFrame = frame-2 (on a 2 inputs de retard): offset=-2, donc offset=0, on copie tout ce qu'on peut
+		
 		// add latest frame we are transfering to begining of return buf
 		int32_t latestFrame = results[i]->latestFrame;
 		if (latestFrame > frame)
 			latestFrame = frame;
 		appendWordToBuffer(&m_read_queue, *(u32 *)&latestFrame);
-		//* Est-ce que la read queue serait la concaténation des frames qu'on passe à l'engine ?
+		//* Pour informer l'ASM de la dernière frame pour laquelle un input est connu ?
+
+		//* La read queue serait la concaténation des pads qu'on passe à l'engine
 		// INFO_LOG(SLIPPI_ONLINE, "Sending frame num %d for pIdx %d (offset: %d)", latestFrame, i, offset[i]);
 	}
 	// Send the current frame for any unused player slots.
@@ -1759,7 +1769,7 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 		{
 			auto txStart = results[i]->data.begin() + offset[i];
 			auto txEnd = results[i]->data.end();
-			tx.insert(tx.end(), txStart, txEnd);
+			tx.insert(tx.end(), txStart, txEnd); //* Inversion de sens ?
 		}
 
 		tx.resize(SLIPPI_PAD_FULL_SIZE * ROLLBACK_MAX_FRAMES, 0);

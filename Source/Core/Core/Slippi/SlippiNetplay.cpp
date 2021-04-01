@@ -947,6 +947,15 @@ std::unique_ptr<SlippiRemotePadOutput> SlippiNetplayClient::GetSlippiRemotePad(i
 		//* Donc on renvoie juste un SlippiPad&& avec frame 0 et pas de contenu
 	}
 
+	/*
+	struct SlippiRemotePadOutput
+	{
+		int32_t latestFrame;
+		u8 playerIdx;
+		std::vector<u8> data;
+	};
+	*/
+
 	padOutput->latestFrame = 0;
 	// Copy the entire remaining remote buffer
 	for (auto it = remotePadQueue[index].begin(); it != remotePadQueue[index].end(); ++it)

@@ -199,6 +199,7 @@ class CEXISlippi : public IEXIDevice
 	// Compute frame from payload - which payload ? Ours I assume ?
 	// slippi_netplay->GetSlippiRemotePad(frame)
 	// CALLS GetSlippiRemotePad o_O Why is it called prepare then
+	// "Prepares" the input for the rollback engine ?
 	void prepareOpponentInputs(u8 *payload);
 	
 	/*int32_t frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
