@@ -612,7 +612,7 @@ void SConfig::LoadCoreSettings(IniFile& ini)
 	core->Get("TimeStretching", &bTimeStretching, false);
 	core->Get("RSHACK", &bRSHACK, false);
 	core->Get("Latency", &iLatency, 0);
-	core->Get("ReduceTimingDispersion", &bReduceTimingDispersion, true);
+	core->Get("ReduceTimingDispersion", &bReduceTimingDispersion, false);
 	core->Get("SlippiEnableSpectator", &m_enableSpectator, true);
 	core->Get("SlippiSpectatorLocalPort", &m_spectator_local_port, 51441);
 	core->Get("SlippiOnlineDelay", &m_slippiOnlineDelay, 2);
