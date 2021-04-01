@@ -2455,7 +2455,7 @@ std::vector<u8> CEXISlippi::loadPremadeText(u8 *payload)
 	std::vector<u8> premadeTextData;
 	auto spt = SlippiPremadeText();
 
-	//DEBUG_LOG(SLIPPI, "SLIPPI premade text texture id: 0x%x", payload[0]);
+	//WARN_LOG(SLIPPI, "SLIPPI premade text texture id: 0x%x", payload[0]);
 
 	if (textId >= SlippiPremadeText::SPT_CHAT_P1 && textId <= SlippiPremadeText::SPT_CHAT_P4)
 	{
@@ -2468,8 +2468,8 @@ std::vector<u8> CEXISlippi::loadPremadeText(u8 *payload)
 		playerName = defaultNames[port];
 #endif
 
-		//DEBUG_LOG(SLIPPI, "SLIPPI premade text param: 0x%x", payload[1]);
-		u8 paramId = payload[1] == 0x83 ? 0x88 : payload[1]; // TODO: Figure out what the hell is going on and fix this
+		//WARN_LOG(SLIPPI, "SLIPPI premade text param: 0x%x", payload[1]);
+		u8 paramId = payload[1];
 		playerName = ReplaceAll(playerName.c_str(), " ", "<S>");
 
 		if (paramId == SlippiPremadeText::CHAT_MSG_CHAT_DISABLED)
@@ -2485,6 +2485,12 @@ std::vector<u8> CEXISlippi::loadPremadeText(u8 *payload)
 	{
 		premadeTextData = spt.GetPremadeTextData(textId);
 	}
+
+	//ERROR_LOG(SLIPPI, "SLIPPI premade text (%d):", premadeTextData.size());
+	//for (int i = 0; i < premadeTextData.size(); i++)
+	//{
+	//	WARN_LOG(SLIPPI, "%X", premadeTextData[i]);
+	//}
 
 	return premadeTextData;
 }
