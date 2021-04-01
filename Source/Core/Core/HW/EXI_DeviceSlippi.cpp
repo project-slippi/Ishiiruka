@@ -2740,10 +2740,11 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 	while (bufLoc < _uSize)
 	{
 		byte = memPtr[bufLoc];
+		INFO_LOG(SLIPPI, "EXI SLIPPI: Loc: %d, Size: %d, Cmd: 0x%x", bufLoc, _uSize, byte);
 		if (!payloadSizes.count(byte))
 		{
 			// This should never happen. Do something else if it does?
-			WARN_LOG(EXPANSIONINTERFACE, "EXI SLIPPI: Invalid command byte: 0x%x", byte);
+			ERROR_LOG(SLIPPI, "EXI SLIPPI: Invalid command byte: 0x%x", byte);
 			return;
 		}
 
