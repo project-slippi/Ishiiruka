@@ -212,8 +212,7 @@ class SlippiPremadeText
 							data.push_back(r);
 							data.push_back(r2);
 						}
-						else
-							return empty;
+						// else ignore
 					}
 				}
 			}
