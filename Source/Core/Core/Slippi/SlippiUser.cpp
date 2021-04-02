@@ -19,6 +19,8 @@
 #include "DolphinWX/Main.h"
 #include "DolphinWX/SlippiAuthWebView/SlippiAuthWebView.h"
 
+#include "UICommon/DiscordPresence.h"
+
 #include <codecvt>
 #include <locale>
 
@@ -141,6 +143,10 @@ bool SlippiUser::AttemptLogin()
 	{
 		overwriteFromServer();
 		WARN_LOG(SLIPPI_ONLINE, "Found user %s (%s)", userInfo.displayName.c_str(), userInfo.uid.c_str());
+#ifdef USE_DISCORD_PRESENCE
+		if (SConfig::GetInstance().m_DiscordPresence)
+			Discord::UpdateDiscordPresence();
+#endif
 	}
 
 	return isLoggedIn;

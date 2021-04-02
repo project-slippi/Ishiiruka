@@ -36,6 +36,10 @@ private:
 	void OnThrottlerChoiceChanged(wxCommandEvent&);
 	void OnCPUEngineRadioBoxChanged(wxCommandEvent&);
 
+#ifdef USE_DISCORD_PRESENCE
+	void OnDiscordPresenceCheckBoxChanged(wxCommandEvent&);
+#endif
+
 	wxArrayString m_throttler_array_string;
 	wxArrayString m_cpu_engine_array_string;
 
@@ -43,6 +47,10 @@ private:
 	wxCheckBox* m_cheats_checkbox;
 	wxCheckBox* m_boot_default_iso_checkbox;
 	wxCheckBox* m_force_ntscj_checkbox;
+
+#ifdef USE_DISCORD_PRESENCE
+	wxCheckBox* m_discord_presence_checkbox;
+#endif
 
 	wxChoice* m_throttler_choice;
 

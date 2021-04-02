@@ -128,6 +128,7 @@ struct SConfig : NonCopyable
 	bool bHLE_BS2 = true;
 	bool bEnableCheats = false;
 	bool bBootDefaultISO = false;
+	bool m_DiscordPresence = true;
 	bool bEnableMemcardSdWriting = true;
 	bool bAllowAllNetplayVersions = false;
 	bool bQoSEnabled = true;
