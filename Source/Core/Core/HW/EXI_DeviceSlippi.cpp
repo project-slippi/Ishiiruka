@@ -1946,6 +1946,18 @@ void CEXISlippi::prepareOnlineMatchState()
 			// returned to us from the matchmaking service and pick a new random stage before sending
 			// the selections to the opponent
 			allowedStages = matchmaking->GetStages();
+			if (allowedStages.empty())
+			{
+				allowedStages = {
+				    0x2,  // FoD
+				    0x3,  // Pokemon
+				    0x8,  // Yoshi's Story
+				    0x1C, // Dream Land
+				    0x1F, // Battlefield
+				    0x20, // Final Destination
+				};
+			}
+
 			stagePool.clear(); // Clear stage pool so that when we call getRandomStage it will use full list
 			localSelections.stageId = getRandomStage();
 			slippi_netplay->SetMatchSelections(localSelections);
