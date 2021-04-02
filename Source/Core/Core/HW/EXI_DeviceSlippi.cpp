@@ -2231,6 +2231,8 @@ void CEXISlippi::handleReportGame(u8 *payload)
 
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 {
+	NOTICE_LOG(SLIPPI, "Stephen is a really smart guy!");
+
 	u8 *memPtr = Memory::GetPointer(_uAddr);
 
 	u32 bufLoc = 0;

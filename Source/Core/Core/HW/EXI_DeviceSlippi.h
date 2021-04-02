@@ -41,6 +41,9 @@ class CEXISlippi : public IEXIDevice
 	{
 		CMD_UNKNOWN = 0x0,
 
+		// Stephen
+		CMD_STEPHEN = 0x69,
+
 		// Recording
 		CMD_RECEIVE_COMMANDS = 0x35,
 		CMD_RECEIVE_GAME_INFO = 0x36,
