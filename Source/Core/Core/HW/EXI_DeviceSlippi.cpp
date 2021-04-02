@@ -2470,6 +2470,8 @@ std::vector<u8> CEXISlippi::loadPremadeText(u8 *payload)
 
 		//WARN_LOG(SLIPPI, "SLIPPI premade text param: 0x%x", payload[1]);
 		u8 paramId = payload[1];
+        playerName = ReplaceAll(playerName.c_str(), "<", ""); // Remove any opening tags for now
+        playerName = ReplaceAll(playerName.c_str(), ">", ""); // Remove any closing tags for now
 		playerName = ReplaceAll(playerName.c_str(), " ", "<S>");
 
 		if (paramId == SlippiPremadeText::CHAT_MSG_CHAT_DISABLED)

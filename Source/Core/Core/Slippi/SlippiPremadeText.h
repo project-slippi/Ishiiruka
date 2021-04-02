@@ -70,10 +70,10 @@ class SlippiPremadeText
 	};
 
 	unordered_map<u8, string> premadeTexts = {
-	    {SPT_CHAT_P1, "<LEFT><KERN><COLOR, 229, 76, 76>%s-<S><COLOR, 255, 255, 255>%s<END>"},
-	    {SPT_CHAT_P2, "<LEFT><KERN><COLOR, 59, 189, 255>%s-<S><COLOR, 255, 255, 255>%s<END>"},
-	    {SPT_CHAT_P3, "<LEFT><KERN><COLOR, 255, 203, 4>%s-<S><COLOR, 255, 255, 255>%s<END>"},
-	    {SPT_CHAT_P4, "<LEFT><KERN><COLOR, 0, 178, 2>%s-<S><COLOR, 255, 255, 255>%s<END>"},
+	    {SPT_CHAT_P1, "<LEFT><KERN><COLOR, 229, 76, 76>%s:<S><COLOR, 255, 255, 255>%s<END>"},
+	    {SPT_CHAT_P2, "<LEFT><KERN><COLOR, 59, 189, 255>%s:<S><COLOR, 255, 255, 255>%s<END>"},
+	    {SPT_CHAT_P3, "<LEFT><KERN><COLOR, 255, 203, 4>%s:<S><COLOR, 255, 255, 255>%s<END>"},
+	    {SPT_CHAT_P4, "<LEFT><KERN><COLOR, 0, 178, 2>%s:<S><COLOR, 255, 255, 255>%s<END>"},
 	    {SPT_LOGOUT, "<FIT><COLOR, 243, 75, 75>Are<S>You<COLOR, 0, 175, 75><S>Sure?<END>"},
 	    {SPT_CHAT_DISABLED, "<LEFT><KERN><COLOR, 0, 178, 2>%s<S><COLOR, 255, 255, 255>has<S>chat<S>disabled<S><END>"},
 	};
@@ -408,10 +408,10 @@ class SlippiPremadeText
 	    U'ヂ', U'ッ', U'ツ', U'ヅ', U'テ', U'デ', U'ト', U'ド', U'ナ', U'ニ', U'ヌ', U'ネ', U'ノ', U'ハ', U'バ', U'パ',
 	    U'ヒ', U'ビ', U'ピ', U'フ', U'ブ', U'プ', U'ヘ', U'ベ', U'ペ', U'ホ', U'ボ', U'ポ', U'マ', U'ミ', U'ム', U'メ',
 	    U'モ', U'ャ', U'ヤ', U'ュ', U'ユ', U'ョ', U'ヨ', U'ラ', U'リ', U'ル', U'レ', U'ロ', U'ヮ', U'ワ', U'ヲ', U'ン',
-	    U'ヴ', U'ヵ', U'ヶ', U'　', U'、', U'。', U',',  U'.',  U'•',  U',',  U';',  U'?',  U'!',  U'^',  U'_',  U'—',
+	    U'ヴ', U'ヵ', U'ヶ', U'　', U'、', U'。', U',',  U'.',  U'•',  U':',  U';',  U'?',  U'!',  U'^',  U'_',  U'—',
 	    U'/',  U'~',  U'|',  U'\'', U'"',  U'(',  U')',  U'[',  U']',  U'{',  U'}',  U'+',  '-',   U'×',  U'=',  U'<',
 	    U'>',  U'¥',  U'$',  U'%',  U'#',  U'&',  U'*',  U'@',  U'扱', U'押', U'軍', U'源', U'個', U'込', U'指', U'示',
-	    U'取', U'書', U'詳', U'人', U'生', U'説', U'体', U'団', U'電', U'読', U'発', U'抜', U'閑', U'本', U'明',
+	    U'取', U'書', U'詳', U'人', U'生', U'説', U'体', U'団', U'電', U'読', U'発', U'抜', U'閑', U'本', U'明'
 	};
 
 //	int CHAR_MAP2[287] = {
