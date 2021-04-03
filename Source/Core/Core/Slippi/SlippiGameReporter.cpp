@@ -106,10 +106,6 @@ void SlippiGameReporter::ReportThreadHandler()
 			request["playKey"] = userInfo.playKey;
 			request["gameIndex"] = gameIndex;
 			request["gameDurationFrames"] = report.durationFrames;
-			request["jitterMean"] = report.jitterMean;
-			request["jitterMax"] = report.jitterMax;
-			request["jitterVariance"] = report.jitterVariance;
-			request["pingMean"] = report.pingMean;
 
 			json players = json::array();
 			for (int i = 0; i < report.players.size(); i++)
@@ -118,6 +114,10 @@ void SlippiGameReporter::ReportThreadHandler()
 				p["uid"] = playerUids[i];
 				p["damageDone"] = report.players[i].damageDone;
 				p["stocksRemaining"] = report.players[i].stocksRemaining;
+				p["jitterMean"] = report.players[i].jitterMean;
+				p["jitterMax"] = report.players[i].jitterMax;
+				p["jitterVariance"] = report.players[i].jitterVariance;
+				p["pingMean"] = report.players[i].pingMean;
 
 				players[i] = p;
 			}

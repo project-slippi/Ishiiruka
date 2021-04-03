@@ -53,8 +53,8 @@ void SlippiConfigPane::InitializeGUI()
 	m_replay_month_folders_checkbox->SetToolTip(
 		_("Enable this to save your replays into subfolders by month (YYYY-MM)."));
 
-	m_replay_directory_picker = new wxDirPickerCtrl(this, wxID_ANY, wxEmptyString, 
-		_("Slippi Replay Folder:"), wxDefaultPosition, wxDefaultSize, 
+	m_replay_directory_picker = new wxDirPickerCtrl(this, wxID_ANY, wxEmptyString,
+		_("Slippi Replay Folder:"), wxDefaultPosition, wxDefaultSize,
 		wxDIRP_USE_TEXTCTRL | wxDIRP_SMALL);
 	m_replay_directory_picker->SetToolTip(
 		_("Choose where your Slippi replay files are saved."));
@@ -67,8 +67,15 @@ void SlippiConfigPane::InitializeGUI()
 		"Increasing this can cause unplayable input delay, and lowering it can cause visual artifacts/lag."));
 	m_slippi_delay_frames_ctrl->SetRange(1, 9);
 
+	m_slippi_enable_quick_chat = new wxCheckBox(this, wxID_ANY, _("Enable Quick Chat"));
+	m_slippi_enable_quick_chat->SetToolTip(
+		_("Enable this to send and receive Quick Chat Messages when online."));
 
-	
+	// Input settings
+	m_reduce_timing_dispersion_checkbox = new wxCheckBox(this, wxID_ANY, _("Reduce Timing Dispersion"));
+	m_reduce_timing_dispersion_checkbox->SetToolTip(_("Make inputs feel more console-like for overclocked GCC to USB "
+	                                                  "adapters at the cost of 1.6ms of input lag (2ms for single-port official adapter)."));
+
 #endif
 	const int space5 = FromDIP(5);
 	const int space10 = FromDIP(10);
@@ -89,15 +96,23 @@ void SlippiConfigPane::InitializeGUI()
 	sbSlippiReplaySettings->Add(sSlippiReplaySettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	sbSlippiReplaySettings->AddSpacer(space5);
 
-	wxGridBagSizer* const sSlippiOnlineSettings = new wxGridBagSizer(space5, space5);
+	wxGridBagSizer* const sSlippiOnlineSettings = new wxGridBagSizer(space10, space5);
 	sSlippiOnlineSettings->Add(m_slippi_delay_frames_txt, wxGBPosition(0, 0), wxDefaultSpan, wxALIGN_CENTER_VERTICAL);
 	sSlippiOnlineSettings->Add(m_slippi_delay_frames_ctrl, wxGBPosition(0, 1), wxDefaultSpan, wxALIGN_LEFT);
+	sSlippiOnlineSettings->Add(m_slippi_enable_quick_chat, wxGBPosition(1, 0), wxDefaultSpan, wxALIGN_LEFT);
 
 	wxStaticBoxSizer* const sbSlippiOnlineSettings =
 		new wxStaticBoxSizer(wxVERTICAL, this, _("Slippi Online Settings"));
 	sbSlippiOnlineSettings->AddSpacer(space5);
 	sbSlippiOnlineSettings->Add(sSlippiOnlineSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	sbSlippiOnlineSettings->AddSpacer(space5);
+
+	wxStaticBoxSizer *const sbSlippiInputSettings =
+		new wxStaticBoxSizer(wxVERTICAL, this, _("Slippi Input Settings"));
+	sbSlippiInputSettings->AddSpacer(space5);
+	sbSlippiInputSettings->Add(m_reduce_timing_dispersion_checkbox, 0, wxLEFT | wxRIGHT, space5);
+	sbSlippiInputSettings->AddSpacer(space5);
+
 #endif
 	wxBoxSizer* const main_sizer = new wxBoxSizer(wxVERTICAL);
 #ifndef IS_PLAYBACK
@@ -105,6 +120,8 @@ void SlippiConfigPane::InitializeGUI()
 	main_sizer->Add(sbSlippiReplaySettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	main_sizer->AddSpacer(space5);
 	main_sizer->Add(sbSlippiOnlineSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
+	main_sizer->AddSpacer(space5);
+	main_sizer->Add(sbSlippiInputSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	main_sizer->AddSpacer(space5);
 #endif
 	SetSizer(main_sizer);
@@ -130,6 +147,9 @@ void SlippiConfigPane::LoadGUIValues()
 	}
 
 	m_slippi_delay_frames_ctrl->SetValue(startup_params.m_slippiOnlineDelay);
+	m_slippi_enable_quick_chat->SetValue(startup_params.m_slippiEnableQuickChat);
+
+	m_reduce_timing_dispersion_checkbox->SetValue(startup_params.bReduceTimingDispersion);
 #endif
 }
 
@@ -144,10 +164,17 @@ void SlippiConfigPane::BindEvents()
 	m_replay_directory_picker->Bind(wxEVT_DIRPICKER_CHANGED, &SlippiConfigPane::OnReplayDirChanged, this);
 
 	m_slippi_delay_frames_ctrl->Bind(wxEVT_SPINCTRL, &SlippiConfigPane::OnDelayFramesChanged, this);
+	m_slippi_enable_quick_chat->Bind(wxEVT_CHECKBOX, &SlippiConfigPane::OnQuickChatToggle, this);
 
+	m_reduce_timing_dispersion_checkbox->Bind(wxEVT_CHECKBOX, &SlippiConfigPane::OnReduceTimingDispersionToggle, this);
 #endif
 }
 
+void SlippiConfigPane::OnQuickChatToggle(wxCommandEvent& event)
+{
+	bool enableQuickChat = m_slippi_enable_quick_chat->IsChecked();
+	SConfig::GetInstance().m_slippiEnableQuickChat = enableQuickChat;
+}
 
 void SlippiConfigPane::OnReplaySavingToggle(wxCommandEvent& event)
 {
@@ -180,4 +207,9 @@ void SlippiConfigPane::OnReplayDirChanged(wxCommandEvent& event)
 void SlippiConfigPane::OnDelayFramesChanged(wxCommandEvent &event)
 {
 	SConfig::GetInstance().m_slippiOnlineDelay = m_slippi_delay_frames_ctrl->GetValue();
+}
+
+void SlippiConfigPane::OnReduceTimingDispersionToggle(wxCommandEvent& event)
+{
+	SConfig::GetInstance().bReduceTimingDispersion = m_reduce_timing_dispersion_checkbox->GetValue();
 }

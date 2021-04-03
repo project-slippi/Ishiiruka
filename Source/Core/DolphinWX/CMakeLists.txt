@@ -98,8 +98,16 @@ list(APPEND LIBS core uicommon)
 if(APPLE)
 	if(wxWidgets_FOUND)
 		list(APPEND WXLIBS
-			${APPSERV_LIBRARY}
-			${COCOA_LIBRARY}
+            ${APPKIT_LIBRARY}
+            ${APPSERV_LIBRARY}
+            ${ATB_LIBRARY}
+            ${CARBON_LIBRARY}
+            ${COCOA_LIBRARY}
+            ${COREFUND_LIBRARY}
+            ${CORESERV_LIBRARY}
+            ${IOK_LIBRARY}
+            ${OPENGL_LIBRARY}
+            ${WEBKIT_FRAMEWORK}
 			)
 	endif()
 	# Add resource files to application bundle.

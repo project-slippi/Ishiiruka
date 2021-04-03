@@ -18,15 +18,15 @@ class SlippiGameReporter
 	{
 		float damageDone;
 		u8 stocksRemaining;
+    float jitterMean = 0;
+    float jitterMax = 0;
+    float jitterVariance = 0;
+    float pingMean = 0;
 	};
 	struct GameReport
 	{
 		u32 durationFrames = 0;
 		std::vector<PlayerReport> players;
-    float jitterMean = 0;
-    float jitterMax = 0;
-    float jitterVariance = 0;
-    float pingMean = 0;
 	};
 
 	SlippiGameReporter(SlippiUser *user);

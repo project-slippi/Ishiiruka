@@ -153,15 +153,34 @@ GCPadStatus CSIDevice_GCController::GetPadStatus()
 	return pad_status;
 }
 
+GCPadStatus CSIDevice_GCController::GetPadStatus(std::chrono::high_resolution_clock::time_point)
+{
+	return GetPadStatus();
+}
+
 // GetData
 
 // Return true on new data (max 7 Bytes and 6 bits ;)
 // [00?SYXBA] [1LRZUDRL] [x] [y] [cx] [cy] [l] [r]
 //  |\_ ERR_LATCH (error latched - check SISR)
 //  |_ ERR_STATUS (error on last GetData or SendCmd?)
-bool CSIDevice_GCController::GetData(u32& _Hi, u32& _Low)
+
+bool CSIDevice_GCController::GetData(u32 &_Hi, u32 &_Low)
 {
 	GCPadStatus PadStatus = GetPadStatus();
+	return GetDataFromPadStatus(_Hi, _Low, PadStatus);
+}
+bool CSIDevice_GCController::GetData(u32 &_Hi, u32 &_Low, std::chrono::high_resolution_clock::time_point when)
+{
+	GCPadStatus PadStatus = GetPadStatus(when);
+	return GetDataFromPadStatus(_Hi, _Low, PadStatus);
+}
+
+bool CSIDevice_GCController::GetDataFromPadStatus(u32 &_Hi, u32 &_Low, GCPadStatus &PadStatus)
+{
+	// bool CSIDevice_GCController::GetData(u32 &_Hi, u32 &_Low) {
+	// GCPadStatus PadStatus = GetPadStatus();
+
 	if (HandleButtonCombos(PadStatus) == COMBO_ORIGIN)
 		PadStatus.button |= PAD_GET_ORIGIN;
 
@@ -170,46 +189,46 @@ bool CSIDevice_GCController::GetData(u32& _Hi, u32& _Low)
 	// Low bits are packed differently per mode
 	if (m_Mode == 0 || m_Mode == 5 || m_Mode == 6 || m_Mode == 7)
 	{
-		_Low = (u8)(PadStatus.analogB >> 4);                    // Top 4 bits
-		_Low |= (u32)((u8)(PadStatus.analogA >> 4) << 4);       // Top 4 bits
-		_Low |= (u32)((u8)(PadStatus.triggerRight >> 4) << 8);  // Top 4 bits
-		_Low |= (u32)((u8)(PadStatus.triggerLeft >> 4) << 12);  // Top 4 bits
-		_Low |= (u32)((u8)(PadStatus.substickY) << 16);         // All 8 bits
-		_Low |= (u32)((u8)(PadStatus.substickX) << 24);         // All 8 bits
+		_Low = (u8)(PadStatus.analogB >> 4);                   // Top 4 bits
+		_Low |= (u32)((u8)(PadStatus.analogA >> 4) << 4);      // Top 4 bits
+		_Low |= (u32)((u8)(PadStatus.triggerRight >> 4) << 8); // Top 4 bits
+		_Low |= (u32)((u8)(PadStatus.triggerLeft >> 4) << 12); // Top 4 bits
+		_Low |= (u32)((u8)(PadStatus.substickY) << 16);        // All 8 bits
+		_Low |= (u32)((u8)(PadStatus.substickX) << 24);        // All 8 bits
 	}
 	else if (m_Mode == 1)
 	{
-		_Low = (u8)(PadStatus.analogB >> 4);               // Top 4 bits
-		_Low |= (u32)((u8)(PadStatus.analogA >> 4) << 4);  // Top 4 bits
-		_Low |= (u32)((u8)PadStatus.triggerRight << 8);    // All 8 bits
-		_Low |= (u32)((u8)PadStatus.triggerLeft << 16);    // All 8 bits
-		_Low |= (u32)((u8)PadStatus.substickY << 24);      // Top 4 bits
-		_Low |= (u32)((u8)PadStatus.substickX << 28);      // Top 4 bits
+		_Low = (u8)(PadStatus.analogB >> 4);              // Top 4 bits
+		_Low |= (u32)((u8)(PadStatus.analogA >> 4) << 4); // Top 4 bits
+		_Low |= (u32)((u8)PadStatus.triggerRight << 8);   // All 8 bits
+		_Low |= (u32)((u8)PadStatus.triggerLeft << 16);   // All 8 bits
+		_Low |= (u32)((u8)PadStatus.substickY << 24);     // Top 4 bits
+		_Low |= (u32)((u8)PadStatus.substickX << 28);     // Top 4 bits
 	}
 	else if (m_Mode == 2)
 	{
-		_Low = (u8)(PadStatus.analogB);                          // All 8 bits
-		_Low |= (u32)((u8)(PadStatus.analogA) << 8);             // All 8 bits
-		_Low |= (u32)((u8)(PadStatus.triggerRight >> 4) << 16);  // Top 4 bits
-		_Low |= (u32)((u8)(PadStatus.triggerLeft >> 4) << 20);   // Top 4 bits
-		_Low |= (u32)((u8)PadStatus.substickY << 24);            // Top 4 bits
-		_Low |= (u32)((u8)PadStatus.substickX << 28);            // Top 4 bits
+		_Low = (u8)(PadStatus.analogB);                         // All 8 bits
+		_Low |= (u32)((u8)(PadStatus.analogA) << 8);            // All 8 bits
+		_Low |= (u32)((u8)(PadStatus.triggerRight >> 4) << 16); // Top 4 bits
+		_Low |= (u32)((u8)(PadStatus.triggerLeft >> 4) << 20);  // Top 4 bits
+		_Low |= (u32)((u8)PadStatus.substickY << 24);           // Top 4 bits
+		_Low |= (u32)((u8)PadStatus.substickX << 28);           // Top 4 bits
 	}
 	else if (m_Mode == 3)
 	{
 		// Analog A/B are always 0
-		_Low = (u8)PadStatus.triggerRight;              // All 8 bits
-		_Low |= (u32)((u8)PadStatus.triggerLeft << 8);  // All 8 bits
-		_Low |= (u32)((u8)PadStatus.substickY << 16);   // All 8 bits
-		_Low |= (u32)((u8)PadStatus.substickX << 24);   // All 8 bits
+		_Low = (u8)PadStatus.triggerRight;             // All 8 bits
+		_Low |= (u32)((u8)PadStatus.triggerLeft << 8); // All 8 bits
+		_Low |= (u32)((u8)PadStatus.substickY << 16);  // All 8 bits
+		_Low |= (u32)((u8)PadStatus.substickX << 24);  // All 8 bits
 	}
 	else if (m_Mode == 4)
 	{
 		_Low = (u8)(PadStatus.analogB);               // All 8 bits
 		_Low |= (u32)((u8)(PadStatus.analogA) << 8);  // All 8 bits
-																									// triggerLeft/Right are always 0
-		_Low |= (u32)((u8)PadStatus.substickY << 16);  // All 8 bits
-		_Low |= (u32)((u8)PadStatus.substickX << 24);  // All 8 bits
+		                                              // triggerLeft/Right are always 0
+		_Low |= (u32)((u8)PadStatus.substickY << 16); // All 8 bits
+		_Low |= (u32)((u8)PadStatus.substickX << 24); // All 8 bits
 	}
 
 	// Unset all bits except those that represent

@@ -498,6 +498,7 @@
     <ClInclude Include="PowerPC\SignatureDB.h" />
     <ClInclude Include="Slippi\SlippiGameReporter.h" />
     <ClInclude Include="Slippi\SlippiPlayback.h" />
+    <ClInclude Include="Slippi\SlippiPremadeText.h" />
     <ClInclude Include="Slippi\SlippiTimer.h" />
     <ClInclude Include="Slippi\SlippiGameFileLoader.h" />
     <ClInclude Include="Slippi\SlippiMatchmaking.h" />

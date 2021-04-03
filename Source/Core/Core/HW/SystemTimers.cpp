@@ -170,7 +170,7 @@ static void PatchEngineCallback(u64 userdata, s64 cycles_late)
 {
 	// Patch mem and run the Action Replay
 	PatchEngine::ApplyFramePatches();
-	CoreTiming::ScheduleEvent(VideoInterface::GetTicksPerField() - cycles_late, et_PatchEngine);
+	//CoreTiming::ScheduleEvent(VideoInterface::GetTicksPerField() - cycles_late, et_PatchEngine);
 }
 
 static void ThrottleCallback(u64 last_time, s64 cyclesLate)
@@ -246,7 +246,7 @@ void Init()
 	et_DSP = CoreTiming::RegisterEvent("DSPCallback", DSPCallback);
 	et_AudioDMA = CoreTiming::RegisterEvent("AudioDMACallback", AudioDMACallback);
 	et_IPC_HLE = CoreTiming::RegisterEvent("IPC_HLE_UpdateCallback", IPC_HLE_UpdateCallback);
-	et_PatchEngine = CoreTiming::RegisterEvent("PatchEngine", PatchEngineCallback);
+	//et_PatchEngine = CoreTiming::RegisterEvent("PatchEngine", PatchEngineCallback);
 	et_Throttle = CoreTiming::RegisterEvent("Throttle", ThrottleCallback);
 
 	CoreTiming::ScheduleEvent(VideoInterface::GetTicksPerHalfLine(), et_VI);
@@ -254,7 +254,7 @@ void Init()
 	CoreTiming::ScheduleEvent(s_audio_dma_period, et_AudioDMA);
 	CoreTiming::ScheduleEvent(0, et_Throttle, Common::Timer::GetTimeMs());
 
-	CoreTiming::ScheduleEvent(VideoInterface::GetTicksPerField(), et_PatchEngine);
+	//CoreTiming::ScheduleEvent(VideoInterface::GetTicksPerField(), et_PatchEngine);
 
 	if (SConfig::GetInstance().bWii)
 		CoreTiming::ScheduleEvent(s_ipc_hle_period, et_IPC_HLE);

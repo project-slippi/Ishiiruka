@@ -73,18 +73,6 @@ static const char LOG_LEVEL_TO_CHAR[7] = "-NEWID";
 
 }  // namespace
 
-// Short File code taken from https://blog.galowicz.de/2016/02/20/short_file_macro/
-static constexpr const char *past_last_slash(const char *str, const char * last_slash)
-{
-	return *str == '\0' ? last_slash
-	                    : *str == '/' || *str == '\\' ? past_last_slash(str + 1, str + 1) : past_last_slash(str + 1, last_slash);
-}
-
-static constexpr const char *past_last_slash(const char * str)
-{
-	return past_last_slash(str, str);
-}
-
 void GenericLog(LogTypes::LOG_LEVELS level, LogTypes::LOG_TYPE type, const char* file, int line,
 	const char* fmt, ...)
 #ifdef __GNUC__
@@ -104,7 +92,7 @@ void GenericLog(LogTypes::LOG_LEVELS level, LogTypes::LOG_TYPE type, const char*
 #define GENERIC_LOG(t, v, ...)                                                                     \
   {                                                                                                \
     if (v <= MAX_LOGLEVEL)                                                                         \
-      GenericLog(v, t, past_last_slash(__FILE__), __LINE__, __VA_ARGS__);                                           \
+      GenericLog(v, t, __FILE__, __LINE__, __VA_ARGS__);                                           \
   }
 
 #define ERROR_LOG(t, ...)                                                                          \

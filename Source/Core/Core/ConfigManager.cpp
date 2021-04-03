@@ -278,10 +278,12 @@ void SConfig::SaveCoreSettings(IniFile& ini)
 	core->Set("TimeStretching", bTimeStretching);
 	core->Set("RSHACK", bRSHACK);
 	core->Set("Latency", iLatency);
+	core->Set("ReduceTimingDispersion", bReduceTimingDispersion);
 	core->Set("SlippiOnlineDelay", m_slippiOnlineDelay);
 	core->Set("SlippiEnableSpectator", m_enableSpectator);
 	core->Set("SlippiSpectatorLocalPort", m_spectator_local_port);
 	core->Set("SlippiSaveReplays", m_slippiSaveReplays);
+	core->Set("SlippiEnableQuickChat", m_slippiEnableQuickChat);
 	core->Set("SlippiReplayMonthFolders", m_slippiReplayMonthFolders);
 	core->Set("SlippiReplayDir", m_strSlippiReplayDir);
 	core->Set("BlockingPipes", m_blockingPipes);
@@ -597,11 +599,7 @@ void SConfig::LoadCoreSettings(IniFile& ini)
 	core->Get("Fastmem", &bFastmem, true);
 	core->Get("DSPHLE", &bDSPHLE, true);
 	core->Get("TimingVariance", &iTimingVariance, 8);
-#ifdef IS_PLAYBACK
-	core->Get("CPUThread", &bCPUThread, false);
-#else
 	core->Get("CPUThread", &bCPUThread, true);
-#endif
 	core->Get("SyncOnSkipIdle", &bSyncGPUOnSkipIdleHack, true);
 	core->Get("DefaultISO", &m_strDefaultISO);
 	core->Get("BootDefaultISO", &bBootDefaultISO, false);
@@ -614,10 +612,12 @@ void SConfig::LoadCoreSettings(IniFile& ini)
 	core->Get("TimeStretching", &bTimeStretching, false);
 	core->Get("RSHACK", &bRSHACK, false);
 	core->Get("Latency", &iLatency, 0);
+	core->Get("ReduceTimingDispersion", &bReduceTimingDispersion, false);
 	core->Get("SlippiEnableSpectator", &m_enableSpectator, true);
 	core->Get("SlippiSpectatorLocalPort", &m_spectator_local_port, 51441);
 	core->Get("SlippiOnlineDelay", &m_slippiOnlineDelay, 2);
 	core->Get("SlippiSaveReplays", &m_slippiSaveReplays, true);
+	core->Get("SlippiEnableQuickChat", &m_slippiEnableQuickChat, true);
 	core->Get("SlippiReplayMonthFolders", &m_slippiReplayMonthFolders, false);
 	std::string default_replay_dir = File::GetHomeDirectory() + DIR_SEP + "Slippi";
 	core->Get("SlippiReplayDir", &m_strSlippiReplayDir, default_replay_dir);
@@ -935,6 +935,10 @@ bool SConfig::AutoSetup(EBootBS2 _BootBS2)
 
 				if(pVolume->GetLongNames()[DiscIO::Language::LANGUAGE_ENGLISH].find("20XX") != std::string::npos)
 					m_gameType = GAMETYPE_MELEE_20XX;
+			}
+			else if (m_strGameID == "GTME01")
+			{
+				m_gameType = GAMETYPE_MELEE_UPTM;
 			}
 
 			// Check if we have a Wii disc

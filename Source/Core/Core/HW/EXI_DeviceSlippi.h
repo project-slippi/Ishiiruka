@@ -10,13 +10,13 @@
 #include "Common/FileUtil.h"
 #include "Core/HW/EXI_Device.h"
 #include "Core/Slippi/SlippiGameFileLoader.h"
+#include "Core/Slippi/SlippiGameReporter.h"
 #include "Core/Slippi/SlippiMatchmaking.h"
 #include "Core/Slippi/SlippiNetplay.h"
 #include "Core/Slippi/SlippiReplayComm.h"
 #include "Core/Slippi/SlippiSavestate.h"
 #include "Core/Slippi/SlippiSpectate.h"
 #include "Core/Slippi/SlippiUser.h"
-#include "Core/Slippi/SlippiGameReporter.h"
 
 #define ROLLBACK_MAX_FRAMES 7
 #define MAX_NAME_LENGTH 15
@@ -69,6 +69,7 @@ class CEXISlippi : public IEXIDevice
 		CMD_UPDATE = 0xB8,
 		CMD_GET_ONLINE_STATUS = 0xB9,
 		CMD_CLEANUP_CONNECTION = 0xBA,
+		CMD_SEND_CHAT_MESSAGE = 0xBB,
 		CMD_GET_NEW_SEED = 0xBC,
 		CMD_REPORT_GAME = 0xBD,
 
@@ -76,6 +77,11 @@ class CEXISlippi : public IEXIDevice
 		CMD_LOG_MESSAGE = 0xD0,
 		CMD_FILE_LENGTH = 0xD1,
 		CMD_FILE_LOAD = 0xD2,
+		CMD_GCT_LENGTH = 0xD3,
+		CMD_GCT_LOAD = 0xD4,
+		CMD_GET_DELAY = 0xD5,
+		CMD_PREMADE_TEXT_LENGTH = 0xE1,
+		CMD_PREMADE_TEXT_LOAD = 0xE2,
 	};
 
 	enum
@@ -108,6 +114,7 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_GET_MATCH_STATE, 0},
 	    {CMD_FIND_OPPONENT, 19},
 	    {CMD_SET_MATCH_SELECTIONS, 6},
+	    {CMD_SEND_CHAT_MESSAGE, 2},
 	    {CMD_OPEN_LOGIN, 0},
 	    {CMD_LOGOUT, 0},
 	    {CMD_UPDATE, 0},
@@ -120,6 +127,11 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_LOG_MESSAGE, 0xFFFF}, // Variable size... will only work if by itself
 	    {CMD_FILE_LENGTH, 0x40},
 	    {CMD_FILE_LOAD, 0x40},
+	    {CMD_GCT_LENGTH, 0x0},
+	    {CMD_GCT_LOAD, 0x4},
+	    {CMD_GET_DELAY, 0x0},
+	    {CMD_PREMADE_TEXT_LENGTH, 0x2},
+	    {CMD_PREMADE_TEXT_LOAD, 0x2},
 	};
 
 	struct WriteMessage
@@ -185,9 +197,19 @@ class CEXISlippi : public IEXIDevice
 	void prepareIsFileReady();
 
 	// misc stuff
+	void handleChatMessage(u8 *payload);
 	void logMessageFromGame(u8 *payload);
 	void prepareFileLength(u8 *payload);
 	void prepareFileLoad(u8 *payload);
+	void prepareGctLength();
+	void prepareGctLoad(u8 *payload);
+	void prepareDelayResponse();
+	void preparePremadeTextLength(u8 *payload);
+	void preparePremadeTextLoad(u8 *payload);
+
+	std::vector<u8> loadPremadeText(u8 *payload);
+
+	int getCharColor(u8 charId, u8 teamId);
 
 	void FileWriteThread(void);
 
@@ -225,6 +247,11 @@ class CEXISlippi : public IEXIDevice
 	// Used to determine when to detect when a new session has started
 	bool isPlaySessionActive = false;
 
+	// We put these at the class level to preserve values in the case of a disconnect
+	// while loading. Without this, someone could load into a game playing the wrong char
+	u8 localPlayerIndex = 0;
+	u8 remotePlayerIndex = 1;
+
   protected:
 	void TransferByte(u8 &byte) override;
 
@@ -239,4 +266,6 @@ class CEXISlippi : public IEXIDevice
 
 	std::map<s32, std::unique_ptr<SlippiSavestate>> activeSavestates;
 	std::deque<std::unique_ptr<SlippiSavestate>> availableSavestates;
+
+	std::vector<u16> allowedStages;
 };
