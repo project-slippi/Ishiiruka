@@ -71,6 +71,13 @@ void SlippiConfigPane::InitializeGUI()
 	m_slippi_enable_quick_chat->SetToolTip(
 		_("Enable this to send and receive Quick Chat Messages when online."));
 
+	m_slippi_force_netplay_port_checkbox = new wxCheckBox(this, wxID_ANY, _("Force Netplay Port"));
+	m_slippi_force_netplay_port_checkbox->SetToolTip(
+	    _("Enable this to force Slippi to use a specific network port for online peer-to-peer connections."));
+	m_slippi_force_netplay_port_ctrl =
+	    new wxSpinCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(100, -1));
+	m_slippi_force_netplay_port_ctrl->SetRange(1, 65535);
+
 	// Input settings
 	m_reduce_timing_dispersion_checkbox = new wxCheckBox(this, wxID_ANY, _("Reduce Timing Dispersion"));
 	m_reduce_timing_dispersion_checkbox->SetToolTip(_("Make inputs feel more console-like for overclocked GCC to USB "
@@ -100,6 +107,9 @@ void SlippiConfigPane::InitializeGUI()
 	sSlippiOnlineSettings->Add(m_slippi_delay_frames_txt, wxGBPosition(0, 0), wxDefaultSpan, wxALIGN_CENTER_VERTICAL);
 	sSlippiOnlineSettings->Add(m_slippi_delay_frames_ctrl, wxGBPosition(0, 1), wxDefaultSpan, wxALIGN_LEFT);
 	sSlippiOnlineSettings->Add(m_slippi_enable_quick_chat, wxGBPosition(1, 0), wxDefaultSpan, wxALIGN_LEFT);
+	sSlippiOnlineSettings->Add(m_slippi_force_netplay_port_checkbox, wxGBPosition(2, 0), wxDefaultSpan, wxALIGN_CENTER_VERTICAL);
+	sSlippiOnlineSettings->Add(m_slippi_force_netplay_port_ctrl, wxGBPosition(2, 1), wxDefaultSpan,
+	                           wxALIGN_LEFT | wxRESERVE_SPACE_EVEN_IF_HIDDEN);
 
 	wxStaticBoxSizer* const sbSlippiOnlineSettings =
 		new wxStaticBoxSizer(wxVERTICAL, this, _("Slippi Online Settings"));
@@ -137,6 +147,7 @@ void SlippiConfigPane::LoadGUIValues()
 
 #ifndef IS_PLAYBACK
 	bool enableReplays = startup_params.m_slippiSaveReplays;
+	bool forceNetplayPort = startup_params.m_slippiForceNetplayPort;
 
 	m_replay_enable_checkbox->SetValue(enableReplays);
 	m_replay_month_folders_checkbox->SetValue(startup_params.m_slippiReplayMonthFolders);
@@ -148,6 +159,12 @@ void SlippiConfigPane::LoadGUIValues()
 
 	m_slippi_delay_frames_ctrl->SetValue(startup_params.m_slippiOnlineDelay);
 	m_slippi_enable_quick_chat->SetValue(startup_params.m_slippiEnableQuickChat);
+	m_slippi_force_netplay_port_checkbox->SetValue(startup_params.m_slippiForceNetplayPort);
+	m_slippi_force_netplay_port_ctrl->SetValue(startup_params.m_slippiNetplayPort);
+
+	if (!forceNetplayPort) {
+		m_slippi_force_netplay_port_ctrl->Hide();
+	}
 
 	m_reduce_timing_dispersion_checkbox->SetValue(startup_params.bReduceTimingDispersion);
 #endif
@@ -165,6 +182,8 @@ void SlippiConfigPane::BindEvents()
 
 	m_slippi_delay_frames_ctrl->Bind(wxEVT_SPINCTRL, &SlippiConfigPane::OnDelayFramesChanged, this);
 	m_slippi_enable_quick_chat->Bind(wxEVT_CHECKBOX, &SlippiConfigPane::OnQuickChatToggle, this);
+	m_slippi_force_netplay_port_checkbox->Bind(wxEVT_CHECKBOX, &SlippiConfigPane::OnForceNetplayPortToggle, this);
+	m_slippi_force_netplay_port_ctrl->Bind(wxEVT_SPINCTRL, &SlippiConfigPane::OnNetplayPortChanged, this);
 
 	m_reduce_timing_dispersion_checkbox->Bind(wxEVT_CHECKBOX, &SlippiConfigPane::OnReduceTimingDispersionToggle, this);
 #endif
@@ -207,6 +226,23 @@ void SlippiConfigPane::OnReplayDirChanged(wxCommandEvent& event)
 void SlippiConfigPane::OnDelayFramesChanged(wxCommandEvent &event)
 {
 	SConfig::GetInstance().m_slippiOnlineDelay = m_slippi_delay_frames_ctrl->GetValue();
+}
+
+void SlippiConfigPane::OnForceNetplayPortToggle(wxCommandEvent &event)
+{
+	bool enableForcePort = m_slippi_force_netplay_port_checkbox->IsChecked();
+
+	SConfig::GetInstance().m_slippiForceNetplayPort = enableForcePort;
+
+	if (enableForcePort)
+		m_slippi_force_netplay_port_ctrl->Show();
+	else
+		m_slippi_force_netplay_port_ctrl->Hide();
+}
+
+void SlippiConfigPane::OnNetplayPortChanged(wxCommandEvent &event)
+{
+	SConfig::GetInstance().m_slippiNetplayPort = m_slippi_force_netplay_port_ctrl->GetValue();
 }
 
 void SlippiConfigPane::OnReduceTimingDispersionToggle(wxCommandEvent& event)

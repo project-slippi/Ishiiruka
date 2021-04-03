@@ -216,8 +216,10 @@ void SlippiMatchmaking::startMatchmaking()
 	auto userInfo = m_user->GetUserInfo();
 	while (m_client == nullptr && retryCount < 15)
 	{
-		if (userInfo.port > 0)
-			m_hostPort = userInfo.port;
+		bool customPort = SConfig::GetInstance().m_slippiForceNetplayPort;
+
+		if (customPort)
+			m_hostPort = SConfig::GetInstance().m_slippiNetplayPort;
 		else
 			m_hostPort = 49000 + (generator() % 2000);
 		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Port to use: %d...", m_hostPort);
