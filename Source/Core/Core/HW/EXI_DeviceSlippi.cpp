@@ -2182,6 +2182,10 @@ void CEXISlippi::prepareOnlineMatchState()
 			}
 		}
 
+		// Set rng offset
+		rngOffset = isDecider ? lps.rngOffset : rps[0].rngOffset;
+		INFO_LOG(SLIPPI_ONLINE, "Rng Offset: 0x%x", rngOffset);
+
 		// Check if everyone is the same color
 		auto color = orderedSelections[0].teamId;
 		bool areAllSameTeam = true;
@@ -2192,7 +2196,12 @@ void CEXISlippi::prepareOnlineMatchState()
 				areAllSameTeam = false;
 			}
 		}
-		
+
+		// Randomize assignments to randomize teams when all same color
+		std::vector<u8> teamAssignments = {0, 0, 1, 1};
+		std::srand(rngOffset);
+		std::random_shuffle(teamAssignments.begin(), teamAssignments.end());
+
 		// Overwrite player character choices
 		for (auto &s : orderedSelections)
 		{
@@ -2200,7 +2209,7 @@ void CEXISlippi::prepareOnlineMatchState()
 			{
 				// Overwrite teamId
 				// TODO: overwrite color
-				s.teamId = s.playerIdx <= 1 ? 0 : 1;
+				s.teamId = teamAssignments[s.playerIdx];
 			}
 
 			// Overwrite player character
@@ -2238,11 +2247,6 @@ void CEXISlippi::prepareOnlineMatchState()
 
 		u16 *stage = (u16 *)&onlineMatchBlock[0xE];
 		*stage = Common::swap16(stageId);
-
-		// Set rng offset
-		rngOffset = isDecider ? lps.rngOffset : rps[0].rngOffset;
-		WARN_LOG(SLIPPI_ONLINE, "Rng Offset: 0x%x", rngOffset);
-		WARN_LOG(SLIPPI_ONLINE, "P1 Char: 0x%X, P2 Char: 0x%X", onlineMatchBlock[0x60], onlineMatchBlock[0x84]);
 
 		// Turn pause off in unranked/ranked, on in other modes
 		u8 *gameBitField3 = (u8 *)&onlineMatchBlock[2];
