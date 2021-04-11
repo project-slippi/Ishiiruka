@@ -32,6 +32,13 @@ void PlaybackSlider::OnSliderClick(wxMouseEvent &event)
 	// This handler is the confirmation handler that actually sets the frame we
 	// want to skip to
 	isDraggingSlider = false;
+
+	// If the user drags the slider past the left side of the window, we need
+	// to explicitly re-sync the seekbar head, because wxSlider doesn't
+	if (lastMoveVal <= Slippi::PLAYBACK_FIRST_SAVE)
+	{
+		this->SetValue(lastMoveVal);
+	}
 	g_playbackStatus->targetFrameNum = lastMoveVal;
 	event.Skip();
 }
@@ -46,7 +53,6 @@ void PlaybackSlider::OnSliderDown(wxMouseEvent &event)
 	// Sets the lastMoveVal for Windows because on a normal click the move event
 	// doesn't fire fast enough
 	lastMoveVal = value;
-
 	this->SetValue(value);
 	event.Skip();
 }
@@ -91,7 +97,6 @@ void PlaybackSlider::OnSliderMove(wxCommandEvent &event)
 		// itself, by adding this check, we can prevent that
 		return;
 	}
-
 	// This function is responsible with updating the time text
 	// while clicking and dragging
 	int value = event.GetInt();
@@ -117,5 +122,4 @@ void PlaybackSlider::OnSliderMove(wxCommandEvent &event)
 	std::string time = std::string(currTime) + " / " + std::string(endTime);
 	seekBarText->SetLabel(_(time));
 	event.Skip();
-	event.StopPropagation();
 }
