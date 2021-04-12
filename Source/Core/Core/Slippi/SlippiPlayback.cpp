@@ -93,7 +93,7 @@ void SlippiPlaybackStatus::prepareSlippiPlayback(s32 &frameIndex)
 			// Since playback logic only goes up in currentPlaybackFrame now due to handling rollback
 			// playback, we need to rewind the currentPlaybackFrame here instead such that the playback
 			// cursor will show up in the correct place
-			currentPlaybackFrame = targetFrameNum;
+			currentPlaybackFrame = targetFrameNum + 1;
 		}
 
 		if (currentPlaybackFrame > targetFrameNum)
