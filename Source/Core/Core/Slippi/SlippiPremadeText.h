@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include "Common/Logging/Log.h"
 #include "Common/StringUtil.h"
 #include <regex>
 #include <stdarg.h>
@@ -395,7 +396,7 @@ class SlippiPremadeText
 		return tokens;
 	}
 
-	//region CharMAPS
+	// region CharMAPS
 	int CHAR_MAP[287] = {
 	    U'0',  U'1',  U'2',  U'3',  U'4',  U'5',  U'6',  U'7',  U'8',  U'9',  U'A',  U'B',  U'C',  U'D',  U'E',  U'F',
 	    U'G',  U'H',  U'I',  U'J',  U'K',  U'L',  U'M',  U'N',  U'O',  U'P',  U'Q',  U'R',  U'S',  U'T',  U'U',  U'V',
@@ -415,5 +416,5 @@ class SlippiPremadeText
 	    U'/',  U'~',  U'|',  U'\'', U'"',  U'(',  U')',  U'[',  U']',  U'{',  U'}',  U'+',  '-',   U'×',  U'=',  U'<',
 	    U'>',  U'¥',  U'$',  U'%',  U'#',  U'&',  U'*',  U'@',  U'扱', U'押', U'軍', U'源', U'個', U'込', U'指', U'示',
 	    U'取', U'書', U'詳', U'人', U'生', U'説', U'体', U'団', U'電', U'読', U'発', U'抜', U'閑', U'本', U'明'};
-	//endregion
+	// endregion
 };
