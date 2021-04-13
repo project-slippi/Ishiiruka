@@ -83,16 +83,6 @@ static const int stopApplyingEILVOptimsHz = 260;
 static const int startApplyingEILVOptimsHz = 290;
 volatile static bool applyEILVOptims = false;
 
-// Outputs a file with the time points queried by the engine
-#define MEASURE_POLLS_FROM_ENGINE 0
-
-#if MEASURE_POLLS_FROM_ENGINE
-std::deque<std::chrono::high_resolution_clock::time_point> engine_polls;
-int engine_polls_counter = 0;
-
-std::ofstream engine_polls_file;
-#endif
-
 bool adapter_error = false;
 
 bool AdapterError()
@@ -159,7 +149,7 @@ static void Feed(std::chrono::high_resolution_clock::time_point tp, u8 *controll
 	// Do we use USB Polling Stabilization ?
 	// Once we get to having identified differences, do we use TR ? If so, is TR applicable ?
 
-	if (sconfig.bUseEngineStabilization && sconfig.bUseUsbPollingStabilization)
+	if (sconfig.bReduceTimingDispersion)
 	{
 		std::vector<int64_t> measures;
 		std::vector<int64_t> offsetsModulo;
@@ -168,7 +158,7 @@ static void Feed(std::chrono::high_resolution_clock::time_point tp, u8 *controll
 
 		int64_t latestMeasure = newEntry.raw_timing.time_since_epoch().count();
 
-		for (controller_payload_entry entry : controller_payload_entries)
+		for (const controller_payload_entry &entry : controller_payload_entries)
 		{
 			int64_t measure = entry.raw_timing.time_since_epoch().count(); // difference to the last poll in ns
 			measures.push_back(measure);
@@ -215,92 +205,89 @@ static void Feed(std::chrono::high_resolution_clock::time_point tp, u8 *controll
 		
 		bool appliedTR = false;
 
-		if (sconfig.bUseAdapterTimingReconstructionWhenApplicable)
+		int64_t index1pattern = -1;
+		int64_t index3patterns = -1;
+
+		for (int64_t i = 0; i < (int64_t)(differences.size()) - 14; i++)
 		{
-			int64_t index1pattern = -1;
-			int64_t index3patterns = -1;
-
-			for (int64_t i = 0; i < (int64_t)(differences.size()) - 14; i++)
+			if (differences[i] == 2 && std::all_of(differences.begin() + i + 1, differences.begin() + i + 4 + 1,
+				                                    [](const int64_t &x) { return x == 1; }))
 			{
-				if (differences[i] == 2 && std::all_of(differences.begin() + i + 1, differences.begin() + i + 4 + 1,
-				                                       [](const int64_t &x) { return x == 1; }))
+				if (index1pattern == -1)
+					index1pattern = i;
+				if (differences[i + 5] == 2 &&
+					std::all_of(differences.begin() + i + 5 + 1, differences.begin() + i + 5 + 4 + 1,
+					            [](const int64_t &x) { return x == 1; }) &&
+					differences[i + 10] == 2 &&
+					std::all_of(differences.begin() + i + 10 + 1, differences.begin() + i + 10 + 4 + 1,
+					            [](const int64_t &x) { return x == 1; }))
 				{
-					if (index1pattern == -1)
-						index1pattern = i;
-					if (differences[i + 5] == 2 &&
-					    std::all_of(differences.begin() + i + 5 + 1, differences.begin() + i + 5 + 4 + 1,
-					                [](const int64_t &x) { return x == 1; }) &&
-					    differences[i + 10] == 2 &&
-					    std::all_of(differences.begin() + i + 10 + 1, differences.begin() + i + 10 + 4 + 1,
-					                [](const int64_t &x) { return x == 1; }))
-					{
-						index3patterns = i;
-						break;
-					}
+					index3patterns = i;
+					break;
 				}
 			}
+		}
 
-			bool shouldUseTR = index3patterns != -1;
+		bool shouldUseTR = index3patterns != -1;
 			
-			feedTruh(shouldUseTR);
+		feedTruh(shouldUseTR);
 
-			// 3 cases:
-			// A We've been using TR and we should use TR this time => TR algorithm
-			// B We've been using TR but we shouldn't use it this time => mean TR offset
-			// C We haven't been using TR => regardless of whether we concluded that we should use it, don't use it
+		// 3 cases:
+		// A We've been using TR and we should use TR this time => TR algorithm
+		// B We've been using TR but we shouldn't use it this time => mean TR offset
+		// C We haven't been using TR => regardless of whether we concluded that we should use it, don't use it
 
-			// If we don't use TR in general, we don't need to apply the TR offset
-			// If we keep switching between TR and not, we're going to switch between adding the offset or not which is terrible
-			// Hence the use of a history of TR use, if we could've used (and perhaps we did) TR for 500 out of the 1000 poll feed,
-			// then we are "using it" overall
+		// If we don't use TR in general, we don't need to apply the TR offset
+		// If we keep switching between TR and not, we're going to switch between adding the offset or not which is terrible
+		// Hence the use of a history of TR use, if we could've used (and perhaps we did) TR for 500 out of the 1000 poll feed,
+		// then we are "using it" overall
 
-			if (beenUsingTR()) // A or B
+		if (beenUsingTR()) // A or B
+		{
+			if (shouldUseTR) // A
 			{
-				if (shouldUseTR) // A
-				{
-					// The poll with a 2ms difference is assumed to have happened 0.9ms on average before the timing we obtained
-					// We remove 0.9ms but we correct that to 0.8ms later to match the end of the 0.2ms wide eligibility window for this poll
-					// This is so that the most recent timing possible (11112 case; 1ms - 4*0.2ms) is "now"
+				// The poll with a 2ms difference is assumed to have happened 0.9ms on average before the timing we obtained
+				// We remove 0.9ms but we correct that to 0.8ms later to match the end of the 0.2ms wide eligibility window for this poll
+				// This is so that the most recent timing possible (11112 case; 1ms - 4*0.2ms) is "now"
 
-					int64_t latestDiff2Estimation = measuresCorrected[index1pattern] - 800'000;
+				int64_t latestDiff2Estimation = measuresCorrected[index1pattern] - 800'000;
 
-					// We can't just multiply the index of differences by 1.2 ; we could do that if we were sure there
-					// are only 1s after the 2. But missing polls happen when the CPU is under strain, so we have to
-					// account for that.
+				// We can't just multiply the index of differences by 1.2 ; we could do that if we were sure there
+				// are only 1s after the 2. But missing polls happen when the CPU is under strain, so we have to
+				// account for that.
 
-					int64_t diff = (int64_t)std::llround(
-					    ((measuresCorrected[0] - 300'000.) - latestDiff2Estimation) /
-					    1'200'000.);
-					int64_t newPollEstimation = diff * 1'200'000 + latestDiff2Estimation;
-					newEntry.estimated_timing =
-					    std::chrono::high_resolution_clock::time_point(std::chrono::nanoseconds(newPollEstimation));
+				int64_t diff = (int64_t)std::llround(
+					((measuresCorrected[0] - 300'000.) - latestDiff2Estimation) /
+					1'200'000.);
+				int64_t newPollEstimation = diff * 1'200'000 + latestDiff2Estimation;
+				newEntry.estimated_timing =
+					std::chrono::high_resolution_clock::time_point(std::chrono::nanoseconds(newPollEstimation));
 
-					// Full example scenario:
-					// Measures corrected:         9         8         7         6         5         4         3         1      (i.e, a poll
-					// came in at t=10ms, t=8ms, etc) Note that here the 8 is unexpected
-					// measuresCorrected[index1pattern] : 3
-					// latestDiff2Estimation : 2.2 (upper extremity of the [2.2;2.0] range the poll belongs to
-					// Measures corrected -0.3:    8.7       7.7       6.7       5.7       4.7       3.7       2.7
-					// Minus latestDiffEstimation: 6.5       5.5       4.5       3.5       2.5       1.5       0.5
-					// Associated 1.2 range:       [6.6;5.4] [6.6;5.4] [5.4;4.2] [4.2;3]   [3;1.8]   [1.8;0.6] [0.6;-0.6]
-					// Diff:                       5         5         4         3         2         1         0
-					// newPollEstimation:          8.2       8.2(yes)  7         5.8       4.6       3.4       2.2
-					// The rationale behind estimating 8 to 8.2 is that it is probably a correction from the fact the real polling period is 1.19971ms
-					// and not 1.2ms: the next poll come in 2ms later (example is for demonstration purpose, you should never have both the 8 and 9 here)
-					// and we will estimate the incoming 10 as 9.2 from now on (the 8 would therefore have been 8) 8.2 is closer to 8 than 7
-				}
-				else // B
-				{
-					newEntry.estimated_timing = newEntry.raw_timing - std::chrono::nanoseconds(400'000);
-					// On average, it's -0.4
-					// Reason is simple: in a proper cycle of 5, we correct the entry after a 2ms silence by -0.8
-					// Then the 4 subsequent entries by -0.6 -0.4 -0.2 0
-					// We correct entries by -0.4 on average, what matters is what happens to the entries
-					// There is no "weighting" to do based on how much time an entry is the last available
-				}
-
-				appliedTR = true;
+				// Full example scenario:
+				// Measures corrected:         9         8         7         6         5         4         3         1      (i.e, a poll
+				// came in at t=10ms, t=8ms, etc) Note that here the 8 is unexpected
+				// measuresCorrected[index1pattern] : 3
+				// latestDiff2Estimation : 2.2 (upper extremity of the [2.2;2.0] range the poll belongs to
+				// Measures corrected -0.3:    8.7       7.7       6.7       5.7       4.7       3.7       2.7
+				// Minus latestDiffEstimation: 6.5       5.5       4.5       3.5       2.5       1.5       0.5
+				// Associated 1.2 range:       [6.6;5.4] [6.6;5.4] [5.4;4.2] [4.2;3]   [3;1.8]   [1.8;0.6] [0.6;-0.6]
+				// Diff:                       5         5         4         3         2         1         0
+				// newPollEstimation:          8.2       8.2(yes)  7         5.8       4.6       3.4       2.2
+				// The rationale behind estimating 8 to 8.2 is that it is probably a correction from the fact the real polling period is 1.19971ms
+				// and not 1.2ms: the next poll come in 2ms later (example is for demonstration purpose, you should never have both the 8 and 9 here)
+				// and we will estimate the incoming 10 as 9.2 from now on (the 8 would therefore have been 8) 8.2 is closer to 8 than 7
 			}
+			else // B
+			{
+				newEntry.estimated_timing = newEntry.raw_timing - std::chrono::nanoseconds(400'000);
+				// On average, it's -0.4
+				// Reason is simple: in a proper cycle of 5, we correct the entry after a 2ms silence by -0.8
+				// Then the 4 subsequent entries by -0.6 -0.4 -0.2 0
+				// We correct entries by -0.4 on average, what matters is what happens to the entries
+				// There is no "weighting" to do based on how much time an entry is the last available
+			}
+
+			appliedTR = true;
 		}
 		if (!appliedTR) // C
 		{
@@ -325,17 +312,7 @@ const u8 *Fetch(std::chrono::high_resolution_clock::time_point *tp)
 {
 	const SConfig &sconfig = SConfig::GetInstance();
 
-	#if MEASURE_POLLS_FROM_ENGINE
-	if (tp)
-	{
-		engine_polls.push_back(*tp);
-		std::ostringstream str;
-		str << tp->time_since_epoch().count() << ";";
-		engine_polls_file << str.str();
-	}
-	#endif
-
-	if (applyEILVOptims && sconfig.bUseEngineStabilization && tp != nullptr)
+	if (applyEILVOptims && sconfig.bReduceTimingDispersion && tp != nullptr)
 	{
 		for (auto entry = controller_payload_entries.begin(); entry != controller_payload_entries.end(); entry++)
 		{
@@ -347,13 +324,10 @@ const u8 *Fetch(std::chrono::high_resolution_clock::time_point *tp)
 			// So we need to delay the timings by 0.8ms, otherwise, we would be writing the past.
 			// Plus some offset to account for the 1000Hz alignment of controller timings done in the process.
 
-			if (*tp > ( (sconfig.bUseAdapterTimingReconstructionWhenApplicable && beenUsingTR())
-			               ? entry->estimated_timing + std::chrono::nanoseconds(800'000) +
-			                                 std::chrono::nanoseconds(usbPollingStabilizationDelay)
-			               : (sconfig.bUseUsbPollingStabilization
-			                      ? entry->estimated_timing + std::chrono::nanoseconds(usbPollingStabilizationDelay)
-			                      : entry->raw_timing)
-			               ))
+			if (*tp > (beenUsingTR()
+			               ? entry->estimated_timing + std::chrono::nanoseconds(usbPollingStabilizationDelay)
+			                         + std::chrono::nanoseconds(800'000)
+			               : entry->estimated_timing + std::chrono::nanoseconds(usbPollingStabilizationDelay)))
 			{ // tp is the time queried for, if it is more recent than the one
 				// stored and we've got to this point, we should return
 				return entry->controller_payload;
@@ -561,22 +535,6 @@ void StopScanThread()
 
 static void Setup()
 {
-#if MEASURE_POLLS_FROM_ENGINE
-	__time64_t long_time;
-	_time64(&long_time);
-	struct tm newtime;
-	_localtime64_s(&newtime, &long_time);
-
-	std::ostringstream fileNameStream;
-	fileNameStream << "Engine polls ";
-	fileNameStream << std::put_time(&newtime, "%Y-%m-%d %H-%M-%S");
-	fileNameStream << ".txt";
-
-	std::string fileName = fileNameStream.str();
-
-	engine_polls_file.open(fileName, std::ios_base::out);
-#endif
-	
 	libusb_device **list;
 	ssize_t cnt = libusb_get_device_list(s_libusb_context, &list);
 
@@ -677,19 +635,38 @@ static bool CheckDeviceAccess(libusb_device* device)
 	return false;
 }
 
-static void AddGCAdapter(libusb_device* device)
+#if defined(_WIN32)
+bool threadPrioritiesAreHigh = false;
+static void refreshThreadPriorities(const SConfig &sconfig)
 {
-	libusb_config_descriptor* config = nullptr;
+	if (sconfig.bReduceTimingDispersion && !threadPrioritiesAreHigh)
+	{
+		SetThreadPriority(s_adapter_input_thread.native_handle(), THREAD_PRIORITY_TIME_CRITICAL);
+		SetThreadPriority(s_adapter_output_thread.native_handle(), THREAD_PRIORITY_TIME_CRITICAL);
+		threadPrioritiesAreHigh = true;
+	}
+	else if ((!sconfig.bReduceTimingDispersion) && threadPrioritiesAreHigh)
+	{
+		SetThreadPriority(s_adapter_input_thread.native_handle(), THREAD_PRIORITY_NORMAL);
+		SetThreadPriority(s_adapter_output_thread.native_handle(), THREAD_PRIORITY_NORMAL);
+		threadPrioritiesAreHigh = false;
+	}
+}
+#endif
+
+static void AddGCAdapter(libusb_device *device)
+{
+	libusb_config_descriptor *config = nullptr;
 	libusb_get_config_descriptor(device, 0, &config);
 	for (u8 ic = 0; ic < config->bNumInterfaces; ic++)
 	{
-		const libusb_interface* interfaceContainer = &config->interface[ic];
+		const libusb_interface *interfaceContainer = &config->interface[ic];
 		for (int i = 0; i < interfaceContainer->num_altsetting; i++)
 		{
-			const libusb_interface_descriptor* interface = &interfaceContainer->altsetting[i];
+			const libusb_interface_descriptor *interface = &interfaceContainer->altsetting[i];
 			for (u8 e = 0; e < interface->bNumEndpoints; e++)
 			{
-				const libusb_endpoint_descriptor* endpoint = &interface->endpoint[e];
+				const libusb_endpoint_descriptor *endpoint = &interface->endpoint[e];
 				if (endpoint->bEndpointAddress & LIBUSB_ENDPOINT_IN)
 					s_endpoint_in = endpoint->bEndpointAddress;
 				else
@@ -706,34 +683,18 @@ static void AddGCAdapter(libusb_device* device)
 
 	const SConfig &sconfig = SConfig::GetInstance();
 
-	if (sconfig.bIncreaseProcessPriority)
-	{
-		#if defined(_WIN32)
-		SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
-		#elif defined(__linux__)
-		#elif defined(__APPLE__)
-		#endif
-	}
-
 	s_adapter_input_thread = std::thread(Read);
-	if (sconfig.bSaturatePollingThreadPriority)
-	{
-		#if defined(_WIN32)
-		SetThreadPriority(s_adapter_input_thread.native_handle(), THREAD_PRIORITY_TIME_CRITICAL);
-		#elif defined(__linux__)
-		#elif defined(__APPLE__)
-		#endif
-	}
-
 	s_adapter_output_thread = std::thread(Write);
-	if (sconfig.bSaturatePollingThreadPriority)
+
+	#if defined(_WIN32)
+	SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
+	if (sconfig.bReduceTimingDispersion)
 	{
-		#if defined(_WIN32)
+		threadPrioritiesAreHigh = true;
+		SetThreadPriority(s_adapter_input_thread.native_handle(), THREAD_PRIORITY_TIME_CRITICAL);
 		SetThreadPriority(s_adapter_output_thread.native_handle(), THREAD_PRIORITY_TIME_CRITICAL);
-		#elif defined(__linux__)
-		#elif defined(__APPLE__)
-		#endif
 	}
+	#endif
 
 	s_detected = true;
 	if (s_detect_callback != nullptr)
@@ -796,6 +757,12 @@ GCPadStatus Input(int chan, std::chrono::high_resolution_clock::time_point *tp)
 
 	if (s_handle == nullptr || !s_detected)
 		return{};
+
+	const SConfig &sconfig = SConfig::GetInstance();
+
+	#if defined(_WIN32)
+	refreshThreadPriorities(sconfig);
+	#endif
 
 	int payload_size = 0;
 	u8 controller_payload_copy[adapter_payload_size];

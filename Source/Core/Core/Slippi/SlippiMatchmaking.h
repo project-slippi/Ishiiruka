@@ -60,8 +60,8 @@ class SlippiMatchmaking
 	static bool IsFixedRulesMode(OnlinePlayMode mode);
 
   protected:
-	const std::string MM_HOST_DEV = "35.184.161.98"; // mm-2
-	const std::string MM_HOST_PROD = "104.154.50.102";  // mm
+	const std::string MM_HOST_DEV = "104.154.50.102"; // mm
+	const std::string MM_HOST_PROD = "35.184.161.98"; // mm-2
 	const u16 MM_PORT = 43113;
 
 	std::string MM_HOST = "";
