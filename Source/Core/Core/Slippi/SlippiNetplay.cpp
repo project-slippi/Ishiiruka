@@ -131,6 +131,12 @@ SlippiNetplayClient::SlippiNetplayClient(std::vector<std::string> addrs, std::ve
 		ENetPeer *peer = enet_host_connect(m_client, &addr, 3, 0);
 		m_server.push_back(peer);
 
+		// Store this connection
+		std::stringstream keyStrm;
+		keyStrm << addr.host << "-" << addr.port;
+		activeConnections[keyStrm.str()][peer] = true;
+		ERROR_LOG(SLIPPI_ONLINE, "New connection (constr): %s, %X", keyStrm.str().c_str(), peer);
+
 		if (peer == nullptr)
 		{
 			PanicAlertT("Couldn't create peer.");
@@ -462,14 +468,19 @@ void SlippiNetplayClient::Disconnect()
 {
 	ENetEvent netEvent;
 	slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_DISCONNECTED;
-	if (!m_server.empty())
-		for (int i = 0; i < m_server.size(); i++)
-		{
-			INFO_LOG(SLIPPI_ONLINE, "[Netplay] Disconnecting peer %d", m_server[i]->address.port);
-			enet_peer_disconnect(m_server[i], 0);
-		}
-	else
+	if (activeConnections.empty())
+	{
 		return;
+	}
+
+	for (auto conn : activeConnections)
+	{
+		for (auto peer : conn.second)
+		{
+			INFO_LOG(SLIPPI_ONLINE, "[Netplay] Disconnecting peer %d", peer.first->address.port);
+			enet_peer_disconnect(peer.first, 0);
+		}
+	}
 
 	while (enet_host_service(m_client, &netEvent, 3000) > 0)
 	{
@@ -487,10 +498,14 @@ void SlippiNetplayClient::Disconnect()
 	}
 
 	// didn't disconnect gracefully force disconnect
-	for (int i = 0; i < m_server.size(); i++)
+	for (auto conn : activeConnections)
 	{
-		enet_peer_reset(m_server[i]);
+		for (auto peer : conn.second)
+		{
+			enet_peer_reset(peer.first);
+		}
 	}
+	activeConnections.clear();
 	m_server.clear();
 	SLIPPI_NETPLAY = nullptr;
 }
@@ -550,8 +565,8 @@ void SlippiNetplayClient::ThreadFunc()
 					INFO_LOG(SLIPPI_ONLINE, "[Netplay] got disconnect event with nil peer");
 					continue;
 				}
-				INFO_LOG(SLIPPI_ONLINE, "[Netplay] got disconnect event with peer addr %x:%d",
-				         netEvent.peer->address.host, netEvent.peer->address.port);
+				WARN_LOG(SLIPPI_ONLINE, "[Netplay] got disconnect event with peer addr %x:%d. %x",
+				         netEvent.peer->address.host, netEvent.peer->address.port, netEvent.peer);
 				break;
 
 			case ENET_EVENT_TYPE_CONNECT:
@@ -562,8 +577,13 @@ void SlippiNetplayClient::ThreadFunc()
 					continue;
 				}
 
-				INFO_LOG(SLIPPI_ONLINE, "[Netplay] got connect event with peer addr %x:%d", netEvent.peer->address.host,
-				         netEvent.peer->address.port);
+				std::stringstream keyStrm;
+				keyStrm << netEvent.peer->address.host << "-" << netEvent.peer->address.port;
+				activeConnections[keyStrm.str()][netEvent.peer] = true;
+				ERROR_LOG(SLIPPI_ONLINE, "New connection (early): %s, %X", keyStrm.str().c_str(), netEvent.peer);
+
+				WARN_LOG(SLIPPI_ONLINE, "[Netplay] got connect event with peer addr %x:%d. %x", netEvent.peer->address.host,
+				         netEvent.peer->address.port, netEvent.peer);
 
 				auto isAlreadyConnected = false;
 				for (int i = 0; i < m_server.size(); i++)
@@ -722,31 +742,70 @@ void SlippiNetplayClient::ThreadFunc()
 			switch (netEvent.type)
 			{
 			case ENET_EVENT_TYPE_RECEIVE:
-				rpac.append(netEvent.packet->data, netEvent.packet->dataLength);
-
-				OnData(rpac, netEvent.peer);
-
-				enet_packet_destroy(netEvent.packet);
-				break;
-			case ENET_EVENT_TYPE_DISCONNECT:
-				for (int i = 0; i < m_remotePlayerCount; i++)
+			{
+				int oppIdx = 0;
+				for (int i = 0; i < m_server.size(); i++)
 				{
-					if (m_server[i] == netEvent.peer)
+					if (netEvent.peer->address.host == m_server[i]->address.host &&
+					    netEvent.peer->address.port == m_server[i]->address.port)
 					{
-						isConnectedClient = true;
+						oppIdx = i;
 						break;
 					}
 				}
-				ERROR_LOG(SLIPPI_ONLINE, "[Netplay] Disconnected Event detected: %s",
-				          isConnectedClient ? "connected client" : "superfluous client");
+
+				// Here we check if we have more than 1 connection for a specific player, this can happen because both
+				// players try to connect to each other at the same time to increase the odds that one direction might
+				// work and for hole punching. That said there's no point in keeping more than 1 connection alive. I
+				// think they might use bandwidth with keep alives or something. Only the lower port player will
+				// initiate the disconnect
+				std::stringstream keyStrm;
+				keyStrm << netEvent.peer->address.host << "-" << netEvent.peer->address.port;
+				if (activeConnections[keyStrm.str()].size() > 1 && playerIdx <= oppIdx)
+				{
+					m_server[oppIdx] = netEvent.peer;
+					ERROR_LOG(SLIPPI_ONLINE, "Multiple connections detected for single peer. Initiating process to disconnect superfluous connections.");
+					for (auto peer : activeConnections[keyStrm.str()])
+					{
+						if (peer.first == netEvent.peer)
+							continue;
+
+						enet_peer_disconnect(peer.first, 0);
+					}
+				}
+
+				rpac.append(netEvent.packet->data, netEvent.packet->dataLength);
+				OnData(rpac, netEvent.peer);
+				enet_packet_destroy(netEvent.packet);
+				break;
+			}
+			case ENET_EVENT_TYPE_DISCONNECT:
+			{
+				std::stringstream keyStrm;
+				keyStrm << netEvent.peer->address.host << "-" << netEvent.peer->address.port;
+				activeConnections[keyStrm.str()].erase(netEvent.peer);
+
+				WARN_LOG(SLIPPI_ONLINE, "[Netplay] Disconnect late %x:%d. %x. Remaining connections: %d",
+				         netEvent.peer->address.host, netEvent.peer->address.port, netEvent.peer,
+				         activeConnections[keyStrm.str()].size());
 
 				// If the disconnect event doesn't come from the client we are actually listening to,
 				// it can be safely ignored
-				if (isConnectedClient)
+				if (activeConnections[keyStrm.str()].empty())
 				{
+					WARN_LOG(SLIPPI_ONLINE, "[Netplay] Final disconnect received for a client.");
 					m_do_loop.Clear(); // Stop the loop, will trigger a disconnect
 				}
 				break;
+			}
+			case ENET_EVENT_TYPE_CONNECT:
+			{
+				std::stringstream keyStrm;
+				keyStrm << netEvent.peer->address.host << "-" << netEvent.peer->address.port;
+				activeConnections[keyStrm.str()][netEvent.peer] = true;
+				ERROR_LOG(SLIPPI_ONLINE, "New connection (late): %s, %X", keyStrm.str().c_str(), netEvent.peer);
+				break;
+			}
 			default:
 				break;
 			}
