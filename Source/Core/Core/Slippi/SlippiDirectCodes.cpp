@@ -135,7 +135,7 @@ std::string SlippiDirectCodes::get(int index)
 		return directCodeInfos.at(index).connectCode;
 	}
 
-	WARN_LOG(SLIPPI_ONLINE, "Out of bounds name entry index %d", index);
+	INFO_LOG(SLIPPI_ONLINE, "Out of bounds name entry index %d", index);
 
 	return (index >= directCodeInfos.size()) ? "1" : "";
 }

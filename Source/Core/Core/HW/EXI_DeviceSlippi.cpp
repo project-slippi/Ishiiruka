@@ -1897,45 +1897,6 @@ void CEXISlippi::startFindMatch(u8 *payload)
 #endif
 }
 
-void CEXISlippi::handleNameEntryAutoComplete(u8 *payload)
-{
-	ERROR_LOG(SLIPPI_ONLINE, "Auto complete");
-
-	std::string shiftJisCode;
-
-	shiftJisCode.insert(shiftJisCode.begin(), &payload[0], &payload[0] + 18);
-	shiftJisCode.erase(std::find(shiftJisCode.begin(), shiftJisCode.end(), 0x00), shiftJisCode.end());
-
-	std::string startText = SHIFTJISToUTF8(shiftJisCode);
-
-	std::string autocompletedText = directCodes->Autocomplete(startText);
-
-	m_read_queue.clear();
-
-	std::string jisCode = UTF8ToSHIFTJIS(autocompletedText);
-	u8 padEveryThirdByte = 0;
-
-	u8 totalBytes = 0;
-	for (auto it = jisCode.begin(); it != jisCode.end(); ++it)
-	{
-		m_read_queue.push_back(*it);
-		if (++padEveryThirdByte == 2)
-		{
-			m_read_queue.push_back(0x0);
-			padEveryThirdByte = 0;
-			totalBytes++;
-		}
-
-		totalBytes++;
-	}
-
-	// Ensure that the entire tag is overwritten in game.
-	while (totalBytes < 24)
-	{
-		m_read_queue.push_back(0x0);
-		totalBytes++;
-	}
-}
 
 bool CEXISlippi::doesTagMatchInput(u8 *input, u8 inputLen, std::string tag)
 {
@@ -1991,7 +1952,7 @@ void CEXISlippi::handleNameEntryLoad(u8 *payload)
 		curIndex = scrollDirection == 2 ? curIndex - 1 : curIndex + 1;
 	}
 
-	ERROR_LOG(SLIPPI_ONLINE, "Idx: %d, InitIdx: %d, Scroll: %d. Len: %d", curIndex, initialIndex, scrollDirection,
+	INFO_LOG(SLIPPI_ONLINE, "Idx: %d, InitIdx: %d, Scroll: %d. Len: %d", curIndex, initialIndex, scrollDirection,
 	          inputLen);
 
 	tagAtIndex = directCodes->get(curIndex);
@@ -2008,7 +1969,7 @@ void CEXISlippi::handleNameEntryLoad(u8 *payload)
 		}
 	}
 
-	ERROR_LOG(SLIPPI_ONLINE, "Retrieved tag: %s", tagAtIndex.c_str());
+	INFO_LOG(SLIPPI_ONLINE, "Retrieved tag: %s", tagAtIndex.c_str());
 	std::string jisCode;
 	m_read_queue.clear();
 
@@ -2039,7 +2000,7 @@ void CEXISlippi::handleNameEntryLoad(u8 *payload)
 		m_read_queue.push_back(0x0);
 	}
 
-	ERROR_LOG(SLIPPI_ONLINE, "New Idx: %d. Jis Code length: %d", curIndex, (u8)(jisCode.length() / 2));
+	INFO_LOG(SLIPPI_ONLINE, "New Idx: %d. Jis Code length: %d", curIndex, (u8)(jisCode.length() / 2));
 
 	// Write length of tag
 	m_read_queue.push_back(jisCode.length() / 2);
@@ -3001,11 +2962,8 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		case CMD_FILE_LENGTH:
 			prepareFileLength(&memPtr[bufLoc + 1]);
 			break;
-		case CMD_NAME_ENTRY_INDEX:
+		case CMD_FETCH_CODE_SUGGESTION:
 			handleNameEntryLoad(&memPtr[bufLoc + 1]);
-			break;
-		case CMD_NAME_ENTRY_AUTOCOMPLETE:
-			handleNameEntryAutoComplete(&memPtr[bufLoc + 1]);
 			break;
 		case CMD_FILE_LOAD:
 			prepareFileLoad(&memPtr[bufLoc + 1]);

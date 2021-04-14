@@ -74,8 +74,7 @@ class CEXISlippi : public IEXIDevice
 		CMD_GET_NEW_SEED = 0xBC,
 		CMD_REPORT_GAME = 0xBD,
 
-		CMD_NAME_ENTRY_INDEX = 0xBE,
-		CMD_NAME_ENTRY_AUTOCOMPLETE = 0xBF,
+		CMD_FETCH_CODE_SUGGESTION = 0xBE,
 
 		// Misc
 		CMD_LOG_MESSAGE = 0xD0,
@@ -127,8 +126,7 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_GET_NEW_SEED, 0},
 	    {CMD_REPORT_GAME, 16},
 
-	    {CMD_NAME_ENTRY_INDEX, 30},
-	    {CMD_NAME_ENTRY_AUTOCOMPLETE, 24},
+	    {CMD_FETCH_CODE_SUGGESTION, 30},
 
 	    // Misc
 	    {CMD_LOG_MESSAGE, 0xFFFF}, // Variable size... will only work if by itself
