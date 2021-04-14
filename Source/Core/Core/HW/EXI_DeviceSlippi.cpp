@@ -2039,7 +2039,7 @@ void CEXISlippi::handleNameEntryLoad(u8 *payload)
 		m_read_queue.push_back(0x0);
 	}
 
-	ERROR_LOG(SLIPPI_ONLINE, "New Idx: %d", curIndex);
+	ERROR_LOG(SLIPPI_ONLINE, "New Idx: %d. Jis Code length: %d", curIndex, (u8)(jisCode.length() / 2));
 
 	// Write length of tag
 	m_read_queue.push_back(jisCode.length() / 2);
@@ -3066,7 +3066,7 @@ void CEXISlippi::DMARead(u32 addr, u32 size)
 {
 	if (m_read_queue.empty())
 	{
-		INFO_LOG(EXPANSIONINTERFACE, "EXI SLIPPI DMARead: Empty");
+		ERROR_LOG(SLIPPI, "EXI SLIPPI DMARead: Empty");
 		return;
 	}
 

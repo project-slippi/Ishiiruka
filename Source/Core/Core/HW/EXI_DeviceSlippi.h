@@ -9,6 +9,7 @@
 #include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
 #include "Core/HW/EXI_Device.h"
+#include "Core/Slippi/SlippiDirectCodes.h"
 #include "Core/Slippi/SlippiGameFileLoader.h"
 #include "Core/Slippi/SlippiGameReporter.h"
 #include "Core/Slippi/SlippiMatchmaking.h"
@@ -17,7 +18,6 @@
 #include "Core/Slippi/SlippiSavestate.h"
 #include "Core/Slippi/SlippiSpectate.h"
 #include "Core/Slippi/SlippiUser.h"
-#include "Core/Slippi/SlippiDirectCodes.h"
 
 #define ROLLBACK_MAX_FRAMES 7
 #define MAX_NAME_LENGTH 15
@@ -127,7 +127,7 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_GET_NEW_SEED, 0},
 	    {CMD_REPORT_GAME, 16},
 
-		{CMD_NAME_ENTRY_INDEX, 1},
+	    {CMD_NAME_ENTRY_INDEX, 30},
 	    {CMD_NAME_ENTRY_AUTOCOMPLETE, 24},
 
 	    // Misc
