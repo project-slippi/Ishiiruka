@@ -133,13 +133,7 @@ struct SConfig : NonCopyable
 	bool bQoSEnabled = true;
 	bool bAdapterWarning = true;
 
-	bool bIncreaseProcessPriority = true;
-	bool bSaturatePollingThreadPriority = true;
-	bool bUseEngineStabilization = true;
-	bool bUseSteadyStateEngineStabilization = true;
-	bool bUseUsbPollingStabilization = true;
-	bool bUseAdapterTimingReconstructionWhenApplicable = true;
-	bool bUse5994HzStabilization = true;
+	bool bReduceTimingDispersion = false;
 
 	MeleeLagReductionCode iLagReductionCode = MELEE_LAG_REDUCTION_CODE_UNSET;
 	bool bHasShownLagReductionWarning = false;

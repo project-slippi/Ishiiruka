@@ -71,23 +71,20 @@ InputStabilizer::InputStabilizer(const InputStabilizer& target)
 void InputStabilizer::feedPollTiming(std::chrono::high_resolution_clock::time_point tp)
 {
 	const SConfig& sconfig = SConfig::GetInstance();
-	double period = (int64_t)1'000'000'000 / (sconfig.bUse5994HzStabilization ? 59.94 : 60.);
+	double period = 1'000'000'000 / 59.94;
 
-	if (sconfig.bUseSteadyStateEngineStabilization && sconfig.bIncreaseProcessPriority)
+	if (pollTimings.size() == sizeLimit)
 	{
-		if (pollTimings.size() == sizeLimit)
+		// If we are in steady state, the fed timing is ignored except for error checking
+		// It is supposed that feed is called before compute, and incrementsSinceOrigin is
+		// incremented after each computation
+		if (std::abs((tp - steadyStateOrigin).count() - (int64_t)(incrementsSinceOrigin * period)  ) > leniency)
 		{
-			// If we are in steady state, the fed timing is ignored except for error checking
-			// It is supposed that feed is called before compute, and incrementsSinceOrigin is
-			// incremented after each computation
-			if (std::abs((tp - steadyStateOrigin).count() - (int64_t)(incrementsSinceOrigin * period)  ) > leniency)
-			{
-				offsetsSum = 0;
-				pollTimings.clear();
-				pollTimings.push_front(tp);
-			}
-			return;
+			offsetsSum = 0;
+			pollTimings.clear();
+			pollTimings.push_front(tp);
 		}
+		return;
 	}
 	if (pollTimings.size())
 	{
@@ -100,48 +97,33 @@ void InputStabilizer::feedPollTiming(std::chrono::high_resolution_clock::time_po
 		}
 		else
 		{
-			if (!(sconfig.bUseSteadyStateEngineStabilization && sconfig.bIncreaseProcessPriority))
-			{
-				if (pollTimings.size() == sizeLimit)
-				{
-					offsetsSum += (pollTimings.front() - pollTimings.back())
-						.count(); // removes pollTimings.back()'s contribution to the offsets sum
-					pollTimings.pop_back();
-				}
-			}
 			offsetsSum -= pollTimings.size() * (tp - pollTimings.front()).count(); // sets reference to tp
 		}
 	}
 	pollTimings.push_front(tp);
-	if (sconfig.bUseSteadyStateEngineStabilization && sconfig.bIncreaseProcessPriority)
+	if (pollTimings.size() == sizeLimit) // Initialize steady state algorithm
 	{
-		if (pollTimings.size() == sizeLimit) // Initialize steady state algorithm
-		{
-			incrementsSinceOrigin = 0;
-			steadyStateOrigin = computeNextPollTiming(true) + std::chrono::nanoseconds(delay);
-			// The origin is compared to real time points and therefore doesn't contain the delay
-		}
+		incrementsSinceOrigin = 0;
+		steadyStateOrigin = computeNextPollTiming(true) + std::chrono::nanoseconds(delay);
+		// The origin is compared to real time points and therefore doesn't contain the delay
 	}
 }
 
 time_point InputStabilizer::computeNextPollTiming(bool init)
 {
 	const SConfig& sconfig = SConfig::GetInstance();
-	double period = (int64_t)1'000'000'000 / (sconfig.bUse5994HzStabilization ? 59.94 : 60.);
+	double period = 1'000'000'000 / 59.94;
 
 	size_t size = pollTimings.size();
 
 	if (!size)
 		return std::chrono::high_resolution_clock::now() - std::chrono::nanoseconds(delay);
 
-	if (sconfig.bUseSteadyStateEngineStabilization && sconfig.bIncreaseProcessPriority)
+	if ((!init) && (size == sizeLimit))
 	{
-		if ((!init) && (size == sizeLimit))
-		{
-			auto result = steadyStateOrigin + std::chrono::nanoseconds((int64_t)(incrementsSinceOrigin * period - delay));
-			incrementsSinceOrigin++;
-			return result;
-		}
+		auto result = steadyStateOrigin + std::chrono::nanoseconds((int64_t)(incrementsSinceOrigin * period - delay));
+		incrementsSinceOrigin++;
+		return result;
 	}
 
 	std::chrono::high_resolution_clock::time_point ref = pollTimings.front();

@@ -251,6 +251,10 @@ CEXISlippi::CEXISlippi()
 	// File::WriteStringToFile(stateString,
 	//                        "C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\MnMaAll-restored.usd");
 #endif
+
+	//    auto spt = SlippiPremadeText();
+	//    spt.GetPremadeTextData(SlippiPremadeText::SPT_CHAT_P1, "Rapito", "Test");
+	//    spt.GetPremadeTextData(SlippiPremadeText::SPT_CHAT_P1, "ラピト", "Test");
 }
 
 CEXISlippi::~CEXISlippi()
@@ -2103,6 +2107,18 @@ void CEXISlippi::prepareOnlineMatchState()
 			// returned to us from the matchmaking service and pick a new random stage before sending
 			// the selections to the opponent
 			allowedStages = matchmaking->GetStages();
+			if (allowedStages.empty())
+			{
+				allowedStages = {
+				    0x2,  // FoD
+				    0x3,  // Pokemon
+				    0x8,  // Yoshi's Story
+				    0x1C, // Dream Land
+				    0x1F, // Battlefield
+				    0x20, // Final Destination
+				};
+			}
+
 			stagePool.clear(); // Clear stage pool so that when we call getRandomStage it will use full list
 			localSelections.stageId = getRandomStage();
 			slippi_netplay->SetMatchSelections(localSelections);
@@ -2195,19 +2211,33 @@ void CEXISlippi::prepareOnlineMatchState()
 	// Set chat message if any
 	if (slippi_netplay)
 	{
-		auto remoteMessageSelection = slippi_netplay->GetSlippiRemoteChatMessage();
-		chatMessageId = remoteMessageSelection.messageId;
-		chatMessagePlayerIdx = remoteMessageSelection.playerIdx;
+		auto isSingleMode = matchmaking && matchmaking->RemotePlayerCount() == 1;
 		sentChatMessageId = slippi_netplay->GetSlippiRemoteSentChatMessage();
-		// If connection is 1v1 set index 0 for local and 1 for remote
-		if ((matchmaking && matchmaking->RemotePlayerCount() == 1) || !matchmaking)
+
+		// Prevent processing a message in the same frame
+		if (sentChatMessageId <= 0)
+		{
+			auto remoteMessageSelection = slippi_netplay->GetSlippiRemoteChatMessage();
+			chatMessageId = remoteMessageSelection.messageId;
+			chatMessagePlayerIdx = remoteMessageSelection.playerIdx;
+			if (chatMessageId == SlippiPremadeText::CHAT_MSG_CHAT_DISABLED && !isSingleMode)
+			{
+				// Clear remote chat messages if we are on teams and the player has chat disabled.
+				// Could also be handled on SlippiNetplay if the instance had acccess to the current connection mode
+				chatMessageId = chatMessagePlayerIdx = 0;
+			}
+		}
+		else
+		{
+			chatMessagePlayerIdx = localPlayerIndex;
+		}
+
+		if (isSingleMode || !matchmaking)
 		{
 			chatMessagePlayerIdx = sentChatMessageId > 0 ? localPlayerIndex : remotePlayerIndex;
 		}
 		// in CSS p1 is always current player and p2 is opponent
 		localPlayerName = p1Name = userInfo.displayName;
-		INFO_LOG(SLIPPI, "chatMessagePlayerIdx %d %d", chatMessagePlayerIdx,
-		         matchmaking ? matchmaking->RemotePlayerCount() : 0);
 	}
 
 	std::vector<u8> leftTeamPlayers = {};
@@ -2313,19 +2343,47 @@ void CEXISlippi::prepareOnlineMatchState()
 			}
 		}
 
-		// Overwrite local player character
-		onlineMatchBlock[0x60 + (lps.playerIdx) * 0x24] = lps.characterId;
-		onlineMatchBlock[0x63 + (lps.playerIdx) * 0x24] = lps.characterColor;
-		onlineMatchBlock[0x67 + (lps.playerIdx) * 0x24] = 0;
-		onlineMatchBlock[0x69 + (lps.playerIdx) * 0x24] = lps.teamId;
+		// Set rng offset
+		rngOffset = isDecider ? lps.rngOffset : rps[0].rngOffset;
+		INFO_LOG(SLIPPI_ONLINE, "Rng Offset: 0x%x", rngOffset);
 
-		// Overwrite remote player character
-		for (int i = 0; i < remotePlayerCount; i++)
+		// Check if everyone is the same color
+		auto color = orderedSelections[0].teamId;
+		bool areAllSameTeam = true;
+		for (const auto &s : orderedSelections)
 		{
-			u8 idx = rps[i].playerIdx;
-			onlineMatchBlock[0x60 + idx * 0x24] = rps[i].characterId;
-			onlineMatchBlock[0x63 + idx * 0x24] = rps[i].characterColor;
-			onlineMatchBlock[0x69 + idx * 0x24] = rps[i].teamId;
+			if (s.teamId != color)
+			{
+				areAllSameTeam = false;
+			}
+		}
+
+		// Randomize assignments to randomize teams when all same color
+		std::vector<u8> teamAssignments = {0, 0, 1, 1};
+		std::srand(rngOffset);
+		std::random_shuffle(teamAssignments.begin(), teamAssignments.end());
+
+		// Overwrite player character choices
+		for (auto &s : orderedSelections)
+		{
+			if (!s.isCharacterSelected)
+			{
+				continue;
+			}
+
+			if (areAllSameTeam)
+			{
+				// Overwrite teamId. Color is overwritten by ASM
+				s.teamId = teamAssignments[s.playerIdx];
+			}
+
+			//ERROR_LOG(SLIPPI_ONLINE, "idx: %d, char: %d", s.playerIdx, s.characterId);
+
+			// Overwrite player character
+			onlineMatchBlock[0x60 + (s.playerIdx) * 0x24] = s.characterId;
+			onlineMatchBlock[0x63 + (s.playerIdx) * 0x24] = s.characterColor;
+			onlineMatchBlock[0x67 + (s.playerIdx) * 0x24] = 0;
+			onlineMatchBlock[0x69 + (s.playerIdx) * 0x24] = s.teamId;
 		}
 
 		// Handle Singles/Teams specific logic
@@ -2356,11 +2414,6 @@ void CEXISlippi::prepareOnlineMatchState()
 
 		u16 *stage = (u16 *)&onlineMatchBlock[0xE];
 		*stage = Common::swap16(stageId);
-
-		// Set rng offset
-		rngOffset = isDecider ? lps.rngOffset : rps[0].rngOffset;
-		WARN_LOG(SLIPPI_ONLINE, "Rng Offset: 0x%x", rngOffset);
-		WARN_LOG(SLIPPI_ONLINE, "P1 Char: 0x%X, P2 Char: 0x%X", onlineMatchBlock[0x60], onlineMatchBlock[0x84]);
 
 		// Turn pause off in unranked/ranked, on in other modes
 		u8 *gameBitField3 = (u8 *)&onlineMatchBlock[2];
@@ -2598,6 +2651,8 @@ std::vector<u8> CEXISlippi::loadPremadeText(u8 *payload)
 	std::vector<u8> premadeTextData;
 	auto spt = SlippiPremadeText();
 
+	//WARN_LOG(SLIPPI, "SLIPPI premade text texture id: 0x%x", payload[0]);
+
 	if (textId >= SlippiPremadeText::SPT_CHAT_P1 && textId <= SlippiPremadeText::SPT_CHAT_P4)
 	{
 		auto port = textId - 1;
@@ -2609,20 +2664,35 @@ std::vector<u8> CEXISlippi::loadPremadeText(u8 *payload)
 		playerName = defaultNames[port];
 #endif
 
-		u8 paramId = payload[1] == 0x83 ? 0x88 : payload[1]; // TODO: Figure out what the hell is going on and fix this
+		//WARN_LOG(SLIPPI, "SLIPPI premade text param: 0x%x", payload[1]);
+		u8 paramId = payload[1];
+		// Clear out any non supported characters (TODO: do this in a loop with more unsupported characters)
+		playerName = ReplaceAll(playerName.c_str(), "`", "");
+		playerName = ReplaceAll(playerName.c_str(), "\\", "");
 
-		//		INFO_LOG(SLIPPI, "SLIPPI premade param 0x%x", paramId);
-		//		INFO_LOG(SLIPPI, "SLIPPI premade name 0x%x", textId);
+		playerName = ReplaceAll(playerName.c_str(), "<", "\\"); // Replace any opening tags with "\" for now
+		playerName = ReplaceAll(playerName.c_str(), ">", "`"); // Replace any closing tags with "`" for now
+		playerName = ReplaceAll(playerName.c_str(), " ", "<S>");
+
+		if (paramId == SlippiPremadeText::CHAT_MSG_CHAT_DISABLED)
+		{
+			return premadeTextData = spt.GetPremadeTextData(SlippiPremadeText::SPT_CHAT_DISABLED, playerName.c_str());
+		}
 
 		auto chatMessage = spt.premadeTextsParams[paramId];
 		std::string param = ReplaceAll(chatMessage.c_str(), " ", "<S>");
-		playerName = ReplaceAll(playerName.c_str(), " ", "<S>");
 		premadeTextData = spt.GetPremadeTextData(textId, playerName.c_str(), param.c_str());
 	}
 	else
 	{
 		premadeTextData = spt.GetPremadeTextData(textId);
 	}
+
+	//ERROR_LOG(SLIPPI, "SLIPPI premade text (%d):", premadeTextData.size());
+	//for (int i = 0; i < premadeTextData.size(); i++)
+	//{
+	//	WARN_LOG(SLIPPI, "%X", premadeTextData[i]);
+	//}
 
 	return premadeTextData;
 }
@@ -2872,10 +2942,11 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 	while (bufLoc < _uSize)
 	{
 		byte = memPtr[bufLoc];
+		INFO_LOG(SLIPPI, "EXI SLIPPI: Loc: %d, Size: %d, Cmd: 0x%x", bufLoc, _uSize, byte);
 		if (!payloadSizes.count(byte))
 		{
 			// This should never happen. Do something else if it does?
-			WARN_LOG(EXPANSIONINTERFACE, "EXI SLIPPI: Invalid command byte: 0x%x", byte);
+			ERROR_LOG(SLIPPI, "EXI SLIPPI: Invalid command byte: 0x%x", byte);
 			return;
 		}
 

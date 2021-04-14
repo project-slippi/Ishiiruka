@@ -1,5 +1,7 @@
-#pragma once
+﻿#pragma once
 
+#include "Common/Logging/Log.h"
+#include "Common/StringUtil.h"
 #include <regex>
 #include <stdarg.h>
 #include <string>
@@ -18,6 +20,7 @@ class SlippiPremadeText
 		SPT_CHAT_P3 = 0x3,
 		SPT_CHAT_P4 = 0x4,
 		SPT_LOGOUT = 0x5,
+		SPT_CHAT_DISABLED = 0x6,
 
 		CHAT_MSG_U_PAD_LEFT = 0x81,
 		CHAT_MSG_U_PAD_RIGHT = 0x82,
@@ -38,6 +41,8 @@ class SlippiPremadeText
 		CHAT_MSG_D_PAD_RIGHT = 0x42,
 		CHAT_MSG_D_PAD_DOWN = 0x44,
 		CHAT_MSG_D_PAD_UP = 0x48,
+
+		CHAT_MSG_CHAT_DISABLED = 0x10,
 	};
 
 	unordered_map<u8, string> premadeTextsParams = {
@@ -61,14 +66,17 @@ class SlippiPremadeText
 	    {CHAT_MSG_D_PAD_LEFT, "thinking"},
 	    {CHAT_MSG_D_PAD_RIGHT, "lets play again later"},
 	    {CHAT_MSG_D_PAD_DOWN, "bad connection"},
+
+	    {CHAT_MSG_CHAT_DISABLED, "player has chat disabled"},
 	};
 
 	unordered_map<u8, string> premadeTexts = {
-	    {SPT_CHAT_P1, "<LEFT><KERN><COLOR, 229, 76, 76>%s-<S><COLOR, 255, 255, 255>%s<END>"},
-	    {SPT_CHAT_P2, "<LEFT><KERN><COLOR, 59, 189, 255>%s-<S><COLOR, 255, 255, 255>%s<END>"},
-	    {SPT_CHAT_P3, "<LEFT><KERN><COLOR, 255, 203, 4>%s-<S><COLOR, 255, 255, 255>%s<END>"},
-	    {SPT_CHAT_P4, "<LEFT><KERN><COLOR, 0, 178, 2>%s-<S><COLOR, 255, 255, 255>%s<END>"},
+	    {SPT_CHAT_P1, "<LEFT><KERN><COLOR, 229, 76, 76>%s:<S><COLOR, 255, 255, 255>%s<END>"},
+	    {SPT_CHAT_P2, "<LEFT><KERN><COLOR, 59, 189, 255>%s:<S><COLOR, 255, 255, 255>%s<END>"},
+	    {SPT_CHAT_P3, "<LEFT><KERN><COLOR, 255, 203, 4>%s:<S><COLOR, 255, 255, 255>%s<END>"},
+	    {SPT_CHAT_P4, "<LEFT><KERN><COLOR, 0, 178, 2>%s:<S><COLOR, 255, 255, 255>%s<END>"},
 	    {SPT_LOGOUT, "<FIT><COLOR, 243, 75, 75>Are<S>You<COLOR, 0, 175, 75><S>Sure?<END>"},
+	    {SPT_CHAT_DISABLED, "<LEFT><KERN><COLOR, 0, 178, 2>%s<S><COLOR, 255, 255, 255>has<S>chat<S>disabled<S><END>"},
 	};
 
 	// TODO: use va_list to handle any no. or args
@@ -82,7 +90,7 @@ class SlippiPremadeText
 		va_start(args, textId);
 		vsprintf(str, format.c_str(), args);
 		va_end(args);
-		//		INFO_LOG(SLIPPI, "%s", str);
+		//		DEBUG_LOG(SLIPPI, "%s", str);
 
 		vector<u8> data = {};
 		vector<u8> empty = {};
@@ -112,6 +120,7 @@ class SlippiPremadeText
 			if (splittedMatches.size() == 0)
 				continue;
 			string firstMatch = splittedMatches[0];
+			auto utfMatch = UTF8ToUTF32(firstMatch);
 
 			pair<TEXT_OP_CODE, pair<string, string>> key = findCodeKey(firstMatch);
 			if (key.first != TEXT_OP_CODE::CUSTOM_NULL)
@@ -173,10 +182,15 @@ class SlippiPremadeText
 				}
 				else
 				{
-					for (int c = 0; c < strlen(firstMatch.c_str()); c++)
+					// DEBUG_LOG(SLIPPI, "TEST:::: %s %s", firstMatch.c_str(), UTF32toUTF8(utfMatch).c_str());
+					for (unsigned long c = 0; c < utfMatch.length(); c++)
 					{
 
-						char chr = firstMatch[c];
+						int chr = utfMatch[c];
+						// We are manually replacing "<" for "\" and ">" for "`" because I don't want to handle vargs
+						// and we need to prevent "format injection" lol...
+						chr = chr == '\\' ? '<' : chr == '`' ? '>' : chr;
+						// DEBUG_LOG(SLIPPI, "CHAR 0x%x", chr);
 
 						// Yup, fuck strchr and cpp too, I'm not in the mood to spend 4 more hours researching how to
 						// get Japanese characters properly working with a map, so I put everything on an int array in
@@ -184,12 +198,13 @@ class SlippiPremadeText
 						int pos = -1;
 						for (int ccc = 0; ccc < 287; ccc++)
 						{
-							if ((char)CHAR_MAP[ccc] == chr)
+							if ((int)CHAR_MAP[ccc] == (int)chr)
 							{
 								pos = ccc;
 								break;
 							}
 						}
+						// DEBUG_LOG(SLIPPI, "pos:%d chr:%c map:%d", pos, chr, CHAR_MAP[pos]);
 
 						if (pos >= 0)
 						{
@@ -201,8 +216,7 @@ class SlippiPremadeText
 							data.push_back(r);
 							data.push_back(r2);
 						}
-						else
-							return empty;
+						// else ignore
 					}
 				}
 			}
@@ -382,146 +396,25 @@ class SlippiPremadeText
 		return tokens;
 	}
 
-	
-	//region CharMAPS
+	// region CharMAPS
 	int CHAR_MAP[287] = {
-		'0', '1', '2', '3', '4', '5',
-		'6', '7', '8', '9', 'A', 'B',
-		'C', 'D', 'E', 'F', 'G', 'H',
-		'I', 'J', 'K', 'L', 'M', 'N',
-		'O', 'P', 'Q', 'R', 'S', 'T',
-		'U', 'V', 'W', 'X', 'Y', 'Z',
-		'a', 'b', 'c', 'd', 'e', 'f',
-		'g', 'h', 'i', 'j', 'k', 'l',
-		'm', 'n', 'o', 'p', 'q', 'r',
-		's', 't', 'u', 'v', 'w', 'x',
-		0x0079 /*'y'*/, 0x007a /*'z'*/, 0x3041 /*'ぁ'*/, 0x3042 /*'あ'*/, 0x3043 /*'ぃ'*/, 0x3044 /*'い'*/,
-		0x3045 /*'ぅ'*/, 0x3046 /*'う'*/, 0x3047 /*'ぇ'*/, 0x3048 /*'え'*/, 0x3049 /*'ぉ'*/, 0x304a /*'お'*/,
-		0x304b /*'か'*/, 0x304c /*'が'*/, 0x304d /*'き'*/, 0x304e /*'ぎ'*/, 0x304f /*'く'*/, 0x3050 /*'ぐ'*/,
-		0x3051 /*'け'*/, 0x3052 /*'げ'*/, 0x3053 /*'こ'*/, 0x3054 /*'ご'*/, 0x3055 /*'さ'*/, 0x3056 /*'ざ'*/,
-		0x3057 /*'し'*/, 0x3058 /*'じ'*/, 0x3059 /*'す'*/, 0x305a /*'ず'*/, 0x305b /*'せ'*/, 0x305c /*'ぜ'*/,
-		0x305d /*'そ'*/, 0x305e /*'ぞ'*/, 0x305f /*'た'*/, 0x3060 /*'だ'*/, 0x3061 /*'ち'*/, 0x3062 /*'ぢ'*/,
-		0x3063 /*'っ'*/, 0x3064 /*'つ'*/, 0x3065 /*'づ'*/, 0x3066 /*'て'*/, 0x3067 /*'で'*/, 0x3068 /*'と'*/,
-		0x3069 /*'ど'*/, 0x306a /*'な'*/, 0x306b /*'に'*/, 0x306c /*'ぬ'*/, 0x306d /*'ね'*/, 0x306e /*'の'*/,
-		0x306f /*'は'*/, 0x3070 /*'ば'*/, 0x3071 /*'ぱ'*/, 0x3072 /*'ひ'*/, 0x3073 /*'び'*/, 0x3074 /*'ぴ'*/,
-		0x3075 /*'ふ'*/, 0x3076 /*'ぶ'*/, 0x3077 /*'ぷ'*/, 0x3078 /*'へ'*/, 0x3079 /*'べ'*/, 0x307a /*'ぺ'*/,
-		0x307b /*'ほ'*/, 0x307c /*'ぼ'*/, 0x307d /*'ぽ'*/, 0x307e /*'ま'*/, 0x307f /*'み'*/, 0x3080 /*'む'*/,
-		0x3081 /*'め'*/, 0x3082 /*'も'*/, 0x3083 /*'ゃ'*/, 0x3084 /*'や'*/, 0x3085 /*'ゅ'*/, 0x3086 /*'ゆ'*/,
-		0x3087 /*'ょ'*/, 0x3088 /*'よ'*/, 0x3089 /*'ら'*/, 0x308a /*'り'*/, 0x308b /*'る'*/, 0x308c /*'れ'*/,
-		0x308d /*'ろ'*/, 0x308e /*'ゎ'*/, 0x308f /*'わ'*/, 0x3092 /*'を'*/, 0x3093 /*'ん'*/, 0x30a1 /*'ァ'*/,
-		0x30a2 /*'ア'*/, 0x30a3 /*'ィ'*/, 0x30a4 /*'イ'*/, 0x30a5 /*'ゥ'*/, 0x30a6 /*'ウ'*/, 0x30a7 /*'ェ'*/,
-		0x30a8 /*'エ'*/, 0x30a9 /*'ォ'*/, 0x30aa /*'オ'*/, 0x30ab /*'カ'*/, 0x30ac /*'ガ'*/, 0x30ad /*'キ'*/,
-		0x30ae /*'ギ'*/, 0x30af /*'ク'*/, 0x30b0 /*'グ'*/, 0x30b1 /*'ケ'*/, 0x30b2 /*'ゲ'*/, 0x30b3 /*'コ'*/,
-		0x30b4 /*'ゴ'*/, 0x30b5 /*'サ'*/, 0x30b6 /*'ザ'*/, 0x30b7 /*'シ'*/, 0x30b8 /*'ジ'*/, 0x30b9 /*'ス'*/,
-		0x30ba /*'ズ'*/, 0x30bb /*'セ'*/, 0x30bc /*'ゼ'*/, 0x30bd /*'ソ'*/, 0x30be /*'ゾ'*/, 0x30bf /*'タ'*/,
-		0x30c0 /*'ダ'*/, 0x30c1 /*'チ'*/, 0x30c2 /*'ヂ'*/, 0x30c3 /*'ッ'*/, 0x30c4 /*'ツ'*/, 0x30c5 /*'ヅ'*/,
-		0x30c6 /*'テ'*/, 0x30c7 /*'デ'*/, 0x30c8 /*'ト'*/, 0x30c9 /*'ド'*/, 0x30ca /*'ナ'*/, 0x30cb /*'ニ'*/,
-		0x30cc /*'ヌ'*/, 0x30cd /*'ネ'*/, 0x30ce /*'ノ'*/, 0x30cf /*'ハ'*/, 0x30d0 /*'バ'*/, 0x30d1 /*'パ'*/,
-		0x30d2 /*'ヒ'*/, 0x30d3 /*'ビ'*/, 0x30d4 /*'ピ'*/, 0x30d5 /*'フ'*/, 0x30d6 /*'ブ'*/, 0x30d7 /*'プ'*/,
-		0x30d8 /*'ヘ'*/, 0x30d9 /*'ベ'*/, 0x30da /*'ペ'*/, 0x30db /*'ホ'*/, 0x30dc /*'ボ'*/, 0x30dd /*'ポ'*/,
-		0x30de /*'マ'*/, 0x30df /*'ミ'*/, 0x30e0 /*'ム'*/, 0x30e1 /*'メ'*/, 0x30e2 /*'モ'*/, 0x30e3 /*'ャ'*/,
-		0x30e4 /*'ヤ'*/, 0x30e5 /*'ュ'*/, 0x30e6 /*'ユ'*/, 0x30e7 /*'ョ'*/, 0x30e8 /*'ヨ'*/, 0x30e9 /*'ラ'*/,
-		0x30ea /*'リ'*/, 0x30eb /*'ル'*/, 0x30ec /*'レ'*/, 0x30ed /*'ロ'*/, 0x30ee /*'ヮ'*/, 0x30ef /*'ワ'*/,
-		0x30f2 /*'ヲ'*/, 0x30f3 /*'ン'*/, 0x30f4 /*'ヴ'*/, 0x30f5 /*'ヵ'*/, 0x30f6 /*'ヶ'*/, 0x3000 /*'　'*/,
-		0x3001 /*'、'*/, 0x3002 /*'。'*/, 0x002c /*','*/, 0x002e /*'.'*/, 0x2022 /*'•'*/, 0x002c /*','*/,
-		0x003b /*';'*/, 0x003f /*'?'*/, 0x0021 /*'!'*/, 0x005e /*'^'*/, 0x005f /*'_'*/, 0x2014 /*'—'*/,
-		0x002f /*'/'*/, 0x007e /*'~'*/, 0x007c /*'|'*/, 0x0027 /*'\''*/, 0x0022 /*'"'*/, 0x0028 /*'('*/,
-		0x0029 /*')'*/, 0x005b /*'['*/, 0x005d /*']'*/, 0x007b /*'{'*/, 0x007d /*'}'*/, 0x002b /*'+'*/,
-		'-', 0x00d7 /*'×'*/, 0x003d /*'='*/, 0x003c /*'<'*/, 0x003e /*'>'*/, 0x00a5 /*'¥'*/,
-		0x0024 /*'$'*/, 0x0025 /*'%'*/, 0x0023 /*'#'*/, 0x0026 /*'&'*/, 0x002a /*'*'*/, 0x0040 /*'@'*/,
-		0x6271 /*'扱'*/, 0x62bc /*'押'*/, 0x8ecd /*'軍'*/, 0x6e90 /*'源'*/, 0x500b /*'個'*/, 0x8fbc /*'込'*/,
-		0x6307 /*'指'*/, 0x793a /*'示'*/, 0x53d6 /*'取'*/, 0x66f8 /*'書'*/, 0x8a73 /*'詳'*/, 0x4eba /*'人'*/,
-		0x751f /*'生'*/, 0x8aac /*'説'*/, 0x4f53 /*'体'*/, 0x56e3 /*'団'*/, 0x96fb /*'電'*/, 0x8aad /*'読'*/,
-		0x767a /*'発'*/, 0x629c /*'抜'*/, 0x9591 /*'閑'*/, 0x672c /*'本'*/, 0x660e /*'明'*/,
-	};
-	//    char THEMAP[287] = {
-	//            '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K',
-	//            'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S',
-	//            'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
-	//            'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
-	//            static_cast<char>(0x3041), static_cast<char>(0x3042), static_cast<char>(0x3043), static_cast<char>(0x3044),
-	//            static_cast<char>(0x3045),
-	//            static_cast<char>(0x3046), static_cast<char>(0x3047), static_cast<char>(0x3048), static_cast<char>(0x3049),
-	//            static_cast<char>(0x304a),
-	//            static_cast<char>(0x304b), static_cast<char>(0x304c), static_cast<char>(0x304d), static_cast<char>(0x304e),
-	//            static_cast<char>(0x304f),
-	//            static_cast<char>(0x3050), static_cast<char>(0x3051), static_cast<char>(0x3052), static_cast<char>(0x3053),
-	//            static_cast<char>(0x3054),
-	//            static_cast<char>(0x3055), static_cast<char>(0x3056), static_cast<char>(0x3057), static_cast<char>(0x3058),
-	//            static_cast<char>(0x3059),
-	//            static_cast<char>(0x305a), static_cast<char>(0x305b), static_cast<char>(0x305c), static_cast<char>(0x305d),
-	//            static_cast<char>(0x305e),
-	//            static_cast<char>(0x305f), static_cast<char>(0x3060), static_cast<char>(0x3061), static_cast<char>(0x3062),
-	//            static_cast<char>(0x3063),
-	//            static_cast<char>(0x3064), static_cast<char>(0x3065), static_cast<char>(0x3066), static_cast<char>(0x3067),
-	//            static_cast<char>(0x3068),
-	//            static_cast<char>(0x3069), static_cast<char>(0x306a), static_cast<char>(0x306b), static_cast<char>(0x306c),
-	//            static_cast<char>(0x306d),
-	//            static_cast<char>(0x306e), static_cast<char>(0x306f), static_cast<char>(0x3070), static_cast<char>(0x3071),
-	//            static_cast<char>(0x3072),
-	//            static_cast<char>(0x3073), static_cast<char>(0x3074), static_cast<char>(0x3075), static_cast<char>(0x3076),
-	//            static_cast<char>(0x3077),
-	//            static_cast<char>(0x3078), static_cast<char>(0x3079), static_cast<char>(0x307a), static_cast<char>(0x307b),
-	//            static_cast<char>(0x307c),
-	//            static_cast<char>(0x307d), static_cast<char>(0x307e), static_cast<char>(0x307f), static_cast<char>(0x3080),
-	//            static_cast<char>(0x3081),
-	//            static_cast<char>(0x3082), static_cast<char>(0x3083), static_cast<char>(0x3084), static_cast<char>(0x3085),
-	//            static_cast<char>(0x3086),
-	//            static_cast<char>(0x3087), static_cast<char>(0x3088), static_cast<char>(0x3089), static_cast<char>(0x308a),
-	//            static_cast<char>(0x308b),
-	//            static_cast<char>(0x308c), static_cast<char>(0x308d), static_cast<char>(0x308e), static_cast<char>(0x308f),
-	//            static_cast<char>(0x3092),
-	//            static_cast<char>(0x3093), static_cast<char>(0x30a1), static_cast<char>(0x30a2), static_cast<char>(0x30a3),
-	//            static_cast<char>(0x30a4),
-	//            static_cast<char>(0x30a5), static_cast<char>(0x30a6), static_cast<char>(0x30a7), static_cast<char>(0x30a8),
-	//            static_cast<char>(0x30a9),
-	//            static_cast<char>(0x30aa), static_cast<char>(0x30ab), static_cast<char>(0x30ac), static_cast<char>(0x30ad),
-	//            static_cast<char>(0x30ae),
-	//            static_cast<char>(0x30af), static_cast<char>(0x30b0), static_cast<char>(0x30b1), static_cast<char>(0x30b2),
-	//            static_cast<char>(0x30b3),
-	//            static_cast<char>(0x30b4), static_cast<char>(0x30b5), static_cast<char>(0x30b6), static_cast<char>(0x30b7),
-	//            static_cast<char>(0x30b8),
-	//            static_cast<char>(0x30b9), static_cast<char>(0x30ba), static_cast<char>(0x30bb), static_cast<char>(0x30bc),
-	//            static_cast<char>(0x30bd),
-	//            static_cast<char>(0x30be), static_cast<char>(0x30bf), static_cast<char>(0x30c0), static_cast<char>(0x30c1),
-	//            static_cast<char>(0x30c2),
-	//            static_cast<char>(0x30c3), static_cast<char>(0x30c4), static_cast<char>(0x30c5), static_cast<char>(0x30c6),
-	//            static_cast<char>(0x30c7),
-	//            static_cast<char>(0x30c8), static_cast<char>(0x30c9), static_cast<char>(0x30ca), static_cast<char>(0x30cb),
-	//            static_cast<char>(0x30cc),
-	//            static_cast<char>(0x30cd), static_cast<char>(0x30ce), static_cast<char>(0x30cf), static_cast<char>(0x30d0),
-	//            static_cast<char>(0x30d1),
-	//            static_cast<char>(0x30d2), static_cast<char>(0x30d3), static_cast<char>(0x30d4), static_cast<char>(0x30d5),
-	//            static_cast<char>(0x30d6),
-	//            static_cast<char>(0x30d7), static_cast<char>(0x30d8), static_cast<char>(0x30d9), static_cast<char>(0x30da),
-	//            static_cast<char>(0x30db),
-	//            static_cast<char>(0x30dc), static_cast<char>(0x30dd), static_cast<char>(0x30de), static_cast<char>(0x30df),
-	//            static_cast<char>(0x30e0),
-	//            static_cast<char>(0x30e1), static_cast<char>(0x30e2), static_cast<char>(0x30e3), static_cast<char>(0x30e4),
-	//            static_cast<char>(0x30e5),
-	//            static_cast<char>(0x30e6), static_cast<char>(0x30e7), static_cast<char>(0x30e8), static_cast<char>(0x30e9),
-	//            static_cast<char>(0x30ea),
-	//            static_cast<char>(0x30eb), static_cast<char>(0x30ec), static_cast<char>(0x30ed), static_cast<char>(0x30ee),
-	//            static_cast<char>(0x30ef),
-	//            static_cast<char>(0x30f2), static_cast<char>(0x30f3), static_cast<char>(0x30f4), static_cast<char>(0x30f5),
-	//            static_cast<char>(0x30f6),
-	//            static_cast<char>(0x3000), static_cast<char>(0x3001), static_cast<char>(0x3002),
-	//            ',', '.',
-	//            static_cast<char>(0x2022),
-	//            ',', ';', '?', '!', '^', '_',
-	//            static_cast<char>(0x2014),
-	//            '/', '~', '|', '\'', '"', '(', ')', '[', ']', '{', '}', '+', '-',
-	//            static_cast<char>(0x00d7), '=', '<', '>',
-	//            static_cast<char>(0x00a5), '$', '%', '#', '&', '*', '@',
-	//            static_cast<char>(0x6271), static_cast<char>(0x62bc), static_cast<char>(0x8ecd), static_cast<char>(0x6e90),
-	//            static_cast<char>(0x500b),
-	//            static_cast<char>(0x8fbc), static_cast<char>(0x6307), static_cast<char>(0x793a), static_cast<char>(0x53d6),
-	//            static_cast<char>(0x66f8),
-	//            static_cast<char>(0x8a73), static_cast<char>(0x4eba), static_cast<char>(0x751f), static_cast<char>(0x8aac),
-	//            static_cast<char>(0x4f53),
-	//            static_cast<char>(0x56e3), static_cast<char>(0x96fb), static_cast<char>(0x8aad), static_cast<char>(0x767a),
-	//            static_cast<char>(0x629c),
-	//            static_cast<char>(0x9591), static_cast<char>(0x672c), static_cast<char>(0x660e)
-	//    };
-		//endregion
+	    U'0',  U'1',  U'2',  U'3',  U'4',  U'5',  U'6',  U'7',  U'8',  U'9',  U'A',  U'B',  U'C',  U'D',  U'E',  U'F',
+	    U'G',  U'H',  U'I',  U'J',  U'K',  U'L',  U'M',  U'N',  U'O',  U'P',  U'Q',  U'R',  U'S',  U'T',  U'U',  U'V',
+	    U'W',  U'X',  U'Y',  U'Z',  U'a',  U'b',  U'c',  U'd',  U'e',  U'f',  U'g',  U'h',  U'i',  U'j',  U'k',  U'l',
+	    U'm',  U'n',  U'o',  U'p',  U'q',  U'r',  U's',  U't',  U'u',  U'v',  U'w',  U'x',  U'y',  U'z',  U'ぁ', U'あ',
+	    U'ぃ', U'い', U'ぅ', U'う', U'ぇ', U'え', U'ぉ', U'お', U'か', U'が', U'き', U'ぎ', U'く', U'ぐ', U'け', U'げ',
+	    U'こ', U'ご', U'さ', U'ざ', U'し', U'じ', U'す', U'ず', U'せ', U'ぜ', U'そ', U'ぞ', U'た', U'だ', U'ち', U'ぢ',
+	    U'っ', U'つ', U'づ', U'て', U'で', U'と', U'ど', U'な', U'に', U'ぬ', U'ね', U'の', U'は', U'ば', U'ぱ', U'ひ',
+	    U'び', U'ぴ', U'ふ', U'ぶ', U'ぷ', U'へ', U'べ', U'ぺ', U'ほ', U'ぼ', U'ぽ', U'ま', U'み', U'む', U'め', U'も',
+	    U'ゃ', U'や', U'ゅ', U'ゆ', U'ょ', U'よ', U'ら', U'り', U'る', U'れ', U'ろ', U'ゎ', U'わ', U'を', U'ん', U'ァ',
+	    U'ア', U'ィ', U'イ', U'ゥ', U'ウ', U'ェ', U'エ', U'ォ', U'オ', U'カ', U'ガ', U'キ', U'ギ', U'ク', U'グ', U'ケ',
+	    U'ゲ', U'コ', U'ゴ', U'サ', U'ザ', U'シ', U'ジ', U'ス', U'ズ', U'セ', U'ゼ', U'ソ', U'ゾ', U'タ', U'ダ', U'チ',
+	    U'ヂ', U'ッ', U'ツ', U'ヅ', U'テ', U'デ', U'ト', U'ド', U'ナ', U'ニ', U'ヌ', U'ネ', U'ノ', U'ハ', U'バ', U'パ',
+	    U'ヒ', U'ビ', U'ピ', U'フ', U'ブ', U'プ', U'ヘ', U'ベ', U'ペ', U'ホ', U'ボ', U'ポ', U'マ', U'ミ', U'ム', U'メ',
+	    U'モ', U'ャ', U'ヤ', U'ュ', U'ユ', U'ョ', U'ヨ', U'ラ', U'リ', U'ル', U'レ', U'ロ', U'ヮ', U'ワ', U'ヲ', U'ン',
+	    U'ヴ', U'ヵ', U'ヶ', U'　', U'、', U'。', U',',  U'.',  U'•',  U':',  U';',  U'?',  U'!',  U'^',  U'_',  U'—',
+	    U'/',  U'~',  U'|',  U'\'', U'"',  U'(',  U')',  U'[',  U']',  U'{',  U'}',  U'+',  '-',   U'×',  U'=',  U'<',
+	    U'>',  U'¥',  U'$',  U'%',  U'#',  U'&',  U'*',  U'@',  U'扱', U'押', U'軍', U'源', U'個', U'込', U'指', U'示',
+	    U'取', U'書', U'詳', U'人', U'生', U'説', U'体', U'団', U'電', U'読', U'発', U'抜', U'閑', U'本', U'明'};
+	// endregion
 };
