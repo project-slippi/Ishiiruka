@@ -72,6 +72,8 @@ SlippiNetplayClient::SlippiNetplayClient(std::vector<std::string> addrs, std::ve
     , m_qos_flow_id(0)
 #endif
 {
+	// Important: addrs must be provided in port order for the auto-disconnect logic when there's more than 1 connection
+
 	WARN_LOG(SLIPPI_ONLINE, "Initializing Slippi Netplay for port: %d, with host: %s, player idx: %d", localPort,
 	         isDecider ? "true" : "false", playerIdx);
 	this->isDecider = isDecider;
