@@ -126,7 +126,7 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_GET_NEW_SEED, 0},
 	    {CMD_REPORT_GAME, 16},
 
-	    {CMD_FETCH_CODE_SUGGESTION, 30},
+	    {CMD_FETCH_CODE_SUGGESTION, 31},
 
 	    // Misc
 	    {CMD_LOG_MESSAGE, 0xFFFF}, // Variable size... will only work if by itself
@@ -274,6 +274,7 @@ class CEXISlippi : public IEXIDevice
 	std::unique_ptr<SlippiMatchmaking> matchmaking;
 	std::unique_ptr<SlippiGameReporter> gameReporter;
 	std::unique_ptr<SlippiDirectCodes> directCodes;
+	std::unique_ptr<SlippiDirectCodes> teamsCodes;
 
 	std::map<s32, std::unique_ptr<SlippiSavestate>> activeSavestates;
 	std::deque<std::unique_ptr<SlippiSavestate>> availableSavestates;

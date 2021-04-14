@@ -135,7 +135,8 @@ CEXISlippi::CEXISlippi()
 	gameFileLoader = std::make_unique<SlippiGameFileLoader>();
 	gameReporter = std::make_unique<SlippiGameReporter>(user.get());
 	g_replayComm = std::make_unique<SlippiReplayComm>();
-	directCodes = std::make_unique<SlippiDirectCodes>();
+	directCodes = std::make_unique<SlippiDirectCodes>("direct-codes.json");
+	teamsCodes = std::make_unique<SlippiDirectCodes>("teams-codes.json");
 
 	generator = std::default_random_engine(Common::Timer::GetTimeMs());
 
@@ -1844,14 +1845,17 @@ void CEXISlippi::startFindMatch(u8 *payload)
 	shiftJisCode.erase(std::find(shiftJisCode.begin(), shiftJisCode.end(), 0x00), shiftJisCode.end());
 
 	// Log the direct code to file.
-	// TODO: Add some behavior so only the codes that result in a
-	// succesful connection are saved.
 	if (search.mode == SlippiMatchmaking::DIRECT)
 	{
 		// Make sure to convert to UTF8, otherwise json library will fail when
 		// calling dump().
 		std::string utf8Code = SHIFTJISToUTF8(shiftJisCode);
 		directCodes->AddOrUpdateCode(utf8Code);
+	}
+	else if (search.mode == SlippiMatchmaking::TEAMS)
+	{
+		std::string utf8Code = SHIFTJISToUTF8(shiftJisCode);
+		teamsCodes->AddOrUpdateCode(utf8Code);
 	}
 
 	// TODO: Make this work so we dont have to pass shiftJis to mm server
@@ -1923,6 +1927,13 @@ void CEXISlippi::handleNameEntryLoad(u8 *payload)
 	u8 inputLen = payload[24];
 	u32 initialIndex = payload[25] << 24 | payload[26] << 16 | payload[27] << 8 | payload[28];
 	u8 scrollDirection = payload[29];
+	u8 curMode = payload[30];
+
+	auto codeHistory = directCodes.get();
+	if (curMode == SlippiMatchmaking::TEAMS)
+	{
+		codeHistory = teamsCodes.get();
+	}
 
 	// Adjust index
 	u32 curIndex = initialIndex;
@@ -1941,9 +1952,9 @@ void CEXISlippi::handleNameEntryLoad(u8 *payload)
 
 	// Scroll to next tag that
 	std::string tagAtIndex = "1";
-	while (curIndex >= 0 && curIndex < (u32)directCodes->length())
+	while (curIndex >= 0 && curIndex < (u32)codeHistory->length())
 	{
-		tagAtIndex = directCodes->get(curIndex);
+		tagAtIndex = codeHistory->get(curIndex);
 
 		// Break if we have found a tag that matches
 		if (doesTagMatchInput(payload, inputLen, tagAtIndex))
@@ -1955,13 +1966,13 @@ void CEXISlippi::handleNameEntryLoad(u8 *payload)
 	INFO_LOG(SLIPPI_ONLINE, "Idx: %d, InitIdx: %d, Scroll: %d. Len: %d", curIndex, initialIndex, scrollDirection,
 	          inputLen);
 
-	tagAtIndex = directCodes->get(curIndex);
+	tagAtIndex = codeHistory->get(curIndex);
 	if (tagAtIndex == "1")
 	{
 		// If we failed to find a tag at the current index, try the initial index again.
 		// If the initial index matches the filter, preserve that suggestion. Without
 		// this logic, the suggestion would get cleared
-		auto initialTag = directCodes->get(initialIndex);
+		auto initialTag = codeHistory->get(initialIndex);
 		if (doesTagMatchInput(payload, inputLen, initialTag))
 		{
 			tagAtIndex = initialTag;

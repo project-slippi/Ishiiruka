@@ -20,7 +20,7 @@ class SlippiDirectCodes
 		bool isFavorite = false;
 	};
 
-	SlippiDirectCodes();
+	SlippiDirectCodes(std::string fileName);
 	~SlippiDirectCodes();
 
 	void ReadFile();
@@ -35,4 +35,5 @@ class SlippiDirectCodes
 	std::string getCodesFilePath();
 	std::vector<CodeInfo> parseFile(std::string fileContents);
 	std::vector<CodeInfo> directCodeInfos;
+	std::string m_fileName;
 };

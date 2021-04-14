@@ -21,8 +21,10 @@
 #include <json.hpp>
 using json = nlohmann::json;
 
-SlippiDirectCodes::SlippiDirectCodes()
+SlippiDirectCodes::SlippiDirectCodes(std::string fileName)
 {
+	m_fileName = fileName;
+
 	// Prevent additional file reads, if we've already loaded data to memory.
 	// if (directCodeInfos.empty())
 	ReadFile();
@@ -171,12 +173,15 @@ void SlippiDirectCodes::WriteFile()
 
 std::string SlippiDirectCodes::getCodesFilePath()
 {
+	std::string fileName = m_fileName + ".json";
+
+	// TODO: Move to User dir
 #if defined(__APPLE__)
-	std::string directCodesPath = File::GetBundleDirectory() + "/Contents/Resources" + DIR_SEP + "directcodes.json";
+	std::string directCodesPath = File::GetBundleDirectory() + "/Contents/Resources" + DIR_SEP + m_fileName;
 #elif defined(_WIN32)
-	std::string directCodesPath = File::GetExeDirectory() + DIR_SEP + "directcodes.json";
+	std::string directCodesPath = File::GetExeDirectory() + DIR_SEP + m_fileName;
 #else
-	std::string directCodesPath = File::GetUserPath(F_DIRECTCODESJSON_IDX);
+	std::string directCodesPath = File::GetUserPath(D_USER_IDX) + m_fileName;
 //	directCodesPath.pop_back();
 #endif
 	return directCodesPath;
