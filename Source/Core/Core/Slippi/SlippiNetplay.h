@@ -200,9 +200,9 @@ class SlippiNetplayClient
 
 	u64 pingUs[SLIPPI_REMOTE_PLAYER_MAX];
 	std::vector<u64> packetTimestamps[SLIPPI_REMOTE_PLAYER_MAX];
-	std::recursive_mutex packetTimestampsMutex;
+	std::mutex packetTimestampsMutex;
 	std::vector<u64> pings[SLIPPI_REMOTE_PLAYER_MAX];
-	std::recursive_mutex pingsMutex;
+	std::mutex pingsMutex;
 	int32_t lastFrameAcked[SLIPPI_REMOTE_PLAYER_MAX];
 	FrameOffsetData frameOffsetData[SLIPPI_REMOTE_PLAYER_MAX];
 	FrameTiming lastFrameTiming[SLIPPI_REMOTE_PLAYER_MAX];

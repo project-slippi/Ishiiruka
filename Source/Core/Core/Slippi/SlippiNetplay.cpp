@@ -216,7 +216,7 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 		// 120 frames to let the game settle before measuring network quality
 		if (frame > 120)
 		{
-			std::lock_guard<std::recursive_mutex> lkq(packetTimestampsMutex);
+			std::lock_guard<std::mutex> lkq(packetTimestampsMutex);
 			packetTimestamps[pIdx].push_back(curTime);
 		}
 
@@ -334,7 +334,7 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 		pingUs[pIdx] = Common::Timer::GetTimeUs() - sendTime;
 		// Record ping for later reporting
 		{
-			std::lock_guard<std::recursive_mutex> lkq(pingsMutex);
+			std::lock_guard<std::mutex> lkq(pingsMutex);
 			pings[pIdx].push_back(pingUs[pIdx]);
 		}
 		if (g_ActiveConfig.bShowNetPlayPing && frame % SLIPPI_PING_DISPLAY_INTERVAL == 0 && pIdx == 0)
@@ -794,11 +794,11 @@ void SlippiNetplayClient::StartSlippiGame()
 		// Reset ack timers
 		ackTimers[i].Clear();
 		{
-			std::lock_guard<std::recursive_mutex> lkq(packetTimestampsMutex);
+			std::lock_guard<std::mutex> lkq(packetTimestampsMutex);
 			packetTimestamps[i].clear();
 		}
 		{
-			std::lock_guard<std::recursive_mutex> lkq(pingsMutex);
+			std::lock_guard<std::mutex> lkq(pingsMutex);
 			pings[i].clear();
 		}
 	}
@@ -1116,10 +1116,18 @@ void SlippiNetplayClient::GetNetworkingStats(SlippiGameReporter::GameReport *rep
 {
 	for (int i = 0; i < m_remotePlayerCount; i++)
 	{
+		// Don't try to write to a player slot that doesn't exist
+		if (i >= report->players.size()){
+			return;
+		}
+
 		std::vector<u64> differences;
 		{
-			std::lock_guard<std::recursive_mutex> lkq(packetTimestampsMutex);
-			differences.resize(packetTimestamps[i].size()-1);
+			std::lock_guard<std::mutex> lkq(packetTimestampsMutex);
+			if (packetTimestamps[i].empty()){
+				continue;
+			}
+			differences.resize(packetTimestamps[i].size());
 			std::adjacent_difference(packetTimestamps[i].begin(), packetTimestamps[i].end(), differences.begin());
 			// For absolutely no reason that I can gather, adjacent_difference puts an exta element at the front of the result vector. Remove it
 			differences.erase(differences.begin());
@@ -1128,17 +1136,32 @@ void SlippiNetplayClient::GetNetworkingStats(SlippiGameReporter::GameReport *rep
 		for (u64 j : differences) {
 			jitterSum += j;
 		}
-		report->players[i].jitterMean = jitterSum / (float)differences.size();
-		report->players[i].jitterMax = (float)*std::max_element(differences.begin(), differences.end());
-		report->players[i].jitterVariance = ComputeSampleVariance(report->players[i].jitterMean, differences);
+		if (differences.size() > 1) {
+			report->players[i].jitterMean = jitterSum / (float)differences.size();
+			report->players[i].jitterMax = (float)*std::max_element(differences.begin(), differences.end());
+			report->players[i].jitterVariance = ComputeSampleVariance(report->players[i].jitterMean, differences);
+		}
+		else {
+			report->players[i].jitterMean = 0;
+			report->players[i].jitterMax = 0;
+			report->players[i].jitterVariance = 0;
+			report->players[i].pingMean = 0;
+			continue;
+		}
 
 		{
-			std::lock_guard<std::recursive_mutex> lkq(pingsMutex);
+			std::lock_guard<std::mutex> lkq(pingsMutex);
 			float pingSum = 0;
 			for (u64 j : pings[i]) {
 				pingSum += j;
 			}
-			report->players[i].pingMean = pingSum / (float)pings[i].size();
+			if (pings[i].size() > 0) {
+				report->players[i].pingMean = pingSum / (float)pings[i].size();
+			}
+			else {
+				report->players[i].pingMean = 0;
+			}
+
 		}
 	}
 }

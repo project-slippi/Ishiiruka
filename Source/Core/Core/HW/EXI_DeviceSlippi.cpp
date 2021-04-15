@@ -2680,7 +2680,9 @@ void CEXISlippi::handleReportGame(u8 *payload)
 		report.players.push_back(p);
 	}
 	// Add network quality information to game report
-	slippi_netplay->GetNetworkingStats(&report);
+	if (slippi_netplay){
+		slippi_netplay->GetNetworkingStats(&report);
+	}
 
 	gameReporter->StartReport(report);
 #endif

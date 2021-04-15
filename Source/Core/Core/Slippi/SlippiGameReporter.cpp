@@ -114,11 +114,14 @@ void SlippiGameReporter::ReportThreadHandler()
 				p["uid"] = playerUids[i];
 				p["damageDone"] = report.players[i].damageDone;
 				p["stocksRemaining"] = report.players[i].stocksRemaining;
-				p["jitterMean"] = report.players[i].jitterMean;
-				p["jitterMax"] = report.players[i].jitterMax;
-				p["jitterVariance"] = report.players[i].jitterVariance;
-				p["pingMean"] = report.players[i].pingMean;
-
+				// Only report networking stats for other players than us
+				if (playerUids[i] != userInfo.uid)
+				{
+					p["jitterMean"] = report.players[i].jitterMean;
+					p["jitterMax"] = report.players[i].jitterMax;
+					p["jitterVariance"] = report.players[i].jitterVariance;
+					p["pingMean"] = report.players[i].pingMean;
+				}
 				players[i] = p;
 			}
 
