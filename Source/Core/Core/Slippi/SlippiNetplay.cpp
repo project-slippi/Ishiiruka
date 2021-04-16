@@ -72,8 +72,6 @@ SlippiNetplayClient::SlippiNetplayClient(std::vector<std::string> addrs, std::ve
     , m_qos_flow_id(0)
 #endif
 {
-	// Important: addrs must be provided in port order for the auto-disconnect logic when there's more than 1 connection
-
 	WARN_LOG(SLIPPI_ONLINE, "Initializing Slippi Netplay for port: %d, with host: %s, player idx: %d", localPort,
 	         isDecider ? "true" : "false", playerIdx);
 	this->isDecider = isDecider;
@@ -128,7 +126,7 @@ SlippiNetplayClient::SlippiNetplayClient(std::vector<std::string> addrs, std::ve
 		ENetAddress addr;
 		enet_address_set_host(&addr, addrs[i].c_str());
 		addr.port = ports[i];
-		INFO_LOG(SLIPPI_ONLINE, "Set ENet host, addr = %x, port = %d", addr.host, addr.port);
+		// INFO_LOG(SLIPPI_ONLINE, "Set ENet host, addr = %x, port = %d", addr.host, addr.port);
 
 		ENetPeer *peer = enet_host_connect(m_client, &addr, 3, 0);
 		m_server.push_back(peer);
@@ -145,8 +143,8 @@ SlippiNetplayClient::SlippiNetplayClient(std::vector<std::string> addrs, std::ve
 		}
 		else
 		{
-			INFO_LOG(SLIPPI_ONLINE, "Connecting to ENet host, addr = %x, port = %d", peer->address.host,
-			         peer->address.port);
+			// INFO_LOG(SLIPPI_ONLINE, "Connecting to ENet host, addr = %x, port = %d", peer->address.host,
+			//         peer->address.port);
 		}
 	}
 
@@ -192,6 +190,9 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 	{
 	case NP_MSG_SLIPPI_PAD:
 	{
+		// Fetch current time immediately for the most accurate timing calculations
+		u64 curTime = Common::Timer::GetTimeUs();
+
 		int32_t frame;
 		if (!(packet >> frame))
 		{
@@ -211,13 +212,48 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 			break;
 		}
 
+		// This fetches the m_server index that stores the connection we want to overwrite (if necessary). Note that
+		// this index is not necessarily the same as the pIdx because if we have users connecting with the same
+		// WAN, the m_server indices might not match
+		int connIdx = 0;
+		for (int i = 0; i < m_server.size(); i++)
+		{
+			if (peer->address.host == m_server[i]->address.host && peer->address.port == m_server[i]->address.port)
+			{
+				connIdx = i;
+				break;
+			}
+		}
+
+		// Here we check if we have more than 1 connection for a specific player, this can happen because both
+		// players try to connect to each other at the same time to increase the odds that one direction might
+		// work and for hole punching. That said there's no point in keeping more than 1 connection alive. I
+		// think they might use bandwidth with keep alives or something. Only the lower port player will
+		// initiate the disconnect
+		std::stringstream keyStrm;
+		keyStrm << peer->address.host << "-" << peer->address.port;
+		if (activeConnections[keyStrm.str()].size() > 1 && playerIdx <= pIdx)
+		{
+			m_server[connIdx] = peer;
+			INFO_LOG(SLIPPI_ONLINE,
+			         "Multiple connections detected for single peer. %x:%d. %x. Disconnecting superfluous "
+			         "connections. oppIdx: %d. pIdx: %d",
+			         peer->address.host, peer->address.port, peer, pIdx, playerIdx);
+
+			for (auto activeConn : activeConnections[keyStrm.str()])
+			{
+				if (activeConn.first == peer)
+					continue;
+
+				// Tell our peer to terminate this connection
+				enet_peer_disconnect(activeConn.first, 0);
+			}
+		}
+
 		// Pad received, try to guess what our local time was when the frame was sent by our opponent
 		// before we initialized
 		// We can compare this to when we sent a pad for last frame to figure out how far/behind we
 		// are with respect to the opponent
-
-		u64 curTime = Common::Timer::GetTimeUs();
-
 		auto timing = lastFrameTiming[pIdx];
 		if (!hasGameStarted)
 		{
@@ -585,6 +621,11 @@ void SlippiNetplayClient::ThreadFunc()
 				activeConnections[keyStrm.str()][netEvent.peer] = true;
 				INFO_LOG(SLIPPI_ONLINE, "New connection (early): %s, %X", keyStrm.str().c_str(), netEvent.peer);
 
+				for (auto pair : activeConnections)
+				{
+					INFO_LOG(SLIPPI_ONLINE, "%s: %d", pair.first.c_str(), pair.second.size());
+				}
+
 				INFO_LOG(SLIPPI_ONLINE, "[Netplay] got connect event with peer addr %x:%d. %x",
 				         netEvent.peer->address.host, netEvent.peer->address.port, netEvent.peer);
 
@@ -740,6 +781,7 @@ void SlippiNetplayClient::ThreadFunc()
 			Send(*(m_async_queue.Front().get()));
 			m_async_queue.Pop();
 		}
+
 		if (net > 0)
 		{
 			sf::Packet rpac;
@@ -748,38 +790,6 @@ void SlippiNetplayClient::ThreadFunc()
 			{
 			case ENET_EVENT_TYPE_RECEIVE:
 			{
-				int oppIdx = 0;
-				for (int i = 0; i < m_server.size(); i++)
-				{
-					if (netEvent.peer->address.host == m_server[i]->address.host &&
-					    netEvent.peer->address.port == m_server[i]->address.port)
-					{
-						oppIdx = i;
-						break;
-					}
-				}
-
-				// Here we check if we have more than 1 connection for a specific player, this can happen because both
-				// players try to connect to each other at the same time to increase the odds that one direction might
-				// work and for hole punching. That said there's no point in keeping more than 1 connection alive. I
-				// think they might use bandwidth with keep alives or something. Only the lower port player will
-				// initiate the disconnect
-				std::stringstream keyStrm;
-				keyStrm << netEvent.peer->address.host << "-" << netEvent.peer->address.port;
-				if (activeConnections[keyStrm.str()].size() > 1 && playerIdx <= oppIdx)
-				{
-					m_server[oppIdx] = netEvent.peer;
-					INFO_LOG(SLIPPI_ONLINE, "Multiple connections detected for single peer. Initiating process to "
-					                        "disconnect superfluous connections.");
-					for (auto peer : activeConnections[keyStrm.str()])
-					{
-						if (peer.first == netEvent.peer)
-							continue;
-
-						enet_peer_disconnect(peer.first, 0);
-					}
-				}
-
 				rpac.append(netEvent.packet->data, netEvent.packet->dataLength);
 				OnData(rpac, netEvent.peer);
 				enet_packet_destroy(netEvent.packet);
@@ -791,13 +801,34 @@ void SlippiNetplayClient::ThreadFunc()
 				keyStrm << netEvent.peer->address.host << "-" << netEvent.peer->address.port;
 				activeConnections[keyStrm.str()].erase(netEvent.peer);
 
-				INFO_LOG(SLIPPI_ONLINE, "[Netplay] Disconnect late %x:%d. %x. Remaining connections: %d",
+				for (auto pair : activeConnections)
+				{
+					INFO_LOG(SLIPPI_ONLINE, "%s: %d", pair.first.c_str(), pair.second.size());
+				}
+
+				// Check to make sure this address+port are one of the ones we are actually connected to.
+				// When connecting to someone that randomizes ports, you can get one valid connection from
+				// one port and a failed connection on another port. We don't want to cause a real disconnect
+				// if we receive a disconnect message from the port we never connected to
+				bool isConnectedClient = false;
+				for (int i = 0; i < m_server.size(); i++)
+				{
+					if (netEvent.peer->address.host == m_server[i]->address.host &&
+					    netEvent.peer->address.port == m_server[i]->address.port)
+					{
+						isConnectedClient = true;
+						break;
+					}
+				}
+
+				INFO_LOG(SLIPPI_ONLINE,
+				         "[Netplay] Disconnect late %x:%d. %x. Remaining connections: %d. Is connected client: %s",
 				         netEvent.peer->address.host, netEvent.peer->address.port, netEvent.peer,
-				         activeConnections[keyStrm.str()].size());
+				         activeConnections[keyStrm.str()].size(), isConnectedClient ? "true" : "false");
 
 				// If the disconnect event doesn't come from the client we are actually listening to,
 				// it can be safely ignored
-				if (activeConnections[keyStrm.str()].empty())
+				if (isConnectedClient && activeConnections[keyStrm.str()].empty())
 				{
 					INFO_LOG(SLIPPI_ONLINE, "[Netplay] Final disconnect received for a client.");
 					m_do_loop.Clear(); // Stop the loop, will trigger a disconnect
@@ -810,6 +841,10 @@ void SlippiNetplayClient::ThreadFunc()
 				keyStrm << netEvent.peer->address.host << "-" << netEvent.peer->address.port;
 				activeConnections[keyStrm.str()][netEvent.peer] = true;
 				INFO_LOG(SLIPPI_ONLINE, "New connection (late): %s, %X", keyStrm.str().c_str(), netEvent.peer);
+				for (auto pair : activeConnections)
+				{
+					INFO_LOG(SLIPPI_ONLINE, "%s: %d", pair.first.c_str(), pair.second.size());
+				}
 				break;
 			}
 			default:
