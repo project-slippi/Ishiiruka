@@ -1628,7 +1628,7 @@ bool CEXISlippi::shouldSkipOnlineFrame(s32 frame)
 	if (isTimeSyncFrame == 0 && !isCurrentlySkipping)
 	{
 		auto offsetUs = slippi_netplay->CalcTimeOffsetUs();
-		INFO_LOG(SLIPPI_ONLINE, "[Frame %d] Offset is: %d us", frame, offsetUs);
+		//INFO_LOG(SLIPPI_ONLINE, "[Frame %d] Offset is: %d us", frame, offsetUs);
 
 		// TODO: figure out a better solution here for doubles?
 		if (offsetUs > 10000)
@@ -1703,7 +1703,7 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 
 	std::unique_ptr<SlippiRemotePadOutput> results[SLIPPI_REMOTE_PLAYER_MAX];
 	int offset[SLIPPI_REMOTE_PLAYER_MAX];
-	INFO_LOG(SLIPPI_ONLINE, "Preparing pad data for frame %d", frame);
+	//INFO_LOG(SLIPPI_ONLINE, "Preparing pad data for frame %d", frame);
 
 	// Get pad data for each remote player and write each of their latest frame nums to the buf
 	for (int i = 0; i < remotePlayerCount; i++)
@@ -1788,8 +1788,8 @@ void CEXISlippi::handleCaptureSavestate(u8 *payload)
 	activeSavestates[frame] = std::move(ss);
 
 	u32 timeDiff = (u32)(Common::Timer::GetTimeUs() - startTime);
-	INFO_LOG(SLIPPI_ONLINE, "SLIPPI ONLINE: Captured savestate for frame %d in: %f ms", frame,
-	         ((double)timeDiff) / 1000);
+	//INFO_LOG(SLIPPI_ONLINE, "SLIPPI ONLINE: Captured savestate for frame %d in: %f ms", frame,
+	//         ((double)timeDiff) / 1000);
 }
 
 void CEXISlippi::handleLoadSavestate(u8 *payload)
@@ -1830,7 +1830,7 @@ void CEXISlippi::handleLoadSavestate(u8 *payload)
 	activeSavestates.clear();
 
 	u32 timeDiff = (u32)(Common::Timer::GetTimeUs() - startTime);
-	INFO_LOG(SLIPPI_ONLINE, "SLIPPI ONLINE: Loaded savestate for frame %d in: %f ms", frame, ((double)timeDiff) / 1000);
+	//INFO_LOG(SLIPPI_ONLINE, "SLIPPI ONLINE: Loaded savestate for frame %d in: %f ms", frame, ((double)timeDiff) / 1000);
 }
 
 void CEXISlippi::startFindMatch(u8 *payload)

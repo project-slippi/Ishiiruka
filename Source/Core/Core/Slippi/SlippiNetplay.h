@@ -192,6 +192,8 @@ class SlippiNetplayClient
 	bool hasGameStarted = false;
 	u8 playerIdx = 0;
 
+	std::unordered_map<std::string, std::map<ENetPeer*, bool>> activeConnections;
+
 	std::deque<std::unique_ptr<SlippiPad>> localPadQueue; // most recent inputs at start of deque
 	std::deque<std::unique_ptr<SlippiPad>>
 	    remotePadQueue[SLIPPI_REMOTE_PLAYER_MAX]; // most recent inputs at start of deque
