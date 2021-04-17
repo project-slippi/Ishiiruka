@@ -58,10 +58,11 @@ bool isKristalInput(const GCPadStatus& newPad, const GCPadStatus& oldPad)
 	    ((oldPad.stickY < coord(0.2875)) && (newPad.stickY >= coord(0.2875))) ||   // Up air
 	    ((oldPad.stickY < coord(0.6625)) && (newPad.stickY >= coord(0.6625))) ||   // Up smash
 	    ((oldPad.stickY > coord(-0.2875)) && (newPad.stickY <= coord(-0.2875))) || // Down air
-	    ((oldPad.stickY > coord(-0.6625)) && (newPad.stickY <= coord(-0.6625))) // // Down smash
+	    ((oldPad.stickY > coord(-0.6625)) && (newPad.stickY <= coord(-0.6625)))  || // // Down smash
 
-	    // Triggers
-		//TODO
+	    // Triggers (no shield -> minimum shield check for both triggers)
+	    ((oldPad.triggerLeft < 43) && (newPad.triggerLeft >= 43)) ||
+	    ((oldPad.triggerRight < 43) && (newPad.triggerRight >= 43))
 
 		// Dpad (none)
 	    ;
