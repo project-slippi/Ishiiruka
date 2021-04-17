@@ -162,7 +162,7 @@ time_point InputStabilizer::computeNextPollTiming(bool init)
 
 void InputStabilizer::startFrameCount(int32_t initialValue)
 {
-	frameCount = 0;
+	frameCount = initialValue;
 	isCountingFrames = true;
 }
 

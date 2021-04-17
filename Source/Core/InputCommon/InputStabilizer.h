@@ -40,7 +40,7 @@ class InputStabilizer
 
 	// Kristal
 	time_point computeNextPollTimingInternal(bool init = false);
-	void startFrameCount(int32_t initialValue);
+	void startFrameCount(int32_t initialValue=0);
 	void endFrameCount();
 	void decrementFrameCount();
 	float evaluateTiming(const time_point &);
