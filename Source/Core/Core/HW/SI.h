@@ -7,6 +7,7 @@
 #include <memory>
 #include "Common/CommonTypes.h"
 #include <chrono>
+#include "InputCommon/InputStabilizer.h"
 
 class PointerWrap;
 class ISIDevice;
@@ -44,5 +45,7 @@ SIDevices GetDeviceType(int channel);
 u32 GetPollXLines();
 
 extern std::chrono::time_point<std::chrono::high_resolution_clock> last_si_read;
+
+static std::vector<InputStabilizer> stabilizers(MAX_SI_CHANNELS, InputStabilizer());
 
 }  // end of namespace SerialInterface

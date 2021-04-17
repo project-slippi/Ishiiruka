@@ -70,6 +70,10 @@ InputStabilizer::InputStabilizer(const InputStabilizer& target)
 
 void InputStabilizer::feedPollTiming(std::chrono::high_resolution_clock::time_point tp)
 {
+	std::lock_guard<std::mutex> lock(mutex);
+
+	frameCount++;
+
 	const SConfig& sconfig = SConfig::GetInstance();
 	double period = (int64_t)1'000'000'000 / (sconfig.bUse5994HzStabilization ? 59.94 : 60.);
 
@@ -124,7 +128,7 @@ void InputStabilizer::feedPollTiming(std::chrono::high_resolution_clock::time_po
 	}
 }
 
-time_point InputStabilizer::computeNextPollTiming(bool init)
+time_point InputStabilizer::computeNextPollTimingInternal(bool init)
 {
 	const SConfig& sconfig = SConfig::GetInstance();
 	double period = (int64_t)1'000'000'000 / (sconfig.bUse5994HzStabilization ? 59.94 : 60.);
@@ -148,4 +152,39 @@ time_point InputStabilizer::computeNextPollTiming(bool init)
 	int64_t actualization = (int64_t)((size) * (size - 1) / 2 * period);
 	int64_t actualizedOffsetsMean = (offsetsSum + actualization) / (int64_t)size;
 	return ref + std::chrono::nanoseconds(actualizedOffsetsMean - delay);
+}
+
+time_point InputStabilizer::computeNextPollTiming(bool init)
+{
+	std::lock_guard<std::mutex> lock(mutex);
+	return computeNextPollTimingInternal(init);
+}
+
+void InputStabilizer::startFrameCount(int32_t initialValue)
+{
+	frameCount = 0;
+	isCountingFrames = true;
+}
+
+void InputStabilizer::endFrameCount() {
+	frameCount = 0;
+	isCountingFrames = false;
+}
+
+void InputStabilizer::decrementFrameCount() {
+	frameCount--;
+}
+
+float InputStabilizer::evaluateTiming(const time_point& tp) {
+	std::lock_guard<std::mutex> lock(mutex);
+
+	const SConfig &sconfig = SConfig::GetInstance();
+	double period = (int64_t)1'000'000'000 / (sconfig.bUse5994HzStabilization ? 59.94 : 60.);
+
+	// It is assumed the last provided timing matches the frame number we currently have
+
+	time_point previousPoll = computeNextPollTimingInternal();
+	long long diff = (tp - previousPoll).count();
+
+	return diff / period;
 }

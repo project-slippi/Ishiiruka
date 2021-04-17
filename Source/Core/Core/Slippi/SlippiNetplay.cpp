@@ -11,6 +11,8 @@
 #include "Core/Core.h"
 #include "VideoCommon/OnScreenDisplay.h"
 #include "VideoCommon/VideoConfig.h"
+#include "Core/HW/SI.h"
+
 #include <algorithm>
 #include <fstream>
 #include <memory>
