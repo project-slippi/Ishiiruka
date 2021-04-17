@@ -182,7 +182,8 @@ float InputStabilizer::evaluateTiming(const time_point& tp) {
 	double period = (int64_t)1'000'000'000 / (sconfig.bUse5994HzStabilization ? 59.94 : 60.);
 
 	// It is assumed the last provided timing matches the frame number we currently have
-
+	// Note that we use the poll timing taking into account the delay - this is intended,
+	// timings are determined relatively to the poll timings used, not the unprocessed ones
 	time_point previousPoll = computeNextPollTimingInternal();
 	long long diff = (tp - previousPoll).count();
 
