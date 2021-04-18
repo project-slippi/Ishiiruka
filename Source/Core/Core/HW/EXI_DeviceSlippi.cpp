@@ -1543,6 +1543,7 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 	m_read_queue.clear();
 
 	int32_t frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
+	u8 delay = payload[4];
 
 	if (frame == 1)
 	{
@@ -1562,7 +1563,7 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 		// Reset character selections as they are no longer needed
 		localSelections.Reset();
 		if (slippi_netplay)
-			slippi_netplay->StartSlippiGame();
+			slippi_netplay->StartSlippiGame(delay);
 	}
 
 	if (isDisconnected())
@@ -1575,6 +1576,8 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 	{
 		// Send inputs that have not yet been acked
 		slippi_netplay->SendSlippiPad(nullptr);
+		// Tell the input stabilizers not to take the last poll into account
+		slippi_netplay->DecrementInputStabilizerFrameCounts();
 		m_read_queue.push_back(2);
 		return;
 	}

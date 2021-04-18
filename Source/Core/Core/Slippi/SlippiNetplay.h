@@ -131,7 +131,7 @@ class SlippiNetplayClient
 	u8 LocalPlayerPort();
 	SlippiConnectStatus GetSlippiConnectStatus();
 	std::vector<int> GetFailedConnections();
-	void StartSlippiGame();
+	void StartSlippiGame(u8 delay);
 	void SendConnectionSelected();
 	void SendSlippiPad(std::unique_ptr<SlippiPad> pad);
 	void SetMatchSelections(SlippiPlayerSelections &s);
@@ -154,6 +154,12 @@ class SlippiNetplayClient
 	std::unique_ptr<SlippiPlayerSelections> remoteChatMessageSelection =
 	    nullptr;                    // most recent chat message player selection (message + player index)
 	u8 remoteSentChatMessageId = 0; // most recent chat message id that current player sent
+
+	void DecrementInputStabilizerFrameCounts();
+
+	void KristalInputCallback(const GCPadStatus &pad, std::chrono::high_resolution_clock::time_point tp, int chan);
+	// TODO Check whether we can't just use the first InputStabilizer since we only want timing information
+	// Will have to handle that for HID controller support
 
   protected:
 	struct
@@ -213,6 +219,8 @@ class SlippiNetplayClient
 	SlippiMatchInfo matchInfo;
 
 	bool m_is_recording = false;
+
+	bool shouldInitializeInputStabilizers = false;
 
 	void writeToPacket(sf::Packet &packet, SlippiPlayerSelections &s);
 	std::unique_ptr<SlippiPlayerSelections> readSelectionsFromPacket(sf::Packet &packet);

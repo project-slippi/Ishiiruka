@@ -72,7 +72,13 @@ void InputStabilizer::feedPollTiming(std::chrono::high_resolution_clock::time_po
 {
 	std::lock_guard<std::mutex> lock(mutex);
 
-	frameCount++;
+	{ // Kristal stuff
+		frameCount++;
+		if (isNewFrameCounter != 0)
+			isNewFrameCounter--;
+		if (isNewFrameCounter == 0)
+			version = 1;
+	}
 
 	const SConfig& sconfig = SConfig::GetInstance();
 	double period = (int64_t)1'000'000'000 / (sconfig.bUse5994HzStabilization ? 59.94 : 60.);
@@ -173,9 +179,10 @@ void InputStabilizer::endFrameCount() {
 
 void InputStabilizer::decrementFrameCount() {
 	frameCount--;
+	isNewFrameCounter = 2;
 }
 
-float InputStabilizer::evaluateTiming(const time_point& tp) {
+std::pair<float, u8> InputStabilizer::evaluateTiming(const time_point& tp) {
 	std::lock_guard<std::mutex> lock(mutex);
 
 	const SConfig &sconfig = SConfig::GetInstance();
@@ -187,5 +194,10 @@ float InputStabilizer::evaluateTiming(const time_point& tp) {
 	time_point previousPoll = computeNextPollTimingInternal();
 	long long diff = (tp - previousPoll).count();
 
-	return diff / period;
+	int inputVersion = 1;
+	double timing = frameCount + (diff / period);
+	if (timing >= frameOfHigherVersion && timing < frameOfHigherVersion + 1)
+		inputVersion = version;
+
+	return std::pair<float, u8>((float)timing, (u8)inputVersion);
 }

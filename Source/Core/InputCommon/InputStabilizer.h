@@ -31,6 +31,12 @@ class InputStabilizer
 	// An instance can be used from both the polling thread that computing a Kristal input's
 	// timestamp, and the main thread doing normal pacing stuff - this warrants synchronizing
 	// accesses to pollTimings
+	int version = 1;
+	int frameOfHigherVersion = -10;
+	int isNewFrameCounter = 0;
+	// to account for stall inputs, we send a timing, and a "version" - receiving an input for
+	// timing n=42.5 version 2 makes it more recent than anything in [42,43[ version 1
+	// version is incremented when frame count is decremented
 
   public:
 	InputStabilizer(size_t sizeLimit=100, int64_t delay=1'400'000, int64_t leniency=3'333'333);
@@ -43,5 +49,5 @@ class InputStabilizer
 	void startFrameCount(int32_t initialValue=0);
 	void endFrameCount();
 	void decrementFrameCount();
-	float evaluateTiming(const time_point &);
+	std::pair<float, u8> evaluateTiming(const time_point &);
 };

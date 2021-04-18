@@ -12,6 +12,7 @@
 #include "VideoCommon/OnScreenDisplay.h"
 #include "VideoCommon/VideoConfig.h"
 #include "Core/HW/SI.h"
+#include "InputCommon/InputStabilizer.h"
 
 #include <algorithm>
 #include <fstream>
@@ -61,6 +62,13 @@ SlippiNetplayClient::~SlippiNetplayClient()
 		enet_host_destroy(m_client);
 		m_client = nullptr;
 	}
+
+	for (auto stabilizer : SerialInterface::stabilizers)
+	{
+		stabilizer.endFrameCount();
+	}
+
+	GCAdapter::ClearKristalInputCallback();
 
 	SLIPPI_NETPLAY = nullptr;
 
@@ -769,7 +777,7 @@ std::vector<int> SlippiNetplayClient::GetFailedConnections()
 	return failedConnections;
 }
 
-void SlippiNetplayClient::StartSlippiGame()
+void SlippiNetplayClient::StartSlippiGame(u8 delay)
 {
 	// Reset variables to start a new game
 	hasGameStarted = false;
@@ -790,6 +798,19 @@ void SlippiNetplayClient::StartSlippiGame()
 
 	// Reset match info for next game
 	matchInfo.Reset();
+
+	// Initialize the frame count of InputStabilizers
+	// (all of them because we're unsure which one to use atm)
+	for (auto stabilizer : SerialInterface::stabilizers)
+	{
+	    stabilizer.startFrameCount(delay); //TODO Calibrate
+	}
+
+	GCAdapter::SetKristalInputCallback([this](const GCPadStatus &pad, std::chrono::high_resolution_clock::time_point tp, int chan) -> void
+		{
+		    std::lock_guard<std::mutex> lock(GCAdapter::kristal_callback_mutex);
+			this->KristalInputCallback(pad, tp, chan);
+		});
 }
 
 void SlippiNetplayClient::SendConnectionSelected()
@@ -1095,6 +1116,20 @@ s32 SlippiNetplayClient::CalcTimeOffsetUs()
 
 	// INFO_LOG(SLIPPI_ONLINE, "Time offsets, [0]: %d, [1]: %d, [2]: %d", offsets[0], offsets[1], offsets[2]);
 	return maxOffset;
+}
+
+void SlippiNetplayClient::DecrementInputStabilizerFrameCounts() {
+	for (auto stabilizer : SerialInterface::stabilizers)
+	{
+		stabilizer.decrementFrameCount();
+	}
+}
+
+void SlippiNetplayClient::KristalInputCallback(const GCPadStatus &pad, std::chrono::high_resolution_clock::time_point tp, int chan)
+{
+	std::pair<float,u8> timingAndVersion = SerialInterface::stabilizers[chan].evaluateTiming(tp);
+
+	//TODO Send Kristal message
 }
 
 /*std::mutex SlippiNetplayClientRepository::repo_mutex;

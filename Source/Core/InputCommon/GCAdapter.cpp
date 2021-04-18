@@ -207,6 +207,26 @@ static u8 FindUsedController(u8 *controller_payload)
 		((controller_payload[1 + 2 + 3*9] & 1) ? 4 : 0))));
 }
 
+
+
+std::function<void (const GCPadStatus &, std::chrono::high_resolution_clock::time_point, int)> kristalInputCallback =
+    [](const GCPadStatus &, std::chrono::high_resolution_clock::time_point, int) -> void {};
+
+void SetKristalInputCallback(
+    std::function<void(const GCPadStatus &, std::chrono::high_resolution_clock::time_point, int)> callback)
+{
+	std::lock_guard<std::mutex> lock(kristal_callback_mutex);
+	kristalInputCallback = callback;
+}
+
+void ClearKristalInputCallback()
+{
+	std::lock_guard<std::mutex> lock(kristal_callback_mutex);
+	// Called from a destructor
+	// Termination if throws there. //TODO ?
+	kristalInputCallback = [](const GCPadStatus &, std::chrono::high_resolution_clock::time_point, int) -> void {};
+}
+
 volatile u8 usedControllerChan = 0; // P1 default
 GCPadStatus previousPad{};
 
@@ -222,6 +242,12 @@ static void HandleKristalFunctions(u8 *controller_payload)
 	if (isKristalInput(pad, previousPad))
 	{
 		WARN_LOG(SLIPPI_ONLINE, "Perceived Kristal Input");
+		// The try catch block makes it so there are no errors when 
+		try
+		{
+			kristalInputCallback(pad, std::chrono::high_resolution_clock::now(), usedControllerChan);
+		}
+		catch (...) {}
 	}
 	previousPad = pad;
 }

@@ -39,4 +39,9 @@ bool IsDriverDetected();
 bool DeviceConnected(int chan);
 bool UseAdapter();
 
+static std::mutex kristal_callback_mutex;
+void SetKristalInputCallback(
+    std::function<void(const GCPadStatus &, std::chrono::high_resolution_clock::time_point, int)> callback);
+void ClearKristalInputCallback();
+
 }  // end of namespace GCAdapter
