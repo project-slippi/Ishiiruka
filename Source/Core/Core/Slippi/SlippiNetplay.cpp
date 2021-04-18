@@ -364,6 +364,12 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 	}
 	break;
 
+	case NP_MSG_KRISTAL_PAD:
+	{
+		
+	}
+	break;
+
 	case NP_MSG_SLIPPI_MATCH_SELECTIONS:
 	{
 		auto s = readSelectionsFromPacket(packet);
@@ -1127,9 +1133,24 @@ void SlippiNetplayClient::DecrementInputStabilizerFrameCounts() {
 
 void SlippiNetplayClient::KristalInputCallback(const GCPadStatus &pad, std::chrono::high_resolution_clock::time_point tp, int chan)
 {
+	auto status = slippiConnectStatus;
+	bool connectionFailed = status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_FAILED;
+	bool connectionDisconnected = status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_DISCONNECTED;
+	if (connectionFailed || connectionDisconnected)
+	{
+		return;
+	}
+
 	std::pair<float,u8> timingAndVersion = SerialInterface::stabilizers[chan].evaluateTiming(tp);
 
-	//TODO Send Kristal message
+	auto spac = std::make_unique<sf::Packet>();
+	*spac << static_cast<MessageId>(NP_MSG_KRISTAL_PAD);
+	*spac << timingAndVersion.first; // subframe, 4 bytes
+	*spac << timingAndVersion.second; // version, 1 byte
+	*spac << this->playerIdx; // player index, 1 byte
+	spac->append(&pad, SLIPPI_PAD_DATA_SIZE); // first 8 bytes of pad
+
+	SendAsync(std::move(spac));
 }
 
 /*std::mutex SlippiNetplayClientRepository::repo_mutex;

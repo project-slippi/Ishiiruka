@@ -222,6 +222,26 @@ class SlippiNetplayClient
 
 	bool shouldInitializeInputStabilizers = false;
 
+	// TODO Extract to own class
+	struct KristalPad
+	{
+		float subframe;
+		u8 version;
+		u8 pad[SLIPPI_PAD_DATA_SIZE];
+
+		// Orders sets so latest is in front - sets are sorted ascending, so higher time point should be <
+		bool operator<(const KristalPad &rhs) const
+		{
+			if ((int)subframe != (int)rhs.subframe) // If not from the same frame
+				return subframe > rhs.subframe; // Check higher frame
+			if (version != rhs.version) // If from the same frame and not same version
+				return version > rhs.version; // Check higher version
+			return subframe > rhs.subframe; // If same frame, same version, check higher subframe
+		}
+	};
+
+	std::set<KristalPad> subframePadSets[SLIPPI_REMOTE_PLAYER_MAX];
+	
 	void writeToPacket(sf::Packet &packet, SlippiPlayerSelections &s);
 	std::unique_ptr<SlippiPlayerSelections> readSelectionsFromPacket(sf::Packet &packet);
 
