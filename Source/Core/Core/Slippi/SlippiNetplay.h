@@ -179,6 +179,8 @@ class SlippiNetplayClient
 		}
 	};
 
+	std::pair<bool, KristalPad> GetKristalInput(u32 frame, u8 playerIdx);
+
   protected:
 	struct
 	{
@@ -242,8 +244,6 @@ class SlippiNetplayClient
 
 	std::set<KristalPad> subframePadSets[SLIPPI_REMOTE_PLAYER_MAX];
 	std::mutex subframePadSetLocks[SLIPPI_REMOTE_PLAYER_MAX];
-
-	std::pair<bool,KristalPad> GetKristalInput(u32 frame, u8 playerIdx);
 
 	void writeToPacket(sf::Packet &packet, SlippiPlayerSelections &s);
 	std::unique_ptr<SlippiPlayerSelections> readSelectionsFromPacket(sf::Packet &packet);

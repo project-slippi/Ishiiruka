@@ -1780,9 +1780,28 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 		m_read_queue.insert(m_read_queue.end(), tx.begin(), tx.end());
 
 		// Add Kristal input
+		std::pair<bool, SlippiNetplayClient::KristalPad> kristalPad = slippi_netplay->GetKristalInput(frame, i);
 
-		std::pair<bool, SlippiNetplayClient::KristalPad> r;
-		//TODO
+		if (kristalPad.first)
+		{
+			if (kristalPad.second.subframe > (float)results[i]->latestFrame)
+			{
+				// More recent, use that
+				for (int j = 0; j < SLIPPI_PAD_DATA_SIZE; j++)
+				{
+					m_read_queue.insert(m_read_queue.end(), kristalPad.second.pad,
+					                    kristalPad.second.pad + SLIPPI_PAD_DATA_SIZE);
+					m_read_queue.insert(m_read_queue.end(), SLIPPI_PAD_FULL_SIZE - SLIPPI_PAD_DATA_SIZE, 0);
+				}
+			}
+			else
+				kristalPad.first = false;
+		}
+		if (!kristalPad.first)
+		{
+			m_read_queue.insert(m_read_queue.end(), results[i]->data.begin(),
+			                    results[i]->data.begin() + SLIPPI_PAD_FULL_SIZE);
+		}
 	}
 
 	slippi_netplay->DropOldRemoteInputs(frame);
