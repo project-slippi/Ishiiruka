@@ -366,7 +366,57 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 
 	case NP_MSG_KRISTAL_PAD:
 	{
-		
+		/*
+		*spac << static_cast<MessageId>(NP_MSG_KRISTAL_PAD);
+		*spac << timingAndVersion.first; // subframe, 4 bytes
+		*spac << timingAndVersion.second; // version, 1 byte
+		*spac << this->playerIdx; // player index, 1 byte
+		spac->append(&pad, SLIPPI_PAD_DATA_SIZE); // first 8 bytes of pad
+		*/
+
+		float subframe;
+		if (!(packet >> subframe))
+		{
+			ERROR_LOG(SLIPPI_ONLINE, "Kristal packet too small to read subframe");
+			break;
+		}
+		u8 version;
+		if (!(packet >> version))
+		{
+			ERROR_LOG(SLIPPI_ONLINE, "Kristal packet too small to read version");
+			break;
+		}
+		u8 packetPlayerPort;
+		if (!(packet >> packetPlayerPort))
+		{
+			ERROR_LOG(SLIPPI_ONLINE, "Kristal packet too small to read player index");
+			break;
+		}
+		u8 pIdx = PlayerIdxFromPort(packetPlayerPort);
+		if (pIdx >= m_remotePlayerCount)
+		{
+			ERROR_LOG(SLIPPI_ONLINE, "Got Kristal packet with invalid player idx %d", pIdx);
+			break;
+		}
+
+		auto packetData = (u8 *)packet.getData();
+		// Check that the packet actually contains the data it claims to
+		if ((7 + SLIPPI_PAD_DATA_SIZE) > (int)packet.getDataSize())
+		{
+			ERROR_LOG(SLIPPI_ONLINE, "Kristal packet too small to read pad. Size: %d, MinSize: %d",
+				        (int)packet.getDataSize(), 7 + SLIPPI_PAD_DATA_SIZE);
+			break;
+		}
+
+		KristalPad kpad;
+		kpad.subframe = subframe;
+		kpad.version = version;
+		memcpy(kpad.pad, packetData + 7, SLIPPI_PAD_DATA_SIZE);
+		{
+			std::lock_guard<std::mutex> lk(subframePadSetLocks[pIdx]);
+			if (subframePadSets[pIdx].size() < 50) // Hard limit on number of pad stored max
+				subframePadSets[pIdx].insert({kpad});
+		}
 	}
 	break;
 
@@ -1152,6 +1202,25 @@ void SlippiNetplayClient::KristalInputCallback(const GCPadStatus &pad, std::chro
 
 	SendAsync(std::move(spac));
 }
+
+std::pair<bool, SlippiNetplayClient::KristalPad> SlippiNetplayClient::GetKristalInput(u32 frame, u8 playerIdx)
+{
+	auto &subframePadSet = subframePadSets[playerIdx];
+	if (subframePadSet.size()==0)
+		return std::pair<bool, KristalPad>(false, KristalPad());
+	auto it = std::lower_bound(subframePadSet.begin(), subframePadSet.end(), frame,
+	                 [](KristalPad pad, u32 frame) { return (float)frame < pad.subframe; }); // Get first pad in the future
+	if (it == subframePadSet.begin()) // No pad in the past
+		return std::pair<bool, KristalPad>(false, KristalPad()); // The latest SlippiPad should be used as prediction
+	it--; // Last pad before future
+	// Otherwise, clean elements strictly older than this pad before returning
+	KristalPad pad = *it;
+	subframePadSet.erase(subframePadSet.begin(), it);
+	// It's left to the caller to check that he's better off with that subframe than with the last known Slippi pad
+	return std::pair<bool, KristalPad>(true, pad);
+}
+
+
 
 /*std::mutex SlippiNetplayClientRepository::repo_mutex;
 std::list<SlippiNetplayClient *> SlippiNetplayClientRepository::slippiNetplayClients;
