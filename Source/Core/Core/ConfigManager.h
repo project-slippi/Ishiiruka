@@ -145,6 +145,8 @@ struct SConfig : NonCopyable
 	std::string m_strSlippiReplayDir;
 	bool m_slippiForceNetplayPort = false;
 	int m_slippiNetplayPort;
+	bool m_slippiForceLanIp = false;
+	std::string m_slippiLanIp = "";
 	bool m_meleeUserIniBootstrapped = false;
 	bool m_blockingPipes = false;
 	bool m_coutEnabled = false;

@@ -339,9 +339,16 @@ void SlippiMatchmaking::startMatchmaking()
 			}
 
 			sprintf(lanAddr, "%s:%d", IP, m_hostPort);
-			WARN_LOG(SLIPPI_ONLINE, "[Matchmaking] Sending LAN address: %s", lanAddr);
 		}
 	}
+
+	if (SConfig::GetInstance().m_slippiForceLanIp)
+	{
+		WARN_LOG(SLIPPI_ONLINE, "[Matchmaking] Overwriting LAN IP sent with configured address");
+		sprintf(lanAddr, "%s:%d", SConfig::GetInstance().m_slippiLanIp.c_str(), m_hostPort);
+	}
+
+	WARN_LOG(SLIPPI_ONLINE, "[Matchmaking] Sending LAN address: %s", lanAddr);
 
 	std::vector<u8> connectCodeBuf;
 	connectCodeBuf.insert(connectCodeBuf.end(), m_searchSettings.connectCode.begin(),
@@ -485,6 +492,8 @@ void SlippiMatchmaking::handleMatchmaking()
 			SplitString(extIp, ':', exIpParts);
 
 			auto lanIp = el.value("ipAddressLan", "1.1.1.1:123");
+
+			WARN_LOG(SLIPPI_ONLINE, "LAN IP: %s", lanIp.c_str());
 
 			if (exIpParts[0] != localExternalIp || lanIp.empty())
 			{

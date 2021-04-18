@@ -35,6 +35,8 @@ private:
 	void OnDelayFramesChanged(wxCommandEvent &event);
 	void OnForceNetplayPortToggle(wxCommandEvent &event);
 	void OnNetplayPortChanged(wxCommandEvent &event);
+	void OnForceNetplayLanIpToggle(wxCommandEvent &event);
+	void OnNetplayLanIpChanged(wxCommandEvent &event);
 	void OnQuickChatToggle(wxCommandEvent& event);
 	void OnReduceTimingDispersionToggle(wxCommandEvent &event);
 
@@ -45,6 +47,8 @@ private:
 	wxSpinCtrl *m_slippi_delay_frames_ctrl;
 	wxCheckBox *m_slippi_force_netplay_port_checkbox;
 	wxSpinCtrl *m_slippi_force_netplay_port_ctrl;
+	wxCheckBox *m_slippi_force_netplay_lan_ip_checkbox;
+	wxTextCtrl *m_slippi_netplay_lan_ip_ctrl;
 	wxCheckBox* m_slippi_enable_quick_chat;
 	wxCheckBox *m_reduce_timing_dispersion_checkbox;
 
