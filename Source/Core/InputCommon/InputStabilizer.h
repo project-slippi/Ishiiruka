@@ -42,7 +42,7 @@ class InputStabilizer
 	InputStabilizer(size_t sizeLimit=100, int64_t delay=1'400'000, int64_t leniency=3'333'333);
 	InputStabilizer(const InputStabilizer &);
 	void feedPollTiming(time_point tp);
-	time_point computeNextPollTiming(bool init=false);
+	time_point computeNextPollTiming();
 
 	// Kristal
 	time_point computeNextPollTimingInternal(bool init = false);

@@ -128,7 +128,7 @@ void InputStabilizer::feedPollTiming(std::chrono::high_resolution_clock::time_po
 		if (pollTimings.size() == sizeLimit) // Initialize steady state algorithm
 		{
 			incrementsSinceOrigin = 0;
-			steadyStateOrigin = computeNextPollTiming(true) + std::chrono::nanoseconds(delay);
+			steadyStateOrigin = computeNextPollTimingInternal(true) + std::chrono::nanoseconds(delay);
 			// The origin is compared to real time points and therefore doesn't contain the delay
 		}
 	}
@@ -160,10 +160,10 @@ time_point InputStabilizer::computeNextPollTimingInternal(bool init)
 	return ref + std::chrono::nanoseconds(actualizedOffsetsMean - delay);
 }
 
-time_point InputStabilizer::computeNextPollTiming(bool init)
+time_point InputStabilizer::computeNextPollTiming()
 {
 	std::lock_guard<std::mutex> lock(mutex);
-	return computeNextPollTimingInternal(init);
+	return computeNextPollTimingInternal(false);
 }
 
 void InputStabilizer::startFrameCount(int32_t initialValue)
