@@ -28,6 +28,9 @@
 
 namespace SerialInterface
 {
+
+std::vector<InputStabilizer> stabilizers(MAX_SI_CHANNELS, InputStabilizer());
+
 static CoreTiming::EventType* changeDevice;
 static CoreTiming::EventType* et_transfer_pending;
 static CoreTiming::EventType* et_send_netplay_inputs;

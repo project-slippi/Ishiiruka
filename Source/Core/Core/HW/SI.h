@@ -46,6 +46,6 @@ u32 GetPollXLines();
 
 extern std::chrono::time_point<std::chrono::high_resolution_clock> last_si_read;
 
-static std::vector<InputStabilizer> stabilizers(MAX_SI_CHANNELS, InputStabilizer());
+extern std::vector<InputStabilizer> stabilizers;
 
 }  // end of namespace SerialInterface
