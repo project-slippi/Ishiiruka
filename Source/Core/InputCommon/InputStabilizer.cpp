@@ -199,5 +199,9 @@ std::pair<float, u8> InputStabilizer::evaluateTiming(const time_point& tp) {
 	if (timing >= frameOfHigherVersion && timing < frameOfHigherVersion + 1)
 		inputVersion = version;
 
+	std::ostringstream oss;
+	oss << "Evaluated tp " << tp.time_since_epoch().count() << " to " << (float)timing << " v " << version;
+	WARN_LOG(SLIPPI_ONLINE, oss.str().c_str());
+
 	return std::pair<float, u8>((float)timing, (u8)inputVersion);
 }

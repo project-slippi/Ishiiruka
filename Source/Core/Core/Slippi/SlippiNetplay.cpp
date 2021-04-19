@@ -408,6 +408,9 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 			break;
 		}
 
+		static bool aPressed = false;
+
+
 		KristalPad kpad;
 		kpad.subframe = subframe;
 		kpad.version = version;
@@ -417,6 +420,17 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 			if (subframePadSets[pIdx].size() < 50) // Hard limit on number of pad stored max
 				subframePadSets[pIdx].insert({kpad});
 		}
+
+		if (!aPressed && (kpad.pad[0] & 1))
+		{
+			std::ostringstream oss;
+			oss << "Received Kristal input with A on"
+			    << std::chrono::high_resolution_clock::now().time_since_epoch().count() << " timing " << kpad.subframe
+			    << "v" << kpad.version;
+			WARN_LOG(SLIPPI_ONLINE, oss.str().c_str());
+		}
+		aPressed = (kpad.pad[0] & 1);
+
 	}
 	break;
 
@@ -1183,6 +1197,8 @@ void SlippiNetplayClient::DecrementInputStabilizerFrameCounts() {
 
 void SlippiNetplayClient::KristalInputCallback(const GCPadStatus &pad, std::chrono::high_resolution_clock::time_point tp, int chan)
 {
+	static bool aPressed = false;
+
 	auto status = slippiConnectStatus;
 	bool connectionFailed = status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_FAILED;
 	bool connectionDisconnected = status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_DISCONNECTED;
@@ -1199,6 +1215,16 @@ void SlippiNetplayClient::KristalInputCallback(const GCPadStatus &pad, std::chro
 	*spac << timingAndVersion.second; // version, 1 byte
 	*spac << this->playerIdx; // player index, 1 byte
 	spac->append(&pad, SLIPPI_PAD_DATA_SIZE); // first 8 bytes of pad
+
+	// Log
+	if (!aPressed && (pad.button & PAD_BUTTON_A))
+	{
+		std::ostringstream oss;
+		oss << "Sending Kristal input with A on" << std::chrono::high_resolution_clock::now().time_since_epoch().count()
+		    << " timing " << timingAndVersion.first << "v" << timingAndVersion.second;
+		WARN_LOG(SLIPPI_ONLINE, oss.str().c_str());
+	}
+	aPressed = (pad.button & PAD_BUTTON_A);
 
 	SendAsync(std::move(spac));
 }
