@@ -423,7 +423,7 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 		std::ostringstream oss;
 		oss << "Received Kristal input on"
 		    << std::chrono::high_resolution_clock::now().time_since_epoch().count() << " timing " << kpad.subframe
-		    << "v" << kpad.version;
+		    << "v" << (int)kpad.version;
 		WARN_LOG(SLIPPI_ONLINE, oss.str().c_str());
 		if (!aPressed && (kpad.pad[1] & 4))
 		{
