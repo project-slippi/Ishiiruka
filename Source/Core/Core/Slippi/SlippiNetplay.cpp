@@ -425,11 +425,11 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 		    << std::chrono::high_resolution_clock::now().time_since_epoch().count() << " timing " << kpad.subframe
 		    << "v" << kpad.version;
 		WARN_LOG(SLIPPI_ONLINE, oss.str().c_str());
-		if (!aPressed && (kpad.pad[0] & 1))
+		if (!aPressed && (kpad.pad[1] & 4))
 		{
-			WARN_LOG(SLIPPI_ONLINE, "Kristal input had A");
+			WARN_LOG(SLIPPI_ONLINE, "Kristal input had X");
 		}
-		aPressed = (kpad.pad[0] & 1);
+		aPressed = (kpad.pad[1] & 4);
 
 	}
 	break;
@@ -1217,14 +1217,14 @@ void SlippiNetplayClient::KristalInputCallback(const GCPadStatus &pad, std::chro
 	spac->append(&pad, SLIPPI_PAD_DATA_SIZE); // first 8 bytes of pad
 
 	// Log
-	if (!aPressed && (pad.button & PAD_BUTTON_A))
+	if (!aPressed && (pad.button & PAD_BUTTON_X))
 	{
 		std::ostringstream oss;
-		oss << "Sending Kristal input with A on" << std::chrono::high_resolution_clock::now().time_since_epoch().count()
-		    << " timing " << timingAndVersion.first << "v" << timingAndVersion.second;
+		oss << "Sending Kristal input with X on" << std::chrono::high_resolution_clock::now().time_since_epoch().count()
+		    << " timing " << timingAndVersion.first << "v" << (int)timingAndVersion.second;
 		WARN_LOG(SLIPPI_ONLINE, oss.str().c_str());
 	}
-	aPressed = (pad.button & PAD_BUTTON_A);
+	aPressed = (pad.button & PAD_BUTTON_X);
 
 	SendAsync(std::move(spac));
 }
