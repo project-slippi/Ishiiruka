@@ -420,14 +420,14 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 			if (subframePadSets[pIdx].size() < 50) // Hard limit on number of pad stored max
 				subframePadSets[pIdx].insert({kpad});
 		}
-
+		std::ostringstream oss;
+		oss << "Received Kristal input on"
+		    << std::chrono::high_resolution_clock::now().time_since_epoch().count() << " timing " << kpad.subframe
+		    << "v" << kpad.version;
+		WARN_LOG(SLIPPI_ONLINE, oss.str().c_str());
 		if (!aPressed && (kpad.pad[0] & 1))
 		{
-			std::ostringstream oss;
-			oss << "Received Kristal input with A on"
-			    << std::chrono::high_resolution_clock::now().time_since_epoch().count() << " timing " << kpad.subframe
-			    << "v" << kpad.version;
-			WARN_LOG(SLIPPI_ONLINE, oss.str().c_str());
+			WARN_LOG(SLIPPI_ONLINE, "Kristal input had A");
 		}
 		aPressed = (kpad.pad[0] & 1);
 
