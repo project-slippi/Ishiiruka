@@ -1822,7 +1822,10 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 			{
 				m_read_queue.insert(m_read_queue.end(), results[i]->data.begin(),
 				                    results[i]->data.begin() + SLIPPI_PAD_FULL_SIZE);
-				WARN_LOG(SLIPPI_ONLINE, "Kristal input wasn't used");
+				if (slippi_netplay->newXReady)
+				{
+					WARN_LOG(SLIPPI_ONLINE, "Kristal input wasn't used");
+				}
 			}
 			slippi_netplay->newXReady = false;
 		}

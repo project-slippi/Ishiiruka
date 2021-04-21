@@ -874,7 +874,7 @@ void SlippiNetplayClient::StartSlippiGame(u8 delay)
 	// (all of them because we're unsure which one to use atm)
 	for (auto &stabilizer : SerialInterface::stabilizers)
 	{
-	    stabilizer.startFrameCount(delay); //TODO Calibrate
+	    stabilizer.startFrameCount(2+delay); //TODO Calibrate
 	}
 
 	GCAdapter::SetKristalInputCallback([this](const GCPadStatus &pad, std::chrono::high_resolution_clock::time_point tp, int chan) -> void
@@ -1236,7 +1236,7 @@ std::pair<bool, SlippiNetplayClient::KristalPad> SlippiNetplayClient::GetKristal
 	if (subframePadSet.size()==0)
 		return std::pair<bool, KristalPad>(false, KristalPad());
 	auto it = std::lower_bound(subframePadSet.begin(), subframePadSet.end(), frame,
-	                 [](KristalPad pad, u32 frame) { return (float)frame < pad.subframe; }); // Get first pad in the future
+	                 [](KristalPad pad, u32 frame) { return pad.subframe < (float)frame; }); // Get first pad in the future
 	if (it == subframePadSet.begin()) // No pad in the past
 		return std::pair<bool, KristalPad>(false, KristalPad()); // The latest SlippiPad should be used as prediction
 	it--; // Last pad before future
