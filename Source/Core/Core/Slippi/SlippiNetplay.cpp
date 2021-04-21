@@ -63,7 +63,7 @@ SlippiNetplayClient::~SlippiNetplayClient()
 		m_client = nullptr;
 	}
 
-	for (auto stabilizer : SerialInterface::stabilizers)
+	for (auto &stabilizer : SerialInterface::stabilizers)
 	{
 		stabilizer.endFrameCount();
 	}
@@ -872,7 +872,7 @@ void SlippiNetplayClient::StartSlippiGame(u8 delay)
 
 	// Initialize the frame count of InputStabilizers
 	// (all of them because we're unsure which one to use atm)
-	for (auto stabilizer : SerialInterface::stabilizers)
+	for (auto &stabilizer : SerialInterface::stabilizers)
 	{
 	    stabilizer.startFrameCount(delay); //TODO Calibrate
 	}
@@ -1190,7 +1190,7 @@ s32 SlippiNetplayClient::CalcTimeOffsetUs()
 }
 
 void SlippiNetplayClient::DecrementInputStabilizerFrameCounts() {
-	for (auto stabilizer : SerialInterface::stabilizers)
+	for (auto &stabilizer : SerialInterface::stabilizers)
 	{
 		stabilizer.decrementFrameCount();
 	}
