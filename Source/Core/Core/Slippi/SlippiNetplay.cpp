@@ -428,6 +428,7 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 		if (!aPressed && (kpad.pad[1] & 4))
 		{
 			WARN_LOG(SLIPPI_ONLINE, "Kristal input had X");
+			newXReady = true;
 		}
 		aPressed = (kpad.pad[1] & 4);
 

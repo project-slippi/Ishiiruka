@@ -1779,10 +1779,27 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 
 		m_read_queue.insert(m_read_queue.end(), tx.begin(), tx.end());
 
+		if (slippi_netplay->newXReady)
+			int a = 0;//TODO
 		if (i < remotePlayerCount)
 		{
 			// Add Kristal input
 			std::pair<bool, SlippiNetplayClient::KristalPad> kristalPad = slippi_netplay->GetKristalInput(frame, i);
+
+			if (slippi_netplay->newXReady)
+			{
+				std::ostringstream oss;
+				if (kristalPad.first)
+				{
+					oss << "After new X input ready, read Kristal input for frame " << frame << " with subframe " << kristalPad.second.subframe << " v"
+					    << (int)kristalPad.second.version;
+				}
+				else
+				{
+					oss << "After new X input ready, failed to read Kristal input for frame" << frame;
+				}
+				WARN_LOG(SLIPPI_ONLINE, oss.str().c_str());
+			}
 
 			if (kristalPad.first)
 			{
@@ -1795,6 +1812,10 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 						                    kristalPad.second.pad + SLIPPI_PAD_DATA_SIZE);
 						m_read_queue.insert(m_read_queue.end(), SLIPPI_PAD_FULL_SIZE - SLIPPI_PAD_DATA_SIZE, 0);
 					}
+					if (slippi_netplay->newXReady)
+					{
+						WARN_LOG(SLIPPI_ONLINE, "Kristal input was used");
+					}
 				}
 				else
 					kristalPad.first = false;
@@ -1803,6 +1824,7 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 			{
 				m_read_queue.insert(m_read_queue.end(), results[i]->data.begin(),
 				                    results[i]->data.begin() + SLIPPI_PAD_FULL_SIZE);
+				WARN_LOG(SLIPPI_ONLINE, "Kristal input wasn't used");
 			}
 		}
 		else
