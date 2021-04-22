@@ -834,6 +834,7 @@ static void RebuildUserDirectories(unsigned int dir_index)
 		s_user_paths[D_DUMPDSP_IDX] = s_user_paths[D_DUMP_IDX] + DUMP_DSP_DIR DIR_SEP;
 		s_user_paths[D_DUMPSSL_IDX] = s_user_paths[D_DUMP_IDX] + DUMP_SSL_DIR DIR_SEP;
 		s_user_paths[D_LOGS_IDX] = s_user_paths[D_USER_IDX] + LOGS_DIR DIR_SEP;
+		s_user_paths[D_SLIPPI_IDX] = s_user_paths[D_USER_IDX] + SLIPPI_DIR DIR_SEP;
 		s_user_paths[D_MAILLOGS_IDX] = s_user_paths[D_LOGS_IDX] + MAIL_LOGS_DIR DIR_SEP;
 		s_user_paths[D_THEMES_IDX] = s_user_paths[D_USER_IDX] + THEMES_DIR DIR_SEP;
 		s_user_paths[D_PIPES_IDX] = s_user_paths[D_USER_IDX] + PIPES_DIR DIR_SEP;
@@ -847,7 +848,6 @@ static void RebuildUserDirectories(unsigned int dir_index)
 		s_user_paths[F_GCSRAM_IDX] = s_user_paths[D_GCUSER_IDX] + GC_SRAM;
 		s_user_paths[F_WIISDCARD_IDX] = s_user_paths[D_WIIROOT_IDX] + DIR_SEP WII_SDCARD;
 		s_user_paths[F_USERJSON_IDX] = s_user_paths[D_USER_IDX] + "user.json";
-		s_user_paths[F_DIRECTCODESJSON_IDX] = s_user_paths[D_USER_IDX] + "directcodes.json";
 
 		s_user_paths[D_MEMORYWATCHER_IDX] = s_user_paths[D_USER_IDX] + MEMORYWATCHER_DIR DIR_SEP;
 		s_user_paths[F_MEMORYWATCHERLOCATIONS_IDX] = s_user_paths[D_MEMORYWATCHER_IDX] + MEMORYWATCHER_LOCATIONS;
