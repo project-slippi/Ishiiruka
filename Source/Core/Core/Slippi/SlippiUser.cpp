@@ -19,6 +19,8 @@
 #include "DolphinWX/Main.h"
 #include "DolphinWX/SlippiAuthWebView/SlippiAuthWebView.h"
 
+#include "VideoCommon/OnScreenDisplay.h"
+
 #include <codecvt>
 #include <locale>
 
@@ -201,30 +203,39 @@ void SlippiUser::OpenLogInPage()
 	cframe->OpenSlippiAuthenticationDialog();
 }
 
-void SlippiUser::UpdateApp()
+bool SlippiUser::UpdateApp()
 {
 #ifdef _WIN32
 	auto isoPath = SConfig::GetInstance().m_strFilename;
 
 	std::string path = File::GetExeDirectory() + "/dolphin-slippi-tools.exe";
-	std::string echoMsg = "echo Starting update process. If nothing happen after a few "
+	std::string echoMsg = "echo Starting update process. If nothing happens after a few "
 	                      "minutes, you may need to update manually from https://slippi.gg/netplay ...";
-	// std::string command =
-	//    "start /b cmd /c " + echoMsg + " && \"" + path + "\" app-update -launch -iso \"" + isoPath + "\"";
+
+	// Check if updater exists, anti-virus sometimes deletes it
+	if (!File::Exists(path))
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Update requested but updater does not exist.");
+		OSD::AddMessage("Updater cannot be found. Please download the latest Slippi version from slippi.gg.", 30000, 0xFFFF0000);
+		return false;
+	}
+
 	std::string command = "start /b cmd /c " + echoMsg + " && \"" + path + "\" app-update -launch -iso \"" + isoPath +
 	                      "\" -version \"" + scm_slippi_semver_str + "\"";
 	WARN_LOG(SLIPPI, "Executing app update command: %s", command);
 	RunSystemCommand(command);
+	return true;
 #elif defined(__APPLE__)
 	CriticalAlertT(
 	    "Automatic updates are not available for macOS, please get the latest update from slippi.gg/netplay.");
+	return false;
 #else
 	const char *appimage_path = getenv("APPIMAGE");
 	const char *appmount_path = getenv("APPDIR");
 	if (!appimage_path)
 	{
 		CriticalAlertT("Automatic updates are not available for non-AppImage Linux builds.");
-		return;
+		return false;
 	}
 	std::string path(appimage_path);
 	std::string mount_path(appmount_path);
@@ -233,6 +244,7 @@ void SlippiUser::UpdateApp()
 	RunSystemCommand(command);
 	CriticalAlertT("Restart Dolphin to finish the update. If there was an issue, please head over to the Slippi "
 	               "Discord for support.");
+	return true;
 #endif
 }
 

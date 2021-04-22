@@ -2746,10 +2746,13 @@ void CEXISlippi::handleLogOutRequest()
 
 void CEXISlippi::handleUpdateAppRequest()
 {
-	main_frame->LowerRenderWindow();
-	user->UpdateApp();
+	bool isUpdating = user->UpdateApp();
 #ifdef _WIN32
-	main_frame->DoExit();
+	if (isUpdating)
+	{
+		main_frame->LowerRenderWindow();
+		main_frame->DoExit();
+	}
 #endif
 }
 
