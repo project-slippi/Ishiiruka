@@ -51,14 +51,14 @@ bool isKristalInput(const GCPadStatus& newPad, const GCPadStatus& oldPad)
 		// Tap jump during dash = ? //TODO?
 
 	    // C Stick // Should be enriched with diagonals rather than deadzone cardinal checks //TODO
-	    ((oldPad.stickX < coord(0.2875)) && (newPad.stickX >= coord(0.2875))) ||   // Right air
-	    ((oldPad.stickX < coord(0.8)) && (newPad.stickX >= coord(0.8))) ||         // Right smash
-	    ((oldPad.stickX > coord(-0.2875)) && (newPad.stickX <= coord(-0.2875))) || // Left air
-	    ((oldPad.stickX > coord(-0.8)) && (newPad.stickX <= coord(-0.8))) ||       // Left smash
-	    ((oldPad.stickY < coord(0.2875)) && (newPad.stickY >= coord(0.2875))) ||   // Up air
-	    ((oldPad.stickY < coord(0.6625)) && (newPad.stickY >= coord(0.6625))) ||   // Up smash
-	    ((oldPad.stickY > coord(-0.2875)) && (newPad.stickY <= coord(-0.2875))) || // Down air
-	    ((oldPad.stickY > coord(-0.6625)) && (newPad.stickY <= coord(-0.6625)))  || // // Down smash
+	    ((oldPad.substickX < coord(0.2875))  && (newPad.substickX >= coord(0.2875))) ||   // Right air
+	    ((oldPad.substickX < coord(0.8))     && (newPad.substickX >= coord(0.8))) ||         // Right smash
+	    ((oldPad.substickX > coord(-0.2875)) && (newPad.substickX <= coord(-0.2875))) || // Left air
+	    ((oldPad.substickX > coord(-0.8))    && (newPad.substickX <= coord(-0.8))) ||       // Left smash
+	    ((oldPad.substickY < coord(0.2875))  && (newPad.substickY >= coord(0.2875))) ||   // Up air
+	    ((oldPad.substickY < coord(0.6625))  && (newPad.substickY >= coord(0.6625))) ||   // Up smash
+	    ((oldPad.substickY > coord(-0.2875)) && (newPad.substickY <= coord(-0.2875))) || // Down air
+	    ((oldPad.substickY > coord(-0.6625)) && (newPad.substickY <= coord(-0.6625)))  || // // Down smash
 
 	    // Triggers (no shield -> minimum shield check for both triggers)
 	    ((oldPad.triggerLeft < 43) && (newPad.triggerLeft >= 43)) ||
