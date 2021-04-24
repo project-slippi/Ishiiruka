@@ -876,7 +876,7 @@ void SlippiNetplayClient::StartSlippiGame(u8 delay) // called when frame is 1
 	// (all of them because we're unsure which one to use atm)
 	for (auto &stabilizer : SerialInterface::stabilizers)
 	{
-	    stabilizer.startFrameCount(2+delay); //TODO Calibrate... 1 or 2 ?
+	    stabilizer.startFrameCount(1+delay); // 1 for frame 1 + our delay
 	}
 
 	GCAdapter::SetKristalInputCallback([this](const GCPadStatus &pad, std::chrono::high_resolution_clock::time_point tp, int chan) -> void
