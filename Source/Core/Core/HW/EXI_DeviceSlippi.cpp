@@ -1755,6 +1755,14 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 
 		//* La read queue serait la concaténation des pads qu'on passe à l'engine
 		// INFO_LOG(SLIPPI_ONLINE, "Sending frame num %d for pIdx %d (offset: %d)", latestFrame, i, offset[i]);
+
+		// DEBUG
+		if (results[i]->data[offset[i]] & 4)
+		{
+			std::ostringstream oss;
+			oss << "X pressed for frame " << results[i]->latestFrame;
+			WARN_LOG(SLIPPI_ONLINE, oss.str().c_str());
+		}
 	}
 	// Send the current frame for any unused player slots.
 	for (int i = remotePlayerCount; i < SLIPPI_REMOTE_PLAYER_MAX; i++)

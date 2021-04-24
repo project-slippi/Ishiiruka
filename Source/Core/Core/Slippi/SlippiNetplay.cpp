@@ -848,7 +848,7 @@ std::vector<int> SlippiNetplayClient::GetFailedConnections()
 	return failedConnections;
 }
 
-void SlippiNetplayClient::StartSlippiGame(u8 delay)
+void SlippiNetplayClient::StartSlippiGame(u8 delay) // called when frame is 1
 {
 	// Reset variables to start a new game
 	hasGameStarted = false;
@@ -874,7 +874,7 @@ void SlippiNetplayClient::StartSlippiGame(u8 delay)
 	// (all of them because we're unsure which one to use atm)
 	for (auto &stabilizer : SerialInterface::stabilizers)
 	{
-	    stabilizer.startFrameCount(2+delay); //TODO Calibrate
+	    stabilizer.startFrameCount(2+delay); //TODO Calibrate... 1 or 2 ?
 	}
 
 	GCAdapter::SetKristalInputCallback([this](const GCPadStatus &pad, std::chrono::high_resolution_clock::time_point tp, int chan) -> void
