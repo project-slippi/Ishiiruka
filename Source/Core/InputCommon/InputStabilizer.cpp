@@ -134,7 +134,7 @@ void InputStabilizer::feedPollTiming(std::chrono::high_resolution_clock::time_po
 	}
 }
 
-time_point InputStabilizer::computeNextPollTimingInternal(bool init)
+time_point InputStabilizer::computeNextPollTimingInternal(bool init, bool alter) //TODO Why the fuck is there a state change in the read method what was I thinking
 {
 	const SConfig& sconfig = SConfig::GetInstance();
 	double period = (int64_t)1'000'000'000 / (sconfig.bUse5994HzStabilization ? 59.94 : 60.);
@@ -149,7 +149,7 @@ time_point InputStabilizer::computeNextPollTimingInternal(bool init)
 		if ((!init) && (size == sizeLimit))
 		{
 			auto result = steadyStateOrigin + std::chrono::nanoseconds((int64_t)(incrementsSinceOrigin * period - delay));
-			incrementsSinceOrigin++;
+			if (alter) incrementsSinceOrigin++;
 			return result;
 		}
 	}
@@ -163,7 +163,7 @@ time_point InputStabilizer::computeNextPollTimingInternal(bool init)
 time_point InputStabilizer::computeNextPollTiming()
 {
 	std::lock_guard<std::mutex> lock(mutex);
-	return computeNextPollTimingInternal(false);
+	return computeNextPollTimingInternal(false, false);
 }
 
 void InputStabilizer::startFrameCount(int32_t initialValue)

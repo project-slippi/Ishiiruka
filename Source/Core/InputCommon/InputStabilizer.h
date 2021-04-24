@@ -45,7 +45,7 @@ class InputStabilizer
 	time_point computeNextPollTiming();
 
 	// Kristal
-	time_point computeNextPollTimingInternal(bool init = false);
+	time_point computeNextPollTimingInternal(bool init = false, bool alter = true);
 	void startFrameCount(int32_t initialValue=0);
 	void endFrameCount();
 	void decrementFrameCount();
