@@ -427,14 +427,15 @@ static void Feed(std::chrono::high_resolution_clock::time_point tp, u8 *controll
 	if (controller_payload_entries.size() > controller_payload_limit)
 		controller_payload_entries.pop_back();
 
-	auto tp = newEntry.estimated_timing; //TODO Incorporate these delays in the estimated_timing directly ?
+	auto kristalTp = newEntry.estimated_timing; //TODO Incorporate these delays in the estimated_timing directly ?
 	if (sconfig.bUseAdapterTimingReconstructionWhenApplicable && beenUsingTR())
-		tp += std::chrono::nanoseconds(800'000) + std::chrono::nanoseconds(usbPollingStabilizationDelay);
+		kristalTp += std::chrono::nanoseconds(800'000) + std::chrono::nanoseconds(usbPollingStabilizationDelay);
 	else if (sconfig.bUseUsbPollingStabilization)
-		tp += std::chrono::nanoseconds(usbPollingStabilizationDelay);
+		kristalTp += std::chrono::nanoseconds(usbPollingStabilizationDelay);
 	else
-		tp = newEntry.raw_timing;
-	HandleKristalFunctions(controller_payload, tp); //TODO Perhaps shouldn't be in USB polling thread ? Performance concerns ?
+		kristalTp = newEntry.raw_timing;
+	HandleKristalFunctions(controller_payload,
+	                       kristalTp); // TODO Perhaps shouldn't be in USB polling thread ? Performance concerns ?
 }
 
 const u8 *Fetch(std::chrono::high_resolution_clock::time_point *tp)
