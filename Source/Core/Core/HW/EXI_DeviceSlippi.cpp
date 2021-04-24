@@ -1760,7 +1760,7 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 		if (results[i]->data[offset[i]] & 4)
 		{
 			std::ostringstream oss;
-			oss << "X pressed for frame " << results[i]->latestFrame;
+			oss << "X pressed for frame " << latestFrame;
 			WARN_LOG(SLIPPI_ONLINE, oss.str().c_str());
 		}
 	}

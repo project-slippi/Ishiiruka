@@ -408,7 +408,7 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 			break;
 		}
 
-		static bool aPressed = false;
+		static bool xPressed = false;
 
 
 		KristalPad kpad;
@@ -423,14 +423,14 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 		std::ostringstream oss;
 		oss << "Received Kristal input on"
 		    << std::chrono::high_resolution_clock::now().time_since_epoch().count() << " timing " << kpad.subframe
-		    << "v" << (int)kpad.version;
+		    << " v" << (int)kpad.version;
 		WARN_LOG(SLIPPI_ONLINE, oss.str().c_str());
-		if (!aPressed && (kpad.pad[1] & 4))
+		if (!xPressed && (kpad.pad[1] & 4))
 		{
 			WARN_LOG(SLIPPI_ONLINE, "Kristal input had X");
 			newXReady = true;
 		}
-		aPressed = (kpad.pad[1] & 4);
+		xPressed = (kpad.pad[1] & 4);
 
 	}
 	break;
@@ -1025,7 +1025,7 @@ std::unique_ptr<SlippiRemotePadOutput> SlippiNetplayClient::GetSlippiRemotePad(i
 
 	std::unique_ptr<SlippiRemotePadOutput> padOutput = std::make_unique<SlippiRemotePadOutput>();
 
-	// Si on a aucun pad (pas censé arriver ? à voir)
+	//* Si on a aucun pad (pas censé arriver ? à voir)
 	if (remotePadQueue[index].empty())
 	{
 		auto emptyPad = std::make_unique<SlippiPad>(0);
