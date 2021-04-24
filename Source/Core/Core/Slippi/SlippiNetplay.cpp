@@ -873,7 +873,7 @@ void SlippiNetplayClient::StartSlippiGame(u8 delay) // called when frame is 1
 	matchInfo.Reset();
 
 	// Initialize the frame count of InputStabilizers
-	// (all of them because we're unsure which one to use atm)
+	// (all of them because we're unsure which one to use at that point)
 	for (auto &stabilizer : SerialInterface::stabilizers)
 	{
 	    stabilizer.startFrameCount(1+delay); // 1 for frame 1 + our delay
