@@ -421,8 +421,10 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 				subframePadSets[pIdx].insert({kpad});
 		}
 		std::ostringstream oss;
-		oss << "Received Kristal input on"
-		    << std::chrono::high_resolution_clock::now().time_since_epoch().count() << " timing " << kpad.subframe
+		auto tp = std::chrono::high_resolution_clock::now();
+		auto eval = SerialInterface::stabilizers[0].evaluateTiming(tp); // TODO [0]
+		oss << "Received Kristal input. Us: "
+		    << eval.first << " v" << (int)eval.second << " Them: "<< kpad.subframe
 		    << " v" << (int)kpad.version;
 		WARN_LOG(SLIPPI_ONLINE, oss.str().c_str());
 		if (!xPressed && (kpad.pad[1] & 4))
