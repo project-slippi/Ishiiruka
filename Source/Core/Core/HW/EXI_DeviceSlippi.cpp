@@ -1635,7 +1635,7 @@ bool CEXISlippi::shouldSkipOnlineFrame(s32 frame)
 		auto offsetUs = slippi_netplay->CalcTimeOffsetUs();
 		INFO_LOG(SLIPPI_ONLINE, "[Frame %d] Offset is: %d us", frame, offsetUs);
 
-		offsetUss.push_back(offsetUs);
+		/*offsetUss.push_back(offsetUs);
 		if (offsetUss.size() == 40)
 		{
 			std::ostringstream oss;
@@ -1646,7 +1646,7 @@ bool CEXISlippi::shouldSkipOnlineFrame(s32 frame)
 			}
 			WARN_LOG(SLIPPI_ONLINE, oss.str().c_str());
 			offsetUss.clear();
-		}
+		}*/
 
 		// TODO: figure out a better solution here for doubles?
 		if (offsetUs > 10000)

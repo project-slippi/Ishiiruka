@@ -1219,12 +1219,15 @@ void SlippiNetplayClient::KristalInputCallback(const GCPadStatus &pad, std::chro
 	*spac << this->playerIdx; // player index, 1 byte
 	spac->append(&pad, SLIPPI_PAD_DATA_SIZE); // first 8 bytes of pad
 
+	std::pair<float, u8> timingAndVersionNow = SerialInterface::stabilizers[chan].evaluateTiming(std::chrono::high_resolution_clock::now());
+
 	// Log
 	if (!aPressed && (pad.button & PAD_BUTTON_X))
 	{
 		std::ostringstream oss;
-		oss << "Sending Kristal input with X on" << std::chrono::high_resolution_clock::now().time_since_epoch().count()
-		    << " timing " << timingAndVersion.first << "v" << (int)timingAndVersion.second;
+		oss << "Sending Kristal input with X timing " << timingAndVersion.first << " v" << (int)timingAndVersion.second
+		    << " on " << timingAndVersionNow.first << " v" << (int)timingAndVersionNow.second;
+
 		WARN_LOG(SLIPPI_ONLINE, oss.str().c_str());
 	}
 	aPressed = (pad.button & PAD_BUTTON_X);

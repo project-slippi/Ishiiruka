@@ -199,8 +199,20 @@ std::pair<float, u8> InputStabilizer::evaluateTiming(const time_point& tp) {
 	if (timing >= frameOfHigherVersion && timing < frameOfHigherVersion + 1)
 		inputVersion = version;
 
+	// DEBUG
+	auto now = std::chrono::high_resolution_clock::now();
+	long long diffDebug = (now - previousPoll).count();
+	int inputVersionDebug = 1;
+	double timingDebug = frameCount + (diffDebug / period);
+	if (timingDebug >= frameOfHigherVersion && timingDebug < frameOfHigherVersion + 1)
+		inputVersionDebug = version;
+	// /DEBUG
+
+
 	std::ostringstream oss;
-	oss << "Evaluated tp " << tp.time_since_epoch().count() << " to " << (float)timing << " v " << version;
+	oss << "Evaluated tp " << tp.time_since_epoch().count() << " to " << (float)timing << " v" << inputVersion << " on "
+	    << now.time_since_epoch().count() << " " << (float)timingDebug << " v" << inputVersionDebug;
+
 	WARN_LOG(SLIPPI_ONLINE, oss.str().c_str());
 
 	return std::pair<float, u8>((float)timing, (u8)inputVersion);
