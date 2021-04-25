@@ -16,6 +16,7 @@
 #include <SFML/Network/Packet.hpp>
 #include <array>
 #include <deque>
+#include <set>
 #include <map>
 #include <memory>
 #include <mutex>
