@@ -210,7 +210,7 @@ std::pair<float, u8> InputStabilizer::evaluateTiming(const time_point& tp) {
 
 
 	std::ostringstream oss;
-	oss << "Evaluated tp " << tp.time_since_epoch().count() << " to " << (float)timing << " v" << inputVersion << " on "
+	oss << std::fixed << std::setprecision(2) << "Evaluated tp " << tp.time_since_epoch().count() << " to " << (float)timing << " v" << inputVersion << " on "
 	    << now.time_since_epoch().count() << " " << (float)timingDebug << " v" << inputVersionDebug;
 
 	WARN_LOG(SLIPPI_ONLINE, oss.str().c_str());
