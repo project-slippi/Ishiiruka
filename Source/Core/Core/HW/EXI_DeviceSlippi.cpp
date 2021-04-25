@@ -1823,7 +1823,7 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 					std::ostringstream oss;
 					oss << std::fixed << std::setprecision(2)
 						<< "Kristal input was used for frame " << frame
-					    << " latestFrame "
+					    << " latest known frame "
 						<< results[i]->latestFrame
 						<< " subframe " << kristalPad.second.subframe;
 					ERROR_LOG(KRISTAL, oss.str().c_str());
