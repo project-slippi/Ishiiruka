@@ -241,7 +241,7 @@ static void HandleKristalFunctions(u8 *controller_payload, const std::chrono::hi
 	GCPadStatus pad = makePadFrom8ByteArray(controller_payload + 2 + 9 * usedControllerChan, false);
 	if (isKristalInput(pad, previousPad))
 	{
-		WARN_LOG(KRISTAL, "Perceived Kristal Input");
+		INFO_LOG(KRISTAL, "Perceived Kristal Input");
 		// The try catch block makes it so there are no errors when 
 		try
 		{

@@ -1200,7 +1200,7 @@ void SlippiNetplayClient::DecrementInputStabilizerFrameCounts() {
 
 void SlippiNetplayClient::KristalInputCallback(const GCPadStatus &pad, std::chrono::high_resolution_clock::time_point tp, int chan)
 {
-	static bool aPressed = false;
+	static bool xPressed = false;
 
 	auto status = slippiConnectStatus;
 	bool connectionFailed = status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_FAILED;
@@ -1222,16 +1222,17 @@ void SlippiNetplayClient::KristalInputCallback(const GCPadStatus &pad, std::chro
 	std::pair<float, u8> timingAndVersionNow = SerialInterface::stabilizers[chan].evaluateTiming(std::chrono::high_resolution_clock::now());
 
 	// Log
-	if (!aPressed && (pad.button & PAD_BUTTON_X))
-	{
-		std::ostringstream oss;
-		oss << std::fixed << std::setprecision(2) << "Sending Kristal input with X timing " << timingAndVersion.first
-		    << " v" << (int)timingAndVersion.second
-		    << " on " << timingAndVersionNow.first << " v" << (int)timingAndVersionNow.second;
+	std::ostringstream oss;
+	oss << std::fixed << std::setprecision(2) << "Sending Kristal input timing " << timingAndVersion.first
+	    << " v" << (int)timingAndVersion.second << " on " << timingAndVersionNow.first << " v"
+	    << (int)timingAndVersionNow.second;
+	WARN_LOG(KRISTAL, oss.str().c_str());
 
-		WARN_LOG(KRISTAL, oss.str().c_str());
+	if (!xPressed && (pad.button & PAD_BUTTON_X))
+	{
+		INFO_LOG(KRISTAL, "The above input has X");
 	}
-	aPressed = (pad.button & PAD_BUTTON_X);
+	xPressed = (pad.button & PAD_BUTTON_X);
 
 	SendAsync(std::move(spac));
 }
