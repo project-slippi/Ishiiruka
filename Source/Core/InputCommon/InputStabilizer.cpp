@@ -195,8 +195,10 @@ std::pair<float, u8> InputStabilizer::evaluateTiming(const time_point& tp) {
 	// But the parameter isn't
 	// the time point returned by computeNextPollTiming isn't the "real" timing for the integer that is frameCount
 	// We must compensate the delay by adding it again
-	time_point previousPoll = computeNextPollTimingInternal();
-	previousPoll += std::chrono::nanoseconds(delay);
+	time_point previousPoll = computeNextPollTimingInternal() + std::chrono::nanoseconds(delay);
+	/*std::ostringstream oss2;
+	oss2 << previousPoll.time_since_epoch().count();
+	INFO_LOG(SLIPPI_ONLINE, oss2.str().c_str());*/
 	long long diff = (tp - previousPoll).count();
 
 	int inputVersion = 1;
