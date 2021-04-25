@@ -1818,10 +1818,16 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 						                    kristalPad.second.pad + SLIPPI_PAD_DATA_SIZE);
 						m_read_queue.insert(m_read_queue.end(), SLIPPI_PAD_FULL_SIZE - SLIPPI_PAD_DATA_SIZE, 0);
 					}
-					if (slippi_netplay->newXReady)
-					{
-						WARN_LOG(SLIPPI_ONLINE, "Kristal input was used");
-					}
+					/*if (slippi_netplay->newXReady)
+					{*/
+					std::ostringstream oss;
+					oss << std::fixed << std::setprecision(2)
+						<< "Kristal input was used for frame " << frame
+					    << " latestFrame "
+						<< results[i]->latestFrame
+						<< " subframe " << kristalPad.second.subframe;
+					ERROR_LOG(SLIPPI_ONLINE, oss.str().c_str());
+					//}
 				}
 				else
 					kristalPad.first = false;
@@ -1830,10 +1836,10 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 			{
 				m_read_queue.insert(m_read_queue.end(), results[i]->data.begin(),
 				                    results[i]->data.begin() + SLIPPI_PAD_FULL_SIZE);
-				if (slippi_netplay->newXReady)
+				/*if (slippi_netplay->newXReady)
 				{
 					WARN_LOG(SLIPPI_ONLINE, "Kristal input wasn't used");
-				}
+				}*/
 			}
 			slippi_netplay->newXReady = false;
 		}
