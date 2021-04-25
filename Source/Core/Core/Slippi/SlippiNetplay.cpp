@@ -423,8 +423,8 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 		std::ostringstream oss;
 		auto tp = std::chrono::high_resolution_clock::now();
 		auto eval = SerialInterface::stabilizers[0].evaluateTiming(tp); // TODO [0]
-		oss << std::fixed << std::setprecision(2) << "Received Kristal input. Us: "
-		    << eval.first << " v" << (int)eval.second << " Them: "<< kpad.subframe
+		oss << std::fixed << std::setprecision(2) << "Received Kristal input. Received: "
+		    << eval.first << " v" << (int)eval.second << " Content: "<< kpad.subframe
 		    << " v" << (int)kpad.version;
 		WARN_LOG(KRISTAL, oss.str().c_str());
 		if (!xPressed && (kpad.pad[1] & 4))
