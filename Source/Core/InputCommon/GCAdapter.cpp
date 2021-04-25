@@ -427,6 +427,7 @@ static void Feed(std::chrono::high_resolution_clock::time_point tp, u8 *controll
 	if (controller_payload_entries.size() > controller_payload_limit)
 		controller_payload_entries.pop_back();
 
+	// Makes sense to *add* delays because if they're put further in the future by them, they're also at higher subframe
 	auto kristalTp = newEntry.estimated_timing; //TODO Incorporate these delays in the estimated_timing directly ?
 	if (sconfig.bUseAdapterTimingReconstructionWhenApplicable && beenUsingTR())
 		kristalTp += std::chrono::nanoseconds(800'000) + std::chrono::nanoseconds(usbPollingStabilizationDelay);

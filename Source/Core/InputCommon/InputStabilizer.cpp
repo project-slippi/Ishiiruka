@@ -189,9 +189,14 @@ std::pair<float, u8> InputStabilizer::evaluateTiming(const time_point& tp) {
 	double period = (int64_t)1'000'000'000 / (sconfig.bUse5994HzStabilization ? 59.94 : 60.);
 
 	// It is assumed the last provided timing matches the frame number we currently have
-	// Note that we use the poll timing taking into account the delay - this is intended,
-	// timings are determined relatively to the poll timings used, not the unprocessed ones
+	
+	// What we're looking here is when tp is relatively to the stabilizer timings
+	// The stabilizer timings are natively offset by the delay
+	// But the parameter isn't
+	// the time point returned by computeNextPollTiming isn't the "real" timing for the integer that is frameCount
+	// We must compensate the delay by adding it again
 	time_point previousPoll = computeNextPollTimingInternal();
+	previousPoll += std::chrono::nanoseconds(delay);
 	long long diff = (tp - previousPoll).count();
 
 	int inputVersion = 1;
