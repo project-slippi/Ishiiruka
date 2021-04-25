@@ -220,7 +220,7 @@ std::pair<float, u8> InputStabilizer::evaluateTiming(const time_point& tp) {
 	oss << std::fixed << std::setprecision(2) << "Evaluated tp " << tp.time_since_epoch().count() << " to " << (float)timing << " v" << inputVersion << " on "
 	    << now.time_since_epoch().count() << " " << (float)timingDebug << " v" << inputVersionDebug;
 
-	WARN_LOG(SLIPPI_ONLINE, oss.str().c_str());
+	WARN_LOG(KRISTAL, oss.str().c_str());
 
 	return std::pair<float, u8>((float)timing, (u8)inputVersion);
 }

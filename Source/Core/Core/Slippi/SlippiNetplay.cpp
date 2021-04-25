@@ -377,25 +377,25 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 		float subframe;
 		if (!(packet >> subframe))
 		{
-			ERROR_LOG(SLIPPI_ONLINE, "Kristal packet too small to read subframe");
+			ERROR_LOG(KRISTAL, "Kristal packet too small to read subframe");
 			break;
 		}
 		u8 version;
 		if (!(packet >> version))
 		{
-			ERROR_LOG(SLIPPI_ONLINE, "Kristal packet too small to read version");
+			ERROR_LOG(KRISTAL, "Kristal packet too small to read version");
 			break;
 		}
 		u8 packetPlayerPort;
 		if (!(packet >> packetPlayerPort))
 		{
-			ERROR_LOG(SLIPPI_ONLINE, "Kristal packet too small to read player index");
+			ERROR_LOG(KRISTAL, "Kristal packet too small to read player index");
 			break;
 		}
 		u8 pIdx = PlayerIdxFromPort(packetPlayerPort);
 		if (pIdx >= m_remotePlayerCount)
 		{
-			ERROR_LOG(SLIPPI_ONLINE, "Got Kristal packet with invalid player idx %d", pIdx);
+			ERROR_LOG(KRISTAL, "Got Kristal packet with invalid player idx %d", pIdx);
 			break;
 		}
 
@@ -403,7 +403,7 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 		// Check that the packet actually contains the data it claims to
 		if ((7 + SLIPPI_PAD_DATA_SIZE) > (int)packet.getDataSize())
 		{
-			ERROR_LOG(SLIPPI_ONLINE, "Kristal packet too small to read pad. Size: %d, MinSize: %d",
+			ERROR_LOG(KRISTAL, "Kristal packet too small to read pad. Size: %d, MinSize: %d",
 				        (int)packet.getDataSize(), 7 + SLIPPI_PAD_DATA_SIZE);
 			break;
 		}
@@ -426,10 +426,10 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 		oss << std::fixed << std::setprecision(2) << "Received Kristal input. Us: "
 		    << eval.first << " v" << (int)eval.second << " Them: "<< kpad.subframe
 		    << " v" << (int)kpad.version;
-		WARN_LOG(SLIPPI_ONLINE, oss.str().c_str());
+		WARN_LOG(KRISTAL, oss.str().c_str());
 		if (!xPressed && (kpad.pad[1] & 4))
 		{
-			WARN_LOG(SLIPPI_ONLINE, "Kristal input had X");
+			WARN_LOG(KRISTAL, "Kristal input had X");
 			newXReady = true;
 		}
 		xPressed = (kpad.pad[1] & 4);
@@ -1229,7 +1229,7 @@ void SlippiNetplayClient::KristalInputCallback(const GCPadStatus &pad, std::chro
 		    << " v" << (int)timingAndVersion.second
 		    << " on " << timingAndVersionNow.first << " v" << (int)timingAndVersionNow.second;
 
-		WARN_LOG(SLIPPI_ONLINE, oss.str().c_str());
+		WARN_LOG(KRISTAL, oss.str().c_str());
 	}
 	aPressed = (pad.button & PAD_BUTTON_X);
 

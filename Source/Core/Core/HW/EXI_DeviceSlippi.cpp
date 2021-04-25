@@ -1804,7 +1804,7 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 				{
 					oss << "After new X input ready, failed to read Kristal input for frame" << frame;
 				}
-				WARN_LOG(SLIPPI_ONLINE, oss.str().c_str());
+				WARN_LOG(KRISTAL, oss.str().c_str());
 			}
 
 			if (kristalPad.first)
@@ -1826,7 +1826,7 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 					    << " latestFrame "
 						<< results[i]->latestFrame
 						<< " subframe " << kristalPad.second.subframe;
-					ERROR_LOG(SLIPPI_ONLINE, oss.str().c_str());
+					ERROR_LOG(KRISTAL, oss.str().c_str());
 					//}
 				}
 				else

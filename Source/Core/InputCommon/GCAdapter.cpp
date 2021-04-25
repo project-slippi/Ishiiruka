@@ -236,12 +236,12 @@ static void HandleKristalFunctions(u8 *controller_payload, const std::chrono::hi
 	if (usedControllerInfo != 0 && usedControllerChan != usedControllerInfo - 1)
 	{
 		usedControllerChan = usedControllerInfo - 1;
-		WARN_LOG(SLIPPI_ONLINE, "Found used controller %d", usedControllerInfo);
+		ERROR_LOG(KRISTAL, "Found used controller %d", usedControllerInfo);
 	}
 	GCPadStatus pad = makePadFrom8ByteArray(controller_payload + 2 + 9 * usedControllerChan, false);
 	if (isKristalInput(pad, previousPad))
 	{
-		WARN_LOG(SLIPPI_ONLINE, "Perceived Kristal Input");
+		WARN_LOG(KRISTAL, "Perceived Kristal Input");
 		// The try catch block makes it so there are no errors when 
 		try
 		{
@@ -1027,12 +1027,12 @@ bool IsDriverDetected()
 
 void informNewSlippiNetplayClient()
 {
-	WARN_LOG(SLIPPI_ONLINE, "New Slippi Netplay Client");
+	WARN_LOG(KRISTAL, "New Slippi Netplay Client");
 }
 
 void informNoSlippiNetplayClient()
 {
-	WARN_LOG(SLIPPI_ONLINE, "No Slippi Netplay Client");
+	WARN_LOG(KRISTAL, "No Slippi Netplay Client");
 }
 
 }  // end of namespace GCAdapter
