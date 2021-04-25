@@ -242,12 +242,7 @@ static void HandleKristalFunctions(u8 *controller_payload, const std::chrono::hi
 	if (isKristalInput(pad, previousPad))
 	{
 		INFO_LOG(KRISTAL, "Perceived Kristal Input");
-		// The try catch block makes it so there are no errors when 
-		try
-		{
-			kristalInputCallback(pad, tp, usedControllerChan);
-		}
-		catch (...) {}
+		kristalInputCallback(pad, tp, usedControllerChan);
 	}
 	previousPad = pad;
 }
