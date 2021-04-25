@@ -1761,7 +1761,7 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 		{
 			std::ostringstream oss;
 			oss << "X pressed for frame " << latestFrame;
-			WARN_LOG(SLIPPI_ONLINE, oss.str().c_str());
+			INFO_LOG(KRISTAL, oss.str().c_str());
 		}
 	}
 	// Send the current frame for any unused player slots.
@@ -1804,7 +1804,7 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 				{
 					oss << "After new X input ready, failed to read Kristal input for frame" << frame;
 				}
-				WARN_LOG(KRISTAL, oss.str().c_str());
+				INFO_LOG(KRISTAL, oss.str().c_str());
 			}
 
 			if (kristalPad.first)
