@@ -221,7 +221,7 @@ void SlippiMatchmaking::startMatchmaking()
 		if (customPort)
 			m_hostPort = SConfig::GetInstance().m_slippiNetplayPort;
 		else
-			m_hostPort = 49000 + (generator() % 2000);
+			m_hostPort = 41000 + (generator() % 10000);
 		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Port to use: %d...", m_hostPort);
 
 		// We are explicitly setting the client address because we are trying to utilize our connection
