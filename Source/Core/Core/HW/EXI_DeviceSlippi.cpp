@@ -1817,9 +1817,7 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 					oss << (int)kristalPad.second.pad[0] << " " << (int)kristalPad.second.pad[1] << " "
 					    << (int)kristalPad.second.pad[2] << " " << (int)kristalPad.second.pad[3] << " "
 					    << (int)kristalPad.second.pad[4] << " " << (int)kristalPad.second.pad[5] << " "
-					    << (int)kristalPad.second.pad[6] << " " << (int)kristalPad.second.pad[7] << " "
-					    << (int)kristalPad.second.pad[8] << " " << (int)kristalPad.second.pad[9] << " "
-					    << (int)kristalPad.second.pad[10] << " " << (int)kristalPad.second.pad[11];
+					    << (int)kristalPad.second.pad[6] << " " << (int)kristalPad.second.pad[7] << " ";
 					ERROR_LOG(KRISTAL, oss.str().c_str());
 					auto start = results[i]->data.begin() + offset[i];
 					oss.str("");
