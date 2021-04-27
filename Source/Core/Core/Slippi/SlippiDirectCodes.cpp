@@ -177,7 +177,7 @@ std::string SlippiDirectCodes::getCodesFilePath()
 
 	// TODO: Move to User dir
 #if defined(__APPLE__)
-	std::string directCodesPath = File::GetBundleDirectory() + "/Contents/Resources/User/Slippi/" + m_fileName;
+	std::string directCodesPath = File::GetApplicationSupportDirectory() + "/Slippi/" + m_fileName;
 #elif defined(_WIN32)
 	std::string directCodesPath = File::GetExeDirectory() + "/User/Slippi/" + m_fileName;
 #else
