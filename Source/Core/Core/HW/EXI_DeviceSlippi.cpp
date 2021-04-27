@@ -1761,7 +1761,7 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 		{
 			std::ostringstream oss;
 			oss << "X pressed for frame " << latestFrame;
-			INFO_LOG(KRISTAL, oss.str().c_str());
+			WARN_LOG(KRISTAL, oss.str().c_str());
 		}
 	}
 	// Send the current frame for any unused player slots.
@@ -1787,47 +1787,49 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 
 		m_read_queue.insert(m_read_queue.end(), tx.begin(), tx.end());
 
+		//TODO log
+		/*ERROR_LOG(SLIPPI_ONLINE, "EXI: [%d] %X %X %X %X %X %X %X %X", results[i]->latestFrame, m_read_queue[5],
+		          m_read_queue[6],
+		    m_read_queue[7], m_read_queue[8], m_read_queue[9], m_read_queue[10], m_read_queue[11],
+		    m_read_queue[12]);*/
+	}
+
+	for (int i = 0; i < SLIPPI_REMOTE_PLAYER_MAX; i++)
+	{
 		if (i < remotePlayerCount)
 		{
 			// Add Kristal input
-			std::pair<bool, SlippiNetplayClient::KristalPad> kristalPad = slippi_netplay->GetKristalInput(frame, i);
-
-			if (slippi_netplay->newXReady)
-			{
-				std::ostringstream oss;
-				if (kristalPad.first)
-				{
-					oss << "After new X input ready, read Kristal input for frame " << frame << " with subframe " << kristalPad.second.subframe << " v"
-					    << (int)kristalPad.second.version;
-				}
-				else
-				{
-					oss << "After new X input ready, failed to read Kristal input for frame" << frame;
-				}
-				INFO_LOG(KRISTAL, oss.str().c_str());
-			}
-
+			std::pair<bool, SlippiNetplayClient::KristalPad> kristalPad = slippi_netplay->GetKristalInput(frame, i); // No more than the current frame
 			if (kristalPad.first)
 			{
-				if (kristalPad.second.subframe > (float)results[i]->latestFrame)
+				if (kristalPad.second.subframe > (float)results[i]->latestFrame) // No less than the latest frame for which we have inputs
 				{
 					// More recent, use that
-					for (int j = 0; j < SLIPPI_PAD_DATA_SIZE; j++)
-					{
-						m_read_queue.insert(m_read_queue.end(), kristalPad.second.pad,
-						                    kristalPad.second.pad + SLIPPI_PAD_DATA_SIZE);
-						m_read_queue.insert(m_read_queue.end(), SLIPPI_PAD_FULL_SIZE - SLIPPI_PAD_DATA_SIZE, 0);
-					}
-					/*if (slippi_netplay->newXReady)
-					{*/
+					m_read_queue.insert(m_read_queue.end(), kristalPad.second.pad,
+										kristalPad.second.pad + SLIPPI_PAD_DATA_SIZE);
+					m_read_queue.insert(m_read_queue.end(), SLIPPI_PAD_FULL_SIZE - SLIPPI_PAD_DATA_SIZE, 0);
 					std::ostringstream oss;
-					oss << std::fixed << std::setprecision(2)
-						<< "Kristal input was used for frame " << frame
-					    << " latest known frame "
-						<< results[i]->latestFrame
-						<< " subframe " << kristalPad.second.subframe;
+					oss << std::fixed << std::setprecision(2) << "Kristal input was used for frame " << frame
+					    << " subframe " << kristalPad.second.subframe << " latest known frame "
+					    << results[i]->latestFrame;
 					ERROR_LOG(KRISTAL, oss.str().c_str());
-					//}
+					oss.str("");
+					oss << (int)kristalPad.second.pad[0] << " " << (int)kristalPad.second.pad[1] << " "
+					    << (int)kristalPad.second.pad[2] << " " << (int)kristalPad.second.pad[3] << " "
+					    << (int)kristalPad.second.pad[4] << " " << (int)kristalPad.second.pad[5] << " "
+					    << (int)kristalPad.second.pad[6] << " " << (int)kristalPad.second.pad[7] << " "
+					    << (int)kristalPad.second.pad[8] << " " << (int)kristalPad.second.pad[9] << " "
+					    << (int)kristalPad.second.pad[10] << " " << (int)kristalPad.second.pad[11];
+					ERROR_LOG(KRISTAL, oss.str().c_str());
+					auto start = results[i]->data.begin() + offset[i];
+					oss.str("");
+					oss << (int)start[0] << " " << (int)start[1] << " "
+					    << (int)start[2] << " " << (int)start[3] << " "
+					    << (int)start[4] << " " << (int)start[5] << " "
+						<< (int)start[6] << " " << (int)start[7] << " "
+					    << (int)start[8] << " " << (int)start[9] << " "
+						<< (int)start[10] << " " << (int)start[11];
+					ERROR_LOG(KRISTAL, oss.str().c_str());
 				}
 				else
 					kristalPad.first = false;
@@ -1835,24 +1837,16 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 			if (!kristalPad.first)
 			{
 				m_read_queue.insert(m_read_queue.end(), results[i]->data.begin(),
-				                    results[i]->data.begin() + SLIPPI_PAD_FULL_SIZE);
-				/*if (slippi_netplay->newXReady)
-				{
-					WARN_LOG(SLIPPI_ONLINE, "Kristal input wasn't used");
-				}*/
+									results[i]->data.begin() + SLIPPI_PAD_FULL_SIZE);
 			}
-			slippi_netplay->newXReady = false;
 		}
 		else
 		{
-			m_read_queue.insert(m_read_queue.end(), 12, 0);
+			m_read_queue.insert(m_read_queue.end(), SLIPPI_PAD_FULL_SIZE, 0);
 		}
 	}
 
 	slippi_netplay->DropOldRemoteInputs(frame);
-
-	// ERROR_LOG(SLIPPI_ONLINE, "EXI: [%d] %X %X %X %X %X %X %X %X", latestFrame, m_read_queue[5], m_read_queue[6],
-	// m_read_queue[7], m_read_queue[8], m_read_queue[9], m_read_queue[10], m_read_queue[11], m_read_queue[12]);
 }
 
 void CEXISlippi::handleCaptureSavestate(u8 *payload)
