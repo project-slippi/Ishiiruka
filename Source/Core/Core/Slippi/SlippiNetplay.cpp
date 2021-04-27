@@ -1198,7 +1198,35 @@ void SlippiNetplayClient::DecrementInputStabilizerFrameCounts() {
 	}
 }
 
-void SlippiNetplayClient::KristalInputCallback(const GCPadStatus &pad, std::chrono::high_resolution_clock::time_point tp, int chan)
+std::array<u8, SLIPPI_PAD_DATA_SIZE> convertToInGamePadData(const GCPadStatus &pad)
+{
+	std::array<u8, SLIPPI_PAD_DATA_SIZE> ingamePadData = {};
+	ingamePadData[0] =
+		((!!(pad.button & PAD_BUTTON_A)) << 0)
+		+ ((!!(pad.button & PAD_BUTTON_B)) << 1)
+		+ ((!!(pad.button & PAD_BUTTON_X)) << 2)
+		+ ((!!(pad.button & PAD_BUTTON_Y)) << 3)
+		+ ((!!(pad.button & PAD_BUTTON_START)) << 4);
+	ingamePadData[1] =
+		((!!(pad.button & PAD_BUTTON_LEFT)) << 0)
+		+ ((!!(pad.button & PAD_BUTTON_RIGHT)) << 1)
+		+ ((!!(pad.button & PAD_BUTTON_DOWN)) << 2)
+		+ ((!!(pad.button & PAD_BUTTON_UP)) << 3)
+		+ ((!!(pad.button & PAD_TRIGGER_Z)) << 4)
+		+ ((!!(pad.button & PAD_TRIGGER_R)) << 5)
+		+ ((!!(pad.button & PAD_TRIGGER_L)) << 6);
+	ingamePadData[2] = pad.stickX - 0x80;
+	ingamePadData[3] = pad.stickY - 0x80;
+	ingamePadData[4] = pad.substickX - 0x80;
+	ingamePadData[5] = pad.substickY - 0x80;
+	ingamePadData[6] = pad.analogA;
+	ingamePadData[7] = pad.analogB;
+
+	return ingamePadData;
+}
+
+void SlippiNetplayClient::KristalInputCallback(const GCPadStatus &pad,
+                                               std::chrono::high_resolution_clock::time_point tp, int chan)
 {
 	static bool xPressed = false;
 
@@ -1217,7 +1245,10 @@ void SlippiNetplayClient::KristalInputCallback(const GCPadStatus &pad, std::chro
 	*spac << timingAndVersion.first; // subframe, 4 bytes
 	*spac << timingAndVersion.second; // version, 1 byte
 	*spac << this->playerIdx; // player index, 1 byte
-	spac->append(&pad, SLIPPI_PAD_DATA_SIZE); // first 8 bytes of pad
+
+	std::array<u8, SLIPPI_PAD_DATA_SIZE> ingamePadData = convertToInGamePadData(pad);
+
+	spac->append(&ingamePadData, SLIPPI_PAD_DATA_SIZE); // first 8 bytes of pad
 
 	std::pair<float, u8> timingAndVersionNow = SerialInterface::stabilizers[chan].evaluateTiming(std::chrono::high_resolution_clock::now());
 
