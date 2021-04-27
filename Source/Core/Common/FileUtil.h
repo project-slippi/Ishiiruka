@@ -159,6 +159,7 @@ std::string GetSysDirectory();
 
 #ifdef __APPLE__
 std::string GetBundleDirectory();
+std::string GetApplicationSupportDirectory();
 #endif
 
 std::string& GetExeDirectory();

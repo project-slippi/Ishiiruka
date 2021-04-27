@@ -156,11 +156,11 @@ bool SlippiUser::AttemptLogin()
 void SlippiUser::OpenLogInPage()
 {
 #ifdef _WIN32
-	if (!SlippiAuthWebView::IsAvailable())
-	{
+	// Uncomment this if Windows is in a position to try the login flow.
+	//if (!SlippiAuthWebView::IsAvailable())
+	//{
 		std::string url = "https://slippi.gg/online/enable";
 		std::string path = File::GetSlippiUserJSONPath();
-		;
 
 		// On windows, sometimes the path can have backslashes and slashes mixed, convert all to backslashes
 		path = ReplaceAll(path, "\\", "\\");
@@ -172,27 +172,7 @@ void SlippiUser::OpenLogInPage()
 		std::string command = "explorer \"" + fullUrl + "\"";
 		RunSystemCommand(command);
 		return;
-	}
-
-	// Uncomment this if Windows is in a position to try the login flow.
-	//
-	// if (!SlippiAuthWebView::IsAvailable())
-	// {
-	std::string url = "https://slippi.gg/online/enable";
-	std::string path = File::GetSlippiUserJSONPath();
-	;
-
-	// On windows, sometimes the path can have backslashes and slashes mixed, convert all to backslashes
-	path = ReplaceAll(path, "\\", "\\");
-	path = ReplaceAll(path, "/", "\\");
-
-	std::string fullUrl = url + "?path=" + path;
-	INFO_LOG(SLIPPI_ONLINE, "[User] Login at path: %s", fullUrl.c_str());
-
-	std::string command = "explorer \"" + fullUrl + "\"";
-	RunSystemCommand(command);
-	return;
-	// }
+	//}
 #endif
 
 	// macOS and Linux have stable WebView components that we can use to
