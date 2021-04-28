@@ -78,7 +78,7 @@ SlippiNetplayClient::SlippiNetplayClient(std::vector<std::string> addrs, std::ve
 	this->m_remotePlayerCount = remotePlayerCount;
 	this->playerIdx = playerIdx;
 
-	// Set up remote player data structures.
+	// Set up remote player data structures
 	int j = 0;
 	for (int i = 0; i < SLIPPI_REMOTE_PLAYER_MAX; i++, j++)
 	{
