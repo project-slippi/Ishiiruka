@@ -267,6 +267,8 @@ class SlippiNetplayClient
 #endif
 
 	u32 m_timebase_frame = 0;
+
+	u8 m_last_adapter_chan_used_in_kristal_callback = 0;
 };
 
 extern SlippiNetplayClient *SLIPPI_NETPLAY; // singleton static pointer

@@ -422,7 +422,8 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 		}
 		std::ostringstream oss;
 		auto tp = std::chrono::high_resolution_clock::now();
-		auto eval = SerialInterface::stabilizers[0].evaluateTiming(tp); // TODO [0]
+		auto eval =
+		    SerialInterface::stabilizers[m_last_adapter_chan_used_in_kristal_callback].evaluateTiming(tp);
 		oss << std::fixed << std::setprecision(2) << "Received Kristal input. Received: "
 		    << eval.first << " v" << (int)eval.second << " Content: "<< kpad.subframe
 		    << " v" << (int)kpad.version;
@@ -1228,6 +1229,9 @@ std::array<u8, SLIPPI_PAD_DATA_SIZE> convertToInGamePadData(const GCPadStatus &p
 void SlippiNetplayClient::KristalInputCallback(const GCPadStatus &pad,
                                                std::chrono::high_resolution_clock::time_point tp, int chan)
 {
+
+	m_last_adapter_chan_used_in_kristal_callback = chan;
+
 	static bool xPressed = false;
 
 	auto status = slippiConnectStatus;
