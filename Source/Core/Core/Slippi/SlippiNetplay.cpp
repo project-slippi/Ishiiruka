@@ -1214,13 +1214,13 @@ std::array<u8, SLIPPI_PAD_DATA_SIZE> convertToInGamePadData(const GCPadStatus &p
 		+ ((!!(pad.button & PAD_BUTTON_UP)) << 3)
 		+ ((!!(pad.button & PAD_TRIGGER_Z)) << 4)
 		+ ((!!(pad.button & PAD_TRIGGER_R)) << 5)
-		+ ((!!(pad.button & PAD_TRIGGER_L)) << 6);
+		+ ((!!(pad.button & PAD_TRIGGER_L)) << 6); 
 	ingamePadData[2] = pad.stickX - 0x80;
 	ingamePadData[3] = pad.stickY - 0x80;
 	ingamePadData[4] = pad.substickX - 0x80;
 	ingamePadData[5] = pad.substickY - 0x80;
-	ingamePadData[6] = pad.analogA;
-	ingamePadData[7] = pad.analogB;
+	ingamePadData[6] = pad.triggerLeft;
+	ingamePadData[7] = pad.triggerRight;
 
 	return ingamePadData;
 }
