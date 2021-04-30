@@ -1804,10 +1804,24 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 			{
 				if (kristalPad.second.subframe > (float)results[i]->latestFrame) // No less than the latest frame for which we have inputs
 				{
-					// More recent, use that
+					// More recent, use the Kristal input
+
+					auto start = results[i]->data.begin() + offset[i];
+
+					// We are stitching together the input to use from the Kristal pad and the
+					// latest known Slippi pad: Kristal pad content except for left/right trigger
+					// values, obtained from the latest known Slippi pad
+					// The reason being we don't handle origin yet and even without trigger trick
+					// they greatly impact trigger behaviours
+					// With trigger analog transmitter locked to bottom (whose initial position we
+					// wouldn't have perceived in the Kristal stream) we'd litterally be sending
+					// "full shield" every Kristal input, which would be awful
 					m_read_queue.insert(m_read_queue.end(), kristalPad.second.pad,
-										kristalPad.second.pad + SLIPPI_PAD_DATA_SIZE);
+										kristalPad.second.pad + SLIPPI_PAD_DATA_SIZE - 2);
+					m_read_queue.insert(m_read_queue.end(), start + SLIPPI_PAD_DATA_SIZE - 2,
+					                    start + SLIPPI_PAD_DATA_SIZE);
 					m_read_queue.insert(m_read_queue.end(), SLIPPI_PAD_FULL_SIZE - SLIPPI_PAD_DATA_SIZE, 0);
+
 					std::ostringstream oss;
 					oss << std::fixed << std::setprecision(2) << "Kristal input was used for frame " << frame
 					    << " subframe " << kristalPad.second.subframe << " latest known frame "
@@ -1819,7 +1833,6 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 					    << (int)kristalPad.second.pad[4] << " " << (int)kristalPad.second.pad[5] << " "
 					    << (int)kristalPad.second.pad[6] << " " << (int)kristalPad.second.pad[7] << " ";
 					ERROR_LOG(KRISTAL, oss.str().c_str());
-					auto start = results[i]->data.begin() + offset[i];
 					oss.str("");
 					oss << (int)start[0] << " " << (int)start[1] << " "
 					    << (int)start[2] << " " << (int)start[3] << " "
