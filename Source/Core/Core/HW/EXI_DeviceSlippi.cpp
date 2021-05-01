@@ -1806,7 +1806,7 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 				{
 					// More recent, use the Kristal input
 
-					auto start = results[i]->data.begin() + offset[i];
+					auto slippiPad = results[i]->data.begin() + offset[i];
 
 					// We are stitching together the input to use from the Kristal pad and the
 					// latest known Slippi pad: Kristal pad content except for left/right trigger
@@ -1818,8 +1818,8 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 					// "full shield" every Kristal input, which would be awful
 					m_read_queue.insert(m_read_queue.end(), kristalPad.second.pad,
 										kristalPad.second.pad + SLIPPI_PAD_DATA_SIZE - 2);
-					m_read_queue.insert(m_read_queue.end(), start + SLIPPI_PAD_DATA_SIZE - 2,
-					                    start + SLIPPI_PAD_DATA_SIZE);
+					m_read_queue.insert(m_read_queue.end(), slippiPad + SLIPPI_PAD_DATA_SIZE - 2,
+					                    slippiPad + SLIPPI_PAD_DATA_SIZE);
 					m_read_queue.insert(m_read_queue.end(), SLIPPI_PAD_FULL_SIZE - SLIPPI_PAD_DATA_SIZE, 0);
 
 					std::ostringstream oss;
@@ -1834,12 +1834,10 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 					    << (int)kristalPad.second.pad[6] << " " << (int)kristalPad.second.pad[7] << " ";
 					ERROR_LOG(KRISTAL, oss.str().c_str());
 					oss.str("");
-					oss << (int)start[0] << " " << (int)start[1] << " "
-					    << (int)start[2] << " " << (int)start[3] << " "
-					    << (int)start[4] << " " << (int)start[5] << " "
-						<< (int)start[6] << " " << (int)start[7] << " "
-					    << (int)start[8] << " " << (int)start[9] << " "
-						<< (int)start[10] << " " << (int)start[11];
+					oss << (int)slippiPad[0] << " " << (int)slippiPad[1] << " "
+						<< (int)slippiPad[2] << " " << (int)slippiPad[3] << " "
+						<< (int)slippiPad[4] << " " << (int)slippiPad[5] << " "
+						<< (int)slippiPad[6] << " " << (int)slippiPad[7];
 					ERROR_LOG(KRISTAL, oss.str().c_str());
 				}
 				else
