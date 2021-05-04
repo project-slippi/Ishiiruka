@@ -2331,9 +2331,11 @@ void CEXISlippi::prepareOnlineMatchState()
 		}
 
 		// Randomize assignments to randomize teams when all same color
+		// Previously there was a bug here where the shuffle was not consistent across platforms given the same seed,
+		// this would cause desyncs during cross platform play (different teams). I believe the mt19937 generator
+		// is consistent cross-platform
 		std::vector<u8> teamAssignments = {0, 0, 1, 1};
-		std::srand(rngOffset);
-		std::random_shuffle(teamAssignments.begin(), teamAssignments.end());
+		std::shuffle(teamAssignments.begin(), teamAssignments.end(), std::mt19937(rngOffset));
 
 		// Overwrite player character choices
 		for (auto &s : orderedSelections)
