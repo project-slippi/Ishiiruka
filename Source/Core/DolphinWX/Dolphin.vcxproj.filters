@@ -263,6 +263,10 @@
     <ClCompile Include="Config\SlippiConfigPane.cpp">
       <Filter>GUI\Config</Filter>
     </ClCompile>
+    <ClCompile Include="SlippiAuthWebView\SlippiAuthWebView.cpp" />
+    <ClCompile Include="Config\SlippiPlaybackConfigPane.cpp">
+      <Filter>GUI\Config</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Main.h" />
@@ -483,6 +487,10 @@
       <Filter>GUI\InputConfig</Filter>
     </ClInclude>
     <ClInclude Include="Config\SlippiConfigPane.h">
+      <Filter>GUI\Config</Filter>
+    </ClInclude>
+    <ClInclude Include="SlippiAuthWebView\SlippiAuthWebView.h" />
+    <ClInclude Include="Config\SlippiPlaybackConfigPane.h">
       <Filter>GUI\Config</Filter>
     </ClInclude>
   </ItemGroup>
