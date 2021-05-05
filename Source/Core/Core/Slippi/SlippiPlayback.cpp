@@ -85,6 +85,8 @@ void SlippiPlaybackStatus::prepareSlippiPlayback(s32 &frameIndex)
 	if (shouldRunThreads && ((currentPlaybackFrame + 122) % FRAME_INTERVAL == 0))
 		condVar.notify_one();
 
+	INFO_LOG(SLIPPI_ONLINE, "[Frame %d]", frameIndex);
+
 	// TODO: figure out why sometimes playback frame increments past targetFrameNum
 	if (inSlippiPlayback && frameIndex >= targetFrameNum)
 	{
