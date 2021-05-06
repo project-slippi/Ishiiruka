@@ -33,8 +33,7 @@
 #include "DolphinWX/WxUtils.h"
 #include <wx/valtext.h>
 
-SlippiPlaybackConfigPane::SlippiPlaybackConfigPane(wxWindow *parent, wxWindowID id)
-    : wxPanel(parent, id)
+SlippiPlaybackConfigPane::SlippiPlaybackConfigPane(wxWindow *parent, wxWindowID id) : wxPanel(parent, id)
 {
 	InitializeGUI();
 	LoadGUIValues();
@@ -43,68 +42,19 @@ SlippiPlaybackConfigPane::SlippiPlaybackConfigPane(wxWindow *parent, wxWindowID 
 
 void SlippiPlaybackConfigPane::InitializeGUI()
 {
+	// Slippi Replay settings
+	m_slippi_display_frame_index = new wxCheckBox(this, wxID_ANY, _("Display Frame index"));
+	m_slippi_display_frame_index->SetToolTip(
+	    _("Enable this to display the Frame Index when viewing replays."));
 
-	// Slippi settings
-	m_replay_enable_checkbox = new wxCheckBox(this, wxID_ANY, _("Save Slippi Replays"));
-	m_replay_enable_checkbox->SetToolTip(
-	    _("Enable this to make Slippi automatically save .slp recordings of your games."));
-
-	m_replay_month_folders_checkbox = new wxCheckBox(this, wxID_ANY, _("Save Replays to Monthly Subfolders"));
-	m_replay_month_folders_checkbox->SetToolTip(
-	    _("Enable this to save your replays into subfoldeaaaaaaaaaaaaaaaaaaars by month (YYYY-MM)."));
-
-	m_replay_directory_picker =
-	    new wxDirPickerCtrl(this, wxID_ANY, wxEmptyString, _("Slippi Replay Folder:"), wxDefaultPosition, wxDefaultSize,
-	                        wxDIRP_USE_TEXTCTRL | wxDIRP_SMALL);
-	m_replay_directory_picker->SetToolTip(_("Choose where your Slippi replay files are saved."));
-
-	// Online settings
-	m_slippi_delay_frames_txt = new wxStaticText(this, wxID_ANY, _("Delay Frames:"));
-	m_slippi_delay_frames_ctrl = new wxSpinCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(50, -1));
-	m_slippi_delay_frames_ctrl->SetToolTip(
-	    _("Leave this at 2 unless consistently playing on 120+ ping. "
-	      "Increasing this can cause unplayable input delay, and lowering it can cause visual artifacts/lag."));
-	m_slippi_delay_frames_ctrl->SetRange(1, 9);
-
-	m_slippi_enable_quick_chat = new wxCheckBox(this, wxID_ANY, _("Enable Quick Chat"));
-	m_slippi_enable_quick_chat->SetToolTip(_("Enable this to send and receive Quick Chat Messages when online."));
-
-	m_slippi_force_netplay_port_checkbox = new wxCheckBox(this, wxID_ANY, _("Force Netplay Port"));
-	m_slippi_force_netplay_port_checkbox->SetToolTip(
-	    _("Enable this to force Slippi to use a specific network port for online peer-to-peer connections."));
-	m_slippi_force_netplay_port_ctrl =
-	    new wxSpinCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(100, -1));
-	m_slippi_force_netplay_port_ctrl->SetRange(1, 65535);
-
-	m_slippi_force_netplay_lan_ip_checkbox = new wxCheckBox(this, wxID_ANY, _("Force LAN IP"));
-	m_slippi_force_netplay_lan_ip_checkbox->SetToolTip(
-	    _("Enable this to force Slippi to use a specific LAN IP when connecting to users with a matching WAN IP. "
-	      "Should not be required for most users."));
-	m_slippi_netplay_lan_ip_ctrl = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(120, -1));
-	m_slippi_netplay_lan_ip_ctrl->SetMaxLength(20);
-	wxArrayString charsToFilter;
-	wxTextValidator ipTextValidator(wxFILTER_INCLUDE_CHAR_LIST);
-	charsToFilter.Add(wxT("0123456789."));
-	ipTextValidator.SetIncludes(charsToFilter);
-	m_slippi_netplay_lan_ip_ctrl->SetValidator(ipTextValidator);
-
-	// Input settings
-	m_reduce_timing_dispersion_checkbox = new wxCheckBox(this, wxID_ANY, _("Reduce Timing Dispersion"));
-	m_reduce_timing_dispersion_checkbox->SetToolTip(
-	    _("Make inputs feel more console-like for overclocked GCC to USB "
-	      "adapters at the cost of 1.6ms of input lag (2ms for single-port official adapter)."));
 
 	const int space5 = FromDIP(5);
-	const int space10 = FromDIP(10);
+
 
 	wxGridBagSizer *const sSlippiReplaySettings = new wxGridBagSizer(space5, space5);
-	sSlippiReplaySettings->Add(m_replay_enable_checkbox, wxGBPosition(0, 0), wxGBSpan(1, 2));
-	sSlippiReplaySettings->Add(m_replay_month_folders_checkbox, wxGBPosition(1, 0), wxGBSpan(1, 2),
-	                           wxRESERVE_SPACE_EVEN_IF_HIDDEN);
-	sSlippiReplaySettings->Add(new wxStaticText(this, wxID_ANY, _("Replay folder:")), wxGBPosition(2, 0), wxDefaultSpan,
-	                           wxALIGN_CENTER_VERTICAL);
-	sSlippiReplaySettings->Add(m_replay_directory_picker, wxGBPosition(2, 1), wxDefaultSpan, wxEXPAND);
+	sSlippiReplaySettings->Add(m_slippi_display_frame_index, wxGBPosition(0, 0), wxGBSpan(1, 2));
 	sSlippiReplaySettings->AddGrowableCol(1);
+
 
 	wxStaticBoxSizer *const sbSlippiReplaySettings =
 	    new wxStaticBoxSizer(wxVERTICAL, this, _("Slippi Replay Settings"));
@@ -112,38 +62,10 @@ void SlippiPlaybackConfigPane::InitializeGUI()
 	sbSlippiReplaySettings->Add(sSlippiReplaySettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	sbSlippiReplaySettings->AddSpacer(space5);
 
-	wxGridBagSizer *const sSlippiOnlineSettings = new wxGridBagSizer(space10, space5);
-	sSlippiOnlineSettings->Add(m_slippi_delay_frames_txt, wxGBPosition(0, 0), wxDefaultSpan, wxALIGN_CENTER_VERTICAL);
-	sSlippiOnlineSettings->Add(m_slippi_delay_frames_ctrl, wxGBPosition(0, 1), wxDefaultSpan, wxALIGN_LEFT);
-	sSlippiOnlineSettings->Add(m_slippi_enable_quick_chat, wxGBPosition(1, 0), wxDefaultSpan, wxALIGN_LEFT);
-	sSlippiOnlineSettings->Add(m_slippi_force_netplay_port_checkbox, wxGBPosition(2, 0), wxDefaultSpan,
-	                           wxALIGN_CENTER_VERTICAL);
-	sSlippiOnlineSettings->Add(m_slippi_force_netplay_port_ctrl, wxGBPosition(2, 1), wxDefaultSpan,
-	                           wxALIGN_LEFT | wxRESERVE_SPACE_EVEN_IF_HIDDEN);
-	sSlippiOnlineSettings->Add(m_slippi_force_netplay_lan_ip_checkbox, wxGBPosition(3, 0), wxDefaultSpan,
-	                           wxALIGN_CENTER_VERTICAL);
-	sSlippiOnlineSettings->Add(m_slippi_netplay_lan_ip_ctrl, wxGBPosition(3, 1), wxDefaultSpan,
-	                           wxALIGN_LEFT | wxRESERVE_SPACE_EVEN_IF_HIDDEN);
-
-	wxStaticBoxSizer *const sbSlippiOnlineSettings =
-	    new wxStaticBoxSizer(wxVERTICAL, this, _("Slippi Online Settings"));
-	sbSlippiOnlineSettings->AddSpacer(space5);
-	sbSlippiOnlineSettings->Add(sSlippiOnlineSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
-	sbSlippiOnlineSettings->AddSpacer(space5);
-
-	wxStaticBoxSizer *const sbSlippiInputSettings = new wxStaticBoxSizer(wxVERTICAL, this, _("Slippi Input Settings"));
-	sbSlippiInputSettings->AddSpacer(space5);
-	sbSlippiInputSettings->Add(m_reduce_timing_dispersion_checkbox, 0, wxLEFT | wxRIGHT, space5);
-	sbSlippiInputSettings->AddSpacer(space5);
-
 	wxBoxSizer *const main_sizer = new wxBoxSizer(wxVERTICAL);
 
 	main_sizer->AddSpacer(space5);
 	main_sizer->Add(sbSlippiReplaySettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
-	main_sizer->AddSpacer(space5);
-	main_sizer->Add(sbSlippiOnlineSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
-	main_sizer->AddSpacer(space5);
-	main_sizer->Add(sbSlippiInputSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	main_sizer->AddSpacer(space5);
 
 	SetSizer(main_sizer);
@@ -151,138 +73,10 @@ void SlippiPlaybackConfigPane::InitializeGUI()
 
 void SlippiPlaybackConfigPane::LoadGUIValues()
 {
-	const SConfig &startup_params = SConfig::GetInstance();
 
-#if HAVE_PORTAUDIO
-#endif
-
-	bool enableReplays = startup_params.m_slippiSaveReplays;
-	bool forceNetplayPort = startup_params.m_slippiForceNetplayPort;
-	bool forceLanIp = startup_params.m_slippiForceLanIp;
-
-	m_replay_enable_checkbox->SetValue(enableReplays);
-	m_replay_month_folders_checkbox->SetValue(startup_params.m_slippiReplayMonthFolders);
-	m_replay_directory_picker->SetPath(StrToWxStr(startup_params.m_strSlippiReplayDir));
-
-	if (!enableReplays)
-	{
-		m_replay_month_folders_checkbox->Hide();
-	}
-
-	m_slippi_delay_frames_ctrl->SetValue(startup_params.m_slippiOnlineDelay);
-	m_slippi_enable_quick_chat->SetValue(startup_params.m_slippiEnableQuickChat);
-
-	m_slippi_force_netplay_port_checkbox->SetValue(startup_params.m_slippiForceNetplayPort);
-	m_slippi_force_netplay_port_ctrl->SetValue(startup_params.m_slippiNetplayPort);
-	if (!forceNetplayPort)
-	{
-		m_slippi_force_netplay_port_ctrl->Hide();
-	}
-
-	m_slippi_force_netplay_lan_ip_checkbox->SetValue(startup_params.m_slippiForceLanIp);
-	m_slippi_netplay_lan_ip_ctrl->SetValue(startup_params.m_slippiLanIp);
-	if (!forceLanIp)
-	{
-		m_slippi_netplay_lan_ip_ctrl->Hide();
-	}
-
-	m_reduce_timing_dispersion_checkbox->SetValue(startup_params.bReduceTimingDispersion);
 }
 
 void SlippiPlaybackConfigPane::BindEvents()
 {
-	m_replay_enable_checkbox->Bind(wxEVT_CHECKBOX, &SlippiPlaybackConfigPane::OnReplaySavingToggle, this);
 
-	m_replay_month_folders_checkbox->Bind(wxEVT_CHECKBOX, &SlippiPlaybackConfigPane::OnReplayMonthFoldersToggle, this);
-
-	m_replay_directory_picker->Bind(wxEVT_DIRPICKER_CHANGED, &SlippiPlaybackConfigPane::OnReplayDirChanged, this);
-
-	m_slippi_delay_frames_ctrl->Bind(wxEVT_SPINCTRL, &SlippiPlaybackConfigPane::OnDelayFramesChanged, this);
-	m_slippi_enable_quick_chat->Bind(wxEVT_CHECKBOX, &SlippiPlaybackConfigPane::OnQuickChatToggle, this);
-	m_slippi_force_netplay_port_checkbox->Bind(wxEVT_CHECKBOX, &SlippiPlaybackConfigPane::OnForceNetplayPortToggle, this);
-	m_slippi_force_netplay_port_ctrl->Bind(wxEVT_SPINCTRL, &SlippiPlaybackConfigPane::OnNetplayPortChanged, this);
-
-	m_slippi_force_netplay_lan_ip_checkbox->Bind(wxEVT_CHECKBOX, &SlippiPlaybackConfigPane::OnForceNetplayLanIpToggle, this);
-	m_slippi_netplay_lan_ip_ctrl->Bind(wxEVT_TEXT, &SlippiPlaybackConfigPane::OnNetplayLanIpChanged, this);
-
-	m_reduce_timing_dispersion_checkbox->Bind(wxEVT_CHECKBOX, &SlippiPlaybackConfigPane::OnReduceTimingDispersionToggle, this);
-}
-
-void SlippiPlaybackConfigPane::OnQuickChatToggle(wxCommandEvent &event)
-{
-	bool enableQuickChat = m_slippi_enable_quick_chat->IsChecked();
-	SConfig::GetInstance().m_slippiEnableQuickChat = enableQuickChat;
-}
-
-void SlippiPlaybackConfigPane::OnReplaySavingToggle(wxCommandEvent &event)
-{
-	bool enableReplays = m_replay_enable_checkbox->IsChecked();
-
-	SConfig::GetInstance().m_slippiSaveReplays = enableReplays;
-
-	if (enableReplays)
-	{
-		m_replay_month_folders_checkbox->Show();
-	}
-	else
-	{
-		m_replay_month_folders_checkbox->SetValue(false);
-		m_replay_month_folders_checkbox->Hide();
-		SConfig::GetInstance().m_slippiReplayMonthFolders = false;
-	}
-}
-
-void SlippiPlaybackConfigPane::OnReplayMonthFoldersToggle(wxCommandEvent &event)
-{
-	SConfig::GetInstance().m_slippiReplayMonthFolders =
-	    m_replay_enable_checkbox->IsChecked() && m_replay_month_folders_checkbox->IsChecked();
-}
-
-void SlippiPlaybackConfigPane::OnReplayDirChanged(wxCommandEvent &event)
-{
-	SConfig::GetInstance().m_strSlippiReplayDir = WxStrToStr(m_replay_directory_picker->GetPath());
-}
-
-void SlippiPlaybackConfigPane::OnDelayFramesChanged(wxCommandEvent &event)
-{
-	SConfig::GetInstance().m_slippiOnlineDelay = m_slippi_delay_frames_ctrl->GetValue();
-}
-
-void SlippiPlaybackConfigPane::OnForceNetplayPortToggle(wxCommandEvent &event)
-{
-	bool enableForcePort = m_slippi_force_netplay_port_checkbox->IsChecked();
-
-	SConfig::GetInstance().m_slippiForceNetplayPort = enableForcePort;
-
-	if (enableForcePort)
-		m_slippi_force_netplay_port_ctrl->Show();
-	else
-		m_slippi_force_netplay_port_ctrl->Hide();
-}
-
-void SlippiPlaybackConfigPane::OnNetplayPortChanged(wxCommandEvent &event)
-{
-	SConfig::GetInstance().m_slippiNetplayPort = m_slippi_force_netplay_port_ctrl->GetValue();
-}
-
-void SlippiPlaybackConfigPane::OnForceNetplayLanIpToggle(wxCommandEvent &event)
-{
-	bool enableForceLanIp = m_slippi_force_netplay_lan_ip_checkbox->IsChecked();
-
-	SConfig::GetInstance().m_slippiForceLanIp = enableForceLanIp;
-
-	if (enableForceLanIp)
-		m_slippi_netplay_lan_ip_ctrl->Show();
-	else
-		m_slippi_netplay_lan_ip_ctrl->Hide();
-}
-
-void SlippiPlaybackConfigPane::OnNetplayLanIpChanged(wxCommandEvent &event)
-{
-	SConfig::GetInstance().m_slippiLanIp = m_slippi_netplay_lan_ip_ctrl->GetValue().c_str();
-}
-
-void SlippiPlaybackConfigPane::OnReduceTimingDispersionToggle(wxCommandEvent &event)
-{
-	SConfig::GetInstance().bReduceTimingDispersion = m_reduce_timing_dispersion_checkbox->GetValue();
 }
