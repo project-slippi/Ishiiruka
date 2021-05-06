@@ -379,15 +379,6 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 			OSD::AddTypedMessage(OSD::MessageType::NetPlayPing, pingDisplay.str(), OSD::Duration::NORMAL,
 			                     OSD::Color::CYAN);
 		}
-
-		if (false)
-		{
-			std::stringstream frameDisplay;
-			frameDisplay << "Frame: TEST";
-
-			OSD::AddTypedMessage(OSD::MessageType::FrameIndex, frameDisplay.str(), OSD::Duration::NORMAL,
-			                     OSD::Color::CYAN);
-		}
 	}
 	break;
 

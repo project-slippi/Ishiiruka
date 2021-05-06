@@ -11,6 +11,7 @@
 #include "Core/NetPlayClient.h"
 #include "Core/State.h"
 #include "SlippiPlayback.h"
+#include <VideoCommon/OnScreenDisplay.h>
 
 #define FRAME_INTERVAL 900
 #define SLEEP_TIME_MS 8
@@ -86,6 +87,13 @@ void SlippiPlaybackStatus::prepareSlippiPlayback(s32 &frameIndex)
 		condVar.notify_one();
 
 	INFO_LOG(SLIPPI_ONLINE, "[Frame %d]", frameIndex);
+	if (true)
+	{
+		std::stringstream frameDisplay;
+		frameDisplay << "Frame: " + std::to_string(frameIndex);
+
+		OSD::AddTypedMessage(OSD::MessageType::FrameIndex, frameDisplay.str(), OSD::Duration::NORMAL, OSD::Color::CYAN);
+	}
 
 	// TODO: figure out why sometimes playback frame increments past targetFrameNum
 	if (inSlippiPlayback && frameIndex >= targetFrameNum)
