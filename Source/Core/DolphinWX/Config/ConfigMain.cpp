@@ -78,8 +78,11 @@ void CConfigMain::CreateGUIControls()
 	wxPanel* const general_pane = new GeneralConfigPane(Notebook, ID_GENERALPAGE);
 	wxPanel* const interface_pane = new InterfaceConfigPane(Notebook, ID_DISPLAYPAGE);
 	wxPanel* const audio_pane = new AudioConfigPane(Notebook, ID_AUDIOPAGE);
+#ifndef IS_PLAYBACK
 	wxPanel* const slippi_pane = new SlippiConfigPane(Notebook, ID_SLIPPIPAGE);
+#else
 	wxPanel *const slippi_playback_pane = new SlippiPlaybackConfigPane(Notebook, ID_SLIPPIPLAYBACKPAGE);
+#endif
 	wxPanel* const gamecube_pane = new GameCubeConfigPane(Notebook, ID_GAMECUBEPAGE);
 	wxPanel* const wii_pane = new WiiConfigPane(Notebook, ID_WIIPAGE);
 	wxPanel* const path_pane = new PathConfigPane(Notebook, ID_PATHSPAGE);
@@ -88,8 +91,11 @@ void CConfigMain::CreateGUIControls()
 	Notebook->AddPage(general_pane, _("General"));
 	Notebook->AddPage(interface_pane, _("Interface"));
 	Notebook->AddPage(audio_pane, _("Audio"));
+#ifndef IS_PLAYBACK
 	Notebook->AddPage(slippi_pane, _("Slippi"));
+#else
 	Notebook->AddPage(slippi_playback_pane, _("Slippi Playback"));
+#endif
 	Notebook->AddPage(gamecube_pane, _("GameCube"));
 	Notebook->AddPage(wii_pane, _("Wii"));
 	Notebook->AddPage(path_pane, _("Paths"));

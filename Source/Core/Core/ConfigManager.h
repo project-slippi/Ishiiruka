@@ -140,6 +140,7 @@ struct SConfig : NonCopyable
 	bool bHasShownLagReductionWarning = false;
 	bool bMeleeForceWidescreen = false;
 
+	// Slippi
 	bool m_slippiSaveReplays = true;
 	bool m_slippiEnableQuickChat = true;
 	bool m_slippiReplayMonthFolders = false;
@@ -151,6 +152,9 @@ struct SConfig : NonCopyable
 	bool m_meleeUserIniBootstrapped = false;
 	bool m_blockingPipes = false;
 	bool m_coutEnabled = false;
+
+	//Slippi Playback
+	bool m_slippiEnableFrameIndex = false;
 
 	bool bDPL2Decoder = false;
 	bool bTimeStretching = false;

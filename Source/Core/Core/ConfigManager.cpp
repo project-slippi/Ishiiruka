@@ -290,6 +290,7 @@ void SConfig::SaveCoreSettings(IniFile& ini)
 	core->Set("SlippiLanIp", m_slippiLanIp);
 	core->Set("SlippiReplayMonthFolders", m_slippiReplayMonthFolders);
 	core->Set("SlippiReplayDir", m_strSlippiReplayDir);
+	core->Set("SlippiPlaybackDisplayFrameIndex", m_slippiEnableFrameIndex);
 	core->Set("BlockingPipes", m_blockingPipes);
 	core->Set("MemcardAPath", m_strMemoryCardA);
 	core->Set("MemcardBPath", m_strMemoryCardB);
@@ -631,6 +632,7 @@ void SConfig::LoadCoreSettings(IniFile& ini)
 	core->Get("SlippiReplayDir", &m_strSlippiReplayDir, default_replay_dir);
 	if (m_strSlippiReplayDir.empty())
 		m_strSlippiReplayDir = default_replay_dir;
+	core->Get("SlippiPlaybackDisplayFrameIndex", &m_slippiEnableFrameIndex, false);
 	core->Get("BlockingPipes", &m_blockingPipes, false);
 	core->Get("MemcardAPath", &m_strMemoryCardA);
 	core->Get("MemcardBPath", &m_strMemoryCardB);

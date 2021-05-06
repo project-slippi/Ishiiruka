@@ -31,7 +31,8 @@ private:
 
 	wxStaticText* m_slippi_delay_frames_txt;
 	wxTextCtrl *m_slippi_netplay_lan_ip_ctrl;
-	wxCheckBox *m_slippi_display_frame_index;
+	wxCheckBox *m_display_frame_index;
 
+	void OnDisplayFrameIndexToggle(wxCommandEvent &event);
 
 };

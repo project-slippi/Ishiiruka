@@ -43,8 +43,8 @@ SlippiPlaybackConfigPane::SlippiPlaybackConfigPane(wxWindow *parent, wxWindowID 
 void SlippiPlaybackConfigPane::InitializeGUI()
 {
 	// Slippi Replay settings
-	m_slippi_display_frame_index = new wxCheckBox(this, wxID_ANY, _("Display Frame index"));
-	m_slippi_display_frame_index->SetToolTip(
+	m_display_frame_index = new wxCheckBox(this, wxID_ANY, _("Display Frame index"));
+	m_display_frame_index->SetToolTip(
 	    _("Enable this to display the Frame Index when viewing replays."));
 
 
@@ -52,7 +52,7 @@ void SlippiPlaybackConfigPane::InitializeGUI()
 
 
 	wxGridBagSizer *const sSlippiReplaySettings = new wxGridBagSizer(space5, space5);
-	sSlippiReplaySettings->Add(m_slippi_display_frame_index, wxGBPosition(0, 0), wxGBSpan(1, 2));
+	sSlippiReplaySettings->Add(m_display_frame_index, wxGBPosition(0, 0), wxGBSpan(1, 2));
 	sSlippiReplaySettings->AddGrowableCol(1);
 
 
@@ -73,10 +73,20 @@ void SlippiPlaybackConfigPane::InitializeGUI()
 
 void SlippiPlaybackConfigPane::LoadGUIValues()
 {
+	const SConfig &startup_params = SConfig::GetInstance();
 
+	bool enableFrameIndex = startup_params.m_slippiEnableFrameIndex;
+
+	m_display_frame_index->SetValue(enableFrameIndex);
 }
 
 void SlippiPlaybackConfigPane::BindEvents()
 {
+	m_display_frame_index->Bind(wxEVT_CHECKBOX, &SlippiPlaybackConfigPane::OnDisplayFrameIndexToggle, this);
+}
 
+void SlippiPlaybackConfigPane::OnDisplayFrameIndexToggle(wxCommandEvent &event)
+{
+	bool enableFrameIndex = m_display_frame_index->IsChecked();
+	SConfig::GetInstance().m_slippiEnableFrameIndex = enableFrameIndex;
 }
