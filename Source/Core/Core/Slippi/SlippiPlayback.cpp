@@ -93,7 +93,7 @@ void SlippiPlaybackStatus::prepareSlippiPlayback(s32 &frameIndex)
 			// Since playback logic only goes up in currentPlaybackFrame now due to handling rollback
 			// playback, we need to rewind the currentPlaybackFrame here instead such that the playback
 			// cursor will show up in the correct place
-			currentPlaybackFrame = targetFrameNum + 1;
+			currentPlaybackFrame = targetFrameNum;
 		}
 
 		if (currentPlaybackFrame > targetFrameNum)
@@ -216,8 +216,9 @@ void SlippiPlaybackStatus::SeekThread()
 
 			s32 closestStateFrame = targetFrameNum - emod(targetFrameNum - Slippi::PLAYBACK_FIRST_SAVE, FRAME_INTERVAL);
 
+			// Somtimes prepareSlippiPlayback sets currentPlaybackFrame = targetFrameNum so check if target is <=
 			bool isLoadingStateOptimal =
-				targetFrameNum < currentPlaybackFrame || closestStateFrame > currentPlaybackFrame;
+				targetFrameNum <= currentPlaybackFrame || closestStateFrame > currentPlaybackFrame;
 
 			if (isLoadingStateOptimal)
 			{
