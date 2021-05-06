@@ -216,8 +216,9 @@ void SlippiPlaybackStatus::SeekThread()
 
 			s32 closestStateFrame = targetFrameNum - emod(targetFrameNum - Slippi::PLAYBACK_FIRST_SAVE, FRAME_INTERVAL);
 
+			// Somtimes prepareSlippiPlayback sets currentPlaybackFrame = targetFrameNum so check if target is <=
 			bool isLoadingStateOptimal =
-				targetFrameNum < currentPlaybackFrame || closestStateFrame > currentPlaybackFrame;
+				targetFrameNum <= currentPlaybackFrame || closestStateFrame > currentPlaybackFrame;
 
 			if (isLoadingStateOptimal)
 			{
