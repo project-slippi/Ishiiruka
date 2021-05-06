@@ -87,3 +87,5 @@ Tools/*.zs-old
 *.zs-old
 *.FileListAbsolute.txt
 *.recipe
+
+Data/Sys/GameFiles/GALE01/install.bat
