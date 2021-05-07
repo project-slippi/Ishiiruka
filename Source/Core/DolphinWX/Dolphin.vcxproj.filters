@@ -263,6 +263,7 @@
     <ClCompile Include="Config\SlippiConfigPane.cpp">
       <Filter>GUI\Config</Filter>
     </ClCompile>
+    <ClCompile Include="SlippiAuthWebView\SlippiAuthWebView.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Main.h" />
@@ -485,6 +486,7 @@
     <ClInclude Include="Config\SlippiConfigPane.h">
       <Filter>GUI\Config</Filter>
     </ClInclude>
+    <ClInclude Include="SlippiAuthWebView\SlippiAuthWebView.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="CMakeLists.txt" />

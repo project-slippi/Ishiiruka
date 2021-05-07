@@ -721,6 +721,18 @@ std::string GetBundleDirectory()
 
 	return AppBundlePath;
 }
+
+std::string GetApplicationSupportDirectory()
+{
+	std::string dir = File::GetHomeDirectory() + "/Library/Application Support/com.project-slippi.dolphin";
+
+	if(!CreateDir(dir))
+	{
+		ERROR_LOG(COMMON, "Unable to create Application Support directory: %s:", dir.c_str());
+    	}
+
+	return dir;
+}
 #endif
 
 std::string &GetExeDirectory()
@@ -798,7 +810,7 @@ std::string GetSysDirectory()
 std::string GetSlippiUserJSONPath()
 {
 #if defined(__APPLE__)
-	std::string userFilePath = File::GetBundleDirectory() + "/Contents/Resources" + DIR_SEP + "user.json";
+    std::string userFilePath = File::GetApplicationSupportDirectory() + "/Slippi/user.json";
 #elif defined(_WIN32)
 	std::string userFilePath = File::GetExeDirectory() + DIR_SEP + "user.json";
 #else
@@ -834,6 +846,7 @@ static void RebuildUserDirectories(unsigned int dir_index)
 		s_user_paths[D_DUMPDSP_IDX] = s_user_paths[D_DUMP_IDX] + DUMP_DSP_DIR DIR_SEP;
 		s_user_paths[D_DUMPSSL_IDX] = s_user_paths[D_DUMP_IDX] + DUMP_SSL_DIR DIR_SEP;
 		s_user_paths[D_LOGS_IDX] = s_user_paths[D_USER_IDX] + LOGS_DIR DIR_SEP;
+		s_user_paths[D_SLIPPI_IDX] = s_user_paths[D_USER_IDX] + SLIPPI_DIR DIR_SEP;
 		s_user_paths[D_MAILLOGS_IDX] = s_user_paths[D_LOGS_IDX] + MAIL_LOGS_DIR DIR_SEP;
 		s_user_paths[D_THEMES_IDX] = s_user_paths[D_USER_IDX] + THEMES_DIR DIR_SEP;
 		s_user_paths[D_PIPES_IDX] = s_user_paths[D_USER_IDX] + PIPES_DIR DIR_SEP;
