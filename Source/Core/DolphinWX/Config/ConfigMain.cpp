@@ -78,7 +78,7 @@ void CConfigMain::CreateGUIControls()
 	wxPanel* const interface_pane = new InterfaceConfigPane(Notebook, ID_DISPLAYPAGE);
 	wxPanel* const audio_pane = new AudioConfigPane(Notebook, ID_AUDIOPAGE);
 #ifndef IS_PLAYBACK
-	wxPanel* const slippi_pane = new SlippiNetplayConfigPane(Notebook, ID_SLIPPIPAGE);
+	wxPanel* const slippi_pane = new SlippiNetplayConfigPane(Notebook, ID_SLIPPINETPLAYPAGE);
 #else
 	wxPanel *const slippi_pane = new SlippiPlaybackConfigPane(Notebook, ID_SLIPPIPLAYBACKPAGE);
 #endif
