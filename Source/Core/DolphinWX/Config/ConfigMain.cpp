@@ -77,10 +77,10 @@ void CConfigMain::CreateGUIControls()
 	wxPanel* const general_pane = new GeneralConfigPane(Notebook, ID_GENERALPAGE);
 	wxPanel* const interface_pane = new InterfaceConfigPane(Notebook, ID_DISPLAYPAGE);
 	wxPanel* const audio_pane = new AudioConfigPane(Notebook, ID_AUDIOPAGE);
-#ifdef IS_PLAYBACK
+#ifndef IS_PLAYBACK
 	wxPanel* const slippi_pane = new SlippiNetplayConfigPane(Notebook, ID_SLIPPIPAGE);
 #else
-	wxPanel *const slippi_pane = new SlippiPlaybackConfigPane(Notebook, ID_SLIPPIPAGE);
+	wxPanel *const slippi_pane = new SlippiPlaybackConfigPane(Notebook, ID_SLIPPIPLAYBACKPAGE);
 #endif
 	wxPanel* const gamecube_pane = new GameCubeConfigPane(Notebook, ID_GAMECUBEPAGE);
 	wxPanel* const wii_pane = new WiiConfigPane(Notebook, ID_WIIPAGE);
