@@ -19,10 +19,10 @@ class wxString;
 class wxStaticText;
 class wxTextCtrl;
 
-class SlippiConfigPane final : public wxPanel
+class SlippiNetplayConfigPane final : public wxPanel
 {
 public:
-	SlippiConfigPane(wxWindow* parent, wxWindowID id);
+	SlippiNetplayConfigPane(wxWindow* parent, wxWindowID id);
 
 private:
 	void InitializeGUI();
