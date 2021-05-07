@@ -37,7 +37,8 @@ private:
 	void OnNetplayPortChanged(wxCommandEvent &event);
 	void OnForceNetplayLanIpToggle(wxCommandEvent &event);
 	void OnNetplayLanIpChanged(wxCommandEvent &event);
-	void OnQuickChatToggle(wxCommandEvent& event);
+	void OnQuickChatToggle(wxCommandEvent &event);
+	void OnCustomRulesToggle(wxCommandEvent &event);
 	void OnReduceTimingDispersionToggle(wxCommandEvent &event);
 
 	wxCheckBox* m_replay_enable_checkbox;
@@ -49,8 +50,7 @@ private:
 	wxSpinCtrl *m_slippi_force_netplay_port_ctrl;
 	wxCheckBox *m_slippi_force_netplay_lan_ip_checkbox;
 	wxTextCtrl *m_slippi_netplay_lan_ip_ctrl;
-	wxCheckBox* m_slippi_enable_quick_chat;
+	wxCheckBox *m_slippi_enable_quick_chat;
+	wxCheckBox *m_slippi_enable_custom_rules;
 	wxCheckBox *m_reduce_timing_dispersion_checkbox;
-
-
 };

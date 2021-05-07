@@ -15,8 +15,8 @@
 #include <wx/filepicker.h>
 #include <wx/gbsizer.h>
 #include <wx/sizer.h>
-#include <wx/stattext.h>
 #include <wx/spinctrl.h>
+#include <wx/stattext.h>
 
 #include "Common/Common.h"
 #include "Common/CommonPaths.h"
@@ -69,8 +69,10 @@ void SlippiConfigPane::InitializeGUI()
 	m_slippi_delay_frames_ctrl->SetRange(1, 9);
 
 	m_slippi_enable_quick_chat = new wxCheckBox(this, wxID_ANY, _("Enable Quick Chat"));
-	m_slippi_enable_quick_chat->SetToolTip(
-		_("Enable this to send and receive Quick Chat Messages when online."));
+	m_slippi_enable_quick_chat->SetToolTip(_("Enable this to send and receive Quick Chat Messages when online."));
+
+	m_slippi_enable_custom_rules = new wxCheckBox(this, wxID_ANY, _("Enable Custom Rules"));
+	m_slippi_enable_custom_rules->SetToolTip(_("Enable this to play Custom Rules on some Online Modes"));
 
 	m_slippi_force_netplay_port_checkbox = new wxCheckBox(this, wxID_ANY, _("Force Netplay Port"));
 	m_slippi_force_netplay_port_checkbox->SetToolTip(
@@ -119,12 +121,15 @@ void SlippiConfigPane::InitializeGUI()
 	sSlippiOnlineSettings->Add(m_slippi_delay_frames_txt, wxGBPosition(0, 0), wxDefaultSpan, wxALIGN_CENTER_VERTICAL);
 	sSlippiOnlineSettings->Add(m_slippi_delay_frames_ctrl, wxGBPosition(0, 1), wxDefaultSpan, wxALIGN_LEFT);
 	sSlippiOnlineSettings->Add(m_slippi_enable_quick_chat, wxGBPosition(1, 0), wxDefaultSpan, wxALIGN_LEFT);
-	sSlippiOnlineSettings->Add(m_slippi_force_netplay_port_checkbox, wxGBPosition(2, 0), wxDefaultSpan, wxALIGN_CENTER_VERTICAL);
-	sSlippiOnlineSettings->Add(m_slippi_force_netplay_port_ctrl, wxGBPosition(2, 1), wxDefaultSpan,
-	                           wxALIGN_LEFT | wxRESERVE_SPACE_EVEN_IF_HIDDEN);
-	sSlippiOnlineSettings->Add(m_slippi_force_netplay_lan_ip_checkbox, wxGBPosition(3, 0), wxDefaultSpan,
+	sSlippiOnlineSettings->Add(m_slippi_enable_custom_rules, wxGBPosition(2, 0), wxDefaultSpan, wxALIGN_LEFT);
+
+	sSlippiOnlineSettings->Add(m_slippi_force_netplay_port_checkbox, wxGBPosition(3, 0), wxDefaultSpan,
 	                           wxALIGN_CENTER_VERTICAL);
-	sSlippiOnlineSettings->Add(m_slippi_netplay_lan_ip_ctrl, wxGBPosition(3, 1), wxDefaultSpan,
+	sSlippiOnlineSettings->Add(m_slippi_force_netplay_port_ctrl, wxGBPosition(3, 1), wxDefaultSpan,
+	                           wxALIGN_LEFT | wxRESERVE_SPACE_EVEN_IF_HIDDEN);
+	sSlippiOnlineSettings->Add(m_slippi_force_netplay_lan_ip_checkbox, wxGBPosition(4, 0), wxDefaultSpan,
+	                           wxALIGN_CENTER_VERTICAL);
+	sSlippiOnlineSettings->Add(m_slippi_netplay_lan_ip_ctrl, wxGBPosition(4, 1), wxDefaultSpan,
 	                           wxALIGN_LEFT | wxRESERVE_SPACE_EVEN_IF_HIDDEN);
 
 	wxStaticBoxSizer* const sbSlippiOnlineSettings =
@@ -155,11 +160,10 @@ void SlippiConfigPane::InitializeGUI()
 
 void SlippiConfigPane::LoadGUIValues()
 {
-	const SConfig& startup_params = SConfig::GetInstance();
+	const SConfig &startup_params = SConfig::GetInstance();
 
 #if HAVE_PORTAUDIO
 #endif
-
 
 #ifndef IS_PLAYBACK
 	bool enableReplays = startup_params.m_slippiSaveReplays;
@@ -176,6 +180,7 @@ void SlippiConfigPane::LoadGUIValues()
 
 	m_slippi_delay_frames_ctrl->SetValue(startup_params.m_slippiOnlineDelay);
 	m_slippi_enable_quick_chat->SetValue(startup_params.m_slippiEnableQuickChat);
+	m_slippi_enable_custom_rules->SetValue(startup_params.m_slippiEnableCustomRules);
 
 	m_slippi_force_netplay_port_checkbox->SetValue(startup_params.m_slippiForceNetplayPort);
 	m_slippi_force_netplay_port_ctrl->SetValue(startup_params.m_slippiNetplayPort);
@@ -206,6 +211,8 @@ void SlippiConfigPane::BindEvents()
 
 	m_slippi_delay_frames_ctrl->Bind(wxEVT_SPINCTRL, &SlippiConfigPane::OnDelayFramesChanged, this);
 	m_slippi_enable_quick_chat->Bind(wxEVT_CHECKBOX, &SlippiConfigPane::OnQuickChatToggle, this);
+	m_slippi_enable_custom_rules->Bind(wxEVT_CHECKBOX, &SlippiConfigPane::OnCustomRulesToggle, this);
+
 	m_slippi_force_netplay_port_checkbox->Bind(wxEVT_CHECKBOX, &SlippiConfigPane::OnForceNetplayPortToggle, this);
 	m_slippi_force_netplay_port_ctrl->Bind(wxEVT_SPINCTRL, &SlippiConfigPane::OnNetplayPortChanged, this);
 
@@ -220,6 +227,12 @@ void SlippiConfigPane::OnQuickChatToggle(wxCommandEvent& event)
 {
 	bool enableQuickChat = m_slippi_enable_quick_chat->IsChecked();
 	SConfig::GetInstance().m_slippiEnableQuickChat = enableQuickChat;
+}
+
+void SlippiConfigPane::OnCustomRulesToggle(wxCommandEvent& event)
+{
+	bool enableCustomRules = m_slippi_enable_custom_rules->IsChecked();
+	SConfig::GetInstance().m_slippiEnableCustomRules = enableCustomRules;
 }
 
 void SlippiConfigPane::OnReplaySavingToggle(wxCommandEvent& event)
