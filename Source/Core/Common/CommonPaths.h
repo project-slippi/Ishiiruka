@@ -67,6 +67,7 @@
 #define DUMP_DSP_DIR "DSP"
 #define DUMP_SSL_DIR "SSL"
 #define LOGS_DIR "Logs"
+#define SLIPPI_DIR "Slippi"
 #define MAIL_LOGS_DIR "Mail"
 #define SHADERS_DIR "Shaders"
 #define WII_SYSCONF_DIR "shared2" DIR_SEP "sys"

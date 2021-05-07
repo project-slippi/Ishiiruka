@@ -16,11 +16,11 @@
 #include "Core/NetPlayProto.h"
 #include "DolphinWX/Config/AdvancedConfigPane.h"
 #include "DolphinWX/Config/AudioConfigPane.h"
-#include "DolphinWX/Config/SlippiConfigPane.h"
 #include "DolphinWX/Config/GameCubeConfigPane.h"
 #include "DolphinWX/Config/GeneralConfigPane.h"
 #include "DolphinWX/Config/InterfaceConfigPane.h"
 #include "DolphinWX/Config/PathConfigPane.h"
+#include "DolphinWX/Config/SlippiConfigPane.h"
 #include "DolphinWX/Config/WiiConfigPane.h"
 #include "DolphinWX/GameListCtrl.h"
 #include "DolphinWX/WxUtils.h"
@@ -29,9 +29,9 @@
 // be updated when this modal dialog closes.
 wxDEFINE_EVENT(wxDOLPHIN_CFG_REFRESH_LIST, wxCommandEvent);
 
-CConfigMain::CConfigMain(wxWindow* parent, wxWindowID id, const wxString& title,
-	const wxPoint& position, const wxSize& size, long style)
-	: wxDialog(parent, id, title, position, size, style)
+CConfigMain::CConfigMain(wxWindow *parent, wxWindowID id, const wxString &title, const wxPoint &position,
+                         const wxSize &size, long style)
+    : wxDialog(parent, id, title, position, size, style)
 {
 	// Control refreshing of the ISOs list
 	m_refresh_game_list_on_close = false;
@@ -46,9 +46,7 @@ CConfigMain::CConfigMain(wxWindow* parent, wxWindowID id, const wxString& title,
 	CreateGUIControls();
 }
 
-CConfigMain::~CConfigMain()
-{
-}
+CConfigMain::~CConfigMain() {}
 
 void CConfigMain::SetSelectedTab(wxWindowID tab_id)
 {
@@ -74,23 +72,23 @@ void CConfigMain::CreateGUIControls()
 {
 	// Create the notebook and pages
 	Notebook = new wxNotebook(this, ID_NOTEBOOK);
-	wxPanel* const general_pane = new GeneralConfigPane(Notebook, ID_GENERALPAGE);
-	wxPanel* const interface_pane = new InterfaceConfigPane(Notebook, ID_DISPLAYPAGE);
-	wxPanel* const audio_pane = new AudioConfigPane(Notebook, ID_AUDIOPAGE);
+	wxPanel *const general_pane = new GeneralConfigPane(Notebook, ID_GENERALPAGE);
+	wxPanel *const interface_pane = new InterfaceConfigPane(Notebook, ID_DISPLAYPAGE);
+	wxPanel *const audio_pane = new AudioConfigPane(Notebook, ID_AUDIOPAGE);
 #ifndef IS_PLAYBACK
-	wxPanel *const slippi_pane = new SlippiConfigPane(Notebook, ID_SLIPPIPAGE);
+	wxPanel *const slippi_pane = new SlippiNetplayConfigPane(Notebook, ID_SLIPPINETPLAYPAGE);
+#else
+	wxPanel *const slippi_pane = new SlippiPlaybackConfigPane(Notebook, ID_SLIPPIPLAYBACKPAGE);
 #endif
-	wxPanel* const gamecube_pane = new GameCubeConfigPane(Notebook, ID_GAMECUBEPAGE);
-	wxPanel* const wii_pane = new WiiConfigPane(Notebook, ID_WIIPAGE);
-	wxPanel* const path_pane = new PathConfigPane(Notebook, ID_PATHSPAGE);
-	wxPanel* const advanced_pane = new AdvancedConfigPane(Notebook, ID_ADVANCEDPAGE);
+	wxPanel *const gamecube_pane = new GameCubeConfigPane(Notebook, ID_GAMECUBEPAGE);
+	wxPanel *const wii_pane = new WiiConfigPane(Notebook, ID_WIIPAGE);
+	wxPanel *const path_pane = new PathConfigPane(Notebook, ID_PATHSPAGE);
+	wxPanel *const advanced_pane = new AdvancedConfigPane(Notebook, ID_ADVANCEDPAGE);
 
 	Notebook->AddPage(general_pane, _("General"));
 	Notebook->AddPage(interface_pane, _("Interface"));
 	Notebook->AddPage(audio_pane, _("Audio"));
-#ifndef IS_PLAYBACK
 	Notebook->AddPage(slippi_pane, _("Slippi"));
-#endif
 	Notebook->AddPage(gamecube_pane, _("GameCube"));
 	Notebook->AddPage(wii_pane, _("Wii"));
 	Notebook->AddPage(path_pane, _("Paths"));
@@ -98,7 +96,7 @@ void CConfigMain::CreateGUIControls()
 
 	const int space5 = FromDIP(5);
 
-	wxBoxSizer* const main_sizer = new wxBoxSizer(wxVERTICAL);
+	wxBoxSizer *const main_sizer = new wxBoxSizer(wxVERTICAL);
 	main_sizer->AddSpacer(space5);
 	main_sizer->Add(Notebook, 1, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	main_sizer->AddSpacer(space5);
@@ -116,28 +114,28 @@ void CConfigMain::CreateGUIControls()
 	SetSizerAndFit(main_sizer);
 }
 
-void CConfigMain::OnClose(wxCloseEvent& WXUNUSED(event))
+void CConfigMain::OnClose(wxCloseEvent &WXUNUSED(event))
 {
 	Hide();
 
 	SConfig::GetInstance().SaveSettings();
 
 	if (m_refresh_game_list_on_close)
-		AddPendingEvent(wxCommandEvent{ DOLPHIN_EVT_RELOAD_GAMELIST });
+		AddPendingEvent(wxCommandEvent{DOLPHIN_EVT_RELOAD_GAMELIST});
 }
 
-void CConfigMain::OnShow(wxShowEvent& event)
+void CConfigMain::OnShow(wxShowEvent &event)
 {
 	if (event.IsShown())
 		CenterOnParent();
 }
 
-void CConfigMain::OnCloseButton(wxCommandEvent& WXUNUSED(event))
+void CConfigMain::OnCloseButton(wxCommandEvent &WXUNUSED(event))
 {
 	Close();
 }
 
-void CConfigMain::OnSetRefreshGameListOnClose(wxCommandEvent& WXUNUSED(event))
+void CConfigMain::OnSetRefreshGameListOnClose(wxCommandEvent &WXUNUSED(event))
 {
 	m_refresh_game_list_on_close = true;
 }

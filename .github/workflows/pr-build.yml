@@ -6,13 +6,11 @@ on:
         - "**"
     paths-ignore:
         - "**.md"
-        - "**.ini"
   pull_request:
     branches:
       - slippi
     paths-ignore:
       - "**.md"
-      - "**.ini"
 
 jobs:
   windows:
