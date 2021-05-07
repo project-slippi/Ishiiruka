@@ -54,3 +54,20 @@ private:
 
 
 };
+
+class SlippiPlaybackConfigPane final : public wxPanel
+{
+  public:
+	SlippiPlaybackConfigPane(wxWindow *parent, wxWindowID id);
+
+  private:
+	void InitializeGUI();
+	void LoadGUIValues();
+	void BindEvents();
+
+	wxStaticText *m_slippi_delay_frames_txt;
+	wxTextCtrl *m_slippi_netplay_lan_ip_ctrl;
+	wxCheckBox *m_display_frame_index;
+
+	void OnDisplayFrameIndexToggle(wxCommandEvent &event);
+};
