@@ -1382,7 +1382,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	u8 rollbackCode = 0; // 0 = not rollback, 1 = rollback, perhaps other options in the future?
 
 	// Increment frame index if greater
-	if (frameIndex > g_playbackStatus->currentPlaybackFrame)
+	if (frameIndex > g_playbackStatus->currentPlaybackFrame || ((commSettings.mode == "normal" || commSettings.mode == "queue") && frameIndex != g_playbackStatus->currentPlaybackFrame))
 	{
 		g_playbackStatus->currentPlaybackFrame = frameIndex;
 	}

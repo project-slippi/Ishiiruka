@@ -97,11 +97,6 @@ void SlippiPlaybackStatus::prepareSlippiPlayback(s32 &frameIndex)
 		OSD::AddTypedMessage(OSD::MessageType::FrameIndex, frameDisplay.str(), 1000, OSD::Color::CYAN);
 	}
 
-	if (frameIndex != g_playbackStatus->currentPlaybackFrame)
-	{
-		currentPlaybackFrame = frameIndex;
-	}
-
 	// TODO: figure out why sometimes playback frame increments past targetFrameNum
 	if (inSlippiPlayback && frameIndex >= targetFrameNum)
 	{
