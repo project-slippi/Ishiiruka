@@ -129,9 +129,5 @@ void PlaybackSlider::OnSliderMove(wxCommandEvent &event)
 	std::string time = std::string(currTime) + " / " + std::string(endTime);
 	seekBarText->SetLabel(_(time));
 	event.Skip();
-}
-
-PlaybackSlider *PlaybackSlider::Get()
-{
-	return instance_;
+	event.StopPropagation();
 }

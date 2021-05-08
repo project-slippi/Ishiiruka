@@ -97,6 +97,11 @@ void SlippiPlaybackStatus::prepareSlippiPlayback(s32 &frameIndex)
 		OSD::AddTypedMessage(OSD::MessageType::FrameIndex, frameDisplay.str(), 1000, OSD::Color::CYAN);
 	}
 
+	if (frameIndex != g_playbackStatus->currentPlaybackFrame)
+	{
+		currentPlaybackFrame = frameIndex;
+	}
+
 	// TODO: figure out why sometimes playback frame increments past targetFrameNum
 	if (inSlippiPlayback && frameIndex >= targetFrameNum)
 	{
@@ -107,7 +112,7 @@ void SlippiPlaybackStatus::prepareSlippiPlayback(s32 &frameIndex)
 			// playback, we need to rewind the currentPlaybackFrame here instead such that the playback
 			// cursor will show up in the correct place
 			NOTICE_LOG(SLIPPI, "SP.cpp");
-			currentPlaybackFrame = targetFrameNum + 1;
+			currentPlaybackFrame = targetFrameNum;
 		}
 
 		if (currentPlaybackFrame > targetFrameNum)
@@ -267,8 +272,6 @@ void SlippiPlaybackStatus::SeekThread()
 							loadState(closestActualStateFrame);
 					}
 				}
-				// Communicate the new state to the playback slider for syncing
-				PlaybackSlider::Get()->
 			}
 
 			// Fastforward until we get to the frame we want

@@ -1,6 +1,8 @@
 #include "SlippiTimer.h"
 #include "DolphinWX/Frame.h"
 #include "SlippiPlayback.h"
+#include "Common/Logging/Log.h"
+
 
 extern std::unique_ptr<SlippiPlaybackStatus> g_playbackStatus;
 
@@ -38,6 +40,7 @@ void SlippiTimer::Notify()
 	// Only update values while not actively seeking
 	if (g_playbackStatus->targetFrameNum == INT_MAX && m_slider->isDraggingSlider == false)
 	{
+		NOTICE_LOG(SLIPPI, "Updating m_slider value to %d", g_playbackStatus->currentPlaybackFrame);
 		m_text->SetLabel(_(time));
 		m_slider->SetValue(g_playbackStatus->currentPlaybackFrame);
 	}
