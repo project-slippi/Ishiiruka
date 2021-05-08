@@ -41,7 +41,7 @@
 #define SLEEP_TIME_MS 8
 #define WRITE_FILE_SLEEP_TIME_MS 85
 
-#define LOCAL_TESTING
+//#define LOCAL_TESTING
 //#define CREATE_DIFF_FILES
 
 static std::unordered_map<u8, std::string> slippi_names;
@@ -2334,7 +2334,7 @@ void CEXISlippi::prepareOnlineMatchState()
 			WARN_LOG(SLIPPI, "prepareOnlineMatchState setting custom match block %d, areCustomRulesAllowed: %d", lps.isMatchConfigSet, lps.areCustomRulesAllowed);
             for (int i = 0; i < 320/4; i+=4)
             {
-                WARN_LOG(SLIPPI, "prepareOnlineMatchState onlineMatchBlock %d: 0x%02X%02X%02X%02X", i, onlineMatchBlock[i], onlineMatchBlock[i+1], onlineMatchBlock[i+2], onlineMatchBlock[i+3]);
+                //WARN_LOG(SLIPPI, "prepareOnlineMatchState onlineMatchBlock %d: 0x%02X%02X%02X%02X", i, onlineMatchBlock[i], onlineMatchBlock[i+1], onlineMatchBlock[i+2], onlineMatchBlock[i+3]);
             }
 		} else {
 			onlineMatchBlock = defaultMatchBlock;
@@ -2363,43 +2363,43 @@ void CEXISlippi::prepareOnlineMatchState()
 			{
             case 0:
                 equals = res == 0x3201864C;
-                WARN_LOG(SLIPPI, "prepareOnlineMatchState comparing block 0x%08x: 0x3201864C, equals: %d", res, equals);
+                //WARN_LOG(SLIPPI, "prepareOnlineMatchState comparing block 0x%08x: 0x3201864C, equals: %d", res, equals);
                 break;
             case 4:
 				equals = res == 0xC3000000;
-                WARN_LOG(SLIPPI, "prepareOnlineMatchState comparing block 0x%08x: 0xC3000000, equals: %d", res, equals);
+                //WARN_LOG(SLIPPI, "prepareOnlineMatchState comparing block 0x%08x: 0xC3000000, equals: %d", res, equals);
                 break;
             case 8:
 				equals = res == 0x000000FF;
-                WARN_LOG(SLIPPI, "prepareOnlineMatchState comparing block 0x%08x: 0x000000FF, equals: %d", res, equals);
+                //WARN_LOG(SLIPPI, "prepareOnlineMatchState comparing block 0x%08x: 0x000000FF, equals: %d", res, equals);
                 break;
             case 12:
 				equals = res == 0xFF6E0003;
-                WARN_LOG(SLIPPI, "prepareOnlineMatchState comparing block 0x%08x: 0xFF6E0003, equals: %d", res, equals);
+                //WARN_LOG(SLIPPI, "prepareOnlineMatchState comparing block 0x%08x: 0xFF6E0003, equals: %d", res, equals);
                 break;
             case 16:
 				equals = res == 0x000001E0;
-                WARN_LOG(SLIPPI, "prepareOnlineMatchState comparing block 0x%08x: 0x000001E0, equals: %d", res, equals);
+                //WARN_LOG(SLIPPI, "prepareOnlineMatchState comparing block 0x%08x: 0x000001E0, equals: %d", res, equals);
                 break;
             case 32:
                 equals = res == 0xFFFFFFFF;
-                WARN_LOG(SLIPPI, "prepareOnlineMatchState comparing block 0x%08x: 0xFFFFFFFF, equals: %d", res, equals);
+                //WARN_LOG(SLIPPI, "prepareOnlineMatchState comparing block 0x%08x: 0xFFFFFFFF, equals: %d", res, equals);
                 break;
             case 36:
 				equals = res == 0xFFFFFFFF;
-                WARN_LOG(SLIPPI, "prepareOnlineMatchState comparing block 0x%08x: 0xFFFFFFFF, equals: %d", res, equals);
+                //WARN_LOG(SLIPPI, "prepareOnlineMatchState comparing block 0x%08x: 0xFFFFFFFF, equals: %d", res, equals);
                 break;
             case 44:
 				equals = res == 0x3F800000;
-                WARN_LOG(SLIPPI, "prepareOnlineMatchState comparing block 0x%08x: 0x3F800000, equals: %d", res, equals);
+                //WARN_LOG(SLIPPI, "prepareOnlineMatchState comparing block 0x%08x: 0x3F800000, equals: %d", res, equals);
                 break;
             case 48:
 				equals = res == 0x3F800000;
-                WARN_LOG(SLIPPI, "prepareOnlineMatchState comparing block 0x%08x: 0x3F800000, equals: %d", res, equals);
+                //WARN_LOG(SLIPPI, "prepareOnlineMatchState comparing block 0x%08x: 0x3F800000, equals: %d", res, equals);
                 break;
             case 52:
 				equals = res == 0x3F800000;
-                WARN_LOG(SLIPPI, "prepareOnlineMatchState comparing block 0x%08x: 0x3F800000, equals: %d", res, equals);
+                //WARN_LOG(SLIPPI, "prepareOnlineMatchState comparing block 0x%08x: 0x3F800000, equals: %d", res, equals);
             default:
 				break;
 			}
@@ -2410,12 +2410,16 @@ void CEXISlippi::prepareOnlineMatchState()
 			}
 		}
 
-		isMatchInfoReady = true; // set to true and set it to false on the first player who's not ready
+		// Match info is ready by default for local player if isMatchConfigIsSet
+		isMatchInfoReady = lps.isMatchConfigSet;
 		for (auto &s : orderedSelections)
 		{
-            bool shouldCheckForCustomRules = !isDecider // No need to check if we are the decider
+            bool shouldCheckForCustomRules = (!isDecider || lps.playerIdx != s.playerIdx) // No need to check if we are the decider
 			                                 && !SlippiMatchmaking::IsFixedRulesMode(lastSearch.mode)
-			                                 && allowCustomRules && s.areCustomRulesAllowed;
+			                                 && allowCustomRules && s.areCustomRulesAllowed && s.isCharacterSelected;
+
+            ERROR_LOG(SLIPPI_ONLINE, "shouldCheckForCustomRules playerIndex: %d" , s.playerIdx);
+            ERROR_LOG(SLIPPI_ONLINE, "shouldCheckForCustomRules allowCustomRules: %d, s.areCustomRulesAllowed: %d, s.isMatchConfigSet: %d" , allowCustomRules, s.areCustomRulesAllowed, s.isMatchConfigSet);
             // Check if all players already set their match info
             if (shouldCheckForCustomRules && !s.isMatchConfigSet)
             {
@@ -2427,6 +2431,8 @@ void CEXISlippi::prepareOnlineMatchState()
 			if(!s.areCustomRulesAllowed) {
 				allowCustomRules = false;
 			}
+			ERROR_LOG(SLIPPI_ONLINE, "shouldCheckForCustomRules isMatchInfoReady: %d, allowCustomRules: %d" , isMatchInfoReady, allowCustomRules);
+
 
 
             // Overwrite player character choices
@@ -2499,14 +2505,14 @@ void CEXISlippi::prepareOnlineMatchState()
 		rightTeamPlayers[3] = rightTeamSize;
 	}
 
-    WARN_LOG(SLIPPI, "prepareOnlineMatchState isMatchInfoReady: %d", isMatchInfoReady);
+    //WARN_LOG(SLIPPI, "prepareOnlineMatchState isMatchInfoReady: %d", isMatchInfoReady);
 	m_read_queue.push_back((bool)isMatchInfoReady);
 
-    WARN_LOG(SLIPPI, "prepareOnlineMatchState isCustomRules: %d", isCustomRules);
+    //WARN_LOG(SLIPPI, "prepareOnlineMatchState isCustomRules: %d", isCustomRules);
 	m_read_queue.push_back((bool)isCustomRules);
 
 	// Add stages block
-    WARN_LOG(SLIPPI, "prepareOnlineMatchState stagesBlock: 0x%x", stagesBlock);
+    //WARN_LOG(SLIPPI, "prepareOnlineMatchState stagesBlock: 0x%x", stagesBlock);
     appendWordToBuffer(&m_read_queue, stagesBlock);
 
 	// Add rng offset to output
