@@ -6,8 +6,6 @@
 #include <SlippiLib/SlippiGame.h>
 #include <wx/utils.h>
 
-#include <Common/Logging/Log.h>
-
 #include "PlaybackSlider.h"
 
 extern std::unique_ptr<SlippiPlaybackStatus> g_playbackStatus;
@@ -31,7 +29,6 @@ bool PlaybackSlider::Create(wxStaticText *sliderLabel, wxWindow *parent, wxWindo
 
 void PlaybackSlider::OnSliderClick(wxMouseEvent &event)
 {
-	NOTICE_LOG(SLIPPI, "OnSliderClick lmv=%d", lastMoveVal);
 	// This handler is the confirmation handler that actually sets the frame we
 	// want to skip to
 	isDraggingSlider = false;
@@ -40,7 +37,6 @@ void PlaybackSlider::OnSliderClick(wxMouseEvent &event)
 	// to explicitly re-sync the seekbar head, because wxSlider doesn't
 	if (lastMoveVal <= Slippi::PLAYBACK_FIRST_SAVE)
 	{
-		NOTICE_LOG(SLIPPI, "Attempt resync");
 		this->SetValue(lastMoveVal);
 	}
 	g_playbackStatus->targetFrameNum = lastMoveVal;
@@ -49,7 +45,6 @@ void PlaybackSlider::OnSliderClick(wxMouseEvent &event)
 
 void PlaybackSlider::OnSliderDown(wxMouseEvent &event)
 {
-	NOTICE_LOG(SLIPPI, "OnSliderDown lmv=%d", lastMoveVal);
 	// This handler sets the slider position on a mouse down event. Normally
 	// the Dolphin slider can only be changed by clicking and dragging
 	isDraggingSlider = true;
@@ -98,12 +93,10 @@ void PlaybackSlider::OnSliderMove(wxCommandEvent &event)
 {
 	if (!event.ShouldPropagate())
 	{
-		NOTICE_LOG(SLIPPI, "Returning out of OnSliderMove");
 		// On mac for some reason this event handler will infinitely trigger
 		// itself, by adding this check, we can prevent that
 		return;
 	}
-	NOTICE_LOG(SLIPPI, "OnSliderMove lmv=%d", lastMoveVal);
 	// This function is responsible with updating the time text
 	// while clicking and dragging
 	int value = event.GetInt();

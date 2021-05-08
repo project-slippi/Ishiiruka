@@ -11,7 +11,6 @@
 #include "Core/NetPlayClient.h"
 #include "Core/State.h"
 #include "SlippiPlayback.h"
-#include "DolphinWX/PlaybackSlider.h"
 #include <VideoCommon/OnScreenDisplay.h>
 
 #define FRAME_INTERVAL 900
@@ -87,7 +86,6 @@ void SlippiPlaybackStatus::prepareSlippiPlayback(s32 &frameIndex)
 	if (shouldRunThreads && ((currentPlaybackFrame + 122) % FRAME_INTERVAL == 0))
 		condVar.notify_one();
 
-	NOTICE_LOG(SLIPPI, "frameIndex=%d tFN=%d", frameIndex, targetFrameNum);
 	if (SConfig::GetInstance().m_slippiEnableFrameIndex)
 	{
 		std::stringstream frameDisplay;
@@ -100,13 +98,11 @@ void SlippiPlaybackStatus::prepareSlippiPlayback(s32 &frameIndex)
 	// TODO: figure out why sometimes playback frame increments past targetFrameNum
 	if (inSlippiPlayback && frameIndex >= targetFrameNum)
 	{
-		NOTICE_LOG(SLIPPI, "Try SP.cpp tFN=%d", targetFrameNum);
 		if (targetFrameNum < currentPlaybackFrame)
 		{
 			// Since playback logic only goes up in currentPlaybackFrame now due to handling rollback
 			// playback, we need to rewind the currentPlaybackFrame here instead such that the playback
 			// cursor will show up in the correct place
-			NOTICE_LOG(SLIPPI, "SP.cpp");
 			currentPlaybackFrame = targetFrameNum;
 		}
 
@@ -286,7 +282,6 @@ void SlippiPlaybackStatus::SeekThread()
 
 			shouldJumpBack = false;
 			shouldJumpForward = false;
-			NOTICE_LOG(SLIPPI, "targetFrameNum=INT_MAX");
 			targetFrameNum = INT_MAX;
 		}
 
