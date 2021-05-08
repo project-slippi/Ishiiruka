@@ -2,7 +2,6 @@
 #include "DolphinWX/Frame.h"
 #include "SlippiPlayback.h"
 
-
 extern std::unique_ptr<SlippiPlaybackStatus> g_playbackStatus;
 
 void SlippiTimer::Notify()

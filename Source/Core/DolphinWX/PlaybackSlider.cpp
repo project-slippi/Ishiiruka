@@ -53,6 +53,7 @@ void PlaybackSlider::OnSliderDown(wxMouseEvent &event)
 	// Sets the lastMoveVal for Windows because on a normal click the move event
 	// doesn't fire fast enough
 	lastMoveVal = value;
+
 	this->SetValue(value);
 	event.Skip();
 }
@@ -97,6 +98,7 @@ void PlaybackSlider::OnSliderMove(wxCommandEvent &event)
 		// itself, by adding this check, we can prevent that
 		return;
 	}
+
 	// This function is responsible with updating the time text
 	// while clicking and dragging
 	int value = event.GetInt();
