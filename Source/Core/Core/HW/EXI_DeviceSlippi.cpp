@@ -41,7 +41,7 @@
 #define SLEEP_TIME_MS 8
 #define WRITE_FILE_SLEEP_TIME_MS 85
 
-#define LOCAL_TESTING
+//#define LOCAL_TESTING
 //#define CREATE_DIFF_FILES
 
 static std::unordered_map<u8, std::string> slippi_names;
@@ -2329,8 +2329,8 @@ void CEXISlippi::prepareOnlineMatchState()
 
         //DEBUG_LOG(SLIPPI, "prepareOnlineMatchState isMatchConfigSet: %d, areCustomRulesAllowed: %d", lps.isMatchConfigSet, lps.areCustomRulesAllowed);
 		if(lps.isMatchConfigSet && allowCustomRules && !SlippiMatchmaking::IsFixedRulesMode(lastSearch.mode)){
-			onlineMatchBlock = !isDecider && rps[0].isMatchConfigSet ? rps[0].matchConfig : lps.matchConfig;
-			stagesBlock = !isDecider && rps[0].isMatchConfigSet ? rps[0].stagesBlock : lps.stagesBlock;
+			onlineMatchBlock = !isDecider ? rps[0].matchConfig : lps.matchConfig;
+			stagesBlock = !isDecider ? rps[0].stagesBlock : lps.stagesBlock;
 #ifdef LOCAL_TESTING
 			onlineMatchBlock = lps.matchConfig;
 			stagesBlock = lps.stagesBlock;
@@ -2344,6 +2344,31 @@ void CEXISlippi::prepareOnlineMatchState()
             //DEBUG_LOG(SLIPPI, "prepareOnlineMatchState setting custom default match block");
 		}
 
+        isMatchInfoReady = true;
+        if(!SlippiMatchmaking::IsFixedRulesMode(lastSearch.mode) && lps.isCharacterSelected){
+            for (int i = 0; i <= remotePlayerCount; i++)
+            {
+                auto s = orderedSelections[i];
+
+                //WARN_LOG(SLIPPI_ONLINE, "shouldCheckForCustomRules playerIndex: %d, isDecider: %d, allowCustomRules: %d, s.areCustomRulesAllowed: %d, s.isMatchConfigSet: %d" , s.playerIdx, isDecider, allowCustomRules, s.areCustomRulesAllowed, s.isMatchConfigSet);
+                // Check if all players already set their match info
+                if (!s.isMatchConfigSet || !s.isCharacterSelected)
+                {
+                    // if there's at least one player that has not set their rules,
+                    // then set match info as not ready
+                    isMatchInfoReady = false;
+                }
+
+                if(!s.areCustomRulesAllowed) {
+                    allowCustomRules = false;
+                    break;
+                }
+                //DEBUG_LOG(SLIPPI_ONLINE, "shouldCheckForCustomRules isMatchInfoReady: %d, allowCustomRules: %d" , isMatchInfoReady, allowCustomRules);
+            }
+        }
+        //WARN_LOG(SLIPPI_ONLINE, "shouldCheckForCustomRules isMatchInfoReady: %d", isMatchInfoReady);
+
+		// This loop compares each 4 bytes of the match info block to verify is tournament ruleset or not
         for (int i = 0; i < 320/4; i+=4)
         {
 			u32 res = (onlineMatchBlock[i] << 24) |
@@ -2410,30 +2435,10 @@ void CEXISlippi::prepareOnlineMatchState()
 			}
 		}
 
-		// Match info is ready by default for local player if isMatchConfigIsSet
-		isMatchInfoReady = lps.isMatchConfigSet;
-		for (auto &s : orderedSelections)
+		// isMatchInfoReady is true by default and we iterate over the selections to see who's missing
+
+        for (auto &s : orderedSelections)
 		{
-            bool shouldCheckForCustomRules = (!isDecider || lps.playerIdx != s.playerIdx) // No need to check if we are the decider
-			                                 && !SlippiMatchmaking::IsFixedRulesMode(lastSearch.mode)
-			                                 && allowCustomRules && s.areCustomRulesAllowed && s.isCharacterSelected;
-
-            //WARN_LOG(SLIPPI_ONLINE, "shouldCheckForCustomRules playerIndex: %d shouldCheckForCustomRules: %d, isDecider: %d" , s.playerIdx, shouldCheckForCustomRules, isDecider);
-            //WARN_LOG(SLIPPI_ONLINE, "shouldCheckForCustomRules allowCustomRules: %d, s.areCustomRulesAllowed: %d, s.isMatchConfigSet: %d" , allowCustomRules, s.areCustomRulesAllowed, s.isMatchConfigSet);
-            // Check if all players already set their match info
-            if (shouldCheckForCustomRules && !s.isMatchConfigSet)
-            {
-                // if there's at least one player that has not set their rules,
-                // then set match info as not ready
-                isMatchInfoReady = false;
-            }
-
-			if(!s.areCustomRulesAllowed) {
-				allowCustomRules = false;
-			}
-			//DEBUG_LOG(SLIPPI_ONLINE, "shouldCheckForCustomRules isMatchInfoReady: %d, allowCustomRules: %d" , isMatchInfoReady, allowCustomRules);
-
-
             // Overwrite player character choices
 			if (s.isCharacterSelected)
 			{
@@ -2636,10 +2641,10 @@ void CEXISlippi::setMatchSelections(u8 *payload)
 	s.stagesBlock = SConfig::GetInstance().m_slippiEnableCustomRules ? Common::swap32(&payload[8]) : defaultStagesBlock;
 
 	s.isStageSelected = stageSelectOption == 1 || stageSelectOption == 3;
-	if (stageSelectOption == 3)
+	if (SlippiMatchmaking::IsFixedRulesMode(lastSearch.mode) && stageSelectOption == 3)
 	{
-		// If stage requested is random, select a random stage
-		s.stageId = getRandomStage();
+        // If stage requested is random, select a random stage
+        s.stageId = getRandomStage();
 	}
 	ERROR_LOG(SLIPPI, "setMatchSelections iCS: %d, iSS: %d, %d, stage: %d, team: %d, stages: 0x%02X", s.isCharacterSelected,
 	          stageSelectOption, s.isStageSelected, s.stageId, s.teamId, s.stagesBlock);
