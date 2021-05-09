@@ -443,23 +443,18 @@ void SlippiNetplayClient::writeToPacket(sf::Packet &packet, SlippiPlayerSelectio
 	packet << s.stageId << s.isStageSelected;
 	packet << s.rngOffset;
 	packet << s.teamId;
-}
-
-void SlippiNetplayClient::WriteChatMessageToPacket(sf::Packet &packet, int messageId, u8 playerIdx)
-{
-	packet << static_cast<MessageId>(NP_MSG_SLIPPI_CHAT_MESSAGE);
-	packet << messageId;
-	packet << playerIdx;
-}
-
-std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::ReadChatMessageFromPacket(sf::Packet &packet)
-{
-	auto s = std::make_unique<SlippiPlayerSelections>();
-
-	packet >> s->messageId;
-	packet >> s->playerIdx;
-
-	return std::move(s);
+	packet << s.stagesBlock;
+	packet << s.areCustomRulesAllowed;
+	packet << s.isMatchConfigSet;
+	if (s.isMatchConfigSet)
+	{
+		u16 matchConfigSize = (u16)s.matchConfig.size();
+		packet << matchConfigSize;
+		for (int i = 0; i < matchConfigSize; i++)
+		{
+			packet << (u8)s.matchConfig[i];
+		}
+	}
 }
 
 std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::readSelectionsFromPacket(sf::Packet &packet)
@@ -477,6 +472,38 @@ std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::readSelectionsFromP
 
 	packet >> s->rngOffset;
 	packet >> s->teamId;
+
+	packet >> s->stagesBlock;
+	packet >> s->areCustomRulesAllowed;
+	packet >> s->isMatchConfigSet;
+	u16 matchConfigSize = 0;
+	if (s->isMatchConfigSet)
+	{
+		packet >> matchConfigSize;
+		for (int i = 0; i < matchConfigSize; i++)
+		{
+			u8 data;
+			packet >> data;
+			s->matchConfig.push_back(data);
+		}
+	}
+
+	return std::move(s);
+}
+
+void SlippiNetplayClient::WriteChatMessageToPacket(sf::Packet &packet, int messageId, u8 playerIdx)
+{
+	packet << static_cast<MessageId>(NP_MSG_SLIPPI_CHAT_MESSAGE);
+	packet << messageId;
+	packet << playerIdx;
+}
+
+std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::ReadChatMessageFromPacket(sf::Packet &packet)
+{
+	auto s = std::make_unique<SlippiPlayerSelections>();
+
+	packet >> s->messageId;
+	packet >> s->playerIdx;
 
 	return std::move(s);
 }

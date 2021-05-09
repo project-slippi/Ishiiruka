@@ -142,6 +142,7 @@ struct SConfig : NonCopyable
 
 	// Slippi
 	bool m_slippiSaveReplays = true;
+	bool m_slippiEnableCustomRules = true;
 	bool m_slippiEnableQuickChat = true;
 	bool m_slippiReplayMonthFolders = false;
 	std::string m_strSlippiReplayDir;

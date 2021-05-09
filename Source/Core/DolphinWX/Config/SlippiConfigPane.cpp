@@ -69,6 +69,9 @@ void SlippiNetplayConfigPane::InitializeGUI()
 	m_slippi_enable_quick_chat = new wxCheckBox(this, wxID_ANY, _("Enable Quick Chat"));
 	m_slippi_enable_quick_chat->SetToolTip(_("Enable this to send and receive Quick Chat Messages when online."));
 
+	m_slippi_enable_custom_rules = new wxCheckBox(this, wxID_ANY, _("Enable Custom Rules"));
+	m_slippi_enable_custom_rules->SetToolTip(_("Enable this to play Custom Rules on some Online Modes"));
+
 	m_slippi_force_netplay_port_checkbox = new wxCheckBox(this, wxID_ANY, _("Force Netplay Port"));
 	m_slippi_force_netplay_port_checkbox->SetToolTip(
 	    _("Enable this to force Slippi to use a specific network port for online peer-to-peer connections."));
@@ -116,13 +119,14 @@ void SlippiNetplayConfigPane::InitializeGUI()
 	sSlippiOnlineSettings->Add(m_slippi_delay_frames_txt, wxGBPosition(0, 0), wxDefaultSpan, wxALIGN_CENTER_VERTICAL);
 	sSlippiOnlineSettings->Add(m_slippi_delay_frames_ctrl, wxGBPosition(0, 1), wxDefaultSpan, wxALIGN_LEFT);
 	sSlippiOnlineSettings->Add(m_slippi_enable_quick_chat, wxGBPosition(1, 0), wxDefaultSpan, wxALIGN_LEFT);
-	sSlippiOnlineSettings->Add(m_slippi_force_netplay_port_checkbox, wxGBPosition(2, 0), wxDefaultSpan,
+	sSlippiOnlineSettings->Add(m_slippi_enable_custom_rules, wxGBPosition(2, 0), wxDefaultSpan, wxALIGN_LEFT);
+	sSlippiOnlineSettings->Add(m_slippi_force_netplay_port_checkbox, wxGBPosition(3, 0), wxDefaultSpan,
 	                           wxALIGN_CENTER_VERTICAL);
-	sSlippiOnlineSettings->Add(m_slippi_force_netplay_port_ctrl, wxGBPosition(2, 1), wxDefaultSpan,
+	sSlippiOnlineSettings->Add(m_slippi_force_netplay_port_ctrl, wxGBPosition(3, 1), wxDefaultSpan,
 	                           wxALIGN_LEFT | wxRESERVE_SPACE_EVEN_IF_HIDDEN);
-	sSlippiOnlineSettings->Add(m_slippi_force_netplay_lan_ip_checkbox, wxGBPosition(3, 0), wxDefaultSpan,
+	sSlippiOnlineSettings->Add(m_slippi_force_netplay_lan_ip_checkbox, wxGBPosition(4, 0), wxDefaultSpan,
 	                           wxALIGN_CENTER_VERTICAL);
-	sSlippiOnlineSettings->Add(m_slippi_netplay_lan_ip_ctrl, wxGBPosition(3, 1), wxDefaultSpan,
+	sSlippiOnlineSettings->Add(m_slippi_netplay_lan_ip_ctrl, wxGBPosition(4, 1), wxDefaultSpan,
 	                           wxALIGN_LEFT | wxRESERVE_SPACE_EVEN_IF_HIDDEN);
 
 	wxStaticBoxSizer *const sbSlippiOnlineSettings =
@@ -171,6 +175,7 @@ void SlippiNetplayConfigPane::LoadGUIValues()
 
 	m_slippi_delay_frames_ctrl->SetValue(startup_params.m_slippiOnlineDelay);
 	m_slippi_enable_quick_chat->SetValue(startup_params.m_slippiEnableQuickChat);
+	m_slippi_enable_custom_rules->SetValue(startup_params.m_slippiEnableCustomRules);
 
 	m_slippi_force_netplay_port_checkbox->SetValue(startup_params.m_slippiForceNetplayPort);
 	m_slippi_force_netplay_port_ctrl->SetValue(startup_params.m_slippiNetplayPort);
@@ -199,6 +204,8 @@ void SlippiNetplayConfigPane::BindEvents()
 
 	m_slippi_delay_frames_ctrl->Bind(wxEVT_SPINCTRL, &SlippiNetplayConfigPane::OnDelayFramesChanged, this);
 	m_slippi_enable_quick_chat->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnQuickChatToggle, this);
+	m_slippi_enable_custom_rules->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnCustomRulesToggle, this);
+
 	m_slippi_force_netplay_port_checkbox->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnForceNetplayPortToggle,
 	                                           this);
 	m_slippi_force_netplay_port_ctrl->Bind(wxEVT_SPINCTRL, &SlippiNetplayConfigPane::OnNetplayPortChanged, this);
@@ -215,6 +222,12 @@ void SlippiNetplayConfigPane::OnQuickChatToggle(wxCommandEvent &event)
 {
 	bool enableQuickChat = m_slippi_enable_quick_chat->IsChecked();
 	SConfig::GetInstance().m_slippiEnableQuickChat = enableQuickChat;
+}
+
+void SlippiNetplayConfigPane::OnCustomRulesToggle(wxCommandEvent &event)
+{
+	bool enableCustomRules = m_slippi_enable_custom_rules->IsChecked();
+	SConfig::GetInstance().m_slippiEnableCustomRules = enableCustomRules;
 }
 
 void SlippiNetplayConfigPane::OnReplaySavingToggle(wxCommandEvent &event)
