@@ -47,6 +47,7 @@ enum GameType
 	GAMETYPE_MELEE_NTSC,
 	GAMETYPE_MELEE_20XX,
 	GAMETYPE_MELEE_UPTM,
+	GAMETYPE_MELEE_AKANEIA,
 };
 
 enum PollingMethod
@@ -57,9 +58,9 @@ enum PollingMethod
 
 enum MeleeLagReductionCode
 {
-    MELEE_LAG_REDUCTION_CODE_UNSET = 0,
-    MELEE_LAG_REDUCTION_CODE_NORMAL = 1,
-    MELEE_LAG_REDUCTION_CODE_PERFORMANCE = 2
+	MELEE_LAG_REDUCTION_CODE_UNSET = 0,
+	MELEE_LAG_REDUCTION_CODE_NORMAL = 1,
+	MELEE_LAG_REDUCTION_CODE_PERFORMANCE = 2
 };
 
 struct SConfig : NonCopyable
@@ -118,7 +119,7 @@ struct SConfig : NonCopyable
 	bool bFPRF = false;
 	bool bAccurateNaNs = false;
 
-	int iTimingVariance = 40;  // in milli secounds
+	int iTimingVariance = 40; // in milli secounds
 	bool bCPUThread = true;
 	bool bDSPThread = false;
 	bool bDSPHLE = true;
@@ -139,6 +140,7 @@ struct SConfig : NonCopyable
 	bool bHasShownLagReductionWarning = false;
 	bool bMeleeForceWidescreen = false;
 
+	// Slippi
 	bool m_slippiSaveReplays = true;
 	bool m_slippiEnableCustomRules = true;
 	bool m_slippiEnableQuickChat = true;
@@ -151,6 +153,9 @@ struct SConfig : NonCopyable
 	bool m_meleeUserIniBootstrapped = false;
 	bool m_blockingPipes = false;
 	bool m_coutEnabled = false;
+
+	// Slippi Playback
+	bool m_slippiEnableFrameIndex = false;
 
 	bool bDPL2Decoder = false;
 	bool bTimeStretching = false;
@@ -271,8 +276,8 @@ struct SConfig : NonCopyable
 
 	void LoadDefaults();
 	bool AutoSetup(EBootBS2 _BootBS2);
-	const std::string& GetGameID() const { return m_strGameID; }
-	void CheckMemcardPath(std::string& memcardPath, const std::string& gameRegion, bool isSlotA);
+	const std::string &GetGameID() const { return m_strGameID; }
+	void CheckMemcardPath(std::string &memcardPath, const std::string &gameRegion, bool isSlotA);
 	DiscIO::Language GetCurrentLanguage(bool wii) const;
 
 	u16 GetGameRevision() const;
@@ -282,12 +287,12 @@ struct SConfig : NonCopyable
 	IniFile LoadLocalGameIni() const;
 	IniFile LoadGameIni() const;
 
-	static bool GameHasDefaultGameIni(const std::string& id, u16 revision);
-	static IniFile LoadDefaultGameIni(const std::string& id, u16 revision);
-	static IniFile LoadLocalGameIni(const std::string& id, u16 revision);
-	static IniFile LoadGameIni(const std::string& id, u16 revision);
+	static bool GameHasDefaultGameIni(const std::string &id, u16 revision);
+	static IniFile LoadDefaultGameIni(const std::string &id, u16 revision);
+	static IniFile LoadLocalGameIni(const std::string &id, u16 revision);
+	static IniFile LoadGameIni(const std::string &id, u16 revision);
 
-	static std::vector<std::string> GetGameIniFilenames(const std::string& id, u16 revision);
+	static std::vector<std::string> GetGameIniFilenames(const std::string &id, u16 revision);
 
 	std::string m_NANDPath;
 	std::string m_DumpPath;
@@ -397,41 +402,41 @@ struct SConfig : NonCopyable
 	void SaveSettingsToSysconf();
 
 	// Return the permanent and somewhat globally used instance of this struct
-	static SConfig& GetInstance() { return (*m_Instance); }
+	static SConfig &GetInstance() { return (*m_Instance); }
 	static void Init();
 	static void Shutdown();
 
-private:
+  private:
 	SConfig();
 	~SConfig();
 
-	void SaveGeneralSettings(IniFile& ini);
-	void SaveInterfaceSettings(IniFile& ini);
-	void SaveDisplaySettings(IniFile& ini);
-	void SaveGameListSettings(IniFile& ini);
-	void SaveCoreSettings(IniFile& ini);
-	void SaveDSPSettings(IniFile& ini);
-	void SaveInputSettings(IniFile& ini);
-	void SaveMovieSettings(IniFile& ini);
-	void SaveFifoPlayerSettings(IniFile& ini);
-	void SaveNetworkSettings(IniFile& ini);
-	void SaveAnalyticsSettings(IniFile& ini);
-	void SaveBluetoothPassthroughSettings(IniFile& ini);
-	void SaveSysconfSettings(IniFile& ini);
+	void SaveGeneralSettings(IniFile &ini);
+	void SaveInterfaceSettings(IniFile &ini);
+	void SaveDisplaySettings(IniFile &ini);
+	void SaveGameListSettings(IniFile &ini);
+	void SaveCoreSettings(IniFile &ini);
+	void SaveDSPSettings(IniFile &ini);
+	void SaveInputSettings(IniFile &ini);
+	void SaveMovieSettings(IniFile &ini);
+	void SaveFifoPlayerSettings(IniFile &ini);
+	void SaveNetworkSettings(IniFile &ini);
+	void SaveAnalyticsSettings(IniFile &ini);
+	void SaveBluetoothPassthroughSettings(IniFile &ini);
+	void SaveSysconfSettings(IniFile &ini);
 
-	void LoadGeneralSettings(IniFile& ini);
-	void LoadInterfaceSettings(IniFile& ini);
-	void LoadDisplaySettings(IniFile& ini);
-	void LoadGameListSettings(IniFile& ini);
-	void LoadCoreSettings(IniFile& ini);
-	void LoadDSPSettings(IniFile& ini);
-	void LoadInputSettings(IniFile& ini);
-	void LoadMovieSettings(IniFile& ini);
-	void LoadFifoPlayerSettings(IniFile& ini);
-	void LoadNetworkSettings(IniFile& ini);
-	void LoadAnalyticsSettings(IniFile& ini);
-	void LoadBluetoothPassthroughSettings(IniFile& ini);
-	void LoadSysconfSettings(IniFile& ini);
+	void LoadGeneralSettings(IniFile &ini);
+	void LoadInterfaceSettings(IniFile &ini);
+	void LoadDisplaySettings(IniFile &ini);
+	void LoadGameListSettings(IniFile &ini);
+	void LoadCoreSettings(IniFile &ini);
+	void LoadDSPSettings(IniFile &ini);
+	void LoadInputSettings(IniFile &ini);
+	void LoadMovieSettings(IniFile &ini);
+	void LoadFifoPlayerSettings(IniFile &ini);
+	void LoadNetworkSettings(IniFile &ini);
+	void LoadAnalyticsSettings(IniFile &ini);
+	void LoadBluetoothPassthroughSettings(IniFile &ini);
+	void LoadSysconfSettings(IniFile &ini);
 
-	static SConfig* m_Instance;
+	static SConfig *m_Instance;
 };

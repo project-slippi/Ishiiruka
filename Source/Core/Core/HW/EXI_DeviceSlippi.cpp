@@ -1382,7 +1382,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	u8 rollbackCode = 0; // 0 = not rollback, 1 = rollback, perhaps other options in the future?
 
 	// Increment frame index if greater
-	if (frameIndex > g_playbackStatus->currentPlaybackFrame)
+	if (frameIndex > g_playbackStatus->currentPlaybackFrame || frameIndex != g_playbackStatus->currentPlaybackFrame)
 	{
 		g_playbackStatus->currentPlaybackFrame = frameIndex;
 	}
@@ -2322,10 +2322,14 @@ void CEXISlippi::prepareOnlineMatchState()
 			}
 		}
 
-		// Randomize assignments to randomize teams when all same color
-		std::vector<u8> teamAssignments = {0, 0, 1, 1};
-		std::srand(rngOffset);
-		std::random_shuffle(teamAssignments.begin(), teamAssignments.end());
+		// Choose random team assignments
+		// Previously there was a bug here where the shuffle was not consistent across platforms given the same seed,
+		// this would cause desyncs during cross platform play (different teams). Got around this by no longer using
+		// the shuffle function...
+		std::vector<std::vector<u8>> teamAssignmentPermutations = {
+		    {0, 0, 1, 1}, {1, 1, 0, 0}, {0, 1, 1, 0}, {1, 0, 0, 1}, {0, 1, 0, 1}, {1, 0, 1, 0},
+		};
+		auto teamAssignments = teamAssignmentPermutations[rngOffset % teamAssignmentPermutations.size()];
 
         //DEBUG_LOG(SLIPPI, "prepareOnlineMatchState isMatchConfigSet: %d, areCustomRulesAllowed: %d", lps.isMatchConfigSet, lps.areCustomRulesAllowed);
 		if(lps.isMatchConfigSet && allowCustomRules && !SlippiMatchmaking::IsFixedRulesMode(lastSearch.mode)){
