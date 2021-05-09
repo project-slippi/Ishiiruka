@@ -41,7 +41,7 @@
 #define SLEEP_TIME_MS 8
 #define WRITE_FILE_SLEEP_TIME_MS 85
 
-//#define LOCAL_TESTING
+#define LOCAL_TESTING
 //#define CREATE_DIFF_FILES
 
 static std::unordered_map<u8, std::string> slippi_names;
@@ -2355,6 +2355,16 @@ void CEXISlippi::prepareOnlineMatchState()
 			res <<= 8;
             res += onlineMatchBlock[i + 3];
 
+            res =  (onlineMatchBlock[i] << 24) |
+                  (onlineMatchBlock[i+1] << 16) |
+                  (onlineMatchBlock[i+2] << 8) |
+                  onlineMatchBlock[i+3];
+
+			u32 original =  (defaultMatchBlock[i] << 24) |
+			                 (defaultMatchBlock[i+1] << 16) |
+			                 (defaultMatchBlock[i+2] << 8) |
+			                 defaultMatchBlock[i+3];
+
 //			WARN_LOG(SLIPPI, "prepareOnlineMatchState comparing blocks %d: 0x%08X", i, res);
             bool equals = true;
 
@@ -2362,48 +2372,41 @@ void CEXISlippi::prepareOnlineMatchState()
             switch (i)
 			{
             case 0:
-                equals = res == 0x3201864C;
-                //WARN_LOG(SLIPPI, "prepareOnlineMatchState comparing block 0x%08x: 0x3201864C, equals: %d", res, equals);
+                equals = res == original; // 0x3201864C
                 break;
             case 4:
-				equals = res == 0xC3000000;
-                //WARN_LOG(SLIPPI, "prepareOnlineMatchState comparing block 0x%08x: 0xC3000000, equals: %d", res, equals);
+				equals = res == original; // 0xC3000000
                 break;
             case 8:
-				equals = res == 0x000000FF;
-                //WARN_LOG(SLIPPI, "prepareOnlineMatchState comparing block 0x%08x: 0x000000FF, equals: %d", res, equals);
+				equals = res == original; // 0x000000FF
                 break;
             case 12:
-				equals = res == 0xFF6E0003;
-                //WARN_LOG(SLIPPI, "prepareOnlineMatchState comparing block 0x%08x: 0xFF6E0003, equals: %d", res, equals);
+				// Ignore stage
+				equals = res >> 8 == original >> 8; // 0xFF6E0003
                 break;
             case 16:
-				equals = res == 0x000001E0;
-                //WARN_LOG(SLIPPI, "prepareOnlineMatchState comparing block 0x%08x: 0x000001E0, equals: %d", res, equals);
+				equals = res == original; // 0x000001E0
                 break;
             case 32:
-                equals = res == 0xFFFFFFFF;
-                //WARN_LOG(SLIPPI, "prepareOnlineMatchState comparing block 0x%08x: 0xFFFFFFFF, equals: %d", res, equals);
+                equals = res == original; // 0xFFFFFFFF
                 break;
             case 36:
-				equals = res == 0xFFFFFFFF;
-                //WARN_LOG(SLIPPI, "prepareOnlineMatchState comparing block 0x%08x: 0xFFFFFFFF, equals: %d", res, equals);
+				equals = res == original; // 0xFFFFFFFF
                 break;
             case 44:
-				equals = res == 0x3F800000;
-                //WARN_LOG(SLIPPI, "prepareOnlineMatchState comparing block 0x%08x: 0x3F800000, equals: %d", res, equals);
+				equals = res == original; // 0x3F800000
                 break;
             case 48:
-				equals = res == 0x3F800000;
-                //WARN_LOG(SLIPPI, "prepareOnlineMatchState comparing block 0x%08x: 0x3F800000, equals: %d", res, equals);
+				equals = res == original; //0x3F800000;
                 break;
             case 52:
-				equals = res == 0x3F800000;
-                //WARN_LOG(SLIPPI, "prepareOnlineMatchState comparing block 0x%08x: 0x3F800000, equals: %d", res, equals);
+				equals = res == original; //0x3F800000;
             default:
 				break;
 			}
-			if(!equals)
+            DEBUG_LOG(SLIPPI, "prepareOnlineMatchState comparing block 0x%08x with 0x%08x, equals: %d", res, original, equals);
+
+            if(!equals)
 			{
 				isCustomRules = true;
 				break;
@@ -2432,7 +2435,6 @@ void CEXISlippi::prepareOnlineMatchState()
 				allowCustomRules = false;
 			}
 			ERROR_LOG(SLIPPI_ONLINE, "shouldCheckForCustomRules isMatchInfoReady: %d, allowCustomRules: %d" , isMatchInfoReady, allowCustomRules);
-
 
 
             // Overwrite player character choices
