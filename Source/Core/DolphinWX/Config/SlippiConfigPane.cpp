@@ -204,7 +204,7 @@ void SlippiNetplayConfigPane::BindEvents()
 
 	m_slippi_delay_frames_ctrl->Bind(wxEVT_SPINCTRL, &SlippiNetplayConfigPane::OnDelayFramesChanged, this);
 	m_slippi_enable_quick_chat->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnQuickChatToggle, this);
-    m_slippi_enable_custom_rules->Bind(wxEVT_CHECKBOX, &SlippiConfigPane::OnCustomRulesToggle, this);
+    m_slippi_enable_custom_rules->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnCustomRulesToggle, this);
 
 	m_slippi_force_netplay_port_checkbox->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnForceNetplayPortToggle,
 	                                           this);
