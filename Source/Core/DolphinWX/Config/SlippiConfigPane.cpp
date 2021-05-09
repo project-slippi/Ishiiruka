@@ -119,7 +119,7 @@ void SlippiNetplayConfigPane::InitializeGUI()
 	sSlippiOnlineSettings->Add(m_slippi_delay_frames_txt, wxGBPosition(0, 0), wxDefaultSpan, wxALIGN_CENTER_VERTICAL);
 	sSlippiOnlineSettings->Add(m_slippi_delay_frames_ctrl, wxGBPosition(0, 1), wxDefaultSpan, wxALIGN_LEFT);
 	sSlippiOnlineSettings->Add(m_slippi_enable_quick_chat, wxGBPosition(1, 0), wxDefaultSpan, wxALIGN_LEFT);
-    sSlippiOnlineSettings->Add(m_slippi_enable_custom_rules, wxGBPosition(2, 0), wxDefaultSpan, wxALIGN_LEFT);
+	sSlippiOnlineSettings->Add(m_slippi_enable_custom_rules, wxGBPosition(2, 0), wxDefaultSpan, wxALIGN_LEFT);
 	sSlippiOnlineSettings->Add(m_slippi_force_netplay_port_checkbox, wxGBPosition(3, 0), wxDefaultSpan,
 	                           wxALIGN_CENTER_VERTICAL);
 	sSlippiOnlineSettings->Add(m_slippi_force_netplay_port_ctrl, wxGBPosition(3, 1), wxDefaultSpan,
@@ -204,7 +204,7 @@ void SlippiNetplayConfigPane::BindEvents()
 
 	m_slippi_delay_frames_ctrl->Bind(wxEVT_SPINCTRL, &SlippiNetplayConfigPane::OnDelayFramesChanged, this);
 	m_slippi_enable_quick_chat->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnQuickChatToggle, this);
-    m_slippi_enable_custom_rules->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnCustomRulesToggle, this);
+	m_slippi_enable_custom_rules->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnCustomRulesToggle, this);
 
 	m_slippi_force_netplay_port_checkbox->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnForceNetplayPortToggle,
 	                                           this);
@@ -224,10 +224,10 @@ void SlippiNetplayConfigPane::OnQuickChatToggle(wxCommandEvent &event)
 	SConfig::GetInstance().m_slippiEnableQuickChat = enableQuickChat;
 }
 
-void SlippiNetplayConfigPane::OnCustomRulesToggle(wxCommandEvent& event)
+void SlippiNetplayConfigPane::OnCustomRulesToggle(wxCommandEvent &event)
 {
-    bool enableCustomRules = m_slippi_enable_custom_rules->IsChecked();
-    SConfig::GetInstance().m_slippiEnableCustomRules = enableCustomRules;
+	bool enableCustomRules = m_slippi_enable_custom_rules->IsChecked();
+	SConfig::GetInstance().m_slippiEnableCustomRules = enableCustomRules;
 }
 
 void SlippiNetplayConfigPane::OnReplaySavingToggle(wxCommandEvent &event)

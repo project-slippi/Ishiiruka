@@ -68,7 +68,7 @@ class SlippiPlayerSelections
 		{
 			this->stageId = s.stageId;
 			this->isStageSelected = true;
-        }
+		}
 
 		if (s.isCharacterSelected)
 		{
@@ -76,13 +76,14 @@ class SlippiPlayerSelections
 			this->characterColor = s.characterColor;
 			this->teamId = s.teamId;
 			this->isCharacterSelected = true;
-            this->stagesBlock = s.stagesBlock;
-        }
+			this->stagesBlock = s.stagesBlock;
+		}
 
-		if(s.isMatchConfigSet){
-            this->areCustomRulesAllowed = s.areCustomRulesAllowed;
-            this->isMatchConfigSet = true;
-            this->matchConfig = s.matchConfig;
+		if (s.isMatchConfigSet)
+		{
+			this->areCustomRulesAllowed = s.areCustomRulesAllowed;
+			this->isMatchConfigSet = true;
+			this->matchConfig = s.matchConfig;
 		}
 	}
 
