@@ -32,6 +32,13 @@ void PlaybackSlider::OnSliderClick(wxMouseEvent &event)
 	// This handler is the confirmation handler that actually sets the frame we
 	// want to skip to
 	isDraggingSlider = false;
+
+	// If the user drags the slider past the left side of the window, we need
+	// to explicitly re-sync the seekbar head, because wxSlider doesn't
+	if (lastMoveVal <= Slippi::PLAYBACK_FIRST_SAVE)
+	{
+		this->SetValue(lastMoveVal);
+	}
 	g_playbackStatus->targetFrameNum = lastMoveVal;
 	event.Skip();
 }
