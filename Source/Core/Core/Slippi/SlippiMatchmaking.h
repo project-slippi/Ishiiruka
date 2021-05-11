@@ -6,13 +6,15 @@
 #include "Core/Slippi/SlippiUser.h"
 
 #ifndef _WIN32
-#include <netdb.h>
 #include <arpa/inet.h>
+#include <netdb.h>
 #endif
 
+#include <json.hpp>
 #include <unordered_map>
 #include <vector>
-#include <json.hpp>
+#include <string>
+#include <unordered_map>
 
 using json = nlohmann::json;
 
@@ -30,6 +32,27 @@ class SlippiMatchmaking
 		TEAMS = 3,
 	};
 
+	enum Regions
+	{
+		EC = 0,
+		WC = 1,
+		EU = 2,
+		SA = 3,
+		LA = 4,
+		AU = 5,
+		AS = 6,
+	};
+
+	std::unordered_map<u8, std::string> RegionMap = {
+        {EC, "EC"},
+        {WC, "WC"},
+        {EU, "EU"},
+        {SA, "SA"},
+        {LA, "LA"},
+        {AU, "AU"},
+        {AS, "AS"},
+    };
+
 	enum ProcessState
 	{
 		IDLE,
@@ -43,6 +66,7 @@ class SlippiMatchmaking
 	struct MatchSearchSettings
 	{
 		OnlinePlayMode mode = OnlinePlayMode::RANKED;
+		OnlinePlayMode submode = OnlinePlayMode::RANKED;
 		std::string connectCode = "";
 	};
 
