@@ -2651,12 +2651,14 @@ std::vector<u8> CEXISlippi::loadPremadeText(u8 *payload)
 
 		//WARN_LOG(SLIPPI, "SLIPPI premade text param: 0x%x", payload[1]);
 		u8 paramId = payload[1];
-		// Clear out any non supported characters (TODO: do this in a loop with more unsupported characters)
-		playerName = ReplaceAll(playerName.c_str(), "`", "");
-		playerName = ReplaceAll(playerName.c_str(), "\\", "");
 
-		playerName = ReplaceAll(playerName.c_str(), "<", "\\"); // Replace any opening tags with "\" for now
-		playerName = ReplaceAll(playerName.c_str(), ">", "`"); // Replace any closing tags with "`" for now
+		for (auto it = spt.unsupportedStringMap.begin(); it != spt.unsupportedStringMap.end(); it++)
+		{
+			playerName = ReplaceAll(playerName.c_str(), it->second, ""); // Remove unsupported chars
+			playerName = ReplaceAll(playerName.c_str(), it->first, it->second); // Remap delimiters for premade text
+		}
+
+		// Replaces spaces with premade text space
 		playerName = ReplaceAll(playerName.c_str(), " ", "<S>");
 
 		if (paramId == SlippiPremadeText::CHAT_MSG_CHAT_DISABLED)
