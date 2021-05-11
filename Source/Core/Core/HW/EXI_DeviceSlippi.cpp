@@ -1545,6 +1545,14 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 	int32_t frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
 	u8 delay = payload[4];
 
+	{
+		std::ostringstream oss;
+		oss << "In frame " << frame << " delay " << delay << " pad ";
+		for (int i = 0; i < SLIPPI_PAD_FULL_SIZE; i++)
+			oss << (int)payload[5 + i] << " ";
+		INFO_LOG(KRISTAL, oss.str().c_str());
+	}
+
 	if (frame == 1)
 	{
 		availableSavestates.clear();
@@ -1585,6 +1593,30 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 	// calls SendSlippiPad
 	handleSendInputs(payload);
 	prepareOpponentInputs(payload);
+
+	{
+		std::ostringstream oss;
+		oss << "Out result " << (int)m_read_queue[0] << " count " << (int)m_read_queue[1];
+		oss << " frame "
+		    << ((((int)m_read_queue[2]) << 24) + (((int)m_read_queue[3]) << 16) + (((int)m_read_queue[4]) << 8) +
+		        ((int)m_read_queue[5]));
+		oss << " Kristal [ ";
+		for (int i = 0; i < SLIPPI_PAD_FULL_SIZE; i++)
+			oss << (int)m_read_queue[2 + 12 + 7*(int)SLIPPI_PAD_FULL_SIZE*3 + i] << " ";
+		oss << "] Slippi ";
+
+		for (int j = 0; j < 7; j++)
+		{
+			oss << "[ ";
+			for (int i = 0; i < SLIPPI_PAD_FULL_SIZE; i++)
+			{
+				oss << (int)m_read_queue[2 + 12 + j * SLIPPI_PAD_FULL_SIZE + i] << " ";
+			}
+			oss << "] ";
+		}
+
+		INFO_LOG(KRISTAL, oss.str().c_str());
+	}
 }
 
 std::vector<double> offsetUss;

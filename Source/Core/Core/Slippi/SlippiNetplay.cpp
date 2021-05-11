@@ -880,6 +880,11 @@ void SlippiNetplayClient::StartSlippiGame(u8 delay) // called when frame is 1
 	    stabilizer.startFrameCount(1+delay); // 1 for frame 1 + our delay
 	}
 
+	for (auto &subframePadSet : subframePadSets)
+	{
+		std::lock_guard<std::mutex> lock(GCAdapter::kristal_callback_mutex);
+		subframePadSet.clear();
+	}
 	GCAdapter::SetKristalInputCallback([this](const GCPadStatus &pad, std::chrono::high_resolution_clock::time_point tp, int chan) -> void
 		{
 		    std::lock_guard<std::mutex> lock(GCAdapter::kristal_callback_mutex);
