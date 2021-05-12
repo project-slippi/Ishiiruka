@@ -271,8 +271,7 @@ CEXISlippi::~CEXISlippi()
 	{
 		m_fileWriteThread.join();
 	}
-	m_slippiserver->write(&empty[0], 0);
-	m_slippiserver->endGame();
+	m_slippiserver->endGame(true);
 
 	localSelections.Reset();
 
@@ -2906,6 +2905,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		writeToFileAsync(&memPtr[0], receiveCommandsLen + 1, "create");
 		bufLoc += receiveCommandsLen + 1;
 		g_needInputForFrame = true;
+
 		m_slippiserver->startGame();
 		m_slippiserver->write(&memPtr[0], receiveCommandsLen + 1);
 	}

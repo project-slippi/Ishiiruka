@@ -293,7 +293,6 @@ bool DolphinApp::OnInit()
 
 	// Init the spectator server
 	SlippiSpectateServer *init = SlippiSpectateServer::getInstance();
-	init->endGame();
 
 	return true;
 }
