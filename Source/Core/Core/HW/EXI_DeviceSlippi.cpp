@@ -2019,6 +2019,8 @@ void CEXISlippi::handleNameEntryLoad(u8 *payload)
 
 void CEXISlippi::prepareOnlineMatchState()
 {
+	SConfig::GetInstance().m_EmulationSpeed = 1.0f; // force 100% speed
+
 	// This match block is a VS match with P1 Red Falco vs P2 Red Bowser vs P3 Young Link vs P4 Young Link
 	// on Battlefield. The proper values will be overwritten
 	static std::vector<u8> onlineMatchBlock = {
