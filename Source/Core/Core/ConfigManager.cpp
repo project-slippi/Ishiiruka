@@ -666,7 +666,9 @@ void SConfig::LoadCoreSettings(IniFile &ini)
 	core->Get("DCBZ", &bDCBZOFF, false);
 	core->Get("FPRF", &bFPRF, false);
 	core->Get("AccurateNaNs", &bAccurateNaNs, false);
+#ifdef IS_PLAYBACK
 	core->Get("EmulationSpeed", &m_EmulationSpeed, 1.0f);
+#endif
 	core->Get("Overclock", &m_OCFactor, 1.0f);
 	core->Get("OverclockEnable", &m_OCEnable, false);
 	core->Get("FrameSkip", &m_FrameSkip, 0);

@@ -271,8 +271,7 @@ CEXISlippi::~CEXISlippi()
 	{
 		m_fileWriteThread.join();
 	}
-	m_slippiserver->write(&empty[0], 0);
-	m_slippiserver->endGame();
+	m_slippiserver->endGame(true);
 
 	localSelections.Reset();
 
@@ -2032,6 +2031,8 @@ void CEXISlippi::handleNameEntryLoad(u8 *payload)
 
 void CEXISlippi::prepareOnlineMatchState()
 {
+	SConfig::GetInstance().m_EmulationSpeed = 1.0f; // force 100% speed
+
 	// This match block is a VS match with P1 Red Falco vs P2 Red Bowser vs P3 Young Link vs P4 Young Link
 	// on Battlefield. The proper values will be overwritten
 	static std::vector<u8> onlineMatchBlock = {
@@ -2918,6 +2919,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		writeToFileAsync(&memPtr[0], receiveCommandsLen + 1, "create");
 		bufLoc += receiveCommandsLen + 1;
 		g_needInputForFrame = true;
+
 		m_slippiserver->startGame();
 		m_slippiserver->write(&memPtr[0], receiveCommandsLen + 1);
 	}
