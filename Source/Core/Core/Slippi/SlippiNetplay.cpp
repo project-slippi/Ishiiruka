@@ -1027,9 +1027,13 @@ u8 SlippiNetplayClient::GetSlippiRemoteSentChatMessage()
 	return copiedMessageId;
 }
 
+std::mutex &SlippiNetplayClient::padMutex() {
+	return pad_mutex;
+}
+
 std::unique_ptr<SlippiRemotePadOutput> SlippiNetplayClient::GetSlippiRemotePad(int32_t curFrame, int index)
 {
-	std::lock_guard<std::mutex> lk(pad_mutex); // TODO: Is this the correct lock?
+	//std::lock_guard<std::mutex> lk(pad_mutex); // Now present in caller
 
 	std::unique_ptr<SlippiRemotePadOutput> padOutput = std::make_unique<SlippiRemotePadOutput>();
 
@@ -1075,7 +1079,7 @@ std::unique_ptr<SlippiRemotePadOutput> SlippiNetplayClient::GetSlippiRemotePad(i
 
 void SlippiNetplayClient::DropOldRemoteInputs(int32_t curFrame)
 {
-	std::lock_guard<std::mutex> lk(pad_mutex);
+	// std::lock_guard<std::mutex> lk(pad_mutex); The caller now takes this mutex (Desync fix)
 
 	// Remove pad reports that should no longer be needed, compute the lowest frame recieved by
 	// all remote players that can be safely dropped.

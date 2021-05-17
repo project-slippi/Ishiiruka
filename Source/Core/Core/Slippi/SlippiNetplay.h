@@ -182,6 +182,8 @@ class SlippiNetplayClient
 
 	std::pair<bool, KristalPad> GetKristalInput(u32 frame, u8 playerIdx);
 
+	std::mutex& padMutex();
+
 	// Debug
 	bool newXReady = false;
 	 // /Debug
