@@ -1841,31 +1841,34 @@ void CEXISlippi::startFindMatch(u8 *payload)
 	search.mode = (SlippiMatchmaking::OnlinePlayMode)payload[0];
 	search.submode = (SlippiMatchmaking::OnlinePlayMode)payload[1];
 
-    std::string shiftJisCode;
+	std::string shiftJisCode;
 
-    if(search.mode == SlippiMatchmaking::UNRANKED && search.submode == SlippiMatchmaking::TEAMS){
-        int subModeParam = payload[2];
+	if (search.mode == SlippiMatchmaking::UNRANKED && search.submode == SlippiMatchmaking::TEAMS)
+	{
+		int subModeParam = payload[2];
 		search.mode = SlippiMatchmaking::TEAMS;
 		shiftJisCode = matchmaking->RegionMap[subModeParam];
-	} else {
+	}
+	else
+	{
 
-        shiftJisCode.insert(shiftJisCode.begin(), &payload[3], &payload[3] + 18);
-        shiftJisCode.erase(std::find(shiftJisCode.begin(), shiftJisCode.end(), 0x00), shiftJisCode.end());
+		shiftJisCode.insert(shiftJisCode.begin(), &payload[3], &payload[3] + 18);
+		shiftJisCode.erase(std::find(shiftJisCode.begin(), shiftJisCode.end(), 0x00), shiftJisCode.end());
 
-        // Log the direct code to file.
-        if (search.mode == SlippiMatchmaking::DIRECT)
-        {
-            // Make sure to convert to UTF8, otherwise json library will fail when
-            // calling dump().
-            std::string utf8Code = SHIFTJISToUTF8(shiftJisCode);
-            directCodes->AddOrUpdateCode(utf8Code);
-        }
-        else if (search.mode == SlippiMatchmaking::TEAMS)
-        {
-            std::string utf8Code = SHIFTJISToUTF8(shiftJisCode);
-            teamsCodes->AddOrUpdateCode(utf8Code);
-        }
-    }
+		// Log the direct code to file.
+		if (search.mode == SlippiMatchmaking::DIRECT)
+		{
+			// Make sure to convert to UTF8, otherwise json library will fail when
+			// calling dump().
+			std::string utf8Code = SHIFTJISToUTF8(shiftJisCode);
+			directCodes->AddOrUpdateCode(utf8Code);
+		}
+		else if (search.mode == SlippiMatchmaking::TEAMS)
+		{
+			std::string utf8Code = SHIFTJISToUTF8(shiftJisCode);
+			teamsCodes->AddOrUpdateCode(utf8Code);
+		}
+	}
 
 	// TODO: Make this work so we dont have to pass shiftJis to mm server
 	// search.connectCode = SHIFTJISToUTF8(shiftJisCode).c_str();
