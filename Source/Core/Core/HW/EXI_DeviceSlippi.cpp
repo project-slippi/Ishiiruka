@@ -1751,7 +1751,7 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 		m_read_queue.insert(m_read_queue.end(), tx.begin(), tx.end());
 	}
 
-	// the latest sent frame instead of the current frame must be passed to avoid nuking inputs
+	// the latest read frame instead of the current frame must be passed to avoid nuking inputs
 	// that are > latest sent frame < current frame and arrived during this function
 	int32_t minFrameRead = *std::min_element(latestFrameRead, latestFrameRead + SLIPPI_REMOTE_PLAYER_MAX);
 	slippi_netplay->DropOldRemoteInputs(minFrameRead);

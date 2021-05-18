@@ -1082,7 +1082,7 @@ std::unique_ptr<SlippiRemotePadOutput> SlippiNetplayClient::GetSlippiRemotePad(i
 	return std::move(padOutput);
 }
 
-void SlippiNetplayClient::DropOldRemoteInputs(int32_t curFrame)
+void SlippiNetplayClient::DropOldRemoteInputs(int32_t minFrameRead)
 {
 	std::lock_guard<std::mutex> lk(pad_mutex);
 
@@ -1109,7 +1109,7 @@ void SlippiNetplayClient::DropOldRemoteInputs(int32_t curFrame)
 	{
 		// INFO_LOG(SLIPPI_ONLINE, "remotePadQueue[%d] size: %d", i, remotePadQueue[i].size());
 		while (remotePadQueue[i].size() > 1 && remotePadQueue[i].back()->frame < lowestCommonFrame &&
-		       remotePadQueue[i].back()->frame < curFrame)
+		       remotePadQueue[i].back()->frame < minFrameRead)
 		{
 			// INFO_LOG(SLIPPI_ONLINE, "Popping inputs for frame %d from back of player %d queue",
 			//         remotePadQueue[i].back()->frame, i);
