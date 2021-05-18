@@ -1884,6 +1884,15 @@ void CEXISlippi::startFindMatch(u8 *payload)
 			return;
 		}
 	}
+	else if (search.mode == SlippiMatchmaking::OnlinePlayMode::TEAMS)
+	{
+		// Some special handling for teams since it is being heavily used for unranked
+		if (localSelections.characterId >= 26 && SConfig::GetInstance().m_gameType != GAMETYPE_MELEE_AKANEIA)
+		{
+			forcedError = "The character you selected is not allowed in this mode";
+			return;
+		}
+	}
 
 #ifndef LOCAL_TESTING
 	if (!isEnetInitialized)
@@ -2315,6 +2324,25 @@ void CEXISlippi::prepareOnlineMatchState()
 				return;
 			}
 		}
+		else if (lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::TEAMS)
+		{
+			auto isAkaneia = SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_AKANEIA;
+
+			if (!localCharOk && !isAkaneia)
+			{
+				handleConnectionCleanup();
+				forcedError = "The character you selected is not allowed in this mode";
+				prepareOnlineMatchState();
+				return;
+			}
+
+			if (!remoteCharOk && !isAkaneia)
+			{
+				handleConnectionCleanup();
+				prepareOnlineMatchState();
+				return;
+			}
+		}
 
 		// Set rng offset
 		rngOffset = isDecider ? lps.rngOffset : rps[0].rngOffset;
@@ -2393,9 +2421,10 @@ void CEXISlippi::prepareOnlineMatchState()
 		*stage = Common::swap16(stageId);
 
 		// Turn pause off in unranked/ranked, on in other modes
+		auto pauseAllowed = !SlippiMatchmaking::IsFixedRulesMode(lastSearch.mode) &&
+		                    lastSearch.mode != SlippiMatchmaking::OnlinePlayMode::TEAMS;
 		u8 *gameBitField3 = (u8 *)&onlineMatchBlock[2];
-		*gameBitField3 =
-		    SlippiMatchmaking::IsFixedRulesMode(lastSearch.mode) ? *gameBitField3 | 0x8 : *gameBitField3 & 0xF7;
+		*gameBitField3 = pauseAllowed ? *gameBitField3 & 0xF7 : * gameBitField3 | 0x8;
 		//*gameBitField3 = *gameBitField3 | 0x8;
 
 		// Group players into left/right side for team splash screen display
