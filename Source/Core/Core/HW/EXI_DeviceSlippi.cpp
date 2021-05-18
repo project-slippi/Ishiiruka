@@ -1758,163 +1758,147 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 	int offset[SLIPPI_REMOTE_PLAYER_MAX];
 	INFO_LOG(SLIPPI_ONLINE, "Preparing pad data for frame %d", frame);
 
+	int32_t latestFrameSent[SLIPPI_REMOTE_PLAYER_MAX] {};
+
+	// Get pad data for each remote player and write each of their latest frame nums to the buf
+	for (int i = 0; i < remotePlayerCount; i++)
 	{
-		std::lock_guard<std::mutex> lk(slippi_netplay->padMutex());
-		/* Desync fix
-		
-		This is an attempt to fix a desync that's probably in vanilla Slippi
-
-		The desync happens when this function settles on sending to ASM through EXI a latestFrame <= n-2,
-		and the pads for frames up to >= n (n <= frame) arrive before we get to DropOldRemoteInputs
-		DropOldRemoteInputs will remove the pads strictly between latestFrame and the last arrived pad
-		whose frame is inferior to "frame" (n-1 in this example)
-
-		On the next transfer, latestFrame will be >= n; let's say it's n - the n-1 pad doesn't exist anymore !
-		So only 1 pad is transferred, but the ASM needs the data for the pad before that, so it will
-		attempt to read slot 2 - which is full 0s. So the definitive input for n-1 becomes full 0s: possible
-		desync.
-
-		Pretty sure it should be very rare in practice. In this build it's more common because we do extra work
-		between reading the pads and dropping old remote pads.
-		
-		The mistake here is that we only lock pad_mutex in GetSlippiRemotePad and DropOldRemoteInputs, but
-		not in-between them, when we should. The read state must be the same as the state when we get to
-		dropping old remote inputs.
-		*/
-
-		// Get pad data for each remote player and write each of their latest frame nums to the buf
-		for (int i = 0; i < remotePlayerCount; i++)
+		/* struct SlippiRemotePadOutput
 		{
-			/* struct SlippiRemotePadOutput
-			{
-			    int32_t latestFrame;
-			    u8 playerIdx;
-			    std::vector<u8> data;
-			}; */
-			results[i] = slippi_netplay->GetSlippiRemotePad(frame, i);
+			int32_t latestFrame;
+			u8 playerIdx;
+			std::vector<u8> data;
+		}; */
+		results[i] = slippi_netplay->GetSlippiRemotePad(frame, i);
 
-			//* Reminder that rollback can update multiple frames at a time
-			//* What's transferred to the Ingame rollback engine could be up to... 7? frames at a time ?
+		//* Reminder that rollback can update multiple frames at a time
+		//* What's transferred to the Ingame rollback engine could be up to... 7? frames at a time ?
 
-			// determine offset from which to copy data
-			offset[i] = (results[i]->latestFrame - frame) * SLIPPI_PAD_FULL_SIZE;
-			offset[i] = offset[i] < 0 ? 0 : offset[i];
-			//* i.e latestFrame = frame+2 (on a 2 inputs en avance): offset=2, donc on ne copie qu'à partir du 2ème
-			//input
-			//* latestFrame = frame-2 (on a 2 inputs de retard): offset=-2, donc offset=0, on copie tout ce qu'on peut
+		// determine offset from which to copy data
+		offset[i] = (results[i]->latestFrame - frame) * SLIPPI_PAD_FULL_SIZE;
+		offset[i] = offset[i] < 0 ? 0 : offset[i];
+		//* i.e latestFrame = frame+2 (on a 2 inputs en avance): offset=2, donc on ne copie qu'à partir du 2ème
+		//input
+		//* latestFrame = frame-2 (on a 2 inputs de retard): offset=-2, donc offset=0, on copie tout ce qu'on peut
 
-			// add latest frame we are transfering to begining of return buf
-			int32_t latestFrame = results[i]->latestFrame;
-			if (latestFrame > frame)
-				latestFrame = frame;
-			appendWordToBuffer(&m_read_queue, *(u32 *)&latestFrame);
-			//* Pour informer l'ASM de la dernière frame pour laquelle un input est connu ?
+		// add latest frame we are transfering to begining of return buf
+		int32_t latestFrame = results[i]->latestFrame;
+		if (latestFrame > frame)
+			latestFrame = frame;
+		latestFrameSent[i] = latestFrame;
 
-			//* La read queue serait la concaténation des pads qu'on passe à l'engine
-			// INFO_LOG(SLIPPI_ONLINE, "Sending frame num %d for pIdx %d (offset: %d)", latestFrame, i, offset[i]);
+		appendWordToBuffer(&m_read_queue, *(u32 *)&latestFrame);
+		//* Pour informer l'ASM de la dernière frame pour laquelle un input est connu ?
 
-			// DEBUG
-			if (results[i]->data[offset[i]] & 4)
-			{
-				std::ostringstream oss;
-				oss << "X pressed for frame " << latestFrame;
-				WARN_LOG(KRISTAL, oss.str().c_str());
-			}
-		}
-		// Send the current frame for any unused player slots.
-		for (int i = remotePlayerCount; i < SLIPPI_REMOTE_PLAYER_MAX; i++)
+		//* La read queue serait la concaténation des pads qu'on passe à l'engine
+		// INFO_LOG(SLIPPI_ONLINE, "Sending frame num %d for pIdx %d (offset: %d)", latestFrame, i, offset[i]);
+
+		// DEBUG
+		if (results[i]->data[offset[i]] & 4)
 		{
-			appendWordToBuffer(&m_read_queue, *(u32 *)&frame);
+			std::ostringstream oss;
+			oss << "X pressed for frame " << latestFrame;
+			WARN_LOG(KRISTAL, oss.str().c_str());
 		}
-
-		// copy pad data over
-		for (int i = 0; i < SLIPPI_REMOTE_PLAYER_MAX; i++)
-		{
-			std::vector<u8> tx;
-
-			// Get pad data if this remote player exists
-			if (i < remotePlayerCount)
-			{
-				auto txStart = results[i]->data.begin() + offset[i];
-				auto txEnd = results[i]->data.end();
-				tx.insert(tx.end(), txStart, txEnd); //* Inversion de sens ?
-			}
-
-			tx.resize(SLIPPI_PAD_FULL_SIZE * ROLLBACK_MAX_FRAMES, 0);
-
-			m_read_queue.insert(m_read_queue.end(), tx.begin(), tx.end());
-
-			// TODO log
-			/*ERROR_LOG(SLIPPI_ONLINE, "EXI: [%d] %X %X %X %X %X %X %X %X", results[i]->latestFrame, m_read_queue[5],
-			          m_read_queue[6],
-			    m_read_queue[7], m_read_queue[8], m_read_queue[9], m_read_queue[10], m_read_queue[11],
-			    m_read_queue[12]);*/
-		}
-
-		for (int i = 0; i < SLIPPI_REMOTE_PLAYER_MAX; i++)
-		{
-			if (i < remotePlayerCount)
-			{
-				// Add Kristal input
-				std::pair<bool, SlippiNetplayClient::KristalPad> kristalPad =
-				    slippi_netplay->GetKristalInput(frame, i); // No more than the current frame
-				if (kristalPad.first)
-				{
-					if (kristalPad.second.subframe >
-					    (float)results[i]->latestFrame) // No less than the latest frame for which we have inputs
-					{
-						// More recent, use the Kristal input
-
-						auto slippiPad = results[i]->data.begin() + offset[i];
-
-						// We are stitching together the input to use from the Kristal pad and the
-						// latest known Slippi pad: Kristal pad content except for left/right trigger
-						// values, obtained from the latest known Slippi pad
-						// The reason being we don't handle origin yet and even without trigger trick
-						// they greatly impact trigger behaviours
-						// With trigger analog transmitter locked to bottom (whose initial position we
-						// wouldn't have perceived in the Kristal stream) we'd litterally be sending
-						// "full shield" every Kristal input, which would be awful
-						m_read_queue.insert(m_read_queue.end(), kristalPad.second.pad,
-						                    kristalPad.second.pad + SLIPPI_PAD_DATA_SIZE - 2);
-						m_read_queue.insert(m_read_queue.end(), slippiPad + SLIPPI_PAD_DATA_SIZE - 2,
-						                    slippiPad + SLIPPI_PAD_DATA_SIZE);
-						m_read_queue.insert(m_read_queue.end(), SLIPPI_PAD_FULL_SIZE - SLIPPI_PAD_DATA_SIZE, 0);
-
-						std::ostringstream oss;
-						oss << std::fixed << std::setprecision(2) << "Kristal input was used for frame " << frame
-						    << " subframe " << kristalPad.second.subframe << " latest known frame "
-						    << results[i]->latestFrame;
-						ERROR_LOG(KRISTAL, oss.str().c_str());
-						oss.str("");
-						oss << (int)kristalPad.second.pad[0] << " " << (int)kristalPad.second.pad[1] << " "
-						    << (int)kristalPad.second.pad[2] << " " << (int)kristalPad.second.pad[3] << " "
-						    << (int)kristalPad.second.pad[4] << " " << (int)kristalPad.second.pad[5] << " "
-						    << (int)kristalPad.second.pad[6] << " " << (int)kristalPad.second.pad[7] << " ";
-						ERROR_LOG(KRISTAL, oss.str().c_str());
-						oss.str("");
-						oss << (int)slippiPad[0] << " " << (int)slippiPad[1] << " " << (int)slippiPad[2] << " "
-						    << (int)slippiPad[3] << " " << (int)slippiPad[4] << " " << (int)slippiPad[5] << " "
-						    << (int)slippiPad[6] << " " << (int)slippiPad[7];
-						ERROR_LOG(KRISTAL, oss.str().c_str());
-					}
-					else
-						kristalPad.first = false;
-				}
-				if (!kristalPad.first)
-				{
-					m_read_queue.insert(m_read_queue.end(), results[i]->data.begin(),
-					                    results[i]->data.begin() + SLIPPI_PAD_FULL_SIZE);
-				}
-			}
-			else
-			{
-				m_read_queue.insert(m_read_queue.end(), SLIPPI_PAD_FULL_SIZE, 0);
-			}
-		}
-
-		slippi_netplay->DropOldRemoteInputs(frame);
 	}
+	// Send the current frame for any unused player slots.
+	for (int i = remotePlayerCount; i < SLIPPI_REMOTE_PLAYER_MAX; i++)
+	{
+		latestFrameSent[i] = frame;
+		appendWordToBuffer(&m_read_queue, *(u32 *)&frame);
+	}
+
+	// copy pad data over
+	for (int i = 0; i < SLIPPI_REMOTE_PLAYER_MAX; i++)
+	{
+		std::vector<u8> tx;
+
+		// Get pad data if this remote player exists
+		if (i < remotePlayerCount)
+		{
+			auto txStart = results[i]->data.begin() + offset[i];
+			auto txEnd = results[i]->data.end();
+			tx.insert(tx.end(), txStart, txEnd); //* Inversion de sens ?
+		}
+
+		tx.resize(SLIPPI_PAD_FULL_SIZE * ROLLBACK_MAX_FRAMES, 0);
+
+		m_read_queue.insert(m_read_queue.end(), tx.begin(), tx.end());
+
+		// TODO log
+		/*ERROR_LOG(SLIPPI_ONLINE, "EXI: [%d] %X %X %X %X %X %X %X %X", results[i]->latestFrame, m_read_queue[5],
+			        m_read_queue[6],
+			m_read_queue[7], m_read_queue[8], m_read_queue[9], m_read_queue[10], m_read_queue[11],
+			m_read_queue[12]);*/
+	}
+
+	for (int i = 0; i < SLIPPI_REMOTE_PLAYER_MAX; i++)
+	{
+		if (i < remotePlayerCount)
+		{
+			// Add Kristal input
+			std::pair<bool, SlippiNetplayClient::KristalPad> kristalPad =
+			    slippi_netplay->GetKristalInput(frame, i); // No more than the current frame
+			
+			if (kristalPad.first)
+			{
+				if (kristalPad.second.subframe >
+					(float)results[i]->latestFrame) // No less than the latest frame for which we have inputs
+				{
+					// More recent, use the Kristal input
+
+					auto slippiPad = results[i]->data.begin() + offset[i];
+
+					// We are stitching together the input to use from the Kristal pad and the
+					// latest known Slippi pad: Kristal pad content except for left/right trigger
+					// values, obtained from the latest known Slippi pad
+					// The reason being we don't handle origin yet and even without trigger trick
+					// they greatly impact trigger behaviours
+					// With trigger analog transmitter locked to bottom (whose initial position we
+					// wouldn't have perceived in the Kristal stream) we'd litterally be sending
+					// "full shield" every Kristal input, which would be awful
+					m_read_queue.insert(m_read_queue.end(), kristalPad.second.pad,
+						                kristalPad.second.pad + SLIPPI_PAD_DATA_SIZE - 2);
+					m_read_queue.insert(m_read_queue.end(), slippiPad + SLIPPI_PAD_DATA_SIZE - 2,
+						                slippiPad + SLIPPI_PAD_DATA_SIZE);
+					m_read_queue.insert(m_read_queue.end(), SLIPPI_PAD_FULL_SIZE - SLIPPI_PAD_DATA_SIZE, 0);
+
+					std::ostringstream oss;
+					oss << std::fixed << std::setprecision(2) << "Kristal input was used for frame " << frame
+						<< " subframe " << kristalPad.second.subframe << " latest known frame "
+						<< results[i]->latestFrame;
+					ERROR_LOG(KRISTAL, oss.str().c_str());
+					oss.str("");
+					oss << (int)kristalPad.second.pad[0] << " " << (int)kristalPad.second.pad[1] << " "
+						<< (int)kristalPad.second.pad[2] << " " << (int)kristalPad.second.pad[3] << " "
+						<< (int)kristalPad.second.pad[4] << " " << (int)kristalPad.second.pad[5] << " "
+						<< (int)kristalPad.second.pad[6] << " " << (int)kristalPad.second.pad[7] << " ";
+					ERROR_LOG(KRISTAL, oss.str().c_str());
+					oss.str("");
+					oss << (int)slippiPad[0] << " " << (int)slippiPad[1] << " " << (int)slippiPad[2] << " "
+						<< (int)slippiPad[3] << " " << (int)slippiPad[4] << " " << (int)slippiPad[5] << " "
+						<< (int)slippiPad[6] << " " << (int)slippiPad[7];
+					ERROR_LOG(KRISTAL, oss.str().c_str());
+				}
+				else
+					kristalPad.first = false;
+			}
+			if (!kristalPad.first)
+			{
+				m_read_queue.insert(m_read_queue.end(), results[i]->data.begin(),
+					                results[i]->data.begin() + SLIPPI_PAD_FULL_SIZE);
+			}
+		}
+		else
+		{
+			m_read_queue.insert(m_read_queue.end(), SLIPPI_PAD_FULL_SIZE, 0);
+		}
+	}
+
+	// the latest sent frame instead of the current frame must be passed to avoid nuking inputs
+	// that are > latest sent frame < current frame and arrived during this function
+	int32_t minFrameSent = *std::min_element(latestFrameSent, latestFrameSent + SLIPPI_REMOTE_PLAYER_MAX);
+	slippi_netplay->DropOldRemoteInputs(minFrameSent);
 }
 
 void CEXISlippi::handleCaptureSavestate(u8 *payload)
