@@ -1707,6 +1707,8 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 	int offset[SLIPPI_REMOTE_PLAYER_MAX];
 	//INFO_LOG(SLIPPI_ONLINE, "Preparing pad data for frame %d", frame);
 
+	int32_t latestFrameRead[SLIPPI_REMOTE_PLAYER_MAX]{};
+
 	// Get pad data for each remote player and write each of their latest frame nums to the buf
 	for (int i = 0; i < remotePlayerCount; i++)
 	{
@@ -1720,12 +1722,14 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 		int32_t latestFrame = results[i]->latestFrame;
 		if (latestFrame > frame)
 			latestFrame = frame;
+		latestFrameRead[i] = latestFrame;
 		appendWordToBuffer(&m_read_queue, *(u32 *)&latestFrame);
 		// INFO_LOG(SLIPPI_ONLINE, "Sending frame num %d for pIdx %d (offset: %d)", latestFrame, i, offset[i]);
 	}
 	// Send the current frame for any unused player slots.
 	for (int i = remotePlayerCount; i < SLIPPI_REMOTE_PLAYER_MAX; i++)
 	{
+		latestFrameRead[i] = frame;
 		appendWordToBuffer(&m_read_queue, *(u32 *)&frame);
 	}
 
@@ -1747,7 +1751,10 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 		m_read_queue.insert(m_read_queue.end(), tx.begin(), tx.end());
 	}
 
-	slippi_netplay->DropOldRemoteInputs(frame);
+	// the latest sent frame instead of the current frame must be passed to avoid nuking inputs
+	// that are > latest sent frame < current frame and arrived during this function
+	int32_t minFrameRead = *std::min_element(latestFrameRead, latestFrameRead + SLIPPI_REMOTE_PLAYER_MAX);
+	slippi_netplay->DropOldRemoteInputs(minFrameRead);
 
 	// ERROR_LOG(SLIPPI_ONLINE, "EXI: [%d] %X %X %X %X %X %X %X %X", latestFrame, m_read_queue[5], m_read_queue[6],
 	// m_read_queue[7], m_read_queue[8], m_read_queue[9], m_read_queue[10], m_read_queue[11], m_read_queue[12]);
