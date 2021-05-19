@@ -79,6 +79,14 @@ class SlippiPremadeText
 	    {SPT_CHAT_DISABLED, "<LEFT><KERN><COLOR, 0, 178, 2>%s<S><COLOR, 255, 255, 255>has<S>chat<S>disabled<S><END>"},
 	};
 
+	// This is just a map of delimiters and temporary replacements to remap them before the name is converted
+	// to Slippi Premade Text format
+	unordered_map<string, string> unsupportedStringMap = {
+	    {"<", "\\"},
+	    {">", "`"},
+	    {",", "Ç"},
+	};
+
 	// TODO: use va_list to handle any no. or args
 	string GetPremadeTextString(u8 textId) { return premadeTexts[textId]; }
 
@@ -189,8 +197,13 @@ class SlippiPremadeText
 						int chr = utfMatch[c];
 						// We are manually replacing "<" for "\" and ">" for "`" because I don't want to handle vargs
 						// and we need to prevent "format injection" lol...
-						chr = chr == '\\' ? '<' : chr == '`' ? '>' : chr;
-						// DEBUG_LOG(SLIPPI, "CHAR 0x%x", chr);
+						for (auto it = unsupportedStringMap.begin(); it != unsupportedStringMap.end(); it++)
+						{
+							if (it->second.find(chr) != std::string::npos || (chr == U'Ç' && it->first[0] == ','))
+							{ // Need to figure out how to find extended ascii chars (Ç)
+								chr = it->first[0];
+							}
+						}
 
 						// Yup, fuck strchr and cpp too, I'm not in the mood to spend 4 more hours researching how to
 						// get Japanese characters properly working with a map, so I put everything on an int array in
