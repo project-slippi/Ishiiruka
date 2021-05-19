@@ -1086,30 +1086,13 @@ void SlippiNetplayClient::DropOldRemoteInputs(int32_t minFrameRead)
 {
 	std::lock_guard<std::mutex> lk(pad_mutex);
 
-	// Remove pad reports that should no longer be needed, compute the lowest frame recieved by
-	// all remote players that can be safely dropped.
-	int lowestCommonFrame = 0;
-	for (int i = 0; i < m_remotePlayerCount; i++)
-	{
-		int playerFrame = 0;
-		for (auto it = remotePadQueue[i].begin(); it != remotePadQueue[i].end(); ++it)
-		{
-			if (it->get()->frame > playerFrame)
-				playerFrame = it->get()->frame;
-		}
-
-		if (lowestCommonFrame == 0 || playerFrame < lowestCommonFrame)
-			lowestCommonFrame = playerFrame;
-	}
-
 	// INFO_LOG(SLIPPI_ONLINE, "Checking for remotePadQueue inputs to drop, lowest common: %d, [0]: %d, [1]: %d, [2]:
 	// %d",
 	//         lowestCommonFrame, playerFrame[0], playerFrame[1], playerFrame[2]);
 	for (int i = 0; i < m_remotePlayerCount; i++)
 	{
 		// INFO_LOG(SLIPPI_ONLINE, "remotePadQueue[%d] size: %d", i, remotePadQueue[i].size());
-		while (remotePadQueue[i].size() > 1 && remotePadQueue[i].back()->frame < lowestCommonFrame &&
-		       remotePadQueue[i].back()->frame < minFrameRead)
+		while (remotePadQueue[i].size() > 1 && remotePadQueue[i].back()->frame < minFrameRead)
 		{
 			// INFO_LOG(SLIPPI_ONLINE, "Popping inputs for frame %d from back of player %d queue",
 			//         remotePadQueue[i].back()->frame, i);
