@@ -271,8 +271,7 @@ CEXISlippi::~CEXISlippi()
 	{
 		m_fileWriteThread.join();
 	}
-	m_slippiserver->write(&empty[0], 0);
-	m_slippiserver->endGame();
+	m_slippiserver->endGame(true);
 
 	localSelections.Reset();
 
@@ -1707,6 +1706,8 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 	int offset[SLIPPI_REMOTE_PLAYER_MAX];
 	//INFO_LOG(SLIPPI_ONLINE, "Preparing pad data for frame %d", frame);
 
+	int32_t latestFrameRead[SLIPPI_REMOTE_PLAYER_MAX]{};
+
 	// Get pad data for each remote player and write each of their latest frame nums to the buf
 	for (int i = 0; i < remotePlayerCount; i++)
 	{
@@ -1720,12 +1721,14 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 		int32_t latestFrame = results[i]->latestFrame;
 		if (latestFrame > frame)
 			latestFrame = frame;
+		latestFrameRead[i] = latestFrame;
 		appendWordToBuffer(&m_read_queue, *(u32 *)&latestFrame);
 		// INFO_LOG(SLIPPI_ONLINE, "Sending frame num %d for pIdx %d (offset: %d)", latestFrame, i, offset[i]);
 	}
 	// Send the current frame for any unused player slots.
 	for (int i = remotePlayerCount; i < SLIPPI_REMOTE_PLAYER_MAX; i++)
 	{
+		latestFrameRead[i] = frame;
 		appendWordToBuffer(&m_read_queue, *(u32 *)&frame);
 	}
 
@@ -1747,7 +1750,10 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 		m_read_queue.insert(m_read_queue.end(), tx.begin(), tx.end());
 	}
 
-	slippi_netplay->DropOldRemoteInputs(frame);
+	// the latest read frame instead of the current frame must be passed to avoid nuking inputs
+	// that are > latest read frame < current frame and arrived during this function
+	int32_t minFrameRead = *std::min_element(latestFrameRead, latestFrameRead + SLIPPI_REMOTE_PLAYER_MAX);
+	slippi_netplay->DropOldRemoteInputs(minFrameRead);
 
 	// ERROR_LOG(SLIPPI_ONLINE, "EXI: [%d] %X %X %X %X %X %X %X %X", latestFrame, m_read_queue[5], m_read_queue[6],
 	// m_read_queue[7], m_read_queue[8], m_read_queue[9], m_read_queue[10], m_read_queue[11], m_read_queue[12]);
@@ -1882,6 +1888,15 @@ void CEXISlippi::startFindMatch(u8 *payload)
 		    std::find(allowedStages.begin(), allowedStages.end(), localSelections.stageId) == allowedStages.end())
 		{
 			forcedError = "The stage being requested is not allowed in this mode";
+			return;
+		}
+	}
+	else if (search.mode == SlippiMatchmaking::OnlinePlayMode::TEAMS)
+	{
+		// Some special handling for teams since it is being heavily used for unranked
+		if (localSelections.characterId >= 26 && SConfig::GetInstance().m_gameType != GAMETYPE_MELEE_AKANEIA)
+		{
+			forcedError = "The character you selected is not allowed in this mode";
 			return;
 		}
 	}
@@ -2020,6 +2035,8 @@ void CEXISlippi::handleNameEntryLoad(u8 *payload)
 
 void CEXISlippi::prepareOnlineMatchState()
 {
+	SConfig::GetInstance().m_EmulationSpeed = 1.0f; // force 100% speed
+
 	// This match block is a VS match with P1 Red Falco vs P2 Red Bowser vs P3 Young Link vs P4 Young Link
 	// on Battlefield. The proper values will be overwritten
 	static std::vector<u8> onlineMatchBlock = {
@@ -2314,6 +2331,25 @@ void CEXISlippi::prepareOnlineMatchState()
 				return;
 			}
 		}
+		else if (lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::TEAMS)
+		{
+			auto isAkaneia = SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_AKANEIA;
+
+			if (!localCharOk && !isAkaneia)
+			{
+				handleConnectionCleanup();
+				forcedError = "The character you selected is not allowed in this mode";
+				prepareOnlineMatchState();
+				return;
+			}
+
+			if (!remoteCharOk && !isAkaneia)
+			{
+				handleConnectionCleanup();
+				prepareOnlineMatchState();
+				return;
+			}
+		}
 
 		// Set rng offset
 		rngOffset = isDecider ? lps.rngOffset : rps[0].rngOffset;
@@ -2392,9 +2428,10 @@ void CEXISlippi::prepareOnlineMatchState()
 		*stage = Common::swap16(stageId);
 
 		// Turn pause off in unranked/ranked, on in other modes
+		auto pauseAllowed = !SlippiMatchmaking::IsFixedRulesMode(lastSearch.mode) &&
+		                    lastSearch.mode != SlippiMatchmaking::OnlinePlayMode::TEAMS;
 		u8 *gameBitField3 = (u8 *)&onlineMatchBlock[2];
-		*gameBitField3 =
-		    SlippiMatchmaking::IsFixedRulesMode(lastSearch.mode) ? *gameBitField3 | 0x8 : *gameBitField3 & 0xF7;
+		*gameBitField3 = pauseAllowed ? *gameBitField3 & 0xF7 : * gameBitField3 | 0x8;
 		//*gameBitField3 = *gameBitField3 | 0x8;
 
 		// Group players into left/right side for team splash screen display
@@ -2642,12 +2679,14 @@ std::vector<u8> CEXISlippi::loadPremadeText(u8 *payload)
 
 		//WARN_LOG(SLIPPI, "SLIPPI premade text param: 0x%x", payload[1]);
 		u8 paramId = payload[1];
-		// Clear out any non supported characters (TODO: do this in a loop with more unsupported characters)
-		playerName = ReplaceAll(playerName.c_str(), "`", "");
-		playerName = ReplaceAll(playerName.c_str(), "\\", "");
 
-		playerName = ReplaceAll(playerName.c_str(), "<", "\\"); // Replace any opening tags with "\" for now
-		playerName = ReplaceAll(playerName.c_str(), ">", "`"); // Replace any closing tags with "`" for now
+		for (auto it = spt.unsupportedStringMap.begin(); it != spt.unsupportedStringMap.end(); it++)
+		{
+			playerName = ReplaceAll(playerName.c_str(), it->second, ""); // Remove unsupported chars
+			playerName = ReplaceAll(playerName.c_str(), it->first, it->second); // Remap delimiters for premade text
+		}
+
+		// Replaces spaces with premade text space
 		playerName = ReplaceAll(playerName.c_str(), " ", "<S>");
 
 		if (paramId == SlippiPremadeText::CHAT_MSG_CHAT_DISABLED)
@@ -2904,6 +2943,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		writeToFileAsync(&memPtr[0], receiveCommandsLen + 1, "create");
 		bufLoc += receiveCommandsLen + 1;
 		g_needInputForFrame = true;
+
 		m_slippiserver->startGame();
 		m_slippiserver->write(&memPtr[0], receiveCommandsLen + 1);
 	}
