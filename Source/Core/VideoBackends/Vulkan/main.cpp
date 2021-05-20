@@ -322,9 +322,9 @@ void VideoBackend::PrepareWindow(void* window_handle) {
 	ERROR_LOG(VIDEO, "Failed to create Metal layer.");
 	return;
 	}
-
+	
 	// [view setWantsLayer:YES]
-	reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(view, sel_getUid("setWantsLayer:"), YES);
+    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(view, sel_getUid("setWantsLayer:"), YES);
 
 	// [view setLayer:layer]
 	reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(view, sel_getUid("setLayer:"), layer);
@@ -340,6 +340,21 @@ void VideoBackend::PrepareWindow(void* window_handle) {
 	// layer.contentsScale = factor
 	reinterpret_cast<void (*)(id, SEL, double)>(objc_msgSend)(layer, sel_getUid("setContentsScale:"),
 	                                                        factor);
+
+    // This is an oddity, but alright. The SwapChain is already configured to be respective of Vsync, but the underlying
+    // CAMetalLayer *also* needs to be instructed to respect it. This defaults to YES; if we're not supposed to have vsync
+    // enabled, then we need to flip this.
+    //
+    // Notably, some M1 Macs have issues without this logic.
+    // 
+    // I have absolutely no clue why this works, as MoltenVK also sets this property. Setting it before giving the layer
+    // to MoltenVK seems to make it stick, though.
+    if (!g_Config.IsVSync())
+    {
+        // Explicitly tells the underlying layer to NOT use vsync.
+        // [view setDisplaySyncEnabled:NO]
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(layer, sel_getUid("setDisplaySyncEnabled:"), NO);
+    }
 #endif
 }
 }
