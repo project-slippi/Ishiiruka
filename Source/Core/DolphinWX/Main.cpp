@@ -245,9 +245,10 @@ bool DolphinApp::OnInit()
 	CFURLRef bundleURL = CFBundleCopyBundleURL(mainBundle);
 	CFStringRef url;
 
-	if(CFURLCopyResourcePropertyForKey(bundleURL, kCFURLVolumeNameKey, &url, NULL)) {
+	if (CFURLCopyResourcePropertyForKey(bundleURL, kCFURLVolumeNameKey, &url, NULL))
+	{
 		// If you look at this and wonder why we can't just call CFStringGetCStringPtr, the
-		// reason is that it can technically return NULL - and actually does, in this case... 
+		// reason is that it can technically return NULL - and actually does, in this case...
 		// but on Mojave.
 		//
 		// Go figure.
@@ -255,18 +256,21 @@ bool DolphinApp::OnInit()
 		// If we can't determine the volume name, then we'll just silently move on and deal
 		// with it as a support request I guess.
 		CFIndex maxSize = CFStringGetMaximumSizeForEncoding(CFStringGetLength(url), kCFStringEncodingUTF8);
-		char volume_name [maxSize + 1];
-		if(CFStringGetCString(url, volume_name, maxSize + 1, kCFStringEncodingUTF8)) {
-			//fprintf(stderr, "Volume: %s\n", volume_name);
+		char volume_name[maxSize + 1];
+		if (CFStringGetCString(url, volume_name, maxSize + 1, kCFStringEncodingUTF8))
+		{
+			// fprintf(stderr, "Volume: %s\n", volume_name);
 
-			if(strcmp(volume_name, "Slippi Dolphin Installer") == 0) {
-				wxMessageBox("Slippi needs to be in your Applications folder to run properly, but you're trying to "
-					"run it from the Installer. Make sure you've dragged the app to the Applications folder, and "
-					"then start the app from there.",
-					"Slippi must be in Applications.", wxOK | wxCENTRE | wxICON_WARNING);
+			if (strcmp(volume_name, "Slippi Dolphin Installer") == 0)
+			{
+				wxMessageBox(
+				    "Slippi needs to be in your Applications folder to run properly, but you're trying to "
+				    "run it from the Installer. Make sure you've dragged the app to the Applications folder, and "
+				    "then start the app from there.",
+				    "Slippi must be in Applications.", wxOK | wxCENTRE | wxICON_WARNING);
 				exit(EXIT_SUCCESS);
 			}
- 		}
+		}
 
 		CFRelease(url);
 	}
@@ -289,7 +293,6 @@ bool DolphinApp::OnInit()
 
 	// Init the spectator server
 	SlippiSpectateServer *init = SlippiSpectateServer::getInstance();
-	init->endGame();
 
 	return true;
 }

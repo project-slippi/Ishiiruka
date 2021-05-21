@@ -81,23 +81,20 @@ void InputStabilizer::feedPollTiming(std::chrono::high_resolution_clock::time_po
 	}
 
 	const SConfig& sconfig = SConfig::GetInstance();
-	double period = (int64_t)1'000'000'000 / (sconfig.bUse5994HzStabilization ? 59.94 : 60.);
+	double period = 1'000'000'000 / 59.94;
 
-	if (sconfig.bUseSteadyStateEngineStabilization && sconfig.bIncreaseProcessPriority)
+	if (pollTimings.size() == sizeLimit)
 	{
-		if (pollTimings.size() == sizeLimit)
+		// If we are in steady state, the fed timing is ignored except for error checking
+		// It is supposed that feed is called before compute, and incrementsSinceOrigin is
+		// incremented after each computation
+		if (std::abs((tp - steadyStateOrigin).count() - (int64_t)(incrementsSinceOrigin * period)  ) > leniency)
 		{
-			// If we are in steady state, the fed timing is ignored except for error checking
-			// It is supposed that feed is called before compute, and incrementsSinceOrigin is
-			// incremented after each computation
-			if (std::abs((tp - steadyStateOrigin).count() - (int64_t)(incrementsSinceOrigin * period)  ) > leniency)
-			{
-				offsetsSum = 0;
-				pollTimings.clear();
-				pollTimings.push_front(tp);
-			}
-			return;
+			offsetsSum = 0;
+			pollTimings.clear();
+			pollTimings.push_front(tp);
 		}
+		return;
 	}
 	if (pollTimings.size())
 	{
@@ -110,48 +107,33 @@ void InputStabilizer::feedPollTiming(std::chrono::high_resolution_clock::time_po
 		}
 		else
 		{
-			if (!(sconfig.bUseSteadyStateEngineStabilization && sconfig.bIncreaseProcessPriority))
-			{
-				if (pollTimings.size() == sizeLimit)
-				{
-					offsetsSum += (pollTimings.front() - pollTimings.back())
-						.count(); // removes pollTimings.back()'s contribution to the offsets sum
-					pollTimings.pop_back();
-				}
-			}
 			offsetsSum -= pollTimings.size() * (tp - pollTimings.front()).count(); // sets reference to tp
 		}
 	}
 	pollTimings.push_front(tp);
-	if (sconfig.bUseSteadyStateEngineStabilization && sconfig.bIncreaseProcessPriority)
+	if (pollTimings.size() == sizeLimit) // Initialize steady state algorithm
 	{
-		if (pollTimings.size() == sizeLimit) // Initialize steady state algorithm
-		{
-			incrementsSinceOrigin = 0;
-			steadyStateOrigin = computeNextPollTimingInternal(true) + std::chrono::nanoseconds(delay);
-			// The origin is compared to real time points and therefore doesn't contain the delay
-		}
+		incrementsSinceOrigin = 0;
+		steadyStateOrigin = computeNextPollTimingInternal(true) + std::chrono::nanoseconds(delay);
+		// The origin is compared to real time points and therefore doesn't contain the delay
 	}
 }
 
 time_point InputStabilizer::computeNextPollTimingInternal(bool init, bool alter) //TODO Why the fuck is there a state change in the read method what was I thinking
 {
 	const SConfig& sconfig = SConfig::GetInstance();
-	double period = (int64_t)1'000'000'000 / (sconfig.bUse5994HzStabilization ? 59.94 : 60.);
+	double period = 1'000'000'000 / 59.94;
 
 	size_t size = pollTimings.size();
 
 	if (!size)
 		return std::chrono::high_resolution_clock::now() - std::chrono::nanoseconds(delay);
 
-	if (sconfig.bUseSteadyStateEngineStabilization && sconfig.bIncreaseProcessPriority)
+	if ((!init) && (size == sizeLimit))
 	{
-		if ((!init) && (size == sizeLimit))
-		{
-			auto result = steadyStateOrigin + std::chrono::nanoseconds((int64_t)(incrementsSinceOrigin * period - delay));
-			if (alter) incrementsSinceOrigin++;
-			return result;
-		}
+		auto result = steadyStateOrigin + std::chrono::nanoseconds((int64_t)(incrementsSinceOrigin * period - delay));
+		if (alter) incrementsSinceOrigin++;
+		return result;
 	}
 
 	std::chrono::high_resolution_clock::time_point ref = pollTimings.front();
@@ -186,7 +168,7 @@ std::pair<float, u8> InputStabilizer::evaluateTiming(const time_point& tp) {
 	std::lock_guard<std::mutex> lock(mutex);
 
 	const SConfig &sconfig = SConfig::GetInstance();
-	double period = (int64_t)1'000'000'000 / (sconfig.bUse5994HzStabilization ? 59.94 : 60.);
+	double period = (int64_t)1'000'000'000 / 59.94;
 
 	// It is assumed the last provided timing matches the frame number we currently have
 	

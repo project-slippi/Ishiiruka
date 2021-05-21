@@ -373,7 +373,7 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 
 				    auto now = std::chrono::high_resolution_clock::now();
 				    // the HI register is read before the LO register (at least by Melee)
-				    if (SConfig::GetInstance().bUseEngineStabilization)
+				    if (SConfig::GetInstance().bReduceTimingDispersion)
 				    {
 					    if(!NetPlay::IsNetPlayRunning())
 					    {

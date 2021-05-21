@@ -19,27 +19,53 @@ class wxString;
 class wxStaticText;
 class wxTextCtrl;
 
-class SlippiConfigPane final : public wxPanel
+class SlippiNetplayConfigPane final : public wxPanel
 {
-public:
-	SlippiConfigPane(wxWindow* parent, wxWindowID id);
+  public:
+	SlippiNetplayConfigPane(wxWindow *parent, wxWindowID id);
 
-private:
+  private:
 	void InitializeGUI();
 	void LoadGUIValues();
 	void BindEvents();
 
-	void OnReplaySavingToggle(wxCommandEvent& event);
-	void OnReplayMonthFoldersToggle(wxCommandEvent& event);
-	void OnReplayDirChanged(wxCommandEvent& event);
+	void OnReplaySavingToggle(wxCommandEvent &event);
+	void OnReplayMonthFoldersToggle(wxCommandEvent &event);
+	void OnReplayDirChanged(wxCommandEvent &event);
 	void OnDelayFramesChanged(wxCommandEvent &event);
-	void OnQuickChatToggle(wxCommandEvent& event);
+	void OnForceNetplayPortToggle(wxCommandEvent &event);
+	void OnNetplayPortChanged(wxCommandEvent &event);
+	void OnForceNetplayLanIpToggle(wxCommandEvent &event);
+	void OnNetplayLanIpChanged(wxCommandEvent &event);
+	void OnQuickChatToggle(wxCommandEvent &event);
+	void OnReduceTimingDispersionToggle(wxCommandEvent &event);
 
-	wxCheckBox* m_replay_enable_checkbox;
-	wxDirPickerCtrl* m_replay_directory_picker;
-	wxCheckBox* m_replay_month_folders_checkbox;
-	wxStaticText* m_slippi_delay_frames_txt;
+	wxCheckBox *m_replay_enable_checkbox;
+	wxDirPickerCtrl *m_replay_directory_picker;
+	wxCheckBox *m_replay_month_folders_checkbox;
+	wxStaticText *m_slippi_delay_frames_txt;
 	wxSpinCtrl *m_slippi_delay_frames_ctrl;
-	wxCheckBox* m_slippi_enable_quick_chat;
+	wxCheckBox *m_slippi_force_netplay_port_checkbox;
+	wxSpinCtrl *m_slippi_force_netplay_port_ctrl;
+	wxCheckBox *m_slippi_force_netplay_lan_ip_checkbox;
+	wxTextCtrl *m_slippi_netplay_lan_ip_ctrl;
+	wxCheckBox *m_slippi_enable_quick_chat;
+	wxCheckBox *m_reduce_timing_dispersion_checkbox;
+};
 
+class SlippiPlaybackConfigPane final : public wxPanel
+{
+  public:
+	SlippiPlaybackConfigPane(wxWindow *parent, wxWindowID id);
+
+  private:
+	void InitializeGUI();
+	void LoadGUIValues();
+	void BindEvents();
+
+	wxStaticText *m_slippi_delay_frames_txt;
+	wxTextCtrl *m_slippi_netplay_lan_ip_ctrl;
+	wxCheckBox *m_display_frame_index;
+
+	void OnDisplayFrameIndexToggle(wxCommandEvent &event);
 };

@@ -57,8 +57,10 @@ void GeneralConfigPane::InitializeGUI()
 	m_cheats_checkbox = new wxCheckBox(this, wxID_ANY, _("Enable Cheats"));
 	m_boot_default_iso_checkbox = new wxCheckBox(this, wxID_ANY, _("Start Default ISO on Launch"));
 	m_force_ntscj_checkbox = new wxCheckBox(this, wxID_ANY, _("Force Console as NTSC-J"));
+#ifdef IS_PLAYBACK
 	m_throttler_choice =
 		new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, m_throttler_array_string);
+#endif
 	m_cpu_engine_radiobox =
 		new wxRadioBox(this, wxID_ANY, _("CPU Emulator Engine"), wxDefaultPosition, wxDefaultSize,
 			m_cpu_engine_array_string, 0, wxRA_SPECIFY_ROWS);
@@ -71,20 +73,22 @@ void GeneralConfigPane::InitializeGUI()
 	m_force_ntscj_checkbox->SetToolTip(
 		_("Forces NTSC-J mode for using the Japanese ROM font.\nIf left unchecked, Dolphin defaults "
 			"to NTSC-U and automatically enables this setting when playing Japanese games."));
+#ifdef IS_PLAYBACK
 	m_throttler_choice->SetToolTip(_("Limits the emulation speed to the specified percentage.\nNote "
 		"that raising or lowering the emulation speed will also raise "
 		"or lower the audio pitch to prevent audio from stuttering."));
-
+#endif
 	const int space5 = FromDIP(5);
 
 	wxBoxSizer* const throttler_sizer = new wxBoxSizer(wxHORIZONTAL);
 	throttler_sizer->AddSpacer(space5);
+#ifdef IS_PLAYBACK
 	throttler_sizer->Add(new wxStaticText(this, wxID_ANY, _("Speed Limit:")), 0,
 		wxALIGN_CENTER_VERTICAL | wxBOTTOM, space5);
 	throttler_sizer->AddSpacer(space5);
 	throttler_sizer->Add(m_throttler_choice, 0, wxALIGN_CENTER_VERTICAL | wxBOTTOM, space5);
 	throttler_sizer->AddSpacer(space5);
-
+#endif
 	wxStaticBoxSizer* const basic_settings_sizer =
 		new wxStaticBoxSizer(wxVERTICAL, this, _("Basic Settings"));
 	basic_settings_sizer->AddSpacer(space5);
@@ -122,10 +126,11 @@ void GeneralConfigPane::LoadGUIValues()
 	m_cheats_checkbox->SetValue(startup_params.bEnableCheats);
 	m_boot_default_iso_checkbox->SetValue(startup_params.bBootDefaultISO);
 	m_force_ntscj_checkbox->SetValue(startup_params.bForceNTSCJ);
+#ifdef IS_PLAYBACK
 	u32 selection = std::lround(startup_params.m_EmulationSpeed * 10.0f);
 	if (selection < m_throttler_array_string.size())
 		m_throttler_choice->SetSelection(selection);
-
+#endif
 	for (size_t i = 0; i < m_cpu_cores.size(); ++i)
 	{
 		if (m_cpu_cores[i].CPUid == startup_params.iCPUCore)
@@ -146,9 +151,9 @@ void GeneralConfigPane::BindEvents()
 	m_force_ntscj_checkbox->Bind(wxEVT_CHECKBOX, &GeneralConfigPane::OnForceNTSCJCheckBoxChanged,
 		this);
 	m_force_ntscj_checkbox->Bind(wxEVT_UPDATE_UI, &WxEventUtils::OnEnableIfCoreNotRunning);
-
+#ifdef IS_PLAYBACK
 	m_throttler_choice->Bind(wxEVT_CHOICE, &GeneralConfigPane::OnThrottlerChoiceChanged, this);
-
+#endif
 	m_cpu_engine_radiobox->Bind(wxEVT_RADIOBOX, &GeneralConfigPane::OnCPUEngineRadioBoxChanged, this);
 	m_cpu_engine_radiobox->Bind(wxEVT_UPDATE_UI, &WxEventUtils::OnEnableIfCoreNotRunning);
 }

@@ -141,8 +141,7 @@ class SlippiNetplayClient
 	// 2. Sinon renvoie une copie frame+pad du premier pad dans la queue
 	// 3. Enlève les pads antérieurs à la frame actuelle sauf le dernier pad connu
 	std::unique_ptr<SlippiRemotePadOutput> GetSlippiRemotePad(int32_t curFrame, int index);
-	void DropOldRemoteInputs(int32_t curFrame);
-
+	void DropOldRemoteInputs(int32_t minFrameRead);
 	SlippiMatchInfo *GetMatchInfo();
 	int32_t GetSlippiLatestRemoteFrame();
 	SlippiPlayerSelections GetSlippiRemoteChatMessage();
@@ -230,6 +229,8 @@ class SlippiNetplayClient
 	bool isDecider = false;
 	bool hasGameStarted = false;
 	u8 playerIdx = 0;
+
+	std::unordered_map<std::string, std::map<ENetPeer*, bool>> activeConnections;
 
 	std::deque<std::unique_ptr<SlippiPad>> localPadQueue; // most recent inputs at start of deque
 	std::deque<std::unique_ptr<SlippiPad>>

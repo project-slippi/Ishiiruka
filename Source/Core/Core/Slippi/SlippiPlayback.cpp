@@ -11,6 +11,7 @@
 #include "Core/NetPlayClient.h"
 #include "Core/State.h"
 #include "SlippiPlayback.h"
+#include <VideoCommon/OnScreenDisplay.h>
 
 #define FRAME_INTERVAL 900
 #define SLEEP_TIME_MS 8
@@ -84,6 +85,15 @@ void SlippiPlaybackStatus::prepareSlippiPlayback(s32 &frameIndex)
 	// Unblock thread to save a state every interval
 	if (shouldRunThreads && ((currentPlaybackFrame + 122) % FRAME_INTERVAL == 0))
 		condVar.notify_one();
+
+	if (SConfig::GetInstance().m_slippiEnableFrameIndex)
+	{
+		std::stringstream frameDisplay;
+		frameDisplay << "Frame: " + std::to_string(frameIndex);
+		INFO_LOG(SLIPPI_ONLINE, "Replay Frame: %d", frameIndex);
+
+		OSD::AddTypedMessage(OSD::MessageType::FrameIndex, frameDisplay.str(), 1000, OSD::Color::CYAN);
+	}
 
 	// TODO: figure out why sometimes playback frame increments past targetFrameNum
 	if (inSlippiPlayback && frameIndex >= targetFrameNum)
@@ -216,8 +226,9 @@ void SlippiPlaybackStatus::SeekThread()
 
 			s32 closestStateFrame = targetFrameNum - emod(targetFrameNum - Slippi::PLAYBACK_FIRST_SAVE, FRAME_INTERVAL);
 
+			// Somtimes prepareSlippiPlayback sets currentPlaybackFrame = targetFrameNum so check if target is <=
 			bool isLoadingStateOptimal =
-				targetFrameNum < currentPlaybackFrame || closestStateFrame > currentPlaybackFrame;
+			    targetFrameNum <= currentPlaybackFrame || closestStateFrame > currentPlaybackFrame;
 
 			if (isLoadingStateOptimal)
 			{
@@ -236,7 +247,7 @@ void SlippiPlaybackStatus::SeekThread()
 					{
 						s32 closestActualStateFrame = closestStateFrame - FRAME_INTERVAL;
 						while (closestActualStateFrame > Slippi::PLAYBACK_FIRST_SAVE &&
-							   futureDiffs.count(closestActualStateFrame) == 0)
+						       futureDiffs.count(closestActualStateFrame) == 0)
 							closestActualStateFrame -= FRAME_INTERVAL;
 						loadState(closestActualStateFrame);
 					}
@@ -244,7 +255,7 @@ void SlippiPlaybackStatus::SeekThread()
 					{
 						s32 closestActualStateFrame = closestStateFrame - FRAME_INTERVAL;
 						while (closestActualStateFrame > currentPlaybackFrame &&
-							   futureDiffs.count(closestActualStateFrame) == 0)
+						       futureDiffs.count(closestActualStateFrame) == 0)
 							closestActualStateFrame -= FRAME_INTERVAL;
 
 						// only load a savestate if we find one past our current frame since we are seeking forwards
@@ -281,7 +292,8 @@ void SlippiPlaybackStatus::SeekThread()
 }
 
 // Set isHardFFW and update OC settings to speed up the FFW
-void SlippiPlaybackStatus::setHardFFW(bool enable) {
+void SlippiPlaybackStatus::setHardFFW(bool enable)
+{
 	isHardFFW = enable;
 	if (isHardFFW)
 	{
