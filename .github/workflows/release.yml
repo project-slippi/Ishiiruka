@@ -26,7 +26,7 @@ jobs:
           unzip *linux* && rm *linux*
           mv *.dmg "FM-Slippi-${{ env.VERSION }}-Mac.dmg"
           unzip *windows* -d "FM-Slippi" && rm *windows*
-          zip -r "FM-Slippi-${{ env.VERSION }}-Win.zip" FM-Slippi/ && rm -rf "FM-Slippi"
+          pushd "FM-Slippi" && zip -r "FM-Slippi-${{ env.VERSION }}-Win.zip" * && mv "FM-Slippi-${{ env.VERSION }}-Win.zip" .. && popd && rm -rf "FM-Slippi"
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2
         with:
