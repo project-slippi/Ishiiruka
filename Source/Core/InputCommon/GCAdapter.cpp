@@ -199,8 +199,8 @@ GCPadStatus makePadFrom8ByteArray(uint8_t *byteArray, bool get_origin, int chan)
 		pad.stickY = applyStickOrigin(byteArray[3], origins[chan].first.stickY);
 		pad.substickX = applyStickOrigin(byteArray[4], origins[chan].first.substickX);
 		pad.substickY = applyStickOrigin(byteArray[5], origins[chan].first.substickY);
-		pad.triggerLeft = applyTriggerOrigin(byteArray[6], origins[chan].first.triggerLeft);
-		pad.triggerRight = applyTriggerOrigin(byteArray[7], origins[chan].first.triggerRight);
+		pad.triggerLeft = applyTriggerOrigin(byteArray[6], origins[chan].first.triggerLeft) + 31;
+		pad.triggerRight = applyTriggerOrigin(byteArray[7], origins[chan].first.triggerRight) + 31;
 	}
 	else
 	{
