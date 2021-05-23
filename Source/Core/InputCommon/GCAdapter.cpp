@@ -137,7 +137,24 @@ void judgeEILVOptimsApplicability() {
 	}
 }
 
-GCPadStatus makePadFrom8ByteArray(uint8_t *byteArray, bool get_origin)
+std::pair<GCPadStatus, bool> origins[4] = {}; // pls gib C++17
+
+uint8_t applyStickOrigin(uint8_t applyOn, uint8_t origin)
+{
+	int offset = 0x80 - (int)origin;
+	int result = ((int)applyOn) + offset;
+	int limitedResult = std::min(255, std::max(0, result));
+	return (uint8_t)limitedResult;
+}
+
+uint8_t applyTriggerOrigin(uint8_t applyOn, uint8_t origin)
+{
+	int result = ((int)applyOn) - (int)origin;
+	int limitedResult = std::max(0, result);
+	return (uint8_t)limitedResult;
+}
+
+GCPadStatus makePadFrom8ByteArray(uint8_t *byteArray, bool get_origin, int chan)
 {
 	GCPadStatus pad = {};
 
@@ -174,12 +191,26 @@ GCPadStatus makePadFrom8ByteArray(uint8_t *byteArray, bool get_origin)
 	if (get_origin)
 		pad.button |= PAD_GET_ORIGIN;
 
-	pad.stickX = byteArray[2];
-	pad.stickY = byteArray[3];
-	pad.substickX = byteArray[4];
-	pad.substickY = byteArray[5];
-	pad.triggerLeft = byteArray[6];
-	pad.triggerRight = byteArray[7];
+	// Correct by origin
+
+	if (origins[chan].second)
+	{
+		pad.stickX = applyStickOrigin(byteArray[2], origins[chan].first.stickX);
+		pad.stickY = applyStickOrigin(byteArray[3], origins[chan].first.stickY);
+		pad.substickX = applyStickOrigin(byteArray[4], origins[chan].first.substickX);
+		pad.substickY = applyStickOrigin(byteArray[5], origins[chan].first.substickY);
+		pad.triggerLeft = applyTriggerOrigin(byteArray[6], origins[chan].first.triggerLeft);
+		pad.triggerRight = applyTriggerOrigin(byteArray[7], origins[chan].first.triggerRight);
+	}
+	else
+	{
+		pad.stickX = byteArray[2];
+		pad.stickY = byteArray[3];
+		pad.substickX = byteArray[4];
+		pad.substickY = byteArray[5];
+		pad.triggerLeft = byteArray[6];
+		pad.triggerRight = byteArray[7];
+	}
 
 	return pad;
 }
@@ -228,7 +259,7 @@ static void HandleKristalFunctions(u8 *controller_payload, const std::chrono::hi
 		usedControllerChan = usedControllerInfo - 1;
 		ERROR_LOG(KRISTAL, "Found used controller %d", usedControllerInfo);
 	}
-	GCPadStatus pad = makePadFrom8ByteArray(controller_payload + 2 + 9 * usedControllerChan, false);
+	GCPadStatus pad = makePadFrom8ByteArray(controller_payload + 2 + 9 * usedControllerChan, false, usedControllerChan);
 	if (isKristalInput(pad, previousPad))
 	{
 		INFO_LOG(KRISTAL, "Perceived Kristal Input");
@@ -933,7 +964,7 @@ GCPadStatus Input(int chan, std::chrono::high_resolution_clock::time_point *tp)
 
 		if (s_controller_type[chan] != ControllerTypes::CONTROLLER_NONE)
 		{
-			pad = makePadFrom8ByteArray(controller_payload_copy + 2 + (9 * chan), get_origin);
+			pad = makePadFrom8ByteArray(controller_payload_copy + 2 + (9 * chan), get_origin, chan);
 		}
 		else
 		{
@@ -1008,14 +1039,33 @@ bool IsDriverDetected()
 	return !s_libusb_driver_not_supported;
 }
 
-void informNewSlippiNetplayClient()
-{
-	WARN_LOG(KRISTAL, "New Slippi Netplay Client");
-}
+void InformPadModeSet(int chan) {
+	if (controller_payload_entries.size() > 0)
+	{
+		origins[chan].second = false;
+		origins[chan].first =
+		    makePadFrom8ByteArray(controller_payload_entries.front().controller_payload + 2 + chan * 9, false, chan);
+		origins[chan].second = true;
 
-void informNoSlippiNetplayClient()
-{
-	WARN_LOG(KRISTAL, "No Slippi Netplay Client");
+		std::ostringstream oss;
+		oss << "New origin for port ";
+		oss << (int)(chan + 1);
+		oss << ": ";
+		for (int i = 0; i < 8; i++)
+		{
+			oss << (int)((u8 *)(origins + chan))[i] << " ";
+		}
+		ERROR_LOG(KRISTAL, oss.str().c_str());
+	}
+	else
+	{
+		std::ostringstream oss;
+		oss << "Origin registration for port ";
+		oss << (int)(chan + 1);
+		oss << " failed because no pad data was known yet.";
+		ERROR_LOG(KRISTAL, oss.str().c_str());
+	}
+	
 }
 
 }  // end of namespace GCAdapter

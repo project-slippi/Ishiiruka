@@ -42,4 +42,6 @@ void SetKristalInputCallback(
     std::function<void(const GCPadStatus &, std::chrono::high_resolution_clock::time_point, int)> callback);
 void ClearKristalInputCallback();
 
+void InformPadModeSet(int chan);
+
 }  // end of namespace GCAdapter
