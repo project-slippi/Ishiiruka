@@ -1864,9 +1864,7 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 					// wouldn't have perceived in the Kristal stream) we'd litterally be sending
 					// "full shield" every Kristal input, which would be awful
 					m_read_queue.insert(m_read_queue.end(), kristalPad.second.pad,
-						                kristalPad.second.pad + SLIPPI_PAD_DATA_SIZE - 2);
-					m_read_queue.insert(m_read_queue.end(), slippiPad + SLIPPI_PAD_DATA_SIZE - 2,
-						                slippiPad + SLIPPI_PAD_DATA_SIZE);
+						                kristalPad.second.pad + SLIPPI_PAD_DATA_SIZE);
 					m_read_queue.insert(m_read_queue.end(), SLIPPI_PAD_FULL_SIZE - SLIPPI_PAD_DATA_SIZE, 0);
 
 					std::ostringstream oss;
