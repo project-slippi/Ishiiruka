@@ -154,7 +154,7 @@ uint8_t applyTriggerOrigin(uint8_t applyOn, uint8_t origin)
 	return (uint8_t)limitedResult;
 }
 
-GCPadStatus makePadFrom8ByteArray(uint8_t *byteArray, bool get_origin, int chan)
+GCPadStatus makePadFrom8ByteArray(uint8_t *byteArray, bool get_origin, bool applyOrigin, int chan)
 {
 	GCPadStatus pad = {};
 
@@ -193,7 +193,7 @@ GCPadStatus makePadFrom8ByteArray(uint8_t *byteArray, bool get_origin, int chan)
 
 	// Correct by origin
 
-	if (origins[chan].second)
+	if (applyOrigin && origins[chan].second)
 	{
 		pad.stickX = applyStickOrigin(byteArray[2], origins[chan].first.stickX);
 		pad.stickY = applyStickOrigin(byteArray[3], origins[chan].first.stickY);
@@ -259,7 +259,7 @@ static void HandleKristalFunctions(u8 *controller_payload, const std::chrono::hi
 		usedControllerChan = usedControllerInfo - 1;
 		ERROR_LOG(KRISTAL, "Found used controller %d", usedControllerInfo);
 	}
-	GCPadStatus pad = makePadFrom8ByteArray(controller_payload + 2 + 9 * usedControllerChan, false, usedControllerChan);
+	GCPadStatus pad = makePadFrom8ByteArray(controller_payload + 2 + 9 * usedControllerChan, false, true, usedControllerChan);
 	if (isKristalInput(pad, previousPad))
 	{
 		INFO_LOG(KRISTAL, "Perceived Kristal Input");
@@ -964,7 +964,7 @@ GCPadStatus Input(int chan, std::chrono::high_resolution_clock::time_point *tp)
 
 		if (s_controller_type[chan] != ControllerTypes::CONTROLLER_NONE)
 		{
-			pad = makePadFrom8ByteArray(controller_payload_copy + 2 + (9 * chan), get_origin, chan);
+			pad = makePadFrom8ByteArray(controller_payload_copy + 2 + (9 * chan), get_origin, false, chan);
 		}
 		else
 		{
@@ -1042,9 +1042,8 @@ bool IsDriverDetected()
 void InformPadModeSet(int chan) {
 	if (controller_payload_entries.size() > 0)
 	{
-		origins[chan].second = false;
 		origins[chan].first =
-		    makePadFrom8ByteArray(controller_payload_entries.front().controller_payload + 2 + chan * 9, false, chan);
+		    makePadFrom8ByteArray(controller_payload_entries.front().controller_payload + 2 + chan * 9, false, false, chan);
 		origins[chan].second = true;
 
 		std::ostringstream oss;

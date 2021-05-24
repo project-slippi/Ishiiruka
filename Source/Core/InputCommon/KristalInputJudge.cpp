@@ -62,8 +62,8 @@ bool isKristalInput(const GCPadStatus& newPad, const GCPadStatus& oldPad)
 
 	    // Triggers (no shield -> minimum shield check for both triggers)
 		// Commented out until we handle origin values
-	    ((oldPad.triggerLeft < 43+31) && (newPad.triggerLeft >= 43+31)) ||
-	    ((oldPad.triggerRight < 43+31) && (newPad.triggerRight >= 43+31))
+	    ((oldPad.triggerLeft < 43) && (newPad.triggerLeft >= 43)) ||
+	    ((oldPad.triggerRight < 43) && (newPad.triggerRight >= 43))
 
 		// Dpad (none)
 	    ;
