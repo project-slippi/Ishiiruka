@@ -429,9 +429,6 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 			break;
 		}
 
-		static bool xPressed = false;
-
-
 		KristalPad kpad;
 		kpad.subframe = subframe;
 		kpad.version = version;
@@ -449,13 +446,6 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 		    << eval.first << " v" << (int)eval.second << " Content: "<< kpad.subframe
 		    << " v" << (int)kpad.version;
 		WARN_LOG(KRISTAL, oss.str().c_str());
-		if (!xPressed && (kpad.pad[1] & 4))
-		{
-			INFO_LOG(KRISTAL, "Kristal input had X");
-			newXReady = true;
-		}
-		xPressed = (kpad.pad[1] & 4);
-
 	}
 	break;
 
@@ -1328,8 +1318,6 @@ void SlippiNetplayClient::KristalInputCallback(const GCPadStatus &pad,
 
 	m_last_adapter_chan_used_in_kristal_callback = chan;
 
-	static bool xPressed = false;
-
 	auto status = slippiConnectStatus;
 	bool connectionFailed = status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_FAILED;
 	bool connectionDisconnected = status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_DISCONNECTED;
@@ -1358,12 +1346,6 @@ void SlippiNetplayClient::KristalInputCallback(const GCPadStatus &pad,
 	    << " v" << (int)timingAndVersion.second << " on " << timingAndVersionNow.first << " v"
 	    << (int)timingAndVersionNow.second;
 	WARN_LOG(KRISTAL, oss.str().c_str());
-
-	if (!xPressed && (pad.button & PAD_BUTTON_X))
-	{
-		INFO_LOG(KRISTAL, "The above input has X");
-	}
-	xPressed = (pad.button & PAD_BUTTON_X);
 
 	SendAsync(std::move(spac));
 }

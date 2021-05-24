@@ -180,10 +180,6 @@ class SlippiNetplayClient
 
 	std::mutex& padMutex();
 
-	// Debug
-	bool newXReady = false;
-	 // /Debug
-
   protected:
 	struct
 	{

@@ -1829,13 +1829,13 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 						<< results[i]->latestFrame;
 					ERROR_LOG(KRISTAL, oss.str().c_str());
 					oss.str("");
-					oss << (int)kristalPad.second.pad[0] << " " << (int)kristalPad.second.pad[1] << " "
+					oss << "Kristal " << (int)kristalPad.second.pad[0] << " " << (int)kristalPad.second.pad[1] << " "
 						<< (int)kristalPad.second.pad[2] << " " << (int)kristalPad.second.pad[3] << " "
 						<< (int)kristalPad.second.pad[4] << " " << (int)kristalPad.second.pad[5] << " "
 						<< (int)kristalPad.second.pad[6] << " " << (int)kristalPad.second.pad[7] << " ";
 					ERROR_LOG(KRISTAL, oss.str().c_str());
 					oss.str("");
-					oss << (int)slippiPad[0] << " " << (int)slippiPad[1] << " " << (int)slippiPad[2] << " "
+					oss << "Slippi  " << (int)slippiPad[0] << " " << (int)slippiPad[1] << " " << (int)slippiPad[2] << " "
 						<< (int)slippiPad[3] << " " << (int)slippiPad[4] << " " << (int)slippiPad[5] << " "
 						<< (int)slippiPad[6] << " " << (int)slippiPad[7];
 					ERROR_LOG(KRISTAL, oss.str().c_str());
