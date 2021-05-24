@@ -274,8 +274,6 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 			timing.timeUs = curTime;
 		}
 
-		//* L'idée est que sur la durée, temps d'obtention - ping/2 = temps d'envoi
-		//* Et que le temps d'envoi est synchro avec l'horloge du jeu - donc on peut en déduire les décalages
 		s64 opponentSendTimeUs = curTime - (pingUs[pIdx] / 2);
 		s64 frameDiffOffsetUs = 16683 * (timing.frame - frame);
 		s64 timeOffsetUs = opponentSendTimeUs - timing.timeUs + frameDiffOffsetUs;
@@ -283,7 +281,6 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 		// INFO_LOG(SLIPPI_ONLINE, "[Offset] Opp Frame: %d, My Frame: %d. Time offset: %lld", frame, timing.frame,
 		//         timeOffsetUs);
 
-		//* Store the 30 last diffs in a circular buffer
 		// Add this offset to circular buffer for use later
 		if (frameOffsetData[pIdx].buf.size() < SLIPPI_ONLINE_LOCKSTEP_INTERVAL)
 			frameOffsetData[pIdx].buf.push_back((s32)timeOffsetUs);
@@ -301,15 +298,7 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 			// pIdx,
 			//         frame);
 
-			//* On stocke et envoie potentiellement plusieurs pad... le plus récent devant... ou derrière ?
-			//* Frame est obtenu du packet, headFrame localement
-			//* i.e frame = la frame à laquelle ceci a été envoyé de chez l'adversaire (+ delay)
-			//* et headFrame = dernière frame pour laquelle on a un input ?
-			//* remotePadQueue jamais censé être empty je crois, seulement au début du jeu
-			//* oui donc headFrame = frame du dernier input connu
 			int32_t headFrame = remotePadQueue[pIdx].empty() ? 0 : remotePadQueue[pIdx].front()->frame;
-			//* On a l'input frame 63, ils nous envoient les inputs pour la frame 66 (post delay)
-			//* inputsToCopy = 3
 			int inputsToCopy = frame - headFrame;
 
 			// Check that the packet actually contains the data it claims to
@@ -320,9 +309,6 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 				          (int)packet.getDataSize(), inputsToCopy, 6 + inputsToCopy * SLIPPI_PAD_DATA_SIZE);
 				break;
 			}
-
-			//* And what if we didn't receive the inputs for frame 64 and 65 but receive the one for frame 66 - what then ?
-			//* Pad requests aren't ordered are they ? ... I don't get it rn
 
 			for (int i = inputsToCopy - 1; i >= 0; i--)
 			{
@@ -409,14 +395,6 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 
 	case NP_MSG_KRISTAL_PAD:
 	{
-		/*
-		*spac << static_cast<MessageId>(NP_MSG_KRISTAL_PAD);
-		*spac << timingAndVersion.first; // subframe, 4 bytes
-		*spac << timingAndVersion.second; // version, 1 byte
-		*spac << this->playerIdx; // player index, 1 byte
-		spac->append(&pad, SLIPPI_PAD_DATA_SIZE); // first 8 bytes of pad
-		*/
-
 		float subframe;
 		if (!(packet >> subframe))
 		{
@@ -1177,30 +1155,17 @@ std::unique_ptr<SlippiRemotePadOutput> SlippiNetplayClient::GetSlippiRemotePad(i
 
 	std::unique_ptr<SlippiRemotePadOutput> padOutput = std::make_unique<SlippiRemotePadOutput>();
 
-	//* Si on a aucun pad (pas censé arriver ? à voir)
 	if (remotePadQueue[index].empty())
 	{
 		auto emptyPad = std::make_unique<SlippiPad>(0);
 
 		padOutput->latestFrame = emptyPad->frame;
-		//* Donc... padOutput->latestFrame = 0 quoi ? rien de spécial dans le constructeur
 
 		auto emptyIt = std::begin(emptyPad->padBuf);
 		padOutput->data.insert(padOutput->data.end(), emptyIt, emptyIt + SLIPPI_PAD_FULL_SIZE);
-		//* Et un pad vide
 
 		return std::move(padOutput);
-		//* Donc on renvoie juste un SlippiPad&& avec frame 0 et pas de contenu
 	}
-
-	/*
-	struct SlippiRemotePadOutput
-	{
-		int32_t latestFrame;
-		u8 playerIdx;
-		std::vector<u8> data;
-	};
-	*/
 
 	padOutput->latestFrame = 0;
 	// Copy the entire remaining remote buffer
@@ -1211,7 +1176,6 @@ std::unique_ptr<SlippiRemotePadOutput> SlippiNetplayClient::GetSlippiRemotePad(i
 
 		auto padIt = std::begin((*it)->padBuf);
 		padOutput->data.insert(padOutput->data.end(), padIt, padIt + SLIPPI_PAD_FULL_SIZE);
-		//* Et contenu du dernier pad connu
 	}
 
 	return std::move(padOutput);
@@ -1420,38 +1384,3 @@ std::pair<bool, SlippiNetplayClient::KristalPad> SlippiNetplayClient::GetKristal
 	// It's left to the caller to check that he's better off with that subframe than with the last known Slippi pad
 	return std::pair<bool, KristalPad>(true, pad);
 }
-
-
-
-/*std::mutex SlippiNetplayClientRepository::repo_mutex;
-std::list<SlippiNetplayClient *> SlippiNetplayClientRepository::slippiNetplayClients;
-
-void SlippiNetplayClientRepository::addNetplayClient(SlippiNetplayClient *client)
-{
-	std::lock_guard<std::mutex> lock(SlippiNetplayClientRepository::repo_mutex);
-	if (std::find(slippiNetplayClients.begin(), slippiNetplayClients.end(), client) == slippiNetplayClients.end())
-		slippiNetplayClients.push_back(client);
-}
-
-void SlippiNetplayClientRepository::removeNetplayClient(SlippiNetplayClient *client)
-{
-	std::lock_guard<std::mutex> lock(SlippiNetplayClientRepository::repo_mutex);
-	slippiNetplayClients.remove(client);
-}
-
-SlippiNetplayClient *SlippiNetplayClientRepository::get()
-{
-	static bool multipleRegisteredClients = false;
-	size_t len = slippiNetplayClients.size();
-	if (len > 1 && !multipleRegisteredClients)
-	{
-		multipleRegisteredClients = true;
-		WARN_LOG(SLIPPI_ONLINE, "Multiple SlippiNetplayClients exist");
-		return nullptr;
-	}
-	else
-	{
-		multipleRegisteredClients = false;
-		return len == 1 ? slippiNetplayClients.front() : nullptr;
-	}
-}*/

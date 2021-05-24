@@ -894,27 +894,6 @@ static void Reset()
 	NOTICE_LOG(SERIALINTERFACE, "GC Adapter detached");
 }
 
-// KRISTAL TODO
-/*bool Kristal_GetDataFromPadStatus(u32 &_Hi, u32 &_Low, GCPadStatus &PadStatus)
-{
-	// bool CSIDevice_GCController::GetData(u32 &_Hi, u32 &_Low) {
-	// GCPadStatus PadStatus = GetPadStatus();
-
-	u32 _Hi = 0;
-	_Hi = (u32)((u8)PadStatus.stickY);
-	_Hi |= (u32)((u8)PadStatus.stickX << 8);
-	_Hi |= (u32)((u16)(PadStatus.button) << 16);
-
-	//else if (m_Mode == 3) HARDCODED MODE 3
-	// Analog A/B are always 0
-	_Low = (u8)PadStatus.triggerRight;             // All 8 bits
-	_Low |= (u32)((u8)PadStatus.triggerLeft << 8); // All 8 bits
-	_Low |= (u32)((u8)PadStatus.substickY << 16);  // All 8 bits
-	_Low |= (u32)((u8)PadStatus.substickX << 24);  // All 8 bits
-
-	return true;
-}*/
-
 GCPadStatus Input(int chan, std::chrono::high_resolution_clock::time_point *tp)
 {
 	if (!UseAdapter())

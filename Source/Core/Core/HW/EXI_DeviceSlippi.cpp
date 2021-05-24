@@ -1253,8 +1253,6 @@ bool CEXISlippi::checkFrameFullyFetched(s32 frameIndex)
 
 void CEXISlippi::prepareFrameData(u8 *payload)
 {
-	//* Payload received from the ASM
-
 	// Since we are prepping new data, clear any existing data
 	m_read_queue.clear();
 
@@ -1265,7 +1263,6 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	}
 
 	// Parse input
-	//* First four bytes of payload = frame number
 	s32 frameIndex = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
 
 	// If loading from queue, move on to the next replay if we have past endFrame
@@ -1624,8 +1621,6 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 	}
 }
 
-std::vector<double> offsetUss;
-
 bool CEXISlippi::shouldSkipOnlineFrame(s32 frame)
 {
 	auto status = slippi_netplay->GetSlippiConnectStatus();
@@ -1671,19 +1666,6 @@ bool CEXISlippi::shouldSkipOnlineFrame(s32 frame)
 	{
 		auto offsetUs = slippi_netplay->CalcTimeOffsetUs();
 		//INFO_LOG(SLIPPI_ONLINE, "[Frame %d] Offset is: %d us", frame, offsetUs);
-
-		/*offsetUss.push_back(offsetUs);
-		if (offsetUss.size() == 40)
-		{
-			std::ostringstream oss;
-			for (double offset : offsetUss)
-			{
-				oss << offset;
-				oss << " ";
-			}
-			WARN_LOG(SLIPPI_ONLINE, oss.str().c_str());
-			offsetUss.clear();
-		}*/
 
 		// TODO: figure out a better solution here for doubles?
 		if (offsetUs > 10000)
@@ -1756,9 +1738,6 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 
 	int32_t frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
 
-	//* 1. Si aucun RemotePad enregistré, renvoie un avec frame 0 et contenu de pad nul
-	//* 2. Sinon renvoie une copie frame+pad du premier pad dans la queue
-	//* 3. Enlève les pads antérieurs à la frame actuelle sauf le dernier pad connu
 	std::unique_ptr<SlippiRemotePadOutput> results[SLIPPI_REMOTE_PLAYER_MAX];
 	int offset[SLIPPI_REMOTE_PLAYER_MAX];
 	//INFO_LOG(SLIPPI_ONLINE, "Preparing pad data for frame %d", frame);
@@ -1770,23 +1749,11 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 	// Get pad data for each remote player and write each of their latest frame nums to the buf
 	for (int i = 0; i < remotePlayerCount; i++)
 	{
-		/* struct SlippiRemotePadOutput
-		{
-			int32_t latestFrame;
-			u8 playerIdx;
-			std::vector<u8> data;
-		}; */
 		results[i] = slippi_netplay->GetSlippiRemotePad(frame, i);
-
-		//* Reminder that rollback can update multiple frames at a time
-		//* What's transferred to the Ingame rollback engine could be up to... 7? frames at a time ?
 
 		// determine offset from which to copy data
 		offset[i] = (results[i]->latestFrame - frame) * SLIPPI_PAD_FULL_SIZE;
 		offset[i] = offset[i] < 0 ? 0 : offset[i];
-		//* i.e latestFrame = frame+2 (on a 2 inputs en avance): offset=2, donc on ne copie qu'à partir du 2ème
-		//input
-		//* latestFrame = frame-2 (on a 2 inputs de retard): offset=-2, donc offset=0, on copie tout ce qu'on peut
 
 		// add latest frame we are transfering to begining of return buf
 		int32_t latestFrame = results[i]->latestFrame;
@@ -1794,9 +1761,6 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 			latestFrame = frame;
 		latestFrameRead[i] = latestFrame;
 		appendWordToBuffer(&m_read_queue, *(u32 *)&latestFrame);
-		//* Pour informer l'ASM de la dernière frame pour laquelle un input est connu ?
-
-		//* La read queue serait la concaténation des pads qu'on passe à l'engine
 		// INFO_LOG(SLIPPI_ONLINE, "Sending frame num %d for pIdx %d (offset: %d)", latestFrame, i, offset[i]);
 
 		// DEBUG
@@ -1855,14 +1819,6 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 
 					auto slippiPad = results[i]->data.begin() + offset[i];
 
-					// We are stitching together the input to use from the Kristal pad and the
-					// latest known Slippi pad: Kristal pad content except for left/right trigger
-					// values, obtained from the latest known Slippi pad
-					// The reason being we don't handle origin yet and even without trigger trick
-					// they greatly impact trigger behaviours
-					// With trigger analog transmitter locked to bottom (whose initial position we
-					// wouldn't have perceived in the Kristal stream) we'd litterally be sending
-					// "full shield" every Kristal input, which would be awful
 					m_read_queue.insert(m_read_queue.end(), kristalPad.second.pad,
 						                kristalPad.second.pad + SLIPPI_PAD_DATA_SIZE);
 					m_read_queue.insert(m_read_queue.end(), SLIPPI_PAD_FULL_SIZE - SLIPPI_PAD_DATA_SIZE, 0);
@@ -3068,7 +3024,6 @@ void CEXISlippi::prepareDelayResponse()
 
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 {
-	//* Modélisation de la RAM de Gamecube
 	u8 *memPtr = Memory::GetPointer(_uAddr);
 
 	u32 bufLoc = 0;
@@ -3105,8 +3060,6 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 	         _uAddr, _uSize, memPtr[bufLoc], memPtr[bufLoc + 1], memPtr[bufLoc + 2], memPtr[bufLoc + 3],
 	         memPtr[bufLoc + 4]);
 
-	//* [one command] [another command] [etc]
-	//* one command = command id, payloadsize-1 bytes: the data
 	while (bufLoc < _uSize)
 	{
 		byte = memPtr[bufLoc];
@@ -3122,19 +3075,6 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		u32 payloadLen = payloadSizes[byte];
 		switch (byte)
 		{
-			//* Switch cases were moved around to reorganise
-
-			// UNUSED = go to default - logged but doesn't do anything else ?
-
-			//* RECORDING
-			/*CMD_RECEIVE_COMMANDS = 0x35, <Treated beforehand>
-			* CMD_MENU_FRAME = 0x3E, <Treated beforehand>
-			* 
-			* CMD_RECEIVE_GAME_INFO = 0x36, //UNUSED
-			* CMD_RECEIVE_POST_FRAME_UPDATE = 0x38, // Used in updateMetadataFields but not here, TODO to investigate
-			* CMD_RECEIVE_GAME_END = 0x39,
-			* CMD_FRAME_BOOKEND = 0x3C,*/
-
 		case CMD_RECEIVE_GAME_END:
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "close");
 			m_slippiserver->write(&memPtr[bufLoc], payloadLen + 1);
@@ -3145,22 +3085,11 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "");
 			m_slippiserver->write(&memPtr[bufLoc], payloadLen + 1);
 			break;
-
-			/* PLAYBACK
-			* 
-			* CMD_PREPARE_REPLAY = 0x75,
-			* CMD_READ_FRAME = 0x76,
-			* CMD_GET_LOCATION = 0x77, // UNUSED
-			* CMD_IS_FILE_READY = 0x88,
-			* CMD_IS_STOCK_STEAL = 0x89,
-			* CMD_GET_GECKO_CODES = 0x8A,*/
-
 		case CMD_PREPARE_REPLAY:
 			// log.open("log.txt");
 			prepareGameInfo(&memPtr[bufLoc + 1]);
 			break;
 		case CMD_READ_FRAME:
-			// oh boy
 			prepareFrameData(&memPtr[bufLoc + 1]);
 			break;
 		case CMD_IS_FILE_READY:
@@ -3173,21 +3102,6 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			m_read_queue.clear();
 			m_read_queue.insert(m_read_queue.begin(), geckoList.begin(), geckoList.end());
 			break;
-
-			/* ONLINE
-			* 
-			* CMD_ONLINE_INPUTS = 0xB0,
-			* CMD_CAPTURE_SAVESTATE = 0xB1,
-			* CMD_LOAD_SAVESTATE = 0xB2,
-			* CMD_GET_MATCH_STATE = 0xB3,
-			* CMD_FIND_OPPONENT = 0xB4,
-			* CMD_SET_MATCH_SELECTIONS = 0xB5,
-			* CMD_OPEN_LOGIN = 0xB6,
-			* CMD_LOGOUT = 0xB7,
-			* CMD_UPDATE = 0xB8,
-			* CMD_GET_ONLINE_STATUS = 0xB9,
-			* CMD_CLEANUP_CONNECTION = 0xBA,*/
-
 		case CMD_ONLINE_INPUTS:
 			handleOnlineInputs(&memPtr[bufLoc + 1]);
 			break;
