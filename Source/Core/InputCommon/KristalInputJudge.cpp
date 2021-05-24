@@ -32,7 +32,7 @@ bool isKristalInput(const GCPadStatus& newPad, const GCPadStatus& oldPad)
 	    ((oldPad.stickY > coord(-0.7)) && (newPad.stickY <= coord(-0.7))) ||       // Crouch
 		// Tap jump during dash = ? //TODO?
 
-	    // C Stick // Should be enriched with diagonals rather than deadzone cardinal checks //TODO
+	    // C Stick
 	    ((oldPad.substickX < coord(0.2875))  && (newPad.substickX >= coord(0.2875))) ||   // Right air
 	    ((oldPad.substickX < coord(0.8))     && (newPad.substickX >= coord(0.8))) ||         // Right smash
 	    ((oldPad.substickX > coord(-0.2875)) && (newPad.substickX <= coord(-0.2875))) || // Left air
@@ -43,7 +43,6 @@ bool isKristalInput(const GCPadStatus& newPad, const GCPadStatus& oldPad)
 	    ((oldPad.substickY > coord(-0.6625)) && (newPad.substickY <= coord(-0.6625))) || // Down smash
 
 	    // Triggers (no shield -> minimum shield check for both triggers)
-		// Commented out until we handle origin values
 	    ((oldPad.triggerLeft < 43) && (newPad.triggerLeft >= 43)) ||
 	    ((oldPad.triggerRight < 43) && (newPad.triggerRight >= 43))
 
