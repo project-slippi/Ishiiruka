@@ -144,10 +144,7 @@ bool DolphinApp::OnInit()
 		SConfig::GetInstance().m_strSlippiInput = "Slippi/playback.txt";
 
 	if (m_hide_seekbar) // Hide seekbar if necessary by cmd line (mostly for external recording applications)
-	{
-		m_prev_seekbar = SConfig::GetInstance().m_InterfaceSeekbar;
-		SConfig::GetInstance().m_InterfaceSeekbar = false;
-	}
+		SConfig::GetInstance().m_CLIHideSeekbar = true;
 
 	if (m_enable_cout) // Enable cout if necessary by cmd line (mostly for external recording applications)
 		SConfig::GetInstance().m_coutEnabled = true;
@@ -554,10 +551,6 @@ void DolphinApp::OnEndSession(wxCloseEvent &event)
 
 int DolphinApp::OnExit()
 {
-	if (m_hide_seekbar) // retain the seekbar setting from before cmd line switch
-	{
-		SConfig::GetInstance().m_InterfaceSeekbar = m_prev_seekbar;
-	}
 	Core::Shutdown();
 	UICommon::Shutdown();
 

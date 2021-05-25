@@ -1624,7 +1624,8 @@ void CFrame::ParseHotkeys()
 	// Slippi replay hotkeys and setup
 	if (IsHotkey(HK_HIDE_SEEKBAR))
 		SConfig::GetInstance().m_InterfaceSeekbar = !SConfig::GetInstance().m_InterfaceSeekbar;
-	if (SConfig::GetInstance().m_InterfaceSeekbar && g_playbackStatus && g_playbackStatus->inSlippiPlayback)
+	if (SConfig::GetInstance().m_InterfaceSeekbar && !SConfig::GetInstance().m_CLIHideSeekbar && g_playbackStatus &&
+	    g_playbackStatus->inSlippiPlayback)
 	{		
 		if (IsHotkey(HK_JUMP_BACK))
 			g_playbackStatus->shouldJumpBack = true;

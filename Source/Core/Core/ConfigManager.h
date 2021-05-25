@@ -315,6 +315,8 @@ struct SConfig : NonCopyable
 	bool m_InterfaceToolbar;
 	bool m_InterfaceStatusbar;
 	bool m_InterfaceSeekbar;
+	// a transient setting for when a program hides the seekbar via the command line
+	bool m_CLIHideSeekbar = false;
 	bool m_InterfaceLogWindow;
 	bool m_InterfaceLogConfigWindow;
 	bool m_InterfaceExtendedFPSInfo;
