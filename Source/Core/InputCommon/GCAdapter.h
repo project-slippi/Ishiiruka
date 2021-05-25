@@ -5,6 +5,7 @@
 #pragma once
 
 #include <functional>
+#include <mutex>
 
 #include "Common/CommonTypes.h"
 
@@ -12,6 +13,7 @@ struct GCPadStatus;
 
 namespace GCAdapter
 {
+
 enum ControllerTypes
 {
 	CONTROLLER_NONE = 0,
@@ -34,5 +36,12 @@ bool IsDetected();
 bool IsDriverDetected();
 bool DeviceConnected(int chan);
 bool UseAdapter();
+
+static std::mutex kristal_callback_mutex;
+void SetKristalInputCallback(
+    std::function<void(const GCPadStatus &, std::chrono::high_resolution_clock::time_point, int)> callback);
+void ClearKristalInputCallback();
+
+void InformPadModeSet(int chan);
 
 }  // end of namespace GCAdapter

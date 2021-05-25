@@ -23,6 +23,8 @@
 #include "Core/HW/SystemTimers.h"
 #include "Core/NetPlayProto.h"
 
+#include "InputCommon/KristalInputJudge.h"
+
 #include "InputCommon/GCAdapter.h"
 #include "InputCommon/GCPadStatus.h"
 
@@ -133,6 +135,137 @@ void judgeEILVOptimsApplicability() {
 		else if (applyEILVOptims && hz < stopApplyingEILVOptimsHz)
 			applyEILVOptims = false;
 	}
+}
+
+std::pair<GCPadStatus, bool> origins[4] = {}; // pls gib C++17
+
+uint8_t applyStickOrigin(uint8_t applyOn, uint8_t origin)
+{
+	int offset = 0x80 - (int)origin;
+	int result = ((int)applyOn) + offset;
+	int limitedResult = std::min(255, std::max(0, result));
+	return (uint8_t)limitedResult;
+}
+
+uint8_t applyTriggerOrigin(uint8_t applyOn, uint8_t origin)
+{
+	int result = ((int)applyOn) - (int)origin;
+	int limitedResult = std::max(0, result);
+	return (uint8_t)limitedResult;
+}
+
+GCPadStatus makePadFrom8ByteArray(uint8_t *byteArray, bool get_origin, bool applyOrigin, int chan)
+{
+	GCPadStatus pad = {};
+
+	u8 b1 = byteArray[0];
+	u8 b2 = byteArray[1];
+
+	if (b1 & (1 << 0))
+		pad.button |= PAD_BUTTON_A;
+	if (b1 & (1 << 1))
+		pad.button |= PAD_BUTTON_B;
+	if (b1 & (1 << 2))
+		pad.button |= PAD_BUTTON_X;
+	if (b1 & (1 << 3))
+		pad.button |= PAD_BUTTON_Y;
+
+	if (b1 & (1 << 4))
+		pad.button |= PAD_BUTTON_LEFT;
+	if (b1 & (1 << 5))
+		pad.button |= PAD_BUTTON_RIGHT;
+	if (b1 & (1 << 6))
+		pad.button |= PAD_BUTTON_DOWN;
+	if (b1 & (1 << 7))
+		pad.button |= PAD_BUTTON_UP;
+
+	if (b2 & (1 << 0))
+		pad.button |= PAD_BUTTON_START;
+	if (b2 & (1 << 1))
+		pad.button |= PAD_TRIGGER_Z;
+	if (b2 & (1 << 2))
+		pad.button |= PAD_TRIGGER_R;
+	if (b2 & (1 << 3))
+		pad.button |= PAD_TRIGGER_L;
+
+	if (get_origin)
+		pad.button |= PAD_GET_ORIGIN;
+
+	// Correct by origin
+
+	if (applyOrigin && origins[chan].second)
+	{
+		pad.stickX = applyStickOrigin(byteArray[2], origins[chan].first.stickX);
+		pad.stickY = applyStickOrigin(byteArray[3], origins[chan].first.stickY);
+		pad.substickX = applyStickOrigin(byteArray[4], origins[chan].first.substickX);
+		pad.substickY = applyStickOrigin(byteArray[5], origins[chan].first.substickY);
+		pad.triggerLeft = applyTriggerOrigin(byteArray[6], origins[chan].first.triggerLeft);
+		pad.triggerRight = applyTriggerOrigin(byteArray[7], origins[chan].first.triggerRight);
+	}
+	else
+	{
+		pad.stickX = byteArray[2];
+		pad.stickY = byteArray[3];
+		pad.substickX = byteArray[4];
+		pad.substickY = byteArray[5];
+		pad.triggerLeft = byteArray[6];
+		pad.triggerRight = byteArray[7];
+	}
+
+	return pad;
+}
+
+/*
+* 0 : no start press
+* 1-4 : chan 0-3 start press (lower takes prio)
+*/
+static u8 FindUsedController(u8 *controller_payload)
+{
+	return
+		((controller_payload[1 + 2 + 0*9] & 1) ? 1 :
+		((controller_payload[1 + 2 + 1*9] & 1) ? 2 :
+		((controller_payload[1 + 2 + 2*9] & 1) ? 3 :
+		((controller_payload[1 + 2 + 3*9] & 1) ? 4 : 0))));
+}
+
+
+
+std::function<void (const GCPadStatus &, std::chrono::high_resolution_clock::time_point, int)> kristalInputCallback =
+    [](const GCPadStatus &, std::chrono::high_resolution_clock::time_point, int) -> void {};
+
+void SetKristalInputCallback(
+    std::function<void(const GCPadStatus &, std::chrono::high_resolution_clock::time_point, int)> callback)
+{
+	std::lock_guard<std::mutex> lock(kristal_callback_mutex);
+	kristalInputCallback = callback;
+}
+
+void ClearKristalInputCallback()
+{
+	std::lock_guard<std::mutex> lock(kristal_callback_mutex);
+	// Called from a destructor
+	// Termination if throws there. //TODO ?
+	kristalInputCallback = [](const GCPadStatus &, std::chrono::high_resolution_clock::time_point, int) -> void {};
+}
+
+volatile u8 usedControllerChan = 0; // P1 default
+GCPadStatus previousPad{};
+
+static void HandleKristalFunctions(u8 *controller_payload, const std::chrono::high_resolution_clock::time_point &tp)
+{
+	u8 volatile usedControllerInfo = FindUsedController(controller_payload);
+	if (usedControllerInfo != 0 && usedControllerChan != usedControllerInfo - 1)
+	{
+		usedControllerChan = usedControllerInfo - 1;
+		ERROR_LOG(KRISTAL, "Found used controller %d", usedControllerInfo);
+	}
+	GCPadStatus pad = makePadFrom8ByteArray(controller_payload + 2 + 9 * usedControllerChan, false, true, usedControllerChan);
+	if (isKristalInput(pad, previousPad))
+	{
+		INFO_LOG(KRISTAL, "Perceived Kristal Input");
+		kristalInputCallback(pad, tp, usedControllerChan);
+	}
+	previousPad = pad;
 }
 
 static void Feed(std::chrono::high_resolution_clock::time_point tp, u8 *controller_payload)
@@ -306,6 +439,17 @@ static void Feed(std::chrono::high_resolution_clock::time_point tp, u8 *controll
 
 	if (controller_payload_entries.size() > controller_payload_limit)
 		controller_payload_entries.pop_back();
+
+	// Makes sense to *add* delays because if they're put further in the future by them, they're also at higher subframe
+	auto kristalTp = newEntry.estimated_timing; //TODO Incorporate these delays in the estimated_timing directly ?
+	if (sconfig.bReduceTimingDispersion && beenUsingTR())
+		kristalTp += std::chrono::nanoseconds(800'000) + std::chrono::nanoseconds(usbPollingStabilizationDelay);
+	else if (sconfig.bReduceTimingDispersion)
+		kristalTp += std::chrono::nanoseconds(usbPollingStabilizationDelay);
+	else
+		kristalTp = newEntry.raw_timing;
+	HandleKristalFunctions(controller_payload,
+	                       kristalTp); // TODO Perhaps shouldn't be in USB polling thread ? Performance concerns ?
 }
 
 const u8 *Fetch(std::chrono::high_resolution_clock::time_point *tp)
@@ -774,7 +918,8 @@ GCPadStatus Input(int chan, std::chrono::high_resolution_clock::time_point *tp)
 		payload_size = s_controller_payload_size.load();
 	}
 
-	GCPadStatus pad = {};
+	GCPadStatus pad{};
+
 	if (payload_size != sizeof(controller_payload_copy) ||
 		controller_payload_copy[0] != LIBUSB_DT_HID)
 	{
@@ -798,45 +943,7 @@ GCPadStatus Input(int chan, std::chrono::high_resolution_clock::time_point *tp)
 
 		if (s_controller_type[chan] != ControllerTypes::CONTROLLER_NONE)
 		{
-			u8 b1 = controller_payload_copy[1 + (9 * chan) + 1];
-			u8 b2 = controller_payload_copy[1 + (9 * chan) + 2];
-
-			if (b1 & (1 << 0))
-				pad.button |= PAD_BUTTON_A;
-			if (b1 & (1 << 1))
-				pad.button |= PAD_BUTTON_B;
-			if (b1 & (1 << 2))
-				pad.button |= PAD_BUTTON_X;
-			if (b1 & (1 << 3))
-				pad.button |= PAD_BUTTON_Y;
-
-			if (b1 & (1 << 4))
-				pad.button |= PAD_BUTTON_LEFT;
-			if (b1 & (1 << 5))
-				pad.button |= PAD_BUTTON_RIGHT;
-			if (b1 & (1 << 6))
-				pad.button |= PAD_BUTTON_DOWN;
-			if (b1 & (1 << 7))
-				pad.button |= PAD_BUTTON_UP;
-
-			if (b2 & (1 << 0))
-				pad.button |= PAD_BUTTON_START;
-			if (b2 & (1 << 1))
-				pad.button |= PAD_TRIGGER_Z;
-			if (b2 & (1 << 2))
-				pad.button |= PAD_TRIGGER_R;
-			if (b2 & (1 << 3))
-				pad.button |= PAD_TRIGGER_L;
-
-			if (get_origin)
-				pad.button |= PAD_GET_ORIGIN;
-
-			pad.stickX = controller_payload_copy[1 + (9 * chan) + 3];
-			pad.stickY = controller_payload_copy[1 + (9 * chan) + 4];
-			pad.substickX = controller_payload_copy[1 + (9 * chan) + 5];
-			pad.substickY = controller_payload_copy[1 + (9 * chan) + 6];
-			pad.triggerLeft = controller_payload_copy[1 + (9 * chan) + 7];
-			pad.triggerRight = controller_payload_copy[1 + (9 * chan) + 8];
+			pad = makePadFrom8ByteArray(controller_payload_copy + 2 + (9 * chan), get_origin, false, chan);
 		}
 		else
 		{
@@ -909,6 +1016,34 @@ bool IsDetected()
 bool IsDriverDetected()
 {
 	return !s_libusb_driver_not_supported;
+}
+
+void InformPadModeSet(int chan) {
+	if (controller_payload_entries.size() > 0)
+	{
+		origins[chan].first =
+		    makePadFrom8ByteArray(controller_payload_entries.front().controller_payload + 2 + chan * 9, false, false, chan);
+		origins[chan].second = true;
+
+		std::ostringstream oss;
+		oss << "New origin for port ";
+		oss << (int)(chan + 1);
+		oss << ": ";
+		for (int i = 0; i < 8; i++)
+		{
+			oss << (int)((u8 *)(origins + chan))[i] << " ";
+		}
+		ERROR_LOG(KRISTAL, oss.str().c_str());
+	}
+	else
+	{
+		std::ostringstream oss;
+		oss << "Origin registration for port ";
+		oss << (int)(chan + 1);
+		oss << " failed because no pad data was known yet.";
+		ERROR_LOG(KRISTAL, oss.str().c_str());
+	}
+	
 }
 
 }  // end of namespace GCAdapter

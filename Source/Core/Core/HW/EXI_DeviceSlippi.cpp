@@ -1545,6 +1545,15 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 	m_read_queue.clear();
 
 	int32_t frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
+	u8 delay = payload[4];
+
+	{
+		std::ostringstream oss;
+		oss << "In frame " << frame << " delay " << (int)delay << " pad ";
+		for (int i = 0; i < SLIPPI_PAD_FULL_SIZE; i++)
+			oss << (int)payload[5 + i] << " ";
+		INFO_LOG(KRISTAL, oss.str().c_str());
+	}
 
 	if (frame == 1)
 	{
@@ -1564,7 +1573,7 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 		// Reset character selections as they are no longer needed
 		localSelections.Reset();
 		if (slippi_netplay)
-			slippi_netplay->StartSlippiGame();
+			slippi_netplay->StartSlippiGame(delay);
 	}
 
 	if (isDisconnected())
@@ -1577,12 +1586,39 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 	{
 		// Send inputs that have not yet been acked
 		slippi_netplay->SendSlippiPad(nullptr);
+		// Tell the input stabilizers not to take the last poll into account
+		slippi_netplay->DecrementInputStabilizerFrameCounts();
 		m_read_queue.push_back(2);
 		return;
 	}
 
+	// calls SendSlippiPad
 	handleSendInputs(payload);
 	prepareOpponentInputs(payload);
+
+	{
+		std::ostringstream oss;
+		oss << "Out result " << (int)m_read_queue[0] << " count " << (int)m_read_queue[1];
+		oss << " frame "
+		    << ((((int)m_read_queue[2]) << 24) + (((int)m_read_queue[3]) << 16) + (((int)m_read_queue[4]) << 8) +
+		        ((int)m_read_queue[5]));
+		oss << " Kristal [ ";
+		for (int i = 0; i < SLIPPI_PAD_FULL_SIZE; i++)
+			oss << (int)m_read_queue[2 + 12 + 7*(int)SLIPPI_PAD_FULL_SIZE*3 + i] << " ";
+		oss << "] Slippi ";
+
+		for (int j = 0; j < 7; j++)
+		{
+			oss << "[ ";
+			for (int i = 0; i < SLIPPI_PAD_FULL_SIZE; i++)
+			{
+				oss << (int)m_read_queue[2 + 12 + j * SLIPPI_PAD_FULL_SIZE + i] << " ";
+			}
+			oss << "] ";
+		}
+
+		INFO_LOG(KRISTAL, oss.str().c_str());
+	}
 }
 
 bool CEXISlippi::shouldSkipOnlineFrame(s32 frame)
@@ -1708,6 +1744,8 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 
 	int32_t latestFrameRead[SLIPPI_REMOTE_PLAYER_MAX]{};
 
+	int32_t latestFrameSent[SLIPPI_REMOTE_PLAYER_MAX] {};
+
 	// Get pad data for each remote player and write each of their latest frame nums to the buf
 	for (int i = 0; i < remotePlayerCount; i++)
 	{
@@ -1724,6 +1762,14 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 		latestFrameRead[i] = latestFrame;
 		appendWordToBuffer(&m_read_queue, *(u32 *)&latestFrame);
 		// INFO_LOG(SLIPPI_ONLINE, "Sending frame num %d for pIdx %d (offset: %d)", latestFrame, i, offset[i]);
+
+		// DEBUG
+		if (results[i]->data[offset[i]] & 4)
+		{
+			std::ostringstream oss;
+			oss << "X pressed for frame " << latestFrame;
+			WARN_LOG(KRISTAL, oss.str().c_str());
+		}
 	}
 	// Send the current frame for any unused player slots.
 	for (int i = remotePlayerCount; i < SLIPPI_REMOTE_PLAYER_MAX; i++)
@@ -1742,21 +1788,77 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 		{
 			auto txStart = results[i]->data.begin() + offset[i];
 			auto txEnd = results[i]->data.end();
-			tx.insert(tx.end(), txStart, txEnd);
+			tx.insert(tx.end(), txStart, txEnd); //* Inversion de sens ?
 		}
 
 		tx.resize(SLIPPI_PAD_FULL_SIZE * ROLLBACK_MAX_FRAMES, 0);
 
 		m_read_queue.insert(m_read_queue.end(), tx.begin(), tx.end());
+
+		// TODO log
+		/*ERROR_LOG(SLIPPI_ONLINE, "EXI: [%d] %X %X %X %X %X %X %X %X", results[i]->latestFrame, m_read_queue[5],
+			        m_read_queue[6],
+			m_read_queue[7], m_read_queue[8], m_read_queue[9], m_read_queue[10], m_read_queue[11],
+			m_read_queue[12]);*/
+	}
+
+	for (int i = 0; i < SLIPPI_REMOTE_PLAYER_MAX; i++)
+	{
+		if (i < remotePlayerCount)
+		{
+			// Add Kristal input
+			std::pair<bool, SlippiNetplayClient::KristalPad> kristalPad =
+			    slippi_netplay->GetKristalInput(frame, i); // No more than the current frame
+			
+			if (kristalPad.first)
+			{
+				if (kristalPad.second.subframe >
+					(float)results[i]->latestFrame) // No less than the latest frame for which we have inputs
+				{
+					// More recent, use the Kristal input
+
+					auto slippiPad = results[i]->data.begin() + offset[i];
+
+					m_read_queue.insert(m_read_queue.end(), kristalPad.second.pad,
+						                kristalPad.second.pad + SLIPPI_PAD_DATA_SIZE);
+					m_read_queue.insert(m_read_queue.end(), SLIPPI_PAD_FULL_SIZE - SLIPPI_PAD_DATA_SIZE, 0);
+
+					std::ostringstream oss;
+					oss << std::fixed << std::setprecision(2) << "Kristal input was used for frame " << frame
+						<< " subframe " << kristalPad.second.subframe << " latest known frame "
+						<< results[i]->latestFrame;
+					ERROR_LOG(KRISTAL, oss.str().c_str());
+					oss.str("");
+					oss << "Kristal " << (int)kristalPad.second.pad[0] << " " << (int)kristalPad.second.pad[1] << " "
+						<< (int)kristalPad.second.pad[2] << " " << (int)kristalPad.second.pad[3] << " "
+						<< (int)kristalPad.second.pad[4] << " " << (int)kristalPad.second.pad[5] << " "
+						<< (int)kristalPad.second.pad[6] << " " << (int)kristalPad.second.pad[7] << " ";
+					ERROR_LOG(KRISTAL, oss.str().c_str());
+					oss.str("");
+					oss << "Slippi  " << (int)slippiPad[0] << " " << (int)slippiPad[1] << " " << (int)slippiPad[2] << " "
+						<< (int)slippiPad[3] << " " << (int)slippiPad[4] << " " << (int)slippiPad[5] << " "
+						<< (int)slippiPad[6] << " " << (int)slippiPad[7];
+					ERROR_LOG(KRISTAL, oss.str().c_str());
+				}
+				else
+					kristalPad.first = false;
+			}
+			if (!kristalPad.first)
+			{
+				m_read_queue.insert(m_read_queue.end(), results[i]->data.begin(),
+					                results[i]->data.begin() + SLIPPI_PAD_FULL_SIZE);
+			}
+		}
+		else
+		{
+			m_read_queue.insert(m_read_queue.end(), SLIPPI_PAD_FULL_SIZE, 0);
+		}
 	}
 
 	// the latest read frame instead of the current frame must be passed to avoid nuking inputs
 	// that are > latest read frame < current frame and arrived during this function
 	int32_t minFrameRead = *std::min_element(latestFrameRead, latestFrameRead + SLIPPI_REMOTE_PLAYER_MAX);
 	slippi_netplay->DropOldRemoteInputs(minFrameRead);
-
-	// ERROR_LOG(SLIPPI_ONLINE, "EXI: [%d] %X %X %X %X %X %X %X %X", latestFrame, m_read_queue[5], m_read_queue[6],
-	// m_read_queue[7], m_read_queue[8], m_read_queue[9], m_read_queue[10], m_read_queue[11], m_read_queue[12]);
 }
 
 void CEXISlippi::handleCaptureSavestate(u8 *payload)
@@ -2961,6 +3063,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 	while (bufLoc < _uSize)
 	{
 		byte = memPtr[bufLoc];
+
 		//INFO_LOG(SLIPPI, "EXI SLIPPI: Loc: %d, Size: %d, Cmd: 0x%x", bufLoc, _uSize, byte);
 		if (!payloadSizes.count(byte))
 		{
@@ -2977,6 +3080,11 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			m_slippiserver->write(&memPtr[bufLoc], payloadLen + 1);
 			m_slippiserver->endGame();
 			break;
+		case CMD_FRAME_BOOKEND:
+			g_needInputForFrame = true;
+			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "");
+			m_slippiserver->write(&memPtr[bufLoc], payloadLen + 1);
+			break;
 		case CMD_PREPARE_REPLAY:
 			// log.open("log.txt");
 			prepareGameInfo(&memPtr[bufLoc + 1]);
@@ -2984,16 +3092,11 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		case CMD_READ_FRAME:
 			prepareFrameData(&memPtr[bufLoc + 1]);
 			break;
-		case CMD_FRAME_BOOKEND:
-			g_needInputForFrame = true;
-			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "");
-			m_slippiserver->write(&memPtr[bufLoc], payloadLen + 1);
+		case CMD_IS_FILE_READY:
+			prepareIsFileReady();
 			break;
 		case CMD_IS_STOCK_STEAL:
 			prepareIsStockSteal(&memPtr[bufLoc + 1]);
-			break;
-		case CMD_IS_FILE_READY:
-			prepareIsFileReady();
 			break;
 		case CMD_GET_GECKO_CODES:
 			m_read_queue.clear();

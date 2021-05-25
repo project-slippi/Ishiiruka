@@ -25,12 +25,12 @@
 #include "InputCommon/ControllerInterface/ControllerInterface.h"
 #include "InputCommon/GCAdapter.h"
 #include "InputCommon/GCPadStatus.h"
-#include "InputCommon/InputStabilizer.h"
-
-static std::vector<InputStabilizer> stabilizers(MAX_SI_CHANNELS, InputStabilizer());
 
 namespace SerialInterface
 {
+
+std::vector<InputStabilizer> stabilizers(MAX_SI_CHANNELS, InputStabilizer());
+
 static CoreTiming::EventType* changeDevice;
 static CoreTiming::EventType* et_transfer_pending;
 static CoreTiming::EventType* et_send_netplay_inputs;

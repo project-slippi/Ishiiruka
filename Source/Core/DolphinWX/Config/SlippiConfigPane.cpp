@@ -187,6 +187,7 @@ void SlippiNetplayConfigPane::LoadGUIValues()
 	}
 
 	m_reduce_timing_dispersion_checkbox->SetValue(startup_params.bReduceTimingDispersion);
+	m_reduce_timing_dispersion_checkbox->Disable();
 }
 
 void SlippiNetplayConfigPane::BindEvents()

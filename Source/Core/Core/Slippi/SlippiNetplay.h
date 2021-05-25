@@ -11,10 +11,12 @@
 #include "Common/TraversalClient.h"
 #include "Core/NetPlayProto.h"
 #include "Core/Slippi/SlippiPad.h"
+#include "InputCommon/GCAdapter.h"
 #include "InputCommon/GCPadStatus.h"
 #include <SFML/Network/Packet.hpp>
 #include <array>
 #include <deque>
+#include <set>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -130,10 +132,11 @@ class SlippiNetplayClient
 	u8 LocalPlayerPort();
 	SlippiConnectStatus GetSlippiConnectStatus();
 	std::vector<int> GetFailedConnections();
-	void StartSlippiGame();
+	void StartSlippiGame(u8 delay);
 	void SendConnectionSelected();
 	void SendSlippiPad(std::unique_ptr<SlippiPad> pad);
 	void SetMatchSelections(SlippiPlayerSelections &s);
+
 	std::unique_ptr<SlippiRemotePadOutput> GetSlippiRemotePad(int32_t curFrame, int index);
 	void DropOldRemoteInputs(int32_t minFrameRead);
 	SlippiMatchInfo *GetMatchInfo();
@@ -148,6 +151,34 @@ class SlippiNetplayClient
 	std::unique_ptr<SlippiPlayerSelections> remoteChatMessageSelection =
 	    nullptr;                    // most recent chat message player selection (message + player index)
 	u8 remoteSentChatMessageId = 0; // most recent chat message id that current player sent
+
+	void DecrementInputStabilizerFrameCounts();
+
+	void KristalInputCallback(const GCPadStatus &pad, std::chrono::high_resolution_clock::time_point tp, int chan);
+	// TODO Check whether we can't just use the first InputStabilizer since we only want timing information
+	// Will have to handle that for HID controller support
+
+	// TODO Extract to own class
+	struct KristalPad
+	{
+		float subframe;
+		u8 version;
+		u8 pad[SLIPPI_PAD_DATA_SIZE];
+
+		// Latest pad in back of set i.e superior
+		bool operator<(const KristalPad &rhs) const
+		{
+			if ((int)subframe != (int)rhs.subframe) // If not from the same frame
+				return subframe < rhs.subframe;     // Check higher frame
+			if (version != rhs.version)             // If from the same frame and not same version
+				return version < rhs.version;       // Check higher version
+			return subframe < rhs.subframe;         // If same frame, same version, check higher subframe
+		}
+	};
+
+	std::pair<bool, KristalPad> GetKristalInput(u32 frame, u8 playerIdx);
+
+	std::mutex& padMutex();
 
   protected:
 	struct
@@ -210,6 +241,11 @@ class SlippiNetplayClient
 
 	bool m_is_recording = false;
 
+	bool shouldInitializeInputStabilizers = false;
+
+	std::set<KristalPad> subframePadSets[SLIPPI_REMOTE_PLAYER_MAX];
+	std::mutex subframePadSetLocks[SLIPPI_REMOTE_PLAYER_MAX];
+
 	void writeToPacket(sf::Packet &packet, SlippiPlayerSelections &s);
 	std::unique_ptr<SlippiPlayerSelections> readSelectionsFromPacket(sf::Packet &packet);
 
@@ -227,7 +263,10 @@ class SlippiNetplayClient
 #endif
 
 	u32 m_timebase_frame = 0;
+
+	u8 m_last_adapter_chan_used_in_kristal_callback = 0;
 };
+
 extern SlippiNetplayClient *SLIPPI_NETPLAY; // singleton static pointer
 
 static bool IsOnline()

@@ -34,7 +34,7 @@ class CEXISlippi : public IEXIDevice
 
 	void DMAWrite(u32 _uAddr, u32 _uSize) override;
 	void DMARead(u32 addr, u32 size) override;
-
+	
 	bool IsPresent() const override;
 
   private:
@@ -179,6 +179,7 @@ class CEXISlippi : public IEXIDevice
 	void handleOnlineInputs(u8 *payload);
 	void prepareOpponentInputs(u8 *payload);
 	void handleSendInputs(u8 *payload);
+
 	void handleCaptureSavestate(u8 *payload);
 	void handleLoadSavestate(u8 *payload);
 	void handleNameEntryAutoComplete(u8 *payload);
@@ -232,7 +233,8 @@ class CEXISlippi : public IEXIDevice
 	std::vector<u8> playbackSavestatePayload;
 	std::vector<u8> geckoList;
 
-	u32 stallFrameCount = 0;
+	u32 stallFrameCount = 0; 
+
 	bool isConnectionStalled = false;
 
 	std::vector<u8> m_read_queue;

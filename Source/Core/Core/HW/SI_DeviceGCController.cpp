@@ -15,6 +15,7 @@
 #include "Core/Movie.h"
 #include "Core/NetPlayProto.h"
 #include "InputCommon/GCPadStatus.h"
+#include "InputCommon/GCAdapter.h"
 
 // --- standard GameCube controller ---
 CSIDevice_GCController::CSIDevice_GCController(SIDevices device, int _iDeviceNumber)
@@ -322,6 +323,7 @@ void CSIDevice_GCController::SendCommand(u32 _Cmd, u8 _Poll)
 		{
 			m_Mode = command.Parameter2;
 			INFO_LOG(SERIALINTERFACE, "PAD %i set to mode %i", ISIDevice::m_iDeviceNumber, m_Mode);
+			GCAdapter::InformPadModeSet(ISIDevice::m_iDeviceNumber);
 		}
 	}
 	break;

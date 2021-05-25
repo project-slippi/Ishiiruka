@@ -70,6 +70,16 @@ InputStabilizer::InputStabilizer(const InputStabilizer& target)
 
 void InputStabilizer::feedPollTiming(std::chrono::high_resolution_clock::time_point tp)
 {
+	std::lock_guard<std::mutex> lock(mutex);
+
+	{ // Kristal stuff
+		frameCount++;
+		if (isNewFrameCounter != 0)
+			isNewFrameCounter--;
+		if (isNewFrameCounter == 0)
+			version = 1;
+	}
+
 	const SConfig& sconfig = SConfig::GetInstance();
 	double period = 1'000'000'000 / 59.94;
 
@@ -104,12 +114,12 @@ void InputStabilizer::feedPollTiming(std::chrono::high_resolution_clock::time_po
 	if (pollTimings.size() == sizeLimit) // Initialize steady state algorithm
 	{
 		incrementsSinceOrigin = 0;
-		steadyStateOrigin = computeNextPollTiming(true) + std::chrono::nanoseconds(delay);
+		steadyStateOrigin = computeNextPollTimingInternal(true) + std::chrono::nanoseconds(delay);
 		// The origin is compared to real time points and therefore doesn't contain the delay
 	}
 }
 
-time_point InputStabilizer::computeNextPollTiming(bool init)
+time_point InputStabilizer::computeNextPollTimingInternal(bool init, bool alter) //TODO Why the fuck is there a state change in the read method what was I thinking
 {
 	const SConfig& sconfig = SConfig::GetInstance();
 	double period = 1'000'000'000 / 59.94;
@@ -122,7 +132,7 @@ time_point InputStabilizer::computeNextPollTiming(bool init)
 	if ((!init) && (size == sizeLimit))
 	{
 		auto result = steadyStateOrigin + std::chrono::nanoseconds((int64_t)(incrementsSinceOrigin * period - delay));
-		incrementsSinceOrigin++;
+		if (alter) incrementsSinceOrigin++;
 		return result;
 	}
 
@@ -130,4 +140,67 @@ time_point InputStabilizer::computeNextPollTiming(bool init)
 	int64_t actualization = (int64_t)((size) * (size - 1) / 2 * period);
 	int64_t actualizedOffsetsMean = (offsetsSum + actualization) / (int64_t)size;
 	return ref + std::chrono::nanoseconds(actualizedOffsetsMean - delay);
+}
+
+time_point InputStabilizer::computeNextPollTiming()
+{
+	std::lock_guard<std::mutex> lock(mutex);
+	return computeNextPollTimingInternal(false, false);
+}
+
+void InputStabilizer::startFrameCount(int32_t initialValue)
+{
+	frameCount = initialValue;
+	isCountingFrames = true;
+}
+
+void InputStabilizer::endFrameCount() {
+	frameCount = 0;
+	isCountingFrames = false;
+}
+
+void InputStabilizer::decrementFrameCount() {
+	frameCount--;
+	isNewFrameCounter = 2;
+}
+
+std::pair<float, u8> InputStabilizer::evaluateTiming(const time_point& tp) {
+	std::lock_guard<std::mutex> lock(mutex);
+
+	const SConfig &sconfig = SConfig::GetInstance();
+	double period = (int64_t)1'000'000'000 / 59.94;
+
+	// It is assumed the last provided timing matches the frame number we currently have
+	
+	// What we're looking here is when tp is relatively to the stabilizer timings
+	// The stabilizer timings are natively offset by the delay
+	// But the parameter isn't
+	// the time point returned by computeNextPollTiming isn't the "real" timing for the integer that is frameCount
+	// We must compensate the delay by adding it again
+	time_point previousPoll = computeNextPollTimingInternal() + std::chrono::nanoseconds(delay);
+
+	long long diff = (tp - previousPoll).count();
+
+	int inputVersion = 1;
+	double timing = frameCount + (diff / period);
+	if (timing >= frameOfHigherVersion && timing < frameOfHigherVersion + 1)
+		inputVersion = version;
+
+	// DEBUG
+	auto now = std::chrono::high_resolution_clock::now();
+	long long diffDebug = (now - previousPoll).count();
+	int inputVersionDebug = 1;
+	double timingDebug = frameCount + (diffDebug / period);
+	if (timingDebug >= frameOfHigherVersion && timingDebug < frameOfHigherVersion + 1)
+		inputVersionDebug = version;
+	// /DEBUG
+
+
+	std::ostringstream oss;
+	oss << std::fixed << std::setprecision(2) << "Evaluated tp " << tp.time_since_epoch().count() << " to " << (float)timing << " v" << inputVersion << " on "
+	    << now.time_since_epoch().count() << " " << (float)timingDebug << " v" << inputVersionDebug;
+
+	INFO_LOG(KRISTAL, oss.str().c_str());
+
+	return std::pair<float, u8>((float)timing, (u8)inputVersion);
 }

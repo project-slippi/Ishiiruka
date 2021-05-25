@@ -12,6 +12,9 @@
 #include "SlippiPremadeText.h"
 #include "VideoCommon/OnScreenDisplay.h"
 #include "VideoCommon/VideoConfig.h"
+#include "Core/HW/SI.h"
+#include "InputCommon/InputStabilizer.h"
+
 #include <algorithm>
 #include <fstream>
 #include <memory>
@@ -59,6 +62,13 @@ SlippiNetplayClient::~SlippiNetplayClient()
 		m_client = nullptr;
 	}
 
+	for (auto &stabilizer : SerialInterface::stabilizers)
+	{
+		stabilizer.endFrameCount();
+	}
+
+	GCAdapter::ClearKristalInputCallback();
+
 	SLIPPI_NETPLAY = nullptr;
 
 	WARN_LOG(SLIPPI_ONLINE, "Netplay client cleanup complete");
@@ -74,6 +84,7 @@ SlippiNetplayClient::SlippiNetplayClient(std::vector<std::string> addrs, std::ve
 {
 	WARN_LOG(SLIPPI_ONLINE, "Initializing Slippi Netplay for port: %d, with host: %s, player idx: %d", localPort,
 	         isDecider ? "true" : "false", playerIdx);
+
 	this->isDecider = isDecider;
 	this->m_remotePlayerCount = remotePlayerCount;
 	this->playerIdx = playerIdx;
@@ -379,6 +390,62 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 			OSD::AddTypedMessage(OSD::MessageType::NetPlayPing, pingDisplay.str(), OSD::Duration::NORMAL,
 			                     OSD::Color::CYAN);
 		}
+	}
+	break;
+
+	case NP_MSG_KRISTAL_PAD:
+	{
+		float subframe;
+		if (!(packet >> subframe))
+		{
+			ERROR_LOG(KRISTAL, "Kristal packet too small to read subframe");
+			break;
+		}
+		u8 version;
+		if (!(packet >> version))
+		{
+			ERROR_LOG(KRISTAL, "Kristal packet too small to read version");
+			break;
+		}
+		u8 packetPlayerPort;
+		if (!(packet >> packetPlayerPort))
+		{
+			ERROR_LOG(KRISTAL, "Kristal packet too small to read player index");
+			break;
+		}
+		u8 pIdx = PlayerIdxFromPort(packetPlayerPort);
+		if (pIdx >= m_remotePlayerCount)
+		{
+			ERROR_LOG(KRISTAL, "Got Kristal packet with invalid player idx %d", pIdx);
+			break;
+		}
+
+		auto packetData = (u8 *)packet.getData();
+		// Check that the packet actually contains the data it claims to
+		if ((7 + SLIPPI_PAD_DATA_SIZE) > (int)packet.getDataSize())
+		{
+			ERROR_LOG(KRISTAL, "Kristal packet too small to read pad. Size: %d, MinSize: %d",
+				        (int)packet.getDataSize(), 7 + SLIPPI_PAD_DATA_SIZE);
+			break;
+		}
+
+		KristalPad kpad;
+		kpad.subframe = subframe;
+		kpad.version = version;
+		memcpy(kpad.pad, packetData + 7, SLIPPI_PAD_DATA_SIZE);
+		{
+			std::lock_guard<std::mutex> lk(subframePadSetLocks[pIdx]);
+			if (subframePadSets[pIdx].size() < 50) // Hard limit on number of pad stored max
+				subframePadSets[pIdx].insert({kpad});
+		}
+		std::ostringstream oss;
+		auto tp = std::chrono::high_resolution_clock::now();
+		auto eval =
+		    SerialInterface::stabilizers[m_last_adapter_chan_used_in_kristal_callback].evaluateTiming(tp);
+		oss << std::fixed << std::setprecision(2) << "Received Kristal input. Received: "
+		    << eval.first << " v" << (int)eval.second << " Content: "<< kpad.subframe
+		    << " v" << (int)kpad.version;
+		WARN_LOG(KRISTAL, oss.str().c_str());
 	}
 	break;
 
@@ -892,7 +959,7 @@ std::vector<int> SlippiNetplayClient::GetFailedConnections()
 	return failedConnections;
 }
 
-void SlippiNetplayClient::StartSlippiGame()
+void SlippiNetplayClient::StartSlippiGame(u8 delay) // called when frame is 1
 {
 	// Reset variables to start a new game
 	hasGameStarted = false;
@@ -913,6 +980,24 @@ void SlippiNetplayClient::StartSlippiGame()
 
 	// Reset match info for next game
 	matchInfo.Reset();
+
+	// Initialize the frame count of InputStabilizers
+	// (all of them because we're unsure which one to use at that point)
+	for (auto &stabilizer : SerialInterface::stabilizers)
+	{
+	    stabilizer.startFrameCount(1+delay); // 1 for frame 1 + our delay
+	}
+
+	for (auto &subframePadSet : subframePadSets)
+	{
+		std::lock_guard<std::mutex> lock(GCAdapter::kristal_callback_mutex);
+		subframePadSet.clear();
+	}
+	GCAdapter::SetKristalInputCallback([this](const GCPadStatus &pad, std::chrono::high_resolution_clock::time_point tp, int chan) -> void
+		{
+		    std::lock_guard<std::mutex> lock(GCAdapter::kristal_callback_mutex);
+			this->KristalInputCallback(pad, tp, chan);
+		});
 }
 
 void SlippiNetplayClient::SendConnectionSelected()
@@ -1050,9 +1135,13 @@ u8 SlippiNetplayClient::GetSlippiRemoteSentChatMessage()
 	return copiedMessageId;
 }
 
+std::mutex &SlippiNetplayClient::padMutex() {
+	return pad_mutex;
+}
+
 std::unique_ptr<SlippiRemotePadOutput> SlippiNetplayClient::GetSlippiRemotePad(int32_t curFrame, int index)
 {
-	std::lock_guard<std::mutex> lk(pad_mutex); // TODO: Is this the correct lock?
+	std::lock_guard<std::mutex> lk(pad_mutex);
 
 	std::unique_ptr<SlippiRemotePadOutput> padOutput = std::make_unique<SlippiRemotePadOutput>();
 
@@ -1187,4 +1276,93 @@ s32 SlippiNetplayClient::CalcTimeOffsetUs()
 
 	// INFO_LOG(SLIPPI_ONLINE, "Time offsets, [0]: %d, [1]: %d, [2]: %d", offsets[0], offsets[1], offsets[2]);
 	return maxOffset;
+}
+
+void SlippiNetplayClient::DecrementInputStabilizerFrameCounts() {
+	for (auto &stabilizer : SerialInterface::stabilizers)
+	{
+		stabilizer.decrementFrameCount();
+	}
+}
+
+std::array<u8, SLIPPI_PAD_DATA_SIZE> convertToInGamePadData(const GCPadStatus &pad)
+{
+	std::array<u8, SLIPPI_PAD_DATA_SIZE> ingamePadData = {};
+	ingamePadData[0] =
+		((!!(pad.button & PAD_BUTTON_A)) << 0)
+		+ ((!!(pad.button & PAD_BUTTON_B)) << 1)
+		+ ((!!(pad.button & PAD_BUTTON_X)) << 2)
+		+ ((!!(pad.button & PAD_BUTTON_Y)) << 3)
+		+ ((!!(pad.button & PAD_BUTTON_START)) << 4);
+	ingamePadData[1] =
+		((!!(pad.button & PAD_BUTTON_LEFT)) << 0)
+		+ ((!!(pad.button & PAD_BUTTON_RIGHT)) << 1)
+		+ ((!!(pad.button & PAD_BUTTON_DOWN)) << 2)
+		+ ((!!(pad.button & PAD_BUTTON_UP)) << 3)
+		+ ((!!(pad.button & PAD_TRIGGER_Z)) << 4)
+		+ ((!!(pad.button & PAD_TRIGGER_R)) << 5)
+		+ ((!!(pad.button & PAD_TRIGGER_L)) << 6); 
+	ingamePadData[2] = pad.stickX - 0x80;
+	ingamePadData[3] = pad.stickY - 0x80;
+	ingamePadData[4] = pad.substickX - 0x80;
+	ingamePadData[5] = pad.substickY - 0x80;
+	ingamePadData[6] = pad.triggerLeft;
+	ingamePadData[7] = pad.triggerRight;
+
+	return ingamePadData;
+}
+
+void SlippiNetplayClient::KristalInputCallback(const GCPadStatus &pad,
+                                               std::chrono::high_resolution_clock::time_point tp, int chan)
+{
+
+	m_last_adapter_chan_used_in_kristal_callback = chan;
+
+	auto status = slippiConnectStatus;
+	bool connectionFailed = status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_FAILED;
+	bool connectionDisconnected = status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_DISCONNECTED;
+	if (connectionFailed || connectionDisconnected)
+	{
+		return;
+	}
+
+	std::pair<float,u8> timingAndVersion = SerialInterface::stabilizers[chan].evaluateTiming(tp);
+
+	auto spac = std::make_unique<sf::Packet>();
+	*spac << static_cast<MessageId>(NP_MSG_KRISTAL_PAD);
+	*spac << timingAndVersion.first; // subframe, 4 bytes
+	*spac << timingAndVersion.second; // version, 1 byte
+	*spac << this->playerIdx; // player index, 1 byte
+
+	std::array<u8, SLIPPI_PAD_DATA_SIZE> ingamePadData = convertToInGamePadData(pad);
+
+	spac->append(&ingamePadData, SLIPPI_PAD_DATA_SIZE); // first 8 bytes of pad
+
+	std::pair<float, u8> timingAndVersionNow = SerialInterface::stabilizers[chan].evaluateTiming(std::chrono::high_resolution_clock::now());
+
+	// Log
+	std::ostringstream oss;
+	oss << std::fixed << std::setprecision(2) << "Sending Kristal input timing " << timingAndVersion.first
+	    << " v" << (int)timingAndVersion.second << " on " << timingAndVersionNow.first << " v"
+	    << (int)timingAndVersionNow.second;
+	WARN_LOG(KRISTAL, oss.str().c_str());
+
+	SendAsync(std::move(spac));
+}
+
+std::pair<bool, SlippiNetplayClient::KristalPad> SlippiNetplayClient::GetKristalInput(u32 frame, u8 playerIdx)
+{
+	auto &subframePadSet = subframePadSets[playerIdx];
+	if (subframePadSet.size()==0)
+		return std::pair<bool, KristalPad>(false, KristalPad());
+	auto it = std::lower_bound(subframePadSet.begin(), subframePadSet.end(), frame,
+	                 [](KristalPad pad, u32 frame) { return pad.subframe < (float)frame; }); // Get first pad in the future
+	if (it == subframePadSet.begin()) // No pad in the past
+		return std::pair<bool, KristalPad>(false, KristalPad()); // The latest SlippiPad should be used as prediction
+	it--; // Last pad before future
+	// Otherwise, clean elements strictly older than this pad before returning
+	KristalPad pad = *it;
+	subframePadSet.erase(subframePadSet.begin(), it);
+	// It's left to the caller to check that he's better off with that subframe than with the last known Slippi pad
+	return std::pair<bool, KristalPad>(true, pad);
 }
