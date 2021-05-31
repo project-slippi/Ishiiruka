@@ -22,6 +22,8 @@ class SlippiGameReporter
     float jitterMax = 0;
     float jitterVariance = 0;
     float pingMean = 0;
+    u32 analogStickInputCount = 0;
+    u32 analogMaxBurstInput = 0;
 	};
 	struct GameReport
 	{

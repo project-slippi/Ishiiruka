@@ -187,6 +187,9 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 	{
 	case NP_MSG_SLIPPI_PAD:
 	{
+		// Fetch current time immediately for the most accurate timing calculations
+		u64 curTime = Common::Timer::GetTimeUs();
+		
 		int32_t frame;
 		if (!(packet >> frame))
 		{
@@ -210,8 +213,6 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 		// before we initialized
 		// We can compare this to when we sent a pad for last frame to figure out how far/behind we
 		// are with respect to the opponent
-
-		u64 curTime = Common::Timer::GetTimeUs();
 
 		// 120 frames to let the game settle before measuring network quality
 		if (frame > 120)
@@ -271,7 +272,18 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 				         pad->padBuf[0], pad->padBuf[1], pad->padBuf[2], pad->padBuf[3], pad->padBuf[4], pad->padBuf[5],
 				         pad->padBuf[6], pad->padBuf[7]);
 
+				// Gather analog stick data for later reporting
+				{
+					std::tuple<u8, u8> mainStick (pad->padBuf[2]+128, pad->padBuf[3]+128);
+					std::tuple<u8, u8> cStick (pad->padBuf[4]+128, pad->padBuf[5]+128);
+
+					std::lock_guard<std::mutex> lk(analogStickInputsMutex);
+					mainStickInputs[pIdx].push_back(mainStick);
+					cStickInputs[pIdx].push_back(cStick);
+				}
+
 				remotePadQueue[pIdx].push_front(std::move(pad));
+
 			}
 		}
 
@@ -834,6 +846,16 @@ void SlippiNetplayClient::SendSlippiPad(std::unique_ptr<SlippiPad> pad)
 
 	if (pad)
 	{
+		// Gather analog stick data for later reporting
+		{
+			std::tuple<u8, u8> mainStick (pad->padBuf[2]+128, pad->padBuf[3]+128);
+			std::tuple<u8, u8> cStick (pad->padBuf[4]+128, pad->padBuf[5]+128);
+
+			std::lock_guard<std::mutex> lk(analogStickInputsMutex);
+			mainStickInputs[m_remotePlayerCount].push_back(mainStick);
+			cStickInputs[m_remotePlayerCount].push_back(cStick);
+		}
+
 		// Add latest local pad report to queue
 		localPadQueue.push_front(std::move(pad));
 	}
@@ -1162,6 +1184,78 @@ void SlippiNetplayClient::GetNetworkingStats(SlippiGameReporter::GameReport *rep
 				report->players[i].pingMean = 0;
 			}
 
+		}
+	}
+}
+
+// There's 9 regions. Dead zone (center) and 8 cardinals
+int SlippiNetplayClient::GetJoystickRegion(u8 x, u8 y)
+{
+  if (x >= 163 && y >= 163) {
+    return 1;
+  } else if (x >= 163 && y <= 91) {
+    return 2;
+  } else if (x <= 91 && y <= 91) {
+    return 3;
+  } else if (x <= 91 && y >= 163) {
+    return 4;
+  } else if (y >= 163) {
+    return 5;
+  } else if (x >= 163) {
+    return 6;
+  } else if (y <= 91) {
+    return 7;
+  } else if (x <= 91) {
+    return 8;
+  }
+  return 0;
+}
+
+void SlippiNetplayClient::GetControllerStats(SlippiGameReporter::GameReport *report)
+{
+	for (int i = 0; i < m_remotePlayerCount+1; i++)
+	{
+		// Don't try to write to a player slot that doesn't exist
+		if (i >= report->players.size()){
+			return;
+		}
+
+		{
+			std::lock_guard<std::mutex> lk(analogStickInputsMutex);
+			std::set<std::tuple<u8, u8>> uniqueStickInputs;
+			for (std::tuple<u8, u8> input : mainStickInputs[i])
+			{
+				uniqueStickInputs.insert(input);
+			}
+			for (std::tuple<u8, u8> input : cStickInputs[i])
+			{
+				uniqueStickInputs.insert(input);
+			}
+
+			// Calculate main stick burst IPM
+			int burstInput = 0;
+			for (int j = 0; j < mainStickInputs[i].size(); j++)
+			{
+				int inputsSoFar = 0;
+				int lastRegion = 0;
+				for (int k = 0; k < 60; k++)
+				{
+					if (j+k < mainStickInputs[i].size())
+					{
+						std::tuple<u8, u8> input = mainStickInputs[i][j+k];
+						int region = GetJoystickRegion(std::get<0>(input), std::get<1>(input));
+						if (region != lastRegion)
+						{
+							inputsSoFar++;
+						}
+						lastRegion = region;
+					}
+				}
+				burstInput = std::max(burstInput, inputsSoFar);
+			}
+
+			report->players[i].analogMaxBurstInput = burstInput;
+			report->players[i].analogStickInputCount = (u32)uniqueStickInputs.size();
 		}
 	}
 }

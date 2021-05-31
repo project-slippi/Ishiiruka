@@ -19,8 +19,10 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <set>
 #include <string>
 #include <thread>
+#include <tuple>
 #include <unordered_map>
 #include <vector>
 #ifdef _WIN32
@@ -143,6 +145,7 @@ class SlippiNetplayClient
 	u8 GetSlippiRemoteSentChatMessage();
 	s32 CalcTimeOffsetUs();
 	void GetNetworkingStats(SlippiGameReporter::GameReport *outReport);
+	void GetControllerStats(SlippiGameReporter::GameReport *outReport);
 
 	void WriteChatMessageToPacket(sf::Packet &packet, int messageId, u8 playerIdx);
 	std::unique_ptr<SlippiPlayerSelections> ReadChatMessageFromPacket(sf::Packet &packet);
@@ -189,6 +192,8 @@ class SlippiNetplayClient
 		std::vector<s32> buf;
 	};
 
+	typedef std::vector<std::tuple<u8, u8>> InputPairs;
+
 	bool isConnectionSelected = false;
 	bool isDecider = false;
 	bool hasGameStarted = false;
@@ -203,6 +208,13 @@ class SlippiNetplayClient
 	std::mutex packetTimestampsMutex;
 	std::vector<u64> pings[SLIPPI_REMOTE_PLAYER_MAX];
 	std::mutex pingsMutex;
+	// For these two vectors, the order goes:
+	//	0-N -> opponent's inputs, in port order.
+	//	N+1 -> our inputs
+	InputPairs mainStickInputs[SLIPPI_REMOTE_PLAYER_MAX+1];
+	InputPairs cStickInputs[SLIPPI_REMOTE_PLAYER_MAX+1];
+	std::mutex analogStickInputsMutex;
+
 	int32_t lastFrameAcked[SLIPPI_REMOTE_PLAYER_MAX];
 	FrameOffsetData frameOffsetData[SLIPPI_REMOTE_PLAYER_MAX];
 	FrameTiming lastFrameTiming[SLIPPI_REMOTE_PLAYER_MAX];
@@ -223,6 +235,7 @@ class SlippiNetplayClient
 	void Send(sf::Packet &packet);
 	void Disconnect();
 	float ComputeSampleVariance(float mean, std::vector<u64>& numbers);
+	int GetJoystickRegion(u8 x, u8 y);
 
 	bool m_is_connected = false;
 

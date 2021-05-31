@@ -122,6 +122,8 @@ void SlippiGameReporter::ReportThreadHandler()
 					p["jitterVariance"] = report.players[i].jitterVariance;
 					p["pingMean"] = report.players[i].pingMean;
 				}
+				p["analogStickInputCount"] = report.players[i].analogStickInputCount;
+				p["analogMaxBurstInput"] = report.players[i].analogMaxBurstInput;
 				players[i] = p;
 			}
 
