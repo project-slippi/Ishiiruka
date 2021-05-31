@@ -198,6 +198,8 @@ class SlippiNetplayClient
 	std::deque<std::unique_ptr<SlippiPad>>
 	    remotePadQueue[SLIPPI_REMOTE_PLAYER_MAX]; // most recent inputs at start of deque
 
+	std::deque<std::pair<std::chrono::high_resolution_clock::time_point, sf::Packet>> outgoingAcksQueue;
+
 	u64 pingUs[SLIPPI_REMOTE_PLAYER_MAX];
 	int32_t lastFrameAcked[SLIPPI_REMOTE_PLAYER_MAX];
 	FrameOffsetData frameOffsetData[SLIPPI_REMOTE_PLAYER_MAX];
