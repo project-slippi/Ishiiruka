@@ -1261,8 +1261,18 @@ void SlippiNetplayClient::GetControllerStats(SlippiGameReporter::GameReport *rep
 				burstInput = std::max(burstInput, inputsSoFar);
 			}
 
-			report->players[i].analogMaxBurstInput = burstInput;
-			report->players[i].analogStickInputCount = (u32)uniqueStickInputs.size();
+			// Account for the indexing missing ourselves
+			int playerIndex = i;
+			if (playerIdx <= i) {
+				playerIndex++;
+			}
+			// The last slot we know is ours
+			if (i == m_remotePlayerCount) {
+				playerIndex = playerIdx;
+			}
+
+			report->players[playerIndex].analogMaxBurstInput = burstInput;
+			report->players[playerIndex].analogStickInputCount = (u32)uniqueStickInputs.size();
 		}
 	}
 }
