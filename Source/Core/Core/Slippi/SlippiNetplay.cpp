@@ -189,7 +189,7 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 	{
 		// Fetch current time immediately for the most accurate timing calculations
 		u64 curTime = Common::Timer::GetTimeUs();
-		
+
 		int32_t frame;
 		if (!(packet >> frame))
 		{
@@ -1158,16 +1158,23 @@ void SlippiNetplayClient::GetNetworkingStats(SlippiGameReporter::GameReport *rep
 		for (u64 j : differences) {
 			jitterSum += j;
 		}
+
+		// Account for the indexing missing ourselves
+		int playerIndex = i;
+		if (playerIdx <= i) {
+			playerIndex++;
+		}
+
 		if (differences.size() > 1) {
-			report->players[i].jitterMean = jitterSum / (float)differences.size();
-			report->players[i].jitterMax = (float)*std::max_element(differences.begin(), differences.end());
-			report->players[i].jitterVariance = ComputeSampleVariance(report->players[i].jitterMean, differences);
+			report->players[playerIndex].jitterMean = jitterSum / (float)differences.size();
+			report->players[playerIndex].jitterMax = (float)*std::max_element(differences.begin(), differences.end());
+			report->players[playerIndex].jitterVariance = ComputeSampleVariance(report->players[playerIndex].jitterMean, differences);
 		}
 		else {
-			report->players[i].jitterMean = 0;
-			report->players[i].jitterMax = 0;
-			report->players[i].jitterVariance = 0;
-			report->players[i].pingMean = 0;
+			report->players[playerIndex].jitterMean = 0;
+			report->players[playerIndex].jitterMax = 0;
+			report->players[playerIndex].jitterVariance = 0;
+			report->players[playerIndex].pingMean = 0;
 			continue;
 		}
 
@@ -1178,10 +1185,10 @@ void SlippiNetplayClient::GetNetworkingStats(SlippiGameReporter::GameReport *rep
 				pingSum += j;
 			}
 			if (pings[i].size() > 0) {
-				report->players[i].pingMean = pingSum / (float)pings[i].size();
+				report->players[playerIndex].pingMean = pingSum / (float)pings[i].size();
 			}
 			else {
-				report->players[i].pingMean = 0;
+				report->players[playerIndex].pingMean = 0;
 			}
 
 		}
