@@ -69,8 +69,16 @@ SlippiPlaybackStatus::SlippiPlaybackStatus()
 void SlippiPlaybackStatus::startThreads()
 {
 	shouldRunThreads = true;
-	m_savestateThread = std::thread(&SlippiPlaybackStatus::SavestateThread, this);
-	m_seekThread = std::thread(&SlippiPlaybackStatus::SeekThread, this);
+
+	if (!m_savestateThread.joinable())
+	{
+		m_savestateThread = std::thread(&SlippiPlaybackStatus::SavestateThread, this);
+	}
+	
+	if (!m_seekThread.joinable())
+	{
+		m_seekThread = std::thread(&SlippiPlaybackStatus::SeekThread, this);
+	}
 }
 
 void SlippiPlaybackStatus::prepareSlippiPlayback(s32 &frameIndex)
