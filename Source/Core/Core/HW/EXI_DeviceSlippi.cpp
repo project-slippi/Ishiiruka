@@ -1078,6 +1078,7 @@ void CEXISlippi::prepareGeckoList()
 	    {0x804ddb84, true}, // External/Widescreen/Nametag Fixes/Adjust Nametag Text X Scale.asm
 	    {0x803BB05C, true}, // External/Widescreen/Fix Screen Flash.asm
 	    {0x8036A4A8, true}, // External/Widescreen/Overwrite CObj Values.asm
+	    {0x80302784, true}, // External/Monitor4-3/Add Shutters.asm
 	    {0x800C0148, true}, // External/FlashRedFailedLCancel/ChangeColor.asm
 	    {0x8008D690, true}, // External/FlashRedFailedLCancel/TriggerColor.asm
 
