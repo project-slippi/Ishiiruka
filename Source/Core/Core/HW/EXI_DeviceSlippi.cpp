@@ -254,8 +254,8 @@ CEXISlippi::CEXISlippi()
 #endif
 
 	//    auto spt = SlippiPremadeText();
-	//    spt.GetPremadeTextData(SlippiPremadeText::SPT_CHAT_P1, "Player 1", "Test");
-	//    spt.GetPremadeTextData(SlippiPremadeText::SPT_CHAT_P1, "ラピ,ト", "Test");
+	//    spt.GetPremadeTextData(SlippiPremadeText::SPT_CHAT_P1, "Rapito", "Test");
+	//    spt.GetPremadeTextData(SlippiPremadeText::SPT_CHAT_P1, "ラピト", "Test");
 }
 
 CEXISlippi::~CEXISlippi()
