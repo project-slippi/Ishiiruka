@@ -84,7 +84,7 @@ class SlippiPremadeText
 	unordered_map<string, string> unsupportedStringMap = {
 	    {"<", "\\"},
 	    {">", "`"},
-	    {",", "Ç"},
+	    {",", ""}, // DELETE U+007F
 	};
 
 	// TODO: use va_list to handle any no. or args
@@ -102,7 +102,7 @@ class SlippiPremadeText
 
 		vector<u8> data = {};
 		vector<u8> empty = {};
-
+		 
 		vector<string> matches = vector<string>();
 
 		// NOTE: This code is converted from HSDRaw C# code
@@ -199,8 +199,8 @@ class SlippiPremadeText
 						// and we need to prevent "format injection" lol...
 						for (auto it = unsupportedStringMap.begin(); it != unsupportedStringMap.end(); it++)
 						{
-							if (it->second.find(chr) != std::string::npos || (chr == U'Ç' && it->first[0] == ','))
-							{ // Need to figure out how to find extended ascii chars (Ç)
+							if (it->second.find(chr) != std::string::npos || (chr == U'' && it->first[0] == ','))
+							{ // Need to figure out how to find extended ascii chars ()
 								chr = it->first[0];
 							}
 						}
