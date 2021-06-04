@@ -41,7 +41,7 @@
 #define SLEEP_TIME_MS 8
 #define WRITE_FILE_SLEEP_TIME_MS 85
 
-#define LOCAL_TESTING
+//#define LOCAL_TESTING
 //#define CREATE_DIFF_FILES
 
 static std::unordered_map<u8, std::string> slippi_names;
@@ -253,9 +253,9 @@ CEXISlippi::CEXISlippi()
 	//                        "C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\MnMaAll-restored.usd");
 #endif
 
-	    auto spt = SlippiPremadeText();
-	    spt.GetPremadeTextData(SlippiPremadeText::SPT_CHAT_P1, "kim,b", "Test");
-	    spt.GetPremadeTextData(SlippiPremadeText::SPT_CHAT_P1, "ラピ,ト", "Test");
+//	    auto spt = SlippiPremadeText();
+//	    spt.GetPremadeTextData(SlippiPremadeText::SPT_CHAT_P1, "Player 1", "Test");
+//	    spt.GetPremadeTextData(SlippiPremadeText::SPT_CHAT_P1, "ラピ,ト", "Test");
 }
 
 CEXISlippi::~CEXISlippi()
@@ -2189,7 +2189,7 @@ void CEXISlippi::prepareOnlineMatchState()
 	chatMessagePlayerIdx = 0;
 	localChatMessageId = 0;
 	// in CSS p1 is always current player and p2 is opponent
-	localPlayerName = p1Name = "kim,b";
+	localPlayerName = p1Name = "Player 1";
 	oppName = p2Name = "Player 2";
 #endif
 
@@ -2475,7 +2475,7 @@ void CEXISlippi::prepareOnlineMatchState()
 	m_read_queue.insert(m_read_queue.end(), localPlayerName.begin(), localPlayerName.end());
 
 #ifdef LOCAL_TESTING
-	std::string defaultNames[] = {"kim,b", "Player 2", "Player 3", "Player 4"};
+	std::string defaultNames[] = {"Player 1", "Player 2", "Player 3", "Player 4"};
 #endif
 
 	for (int i = 0; i < 4; i++)
@@ -2674,7 +2674,7 @@ std::vector<u8> CEXISlippi::loadPremadeText(u8 *payload)
 		if (matchmaking)
 			playerName = matchmaking->GetPlayerName(port);
 #ifdef LOCAL_TESTING
-		std::string defaultNames[] = {"kim,b", "lol u lost 2 dk", "Player 3", "Player 4"};
+		std::string defaultNames[] = {"Player 1", "Player 2", "Player 3", "Player 4"};
 		playerName = defaultNames[port];
 #endif
 
