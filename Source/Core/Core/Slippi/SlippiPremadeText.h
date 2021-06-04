@@ -190,7 +190,7 @@ class SlippiPremadeText
 				}
 				else
 				{
-                    // DEBUG_LOG(SLIPPI, "TEST:::: %s %s", firstMatch.c_str(), UTF32toUTF8(utfMatch).c_str());
+					// DEBUG_LOG(SLIPPI, "TEST:::: %s %s", firstMatch.c_str(), UTF32toUTF8(utfMatch).c_str());
 					for (unsigned long c = 0; c < utfMatch.length(); c++)
 					{
 
