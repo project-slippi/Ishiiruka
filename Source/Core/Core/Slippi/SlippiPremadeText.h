@@ -98,11 +98,11 @@ class SlippiPremadeText
 		va_start(args, textId);
 		vsprintf(str, format.c_str(), args);
 		va_end(args);
-				DEBUG_LOG(SLIPPI, "%s", str);
+		//				DEBUG_LOG(SLIPPI, "%s", str);
 
 		vector<u8> data = {};
 		vector<u8> empty = {};
-		 
+
 		vector<string> matches = vector<string>();
 
 		// NOTE: This code is converted from HSDRaw C# code
@@ -190,7 +190,8 @@ class SlippiPremadeText
 				}
 				else
 				{
-					 DEBUG_LOG(SLIPPI, "TEST:::: %s %s", firstMatch.c_str(), UTF32toUTF8(utfMatch).c_str());
+					//DEBUG_LOG(SLIPPI, "TEST:::: %s %s", firstMatch.c_str(),
+					//UTF32toUTF8(utfMatch).c_str());
 					for (unsigned long c = 0; c < utfMatch.length(); c++)
 					{
 
@@ -217,7 +218,7 @@ class SlippiPremadeText
 								break;
 							}
 						}
-						 DEBUG_LOG(SLIPPI, "pos:%d chr:%c map:%d", pos, chr, CHAR_MAP[pos]);
+						//DEBUG_LOG(SLIPPI, "pos:%d chr:%c map:%d", pos, chr, CHAR_MAP[pos]);
 
 						if (pos >= 0)
 						{
