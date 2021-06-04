@@ -1623,7 +1623,11 @@ void CFrame::ParseHotkeys()
 #ifdef IS_PLAYBACK
 	// Slippi replay hotkeys and setup
 	if (IsHotkey(HK_HIDE_SEEKBAR))
+	{
+		if (SConfig::GetInstance().m_CLIHideSeekbar)
+			SConfig::GetInstance().m_CLIHideSeekbar = false;
 		SConfig::GetInstance().m_InterfaceSeekbar = !SConfig::GetInstance().m_InterfaceSeekbar;
+	}	
 	if (SConfig::GetInstance().m_InterfaceSeekbar && !SConfig::GetInstance().m_CLIHideSeekbar && g_playbackStatus &&
 	    g_playbackStatus->inSlippiPlayback)
 	{		

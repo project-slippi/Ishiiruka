@@ -1703,6 +1703,8 @@ void CFrame::OnToggleStatusbar(wxCommandEvent& event)
 
 void CFrame::OnToggleSeekbar(wxCommandEvent &event)
 {
+	if (SConfig::GetInstance().m_CLIHideSeekbar)
+		SConfig::GetInstance().m_CLIHideSeekbar = false;
 	SConfig::GetInstance().m_InterfaceSeekbar = event.IsChecked();
 
 	SendSizeEvent();
