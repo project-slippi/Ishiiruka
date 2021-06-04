@@ -253,9 +253,9 @@ CEXISlippi::CEXISlippi()
 	//                        "C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\MnMaAll-restored.usd");
 #endif
 
-//	    auto spt = SlippiPremadeText();
-//	    spt.GetPremadeTextData(SlippiPremadeText::SPT_CHAT_P1, "Player 1", "Test");
-//	    spt.GetPremadeTextData(SlippiPremadeText::SPT_CHAT_P1, "ラピ,ト", "Test");
+	//    auto spt = SlippiPremadeText();
+	//    spt.GetPremadeTextData(SlippiPremadeText::SPT_CHAT_P1, "Player 1", "Test");
+	//    spt.GetPremadeTextData(SlippiPremadeText::SPT_CHAT_P1, "ラピ,ト", "Test");
 }
 
 CEXISlippi::~CEXISlippi()
@@ -2674,7 +2674,7 @@ std::vector<u8> CEXISlippi::loadPremadeText(u8 *payload)
 		if (matchmaking)
 			playerName = matchmaking->GetPlayerName(port);
 #ifdef LOCAL_TESTING
-		std::string defaultNames[] = {"Player 1", "Player 2", "Player 3", "Player 4"};
+		std::string defaultNames[] = {"Player 1", "lol u lost 2 dk", "Player 3", "Player 4"};
 		playerName = defaultNames[port];
 #endif
 
