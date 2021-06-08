@@ -26,16 +26,17 @@ APPDIR_HOOKS="./AppDir/apprun-hooks"
 # Grab various appimage binaries from GitHub if we don't have them
 if [ ! -e ./Tools/linuxdeploy ]; then
 	wget ${LINUXDEPLOY_URL} -O ./Tools/linuxdeploy
-	chmod +x ./Tools/linuxdeploy
 fi
 if [ ! -e ./Tools/linuxdeploy-update-plugin ]; then
 	wget ${UPDATEPLUG_URL} -O ./Tools/linuxdeploy-update-plugin
-	chmod +x ./Tools/linuxdeploy-update-plugin
 fi
 if [ ! -e ./Tools/appimageupdatetool ]; then
 	wget ${UPDATETOOL_URL} -O ./Tools/appimageupdatetool
-	chmod +x ./Tools/appimageupdatetool
 fi
+
+chmod +x ./Tools/linuxdeploy
+chmod +x ./Tools/linuxdeploy-update-plugin
+chmod +x ./Tools/appimageupdatetool
 
 # Delete the AppDir folder to prevent build issues
 rm -rf ./AppDir/
