@@ -21,7 +21,7 @@ bool isKristalInput(const GCPadStatus& newPad, const GCPadStatus& oldPad)
 	    ((oldPad.button & PAD_TRIGGER_Z) && !(newPad.button & PAD_TRIGGER_Z)) ||
 	    ((newPad.button & PAD_BUTTON_START) && !(oldPad.button & PAD_BUTTON_START)) ||
 
-		// Stick (|X|>=.2875, |X|>=0.8, |Y|>=.2875, |Y|>=0.6625)
+		// Stick (|X|>=.2875, |X|>=0.8, |Y|>=.2875, Y>=0.6625, Y<-0.7)
 	    ((oldPad.stickX < coord(0.2875)) && (newPad.stickX >= coord(0.2875))) ||   // Right
 	    ((oldPad.stickX < coord(0.8)) && (newPad.stickX >= coord(0.8))) ||         // Dash right
 	    ((oldPad.stickX > coord(-0.2875)) && (newPad.stickX <= coord(-0.2875))) || // Left
@@ -30,22 +30,36 @@ bool isKristalInput(const GCPadStatus& newPad, const GCPadStatus& oldPad)
 	    ((oldPad.stickY < coord(0.6625)) && (newPad.stickY >= coord(0.6625))) ||   // Jump
 	    ((oldPad.stickY > coord(-0.2875)) && (newPad.stickY <= coord(-0.2875))) || // Down
 	    ((oldPad.stickY > coord(-0.7)) && (newPad.stickY <= coord(-0.7))) ||       // Crouch
-		// Tap jump during dash = ? //TODO?
 
 	    // C Stick
-	    ((oldPad.substickX < coord(0.2875))  && (newPad.substickX >= coord(0.2875))) ||   // Right air
-	    ((oldPad.substickX < coord(0.8))     && (newPad.substickX >= coord(0.8))) ||         // Right smash
+	    ((oldPad.substickX < coord(0.2875))  && (newPad.substickX >= coord(0.2875))) ||  // Right air
+	    ((oldPad.substickX < coord(0.8))     && (newPad.substickX >= coord(0.8))) ||     // Right smash
 	    ((oldPad.substickX > coord(-0.2875)) && (newPad.substickX <= coord(-0.2875))) || // Left air
-	    ((oldPad.substickX > coord(-0.8))    && (newPad.substickX <= coord(-0.8))) ||       // Left smash
-	    ((oldPad.substickY < coord(0.2875))  && (newPad.substickY >= coord(0.2875))) ||   // Up air
-	    ((oldPad.substickY < coord(0.6625))  && (newPad.substickY >= coord(0.6625))) ||   // Up smash
+	    ((oldPad.substickX > coord(-0.8))    && (newPad.substickX <= coord(-0.8))) ||    // Left smash
+	    ((oldPad.substickY < coord(0.2875))  && (newPad.substickY >= coord(0.2875))) ||  // Up air
+	    ((oldPad.substickY < coord(0.6625))  && (newPad.substickY >= coord(0.6625))) ||  // Up smash
 	    ((oldPad.substickY > coord(-0.2875)) && (newPad.substickY <= coord(-0.2875))) || // Down air
 	    ((oldPad.substickY > coord(-0.6625)) && (newPad.substickY <= coord(-0.6625))) || // Down smash
 
-	    // Triggers (no shield -> minimum shield check for both triggers)
+	    // Triggers (no shield <-> minimum shield check for both triggers)
 	    ((oldPad.triggerLeft < 43) && (newPad.triggerLeft >= 43)) ||
-	    ((oldPad.triggerRight < 43) && (newPad.triggerRight >= 43))
+	    ((oldPad.triggerRight < 43) && (newPad.triggerRight >= 43)) ||
+	    ((oldPad.triggerLeft >= 43) && (newPad.triggerLeft < 43)) ||
+	    ((oldPad.triggerRight >= 43) && (newPad.triggerRight < 43)) ||
 
 		// Dpad (none)
-	    ;
+
+		/* Advanced checks */
+
+		// Tap jump from dash
+	    ( (oldPad.stickX >= coord(0.8) || oldPad.stickX <= coord(-0.8)) && oldPad.stickY < coord(0.6625) && newPad.stickY >= coord(0.6625) ) ||
+
+		// Shield drop
+	    (
+			((newPad.button & (PAD_TRIGGER_L | PAD_TRIGGER_R | PAD_TRIGGER_Z)) ||
+			(newPad.triggerLeft >= 43) ||
+			(newPad.triggerRight >= 43)) // New pad may be shielding
+			&& (oldPad.stickY > coord(-0.6625)) // Old pad above shield drop
+			&& (newPad.stickY <= coord(-0.6625)) // New pad below shield drop
+	    );
 }
