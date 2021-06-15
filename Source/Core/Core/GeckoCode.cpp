@@ -153,7 +153,7 @@ static bool InstallCodeHandler()
 	// Write a magic value to 'gameid' (codehandleronly does not actually read this).
 	PowerPC::HostWrite_U32(0xd01f1bad, INSTALLER_BASE_ADDRESS);
 
-	if(SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_NTSC)
+	if (SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_NTSC || SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_AKANEIA)
 	{
 		// Here we are replacing a line in the codehandler with a blr.
 		// The reason for this is that this is the section of the codehandler

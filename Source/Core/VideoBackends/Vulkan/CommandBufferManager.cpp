@@ -264,7 +264,7 @@ void CommandBufferManager::SubmitCommandBuffer(bool submit_on_worker_thread,
 		if (res != VK_SUCCESS)
 		{
 			LOG_VULKAN_ERROR(res, "vkEndCommandBuffer failed: ");
-			PanicAlert("Failed to end command buffer");
+//			PanicAlert("Failed to end command buffer");
 		}
 	}
 
@@ -335,7 +335,7 @@ void CommandBufferManager::SubmitCommandBuffer(size_t index, VkSemaphore wait_se
 	if (res != VK_SUCCESS)
 	{
 		LOG_VULKAN_ERROR(res, "vkQueueSubmit failed: ");
-		PanicAlert("Failed to submit command buffer.");
+//		PanicAlert("Failed to submit command buffer.");
 	}
 
 	// Do we have a swap chain to present?

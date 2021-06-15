@@ -48,6 +48,7 @@ enum
 	D_THEMES_IDX,
 	D_PIPES_IDX,
 	D_MEMORYWATCHER_IDX,
+	D_SLIPPI_IDX,
 	F_DOLPHINCONFIG_IDX,
 	F_DEBUGGERCONFIG_IDX,
 	F_LOGGERCONFIG_IDX,
@@ -158,6 +159,7 @@ std::string GetSysDirectory();
 
 #ifdef __APPLE__
 std::string GetBundleDirectory();
+std::string GetApplicationSupportDirectory();
 #endif
 
 std::string& GetExeDirectory();
