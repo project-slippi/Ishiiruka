@@ -497,6 +497,7 @@
     <ClInclude Include="PowerPC\PPCTables.h" />
     <ClInclude Include="PowerPC\Profiler.h" />
     <ClInclude Include="PowerPC\SignatureDB.h" />
+    <ClInclude Include="Slippi\SlippiExiTypes.h" />
     <ClInclude Include="Slippi\SlippiGameReporter.h" />
     <ClInclude Include="Slippi\SlippiDirectCodes.h" />
     <ClInclude Include="Slippi\SlippiPlayback.h" />

@@ -18,6 +18,7 @@
 #include "Core/Slippi/SlippiSavestate.h"
 #include "Core/Slippi/SlippiSpectate.h"
 #include "Core/Slippi/SlippiUser.h"
+#include "Core/Slippi/SlippiExiTypes.h"
 
 #define ROLLBACK_MAX_FRAMES 7
 #define MAX_NAME_LENGTH 15
@@ -73,8 +74,10 @@ class CEXISlippi : public IEXIDevice
 		CMD_SEND_CHAT_MESSAGE = 0xBB,
 		CMD_GET_NEW_SEED = 0xBC,
 		CMD_REPORT_GAME = 0xBD,
-
 		CMD_FETCH_CODE_SUGGESTION = 0xBE,
+		CMD_RESET_SELECTIONS = 0xBF,
+		CMD_PREP_COMPLETE_STEP = 0xC0,
+		CMD_PREP_FETCH_STEP = 0xC1,
 
 		// Misc
 		CMD_LOG_MESSAGE = 0xD0,
@@ -125,8 +128,10 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_CLEANUP_CONNECTION, 0},
 	    {CMD_GET_NEW_SEED, 0},
 	    {CMD_REPORT_GAME, 16},
-
 	    {CMD_FETCH_CODE_SUGGESTION, 31},
+	    {CMD_RESET_SELECTIONS, 0},
+	    {CMD_PREP_COMPLETE_STEP, (u32)sizeof(SlippiExiTypes::PrepCompleteStepQuery)},
+	    {CMD_PREP_FETCH_STEP, 0},
 
 	    // Misc
 	    {CMD_LOG_MESSAGE, 0xFFFF}, // Variable size... will only work if by itself
@@ -194,6 +199,7 @@ class CEXISlippi : public IEXIDevice
 	void handleConnectionCleanup();
 	void prepareNewSeed();
 	void handleReportGame(u8 *payload);
+	void handleResetSelections();
 
 	// replay playback stuff
 	void prepareGameInfo(u8 *payload);

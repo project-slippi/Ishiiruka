@@ -427,6 +427,12 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 	}
 	break;
 
+	case NP_MSG_SLIPPI_COMPLETE_STEP:
+	{
+		// TODO: Implement
+	}
+	break;
+
 	default:
 		WARN_LOG(SLIPPI_ONLINE, "Unknown message received with id : %d", mid);
 		break;

@@ -2920,6 +2920,21 @@ void CEXISlippi::prepareDelayResponse()
 	}
 }
 
+void CEXISlippi::handleResetSelections()
+{
+	NOTICE_LOG(SLIPPI, "Reseting selections");
+
+	// Reset opponent selections
+	if (slippi_netplay)
+	{
+		auto matchInfo = slippi_netplay->GetMatchInfo();
+		matchInfo->Reset();
+	}
+
+	// Reset local selections
+	localSelections.Reset();
+}
+
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 {
 	u8 *memPtr = Memory::GetPointer(_uAddr);
@@ -3067,6 +3082,9 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_GET_DELAY:
 			prepareDelayResponse();
+			break;
+		case CMD_RESET_SELECTIONS:
+			handleResetSelections();
 			break;
 		default:
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "");
