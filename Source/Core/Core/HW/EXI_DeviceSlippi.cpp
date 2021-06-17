@@ -2505,7 +2505,7 @@ void CEXISlippi::prepareOnlineMatchState()
 	}
 	if (matchmaking->RemotePlayerCount() == 1)
 		oppText = matchmaking->GetPlayerName(remotePlayerIndex);
-	oppName = ConvertStringForGame(oppText, MAX_NAME_LENGTH * 2 + 1);
+	oppName = ConvertStringForGame(oppText, MAX_NAME_LENGTH);
 	m_read_queue.insert(m_read_queue.end(), oppName.begin(), oppName.end());
 
 #ifdef LOCAL_TESTING
