@@ -3086,6 +3086,12 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		case CMD_RESET_SELECTIONS:
 			handleResetSelections();
 			break;
+		case CMD_GP_FETCH_STEP:
+			WARN_LOG(SLIPPI_ONLINE, "GP_FETCH_STEP");
+			break;
+		case CMD_GP_COMPLETE_STEP:
+			WARN_LOG(SLIPPI_ONLINE, "GP_COMPLETE_STEP");
+			break;
 		default:
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "");
 			m_slippiserver->write(&memPtr[bufLoc], payloadLen + 1);

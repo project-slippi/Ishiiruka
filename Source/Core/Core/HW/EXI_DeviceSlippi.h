@@ -76,8 +76,8 @@ class CEXISlippi : public IEXIDevice
 		CMD_REPORT_GAME = 0xBD,
 		CMD_FETCH_CODE_SUGGESTION = 0xBE,
 		CMD_RESET_SELECTIONS = 0xBF,
-		CMD_PREP_COMPLETE_STEP = 0xC0,
-		CMD_PREP_FETCH_STEP = 0xC1,
+		CMD_GP_COMPLETE_STEP = 0xC0,
+		CMD_GP_FETCH_STEP = 0xC1,
 
 		// Misc
 		CMD_LOG_MESSAGE = 0xD0,
@@ -130,8 +130,8 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_REPORT_GAME, 16},
 	    {CMD_FETCH_CODE_SUGGESTION, 31},
 	    {CMD_RESET_SELECTIONS, 0},
-	    {CMD_PREP_COMPLETE_STEP, (u32)sizeof(SlippiExiTypes::PrepCompleteStepQuery)},
-	    {CMD_PREP_FETCH_STEP, 0},
+	    {CMD_GP_COMPLETE_STEP, (u32)sizeof(SlippiExiTypes::GpCompleteStepQuery) - 1},
+	    {CMD_GP_FETCH_STEP, (u32)sizeof(SlippiExiTypes::GpFetchStepQuery) - 1},
 
 	    // Misc
 	    {CMD_LOG_MESSAGE, 0xFFFF}, // Variable size... will only work if by itself
