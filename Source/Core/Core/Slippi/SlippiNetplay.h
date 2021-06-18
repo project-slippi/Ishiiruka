@@ -53,7 +53,8 @@ class SlippiPlayerSelections
 
 	u32 rngOffset = 0;
 
-	int messageId;
+	int messageId = 0;
+	bool error = false;
 
 	void Merge(SlippiPlayerSelections &s)
 	{
