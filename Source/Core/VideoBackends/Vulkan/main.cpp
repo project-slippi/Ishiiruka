@@ -375,11 +375,15 @@ id makeBackingLayer(id self, SEL _cmd)
     {
         // Explicitly tells the underlying layer to NOT use vsync.
         // [view setDisplaySyncEnabled:NO]
-        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(layer, sel_getUid("setDisplaySyncEnabled:"), NO);
-        
-        // CAMetalLayer is triple-buffered by default; we can lower this to double buffering.
-        //
-        // (The only acceptable values are `2` or `3`).
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(layer, sel_getUid("setDisplaySyncEnabled:"), NO);        
+    }
+    
+    // CAMetalLayer is triple-buffered by default; we can lower this to double buffering. 
+    //
+    // (The only acceptable values are `2` or `3`). Typically it's only iMacs that can handle this, so we'll just 
+    // enable an ENV variable for it and document it on the wiki.
+    if (getenv("SLP_METAL_DOUBLE_BUFFER") != NULL)
+    {
         reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(layer, sel_getUid("setMaximumDrawableCount:"), 2);
     }
 
@@ -438,12 +442,12 @@ void VideoBackend::PrepareWindow(void* window_handle) {
     Class SLPMetalLayerViewClass = getSLPMetalLayerViewClassType();
     id alloc = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(SLPMetalLayerViewClass, sel_getUid("alloc"));
 
-    //auto rect = (CGRect){{0, 0}, {CGFloat(width), CGFloat(height)}};
     auto rect = (CGRect){{0, 0}, {frame.size.width, frame.size.height}};
     id metal_view = reinterpret_cast<id (*)(id, SEL, CGRect)>(objc_msgSend)(alloc, sel_getUid("initWithFrame:"), rect);
     objc_msgSend(metal_view, sel_getUid("setWantsLayer:"), YES);
     
     // The below does: objc_msgSend(view, sel_getUid("setAutoresizingMask"), NSViewWidthSizable | NSViewHeightSizable);
+    // All this is doing is telling the view/layer to resize when the parent does.
     objc_msgSend(metal_view, sel_getUid("setAutoresizingMask:"), 18);
     
     objc_msgSend(view, sel_getUid("addSubview:"), metal_view);
