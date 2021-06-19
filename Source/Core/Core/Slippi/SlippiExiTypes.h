@@ -25,6 +25,14 @@ class SlippiExiTypes
 		u8 step_idx;
 	};
 
+	struct GpFetchStepResponse
+	{
+		u8 is_found;
+		u8 char_selection;
+		u8 char_color_selection;
+		u8 stage_selections[2];
+	};
+
 // Not sure if resetting is strictly needed, might be contained to the file
 #pragma pack()
 };

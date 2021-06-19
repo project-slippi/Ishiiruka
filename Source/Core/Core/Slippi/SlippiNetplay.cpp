@@ -429,7 +429,15 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 
 	case NP_MSG_SLIPPI_COMPLETE_STEP:
 	{
-		// TODO: Implement
+		SlippiGamePrepStepResults results;
+
+		packet >> results.step_idx;
+		packet >> results.char_selection;
+		packet >> results.char_color_selection;
+		packet >> results.stage_selections[0];
+		packet >> results.stage_selections[1];
+
+		gamePrepStepQueue.push_back(results);
 	}
 	break;
 
@@ -1021,6 +1029,35 @@ void SlippiNetplayClient::SetMatchSelections(SlippiPlayerSelections &s)
 	INFO_LOG(SLIPPI_ONLINE, "Setting match selections for %d", playerIdx);
 	writeToPacket(*spac, matchInfo.localPlayerSelections);
 	SendAsync(std::move(spac));
+}
+
+void SlippiNetplayClient::SendGamePrepStep(SlippiGamePrepStepResults &s)
+{
+	auto spac = std::make_unique<sf::Packet>();
+	*spac << static_cast<MessageId>(NP_MSG_SLIPPI_COMPLETE_STEP);
+	*spac << s.step_idx;
+	*spac << s.char_selection;
+	*spac << s.char_color_selection;
+	*spac << s.stage_selections[0] << s.stage_selections[1];
+	SendAsync(std::move(spac));
+}
+
+bool SlippiNetplayClient::GetGamePrepResults(u8 stepIdx, SlippiGamePrepStepResults &res)
+{
+	// Just pull stuff off until we find something for the right step. I think that should be fine
+	while (!gamePrepStepQueue.empty())
+	{
+		auto front = gamePrepStepQueue.front();
+		if (res.step_idx == stepIdx)
+		{
+			res = front;
+			return true;
+		}
+
+		gamePrepStepQueue.pop_front();
+	}
+
+	return false;
 }
 
 SlippiPlayerSelections SlippiNetplayClient::GetSlippiRemoteChatMessage()

@@ -200,6 +200,8 @@ class CEXISlippi : public IEXIDevice
 	void prepareNewSeed();
 	void handleReportGame(u8 *payload);
 	void handleResetSelections();
+	void handleGamePrepStepComplete(SlippiExiTypes::GpCompleteStepQuery* query);
+	void prepareGamePrepOppStep(SlippiExiTypes::GpFetchStepQuery* query);
 
 	// replay playback stuff
 	void prepareGameInfo(u8 *payload);

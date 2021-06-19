@@ -2935,6 +2935,44 @@ void CEXISlippi::handleResetSelections()
 	localSelections.Reset();
 }
 
+void CEXISlippi::handleGamePrepStepComplete(SlippiExiTypes::GpCompleteStepQuery* query)
+{
+	if (!slippi_netplay)
+		return;
+
+	SlippiGamePrepStepResults res;
+	res.step_idx = query->step_idx;
+	res.char_selection = query->char_selection;
+	res.char_color_selection = query->char_color_selection;
+	memcpy(res.stage_selections, query->stage_selections, 2);
+	
+	slippi_netplay->SendGamePrepStep(res);
+}
+
+void CEXISlippi::prepareGamePrepOppStep(SlippiExiTypes::GpFetchStepQuery *query)
+{
+	SlippiExiTypes::GpFetchStepResponse resp;
+
+	m_read_queue.clear();
+
+	// Start by indicating not found
+	resp.is_found = false;
+
+	SlippiGamePrepStepResults res;
+	if (slippi_netplay && slippi_netplay->GetGamePrepResults(query->step_idx, res))
+	{
+		// If we have received a response from the opponent, prepare the values for response
+		resp.is_found = true;
+		resp.char_selection = res.char_selection;
+		resp.char_color_selection = res.char_color_selection;
+		memcpy(resp.stage_selections, res.stage_selections, 2);
+	}
+
+	auto data_ptr = (u8 *)&resp;
+	m_read_queue.insert(m_read_queue.end(), data_ptr, data_ptr + sizeof(SlippiExiTypes::GpFetchStepResponse));
+}
+
+
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 {
 	u8 *memPtr = Memory::GetPointer(_uAddr);
@@ -3087,10 +3125,10 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			handleResetSelections();
 			break;
 		case CMD_GP_FETCH_STEP:
-			WARN_LOG(SLIPPI_ONLINE, "GP_FETCH_STEP");
+			prepareGamePrepOppStep((SlippiExiTypes::GpFetchStepQuery*)&memPtr[bufLoc]);
 			break;
 		case CMD_GP_COMPLETE_STEP:
-			WARN_LOG(SLIPPI_ONLINE, "GP_COMPLETE_STEP");
+			handleGamePrepStepComplete((SlippiExiTypes::GpCompleteStepQuery *)&memPtr[bufLoc]);
 			break;
 		default:
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "");
