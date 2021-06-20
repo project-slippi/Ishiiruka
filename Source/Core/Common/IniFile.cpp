@@ -9,7 +9,6 @@
 #include <fstream>
 #include <map>
 #include <string>
-#include <string>
 #include <utility>
 #include <vector>
 
@@ -46,11 +45,14 @@ IniFile::Section::Section(std::string name_)
 
 void IniFile::Section::Set(const std::string &key, std::string new_value)
 {
-	const auto result = values.insert_or_assign(key, std::move(new_value));
-	const bool insertion_occurred = result.second;
-
-	if (insertion_occurred)
+	auto it = values.find(key);
+	if (it != values.end())
+		it->second = new_value;
+	else
+	{
+		values[key] = new_value;
 		keys_order.push_back(key);
+	}
 }
 
 bool IniFile::Section::Get(std::string key, std::string *value, const std::string &default_value) const
@@ -269,7 +271,7 @@ bool IniFile::Load(const std::string &filename, bool keep_current_data)
 #ifndef _WIN32
 		// Check for CRLF eol and convert it to LF
 		if (!line.empty() && line.back() == '\r')
-			line.remove_suffix(1);
+			line.pop_back();
 #endif
 
 		if (!line.empty())
