@@ -2958,15 +2958,29 @@ void CEXISlippi::prepareGamePrepOppStep(SlippiExiTypes::GpFetchStepQuery *query)
 	// Start by indicating not found
 	resp.is_found = false;
 
+#ifdef LOCAL_TESTING
+	static int delay_count = 0;
+
+	delay_count++;
+	if (delay_count >= 90)
+	{
+		resp.is_found = true;
+		resp.is_skip = true; // Will make client just pick the next available options
+
+		delay_count = 0;
+	}
+#else
 	SlippiGamePrepStepResults res;
 	if (slippi_netplay && slippi_netplay->GetGamePrepResults(query->step_idx, res))
 	{
 		// If we have received a response from the opponent, prepare the values for response
 		resp.is_found = true;
+		resp.is_skip = false;
 		resp.char_selection = res.char_selection;
 		resp.char_color_selection = res.char_color_selection;
 		memcpy(resp.stage_selections, res.stage_selections, 2);
 	}
+#endif
 
 	auto data_ptr = (u8 *)&resp;
 	m_read_queue.insert(m_read_queue.end(), data_ptr, data_ptr + sizeof(SlippiExiTypes::GpFetchStepResponse));

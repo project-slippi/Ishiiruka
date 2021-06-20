@@ -28,6 +28,7 @@ class SlippiExiTypes
 	struct GpFetchStepResponse
 	{
 		u8 is_found;
+		u8 is_skip;
 		u8 char_selection;
 		u8 char_color_selection;
 		u8 stage_selections[2];
