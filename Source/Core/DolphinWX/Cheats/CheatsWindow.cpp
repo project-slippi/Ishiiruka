@@ -248,7 +248,7 @@ void wxCheatsWindow::OnEvent_ApplyChanges_Press(wxCommandEvent& ev)
 	{
 		m_ar_codes_panel->SaveCodes(&m_gameini_local);
 
-		Gecko::FillIni(m_gameini_local, m_geckocode_panel->GetCodes());
+		Gecko::SaveCodes(m_gameini_local, m_geckocode_panel->GetCodes());
 		m_gameini_local.Save(m_gameini_local_path);
 
 		wxCommandEvent ini_changed(DOLPHIN_EVT_LOCAL_INI_CHANGED);
