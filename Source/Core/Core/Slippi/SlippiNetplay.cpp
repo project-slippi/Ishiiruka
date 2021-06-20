@@ -387,6 +387,11 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 		auto s = readSelectionsFromPacket(packet);
 		INFO_LOG(SLIPPI_ONLINE, "[Netplay] Received selections from opponent with player idx %d", s->playerIdx);
 		u8 idx = PlayerIdxFromPort(s->playerIdx);
+		if (idx >= m_remotePlayerCount)
+		{
+			ERROR_LOG(SLIPPI_ONLINE, "Got packet with invalid player idx %d", idx);
+			break;
+		}
 		matchInfo.remotePlayerSelections[idx].Merge(*s);
 
 		// This might be a good place to reset some logic? Game can't start until we receive this msg
