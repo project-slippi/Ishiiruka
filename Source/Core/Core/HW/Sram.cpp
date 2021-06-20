@@ -4,6 +4,7 @@
 
 #include "Core/HW/Sram.h"
 #include "Common/CommonTypes.h"
+#include "Common/CommonFuncs.h"
 #include "Common/FileUtil.h"
 #include "Common/Logging/Log.h"
 #include "Core/ConfigManager.h"
