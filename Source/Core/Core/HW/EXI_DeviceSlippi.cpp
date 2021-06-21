@@ -2293,11 +2293,19 @@ void CEXISlippi::prepareOnlineMatchState()
 			orderedSelections[rps[i].playerIdx] = rps[i];
 		}
 
-		// TODO: Implement overwrite
+		// Overwrite selections
+		for (int i = 0; i < overwrite_selections.size(); i++)
+		{
+			const auto &ow = overwrite_selections[i];
+			
+			orderedSelections[i].characterId = ow.characterId;
+			orderedSelections[i].characterColor = ow.characterColor;
+			orderedSelections[i].stageId = ow.stageId;
+		}
 
 		// Overwrite stage information. Make sure everyone loads the same stage
 		u16 stageId = 0x1F; // Default to battlefield if there was no selection
-		for (auto selections : orderedSelections)
+		for (const auto &selections : orderedSelections)
 		{
 			if (!selections.isStageSelected)
 				continue;
@@ -2861,6 +2869,9 @@ void CEXISlippi::handleConnectionCleanup()
 	// Reset any forced errors
 	forcedError.clear();
 
+	// Reset any selection overwrites
+	overwrite_selections.clear();
+
 	// Reset play session
 	isPlaySessionActive = false;
 
@@ -2924,8 +2935,25 @@ void CEXISlippi::prepareDelayResponse()
 
 void CEXISlippi::handleOverwriteSelections(SlippiExiTypes::OverwriteSelectionsQuery *query)
 {
-	NOTICE_LOG(SLIPPI, "Overwritting selections");
-	NOTICE_LOG(SLIPPI, "%d", query->stage_id);
+	auto stageId = Common::FromBigEndian(query->stage_id);
+
+	overwrite_selections.clear();
+
+	for (int i = 0; i < 4; i++)
+	{
+		if (!query->chars[i].is_set)
+			continue;
+		
+		SlippiPlayerSelections s;
+		s.isCharacterSelected = true;
+		s.characterId = query->chars[i].char_id;
+		s.characterColor = query->chars[i].char_color_id;
+		s.isStageSelected = true;
+		s.stageId = stageId;
+		s.playerIdx = i;
+
+		overwrite_selections.push_back(s);
+	}
 }
 
 void CEXISlippi::handleGamePrepStepComplete(SlippiExiTypes::GpCompleteStepQuery* query)
