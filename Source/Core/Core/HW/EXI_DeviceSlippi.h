@@ -75,7 +75,7 @@ class CEXISlippi : public IEXIDevice
 		CMD_GET_NEW_SEED = 0xBC,
 		CMD_REPORT_GAME = 0xBD,
 		CMD_FETCH_CODE_SUGGESTION = 0xBE,
-		CMD_RESET_SELECTIONS = 0xBF,
+		CMD_OVERWRITE_SELECTIONS = 0xBF,
 		CMD_GP_COMPLETE_STEP = 0xC0,
 		CMD_GP_FETCH_STEP = 0xC1,
 
@@ -129,7 +129,7 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_GET_NEW_SEED, 0},
 	    {CMD_REPORT_GAME, 16},
 	    {CMD_FETCH_CODE_SUGGESTION, 31},
-	    {CMD_RESET_SELECTIONS, 0},
+	    {CMD_OVERWRITE_SELECTIONS, (u32)sizeof(SlippiExiTypes::OverwriteSelectionsQuery) - 1},
 	    {CMD_GP_COMPLETE_STEP, (u32)sizeof(SlippiExiTypes::GpCompleteStepQuery) - 1},
 	    {CMD_GP_FETCH_STEP, (u32)sizeof(SlippiExiTypes::GpFetchStepQuery) - 1},
 
@@ -199,7 +199,7 @@ class CEXISlippi : public IEXIDevice
 	void handleConnectionCleanup();
 	void prepareNewSeed();
 	void handleReportGame(u8 *payload);
-	void handleResetSelections();
+	void handleOverwriteSelections(SlippiExiTypes::OverwriteSelectionsQuery *query);
 	void handleGamePrepStepComplete(SlippiExiTypes::GpCompleteStepQuery* query);
 	void prepareGamePrepOppStep(SlippiExiTypes::GpFetchStepQuery* query);
 
@@ -249,6 +249,9 @@ class CEXISlippi : public IEXIDevice
 	SlippiMatchmaking::MatchSearchSettings lastSearch;
 
 	std::vector<u16> stagePool;
+
+	// Used by ranked to set game prep selections
+	std::vector<SlippiPlayerSelections> overwrite_selections;
 
 	u32 frameSeqIdx = 0;
 

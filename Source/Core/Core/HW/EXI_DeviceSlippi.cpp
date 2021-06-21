@@ -2293,6 +2293,8 @@ void CEXISlippi::prepareOnlineMatchState()
 			orderedSelections[rps[i].playerIdx] = rps[i];
 		}
 
+		// TODO: Implement overwrite
+
 		// Overwrite stage information. Make sure everyone loads the same stage
 		u16 stageId = 0x1F; // Default to battlefield if there was no selection
 		for (auto selections : orderedSelections)
@@ -2920,19 +2922,10 @@ void CEXISlippi::prepareDelayResponse()
 	}
 }
 
-void CEXISlippi::handleResetSelections()
+void CEXISlippi::handleOverwriteSelections(SlippiExiTypes::OverwriteSelectionsQuery *query)
 {
-	NOTICE_LOG(SLIPPI, "Reseting selections");
-
-	// Reset opponent selections
-	if (slippi_netplay)
-	{
-		auto matchInfo = slippi_netplay->GetMatchInfo();
-		matchInfo->Reset();
-	}
-
-	// Reset local selections
-	localSelections.Reset();
+	NOTICE_LOG(SLIPPI, "Overwritting selections");
+	NOTICE_LOG(SLIPPI, "%d", query->stage_id);
 }
 
 void CEXISlippi::handleGamePrepStepComplete(SlippiExiTypes::GpCompleteStepQuery* query)
@@ -2985,7 +2978,6 @@ void CEXISlippi::prepareGamePrepOppStep(SlippiExiTypes::GpFetchStepQuery *query)
 	auto data_ptr = (u8 *)&resp;
 	m_read_queue.insert(m_read_queue.end(), data_ptr, data_ptr + sizeof(SlippiExiTypes::GpFetchStepResponse));
 }
-
 
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 {
@@ -3135,8 +3127,8 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		case CMD_GET_DELAY:
 			prepareDelayResponse();
 			break;
-		case CMD_RESET_SELECTIONS:
-			handleResetSelections();
+		case CMD_OVERWRITE_SELECTIONS:
+			handleOverwriteSelections((SlippiExiTypes::OverwriteSelectionsQuery*)&memPtr[bufLoc]);
 			break;
 		case CMD_GP_FETCH_STEP:
 			prepareGamePrepOppStep((SlippiExiTypes::GpFetchStepQuery*)&memPtr[bufLoc]);
