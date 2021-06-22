@@ -306,7 +306,7 @@ void Interpreter::unknown_instruction(UGeckoInstruction _inst)
     msg.append(it->Name);
   }
 
-  _assert_msg_(POWERPC, 0, msg.c_str());
+  _assert_msg_(POWERPC, 0, "%s", msg.c_str());
 }
 
 void Interpreter::ClearCache()
