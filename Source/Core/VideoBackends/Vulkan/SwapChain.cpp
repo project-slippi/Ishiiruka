@@ -370,11 +370,6 @@ bool SwapChain::CreateSwapChain()
 	res =
 		vkCreateSwapchainKHR(g_vulkan_context->GetDevice(), &swap_chain_info, nullptr, &m_swap_chain);
 
-    //MVKSurface *mvkSrfc = (MVKSurface *)swap_chain_info->surface;
-    //id layer = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)((id)m_native_handle, sel_getUid("layer"));
-	//BOOL x = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(layer, sel_getUid("displaySyncEnabled"));
-	//ERROR_LOG(VIDEO, "Vulkan vsync status: %i", x);
-
 	if (res != VK_SUCCESS)
 	{
 		LOG_VULKAN_ERROR(res, "vkCreateSwapchainKHR failed: ");

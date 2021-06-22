@@ -149,7 +149,7 @@ public:
 	// Final surface changing
 	// This is called when the surface is resized (WX) or the window changes (Android).
 	virtual void ChangeSurface(void* new_surface_handle) {}
-    virtual void CacheSurfaceHandle(void* new_surface_handle) {}
+	virtual void CacheSurfaceHandle(void* new_surface_handle) {}
 	bool UseVertexDepthRange() const;
 protected:
 	std::tuple<int, int> CalculateTargetScale(int x, int y) const;

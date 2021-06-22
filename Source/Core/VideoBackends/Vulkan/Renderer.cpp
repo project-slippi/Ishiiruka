@@ -1713,17 +1713,16 @@ void Renderer::SetViewport()
 
 void Renderer::CacheSurfaceHandle(void* new_surface_handle)
 {
-    m_cached_surface_handle = new_surface_handle;
+	m_cached_surface_handle = new_surface_handle;
 }
 
 void Renderer::ChangeSurface(void* new_surface_handle)
 {
 	// Called by the main thread when the window is resized.
 #if defined(__APPLE__)
-    m_new_surface_handle = m_cached_surface_handle;
-    // Might need to resize actual view?
+	m_new_surface_handle = m_cached_surface_handle;
 #else
-    m_new_surface_handle = new_surface_handle;
+	m_new_surface_handle = new_surface_handle;
 #endif
 
 	m_surface_needs_change.Set();
