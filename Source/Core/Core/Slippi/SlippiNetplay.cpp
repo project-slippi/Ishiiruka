@@ -532,6 +532,8 @@ void SlippiNetplayClient::writeToPacket(sf::Packet &packet, SlippiPlayerSelectio
 	packet << s.stageId << s.isStageSelected;
 	packet << s.rngOffset;
 	packet << s.teamId;
+	packet << localKristalVersion;
+	packet << minimumRequiredKristalVersion;
 }
 
 void SlippiNetplayClient::WriteChatMessageToPacket(sf::Packet &packet, int messageId, u8 playerIdx)
