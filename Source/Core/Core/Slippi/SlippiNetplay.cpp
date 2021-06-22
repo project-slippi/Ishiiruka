@@ -573,7 +573,7 @@ std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::readSelectionsFromP
 
 	if ((packet >> kristalVersionReceived) && (packet >> minimumKristalVersionSupportedReceived))
 	{
-		minimumKristalVersionSupportedReceived = true;
+		kristalVersionWasReceived = true;
 	}
 
 	return std::move(s);
