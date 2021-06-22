@@ -1048,7 +1048,7 @@ bool SlippiNetplayClient::GetGamePrepResults(u8 stepIdx, SlippiGamePrepStepResul
 	while (!gamePrepStepQueue.empty())
 	{
 		auto front = gamePrepStepQueue.front();
-		if (res.step_idx == stepIdx)
+		if (front.step_idx == stepIdx)
 		{
 			res = front;
 			return true;
