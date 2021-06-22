@@ -45,7 +45,7 @@
 #include "Core/NetPlayProto.h"
 #include "Core/NetPlayClient.h"
 #include "Core/HW/SI.h"
-
+#include "Core/Slippi/SlippiNetplay.h"
 #include "InputCommon/GCAdapter.h"
 
 #include "VideoCommon/AVIDump.h"
@@ -509,6 +509,8 @@ void Renderer::DrawDebugText()
 			"Under \"Troubleshooting\", uncheck \"Show a message when inputs are being read at a reduced rate\".";
 	}
 	
+	final_yellow += KRISTAL_CROSSPLAY_DEBUG_MESSAGE; // Haha I hate this
+
 	// and then the text
 	RenderText(final_cyan, 20, 20, 0xFF00FFFF);
 	RenderText(final_yellow, 20, 20, 0xFFFFFF00);

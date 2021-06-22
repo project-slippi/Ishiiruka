@@ -180,6 +180,8 @@ class SlippiNetplayClient
 
 	std::mutex& padMutex();
 
+	// std::string getKristalCrossplayDebugMessage();
+
   protected:
 	struct
 	{
@@ -256,6 +258,11 @@ class SlippiNetplayClient
 	void Disconnect();
 
 	bool m_is_connected = false;
+	bool kristalVersionWasReceived = false;
+	u8 kristalVersionReceived = 0;
+	u8 minimumKristalVersionSupportedReceived = 0;
+	static const u8 localKristalVersion = 0;
+	static const u8 minimumRequiredKristalVersion = 0;
 
 #ifdef _WIN32
 	HANDLE m_qos_handle;
@@ -268,6 +275,8 @@ class SlippiNetplayClient
 };
 
 extern SlippiNetplayClient *SLIPPI_NETPLAY; // singleton static pointer
+
+extern std::string KRISTAL_CROSSPLAY_DEBUG_MESSAGE;
 
 static bool IsOnline()
 {

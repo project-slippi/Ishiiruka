@@ -2338,6 +2338,15 @@ void CEXISlippi::prepareOnlineMatchState()
 
 	if (localPlayerReady && remotePlayersReady)
 	{
+		auto status = slippi_netplay->GetSlippiConnectStatus();
+		bool isConnected = status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED;
+		if (!isConnected)
+		{
+			handleConnectionCleanup();
+			prepareOnlineMatchState(); // run again with new state
+			return;
+		}
+
 		auto isDecider = slippi_netplay->IsDecider();
 		u8 remotePlayerCount = matchmaking->RemotePlayerCount();
 		auto matchInfo = slippi_netplay->GetMatchInfo();

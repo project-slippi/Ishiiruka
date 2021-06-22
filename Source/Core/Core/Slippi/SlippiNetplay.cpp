@@ -462,6 +462,28 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 
 		// Reset remote pad queue such that next inputs that we get are not compared to inputs from last game
 		remotePadQueue[idx].clear();
+
+		if (!kristalVersionWasReceived)
+		{
+			KRISTAL_CROSSPLAY_DEBUG_MESSAGE =
+			    "You won't connect because your opponent isn't using Kristal. Crossplay with Slippi is not supported.\n";
+			Disconnect();
+		}
+		else if (kristalVersionReceived < minimumRequiredKristalVersion)
+		{
+			KRISTAL_CROSSPLAY_DEBUG_MESSAGE =
+			    "You won't connect because your opponent is using an older Kristal version, "
+			                               "which yours isn't retro-compatible with.\n";
+			Disconnect();
+		}
+		else if (localKristalVersion < minimumKristalVersionSupportedReceived)
+		{
+			KRISTAL_CROSSPLAY_DEBUG_MESSAGE =
+			    "You won't connect because your opponent is on a more recent Kristal version than you and has "
+			    "indicated that they are not retro-compatible with your version.\n"
+				"Please update.\n";
+			Disconnect();
+		}
 	}
 	break;
 
@@ -545,6 +567,13 @@ std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::readSelectionsFromP
 	packet >> s->rngOffset;
 	packet >> s->teamId;
 
+	KRISTAL_CROSSPLAY_DEBUG_MESSAGE = ""; // TODO An awful solution when it comes to Teams but at this point I am very done with this
+
+	if ((packet >> kristalVersionReceived) && (packet >> minimumKristalVersionSupportedReceived))
+	{
+		minimumKristalVersionSupportedReceived = true;
+	}
+
 	return std::move(s);
 }
 
@@ -574,6 +603,7 @@ void SlippiNetplayClient::Disconnect()
 {
 	ENetEvent netEvent;
 	slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_DISCONNECTED;
+	kristalVersionWasReceived = false;
 	if (activeConnections.empty())
 	{
 		return;
@@ -1366,3 +1396,10 @@ std::pair<bool, SlippiNetplayClient::KristalPad> SlippiNetplayClient::GetKristal
 	// It's left to the caller to check that he's better off with that subframe than with the last known Slippi pad
 	return std::pair<bool, KristalPad>(true, pad);
 }
+
+/*std::string SlippiNetplayClient::getKristalCrossplayDebugMessage()
+{
+	return kristalCrossplayDebugMessage;
+}*/
+
+extern std::string KRISTAL_CROSSPLAY_DEBUG_MESSAGE = "";
