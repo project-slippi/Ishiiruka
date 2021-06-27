@@ -531,7 +531,7 @@ void SConfig::LoadDisplaySettings(IniFile &ini)
 
 	display->Get("Fullscreen", &bFullscreen, true);
 	display->Get("FullscreenResolution", &strFullscreenResolution, "Auto");
-#ifdef defined IS_PLAYBACK && (defined _WIN32 || defined __APPLE__)
+#if defined IS_PLAYBACK && (defined _WIN32 || defined __APPLE__)
 	display->Get("RenderToMain", &bRenderToMain, true);
 #else
 	display->Get("RenderToMain", &bRenderToMain, false);
