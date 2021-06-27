@@ -925,6 +925,9 @@ void SlippiNetplayClient::StartSlippiGame()
 		ackTimers[i].Clear();
 	}
 
+	// Clear game prep queue in case anything is still lingering
+	gamePrepStepQueue.clear();
+
 	// Reset match info for next game
 	matchInfo.Reset();
 }
