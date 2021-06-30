@@ -41,7 +41,7 @@
 #define SLEEP_TIME_MS 8
 #define WRITE_FILE_SLEEP_TIME_MS 85
 
-//#define LOCAL_TESTING
+#define LOCAL_TESTING
 //#define CREATE_DIFF_FILES
 
 static std::unordered_map<u8, std::string> slippi_names;
@@ -2438,8 +2438,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		*stage = Common::swap16(stageId);
 
 		// Turn pause off in unranked/ranked, on in other modes
-		auto pauseAllowed = !SlippiMatchmaking::IsFixedRulesMode(lastSearch.mode) &&
-		                    lastSearch.mode != SlippiMatchmaking::OnlinePlayMode::TEAMS;
+		auto pauseAllowed = lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::DIRECT;
 		u8 *gameBitField3 = (u8 *)&onlineMatchBlock[2];
 		*gameBitField3 = pauseAllowed ? *gameBitField3 & 0xF7 : * gameBitField3 | 0x8;
 		//*gameBitField3 = *gameBitField3 | 0x8;
