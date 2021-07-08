@@ -385,21 +385,24 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 	case NP_MSG_SLIPPI_MATCH_SELECTIONS:
 	{
 		auto s = readSelectionsFromPacket(packet);
-		INFO_LOG(SLIPPI_ONLINE, "[Netplay] Received selections from opponent with player idx %d", s->playerIdx);
-		u8 idx = PlayerIdxFromPort(s->playerIdx);
-		if (idx >= m_remotePlayerCount)
+		if (!s->error)
 		{
-			ERROR_LOG(SLIPPI_ONLINE, "Got match selection packet with invalid player idx %d", idx);
-			break;
+			INFO_LOG(SLIPPI_ONLINE, "[Netplay] Received selections from opponent with player idx %d", s->playerIdx);
+			u8 idx = PlayerIdxFromPort(s->playerIdx);
+			if (idx >= m_remotePlayerCount)
+			{
+				ERROR_LOG(SLIPPI_ONLINE, "Got match selection packet with invalid player idx %d", idx);
+				break;
+			}
+			matchInfo.remotePlayerSelections[idx].Merge(*s);
+
+			// This might be a good place to reset some logic? Game can't start until we receive this msg
+			// so this should ensure that everything is initialized before the game starts
+			hasGameStarted = false;
+
+			// Reset remote pad queue such that next inputs that we get are not compared to inputs from last game
+			remotePadQueue[idx].clear();
 		}
-		matchInfo.remotePlayerSelections[idx].Merge(*s);
-
-		// This might be a good place to reset some logic? Game can't start until we receive this msg
-		// so this should ensure that everything is initialized before the game starts
-		hasGameStarted = false;
-
-		// Reset remote pad queue such that next inputs that we get are not compared to inputs from last game
-		remotePadQueue[idx].clear();
 	}
 	break;
 
@@ -420,8 +423,11 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 			break;
 		}
 
-		// set message id to netplay instance
-		remoteChatMessageSelection = std::move(playerSelection);
+		if (!playerSelection->error)
+		{
+			// set message id to netplay instance
+			remoteChatMessageSelection = std::move(playerSelection);
+		}
 	}
 	break;
 
@@ -461,8 +467,49 @@ std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::ReadChatMessageFrom
 {
 	auto s = std::make_unique<SlippiPlayerSelections>();
 
-	packet >> s->messageId;
-	packet >> s->playerIdx;
+	if (!(packet >> s->messageId))
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Chat packet too small to read message ID");
+		s->error = true;
+		return std::move(s);
+	}
+	if (!(packet >> s->playerIdx))
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Chat packet too small to read player index");
+		s->error = true;
+		return std::move(s);
+	}
+
+	switch (s->messageId)
+	{
+	// Only these 16 message IDs are allowed
+	case 136:
+	case 129:
+	case 130:
+	case 132:
+	case 34:
+	case 40:
+	case 33:
+	case 36:
+	case 72:
+	case 66:
+	case 68:
+	case 65:
+	case 24:
+	case 18:
+	case 20:
+	case 17:
+	{
+		// Good message ID. Do nothing
+		break;
+	}
+	default:
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Received invalid chat message index: %d", s->messageId);
+		s->error = true;
+		break;
+	}
+	}
 
 	return std::move(s);
 }
@@ -471,18 +518,46 @@ std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::readSelectionsFromP
 {
 	auto s = std::make_unique<SlippiPlayerSelections>();
 
-	packet >> s->characterId;
-	packet >> s->characterColor;
-	packet >> s->isCharacterSelected;
-
-	packet >> s->playerIdx;
-
-	packet >> s->stageId;
-	packet >> s->isStageSelected;
-
-	packet >> s->rngOffset;
-	packet >> s->teamId;
-
+	if (!(packet >> s->characterId))
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Received invalid player selection");
+		s->error = true;
+	}
+	if (!(packet >> s->characterColor))
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Received invalid player selection");
+		s->error = true;
+	}
+	if (!(packet >> s->isCharacterSelected))
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Received invalid player selection");
+		s->error = true;
+	}
+	if (!(packet >> s->playerIdx))
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Received invalid player selection");
+		s->error = true;
+	}
+	if (!(packet >> s->stageId))
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Received invalid player selection");
+		s->error = true;
+	}
+	if (!(packet >> s->isStageSelected))
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Received invalid player selection");
+		s->error = true;
+	}
+	if (!(packet >> s->rngOffset))
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Received invalid player selection");
+		s->error = true;
+	}
+	if (!(packet >> s->teamId))
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Received invalid player selection");
+		s->error = true;
+	}
 	return std::move(s);
 }
 
