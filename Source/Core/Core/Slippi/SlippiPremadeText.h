@@ -84,7 +84,7 @@ class SlippiPremadeText
 	unordered_map<string, string> unsupportedStringMap = {
 	    {"<", "\\"},
 	    {">", "`"},
-	    {",", "Ç"},
+	    {",", ""}, // DELETE U+007F
 	};
 
 	// TODO: use va_list to handle any no. or args
@@ -98,7 +98,7 @@ class SlippiPremadeText
 		va_start(args, textId);
 		vsprintf(str, format.c_str(), args);
 		va_end(args);
-		//		DEBUG_LOG(SLIPPI, "%s", str);
+		// DEBUG_LOG(SLIPPI, "%s", str);
 
 		vector<u8> data = {};
 		vector<u8> empty = {};
@@ -199,8 +199,8 @@ class SlippiPremadeText
 						// and we need to prevent "format injection" lol...
 						for (auto it = unsupportedStringMap.begin(); it != unsupportedStringMap.end(); it++)
 						{
-							if (it->second.find(chr) != std::string::npos || (chr == U'Ç' && it->first[0] == ','))
-							{ // Need to figure out how to find extended ascii chars (Ç)
+							if (it->second.find(chr) != std::string::npos || (chr == U'' && it->first[0] == ','))
+							{ // Need to figure out how to find extended ascii chars ()
 								chr = it->first[0];
 							}
 						}
