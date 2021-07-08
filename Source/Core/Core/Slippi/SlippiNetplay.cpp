@@ -389,11 +389,11 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 		{
 			INFO_LOG(SLIPPI_ONLINE, "[Netplay] Received selections from opponent with player idx %d", s->playerIdx);
 			u8 idx = PlayerIdxFromPort(s->playerIdx);
-      if (idx >= m_remotePlayerCount)
-      {
-        ERROR_LOG(SLIPPI_ONLINE, "Got match selection packet with invalid player idx %d", idx);
-        break;
-      }
+			if (idx >= m_remotePlayerCount)
+			{
+				ERROR_LOG(SLIPPI_ONLINE, "Got match selection packet with invalid player idx %d", idx);
+				break;
+			}
 			matchInfo.remotePlayerSelections[idx].Merge(*s);
 
 			// This might be a good place to reset some logic? Game can't start until we receive this msg
@@ -482,33 +482,33 @@ std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::ReadChatMessageFrom
 
 	switch (s->messageId)
 	{
-		// Only these 16 message IDs are allowed
-		case 136:
-		case 129:
-		case 130:
-		case 132:
-		case 34:
-		case 40:
-		case 33:
-		case 36:
-		case 72:
-		case 66:
-		case 68:
-		case 65:
-		case 24:
-		case 18:
-		case 20:
-		case 17:
-		{
-			// Good message ID. Do nothing
-			break;
-		}
-		default:
-		{
-			ERROR_LOG(SLIPPI_ONLINE, "Received invalid chat message index: %d", s->messageId);
-			s->error = true;
-			break;
-		}
+	// Only these 16 message IDs are allowed
+	case 136:
+	case 129:
+	case 130:
+	case 132:
+	case 34:
+	case 40:
+	case 33:
+	case 36:
+	case 72:
+	case 66:
+	case 68:
+	case 65:
+	case 24:
+	case 18:
+	case 20:
+	case 17:
+	{
+		// Good message ID. Do nothing
+		break;
+	}
+	default:
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Received invalid chat message index: %d", s->messageId);
+		s->error = true;
+		break;
+	}
 	}
 
 	return std::move(s);
