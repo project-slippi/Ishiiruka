@@ -2,28 +2,25 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
-// see IniFile.h
+#include "Common/IniFile.h"
 
 #include <algorithm>
 #include <cstddef>
-#include <cstring>
 #include <fstream>
 #include <map>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
-#include "Common/IniFile.h"
 #include "Common/StringUtil.h"
 
-void IniFile::ParseLine(const std::string& line, std::string* keyOut, std::string* valueOut)
+void IniFile::ParseLine(std::string line, std::string *keyOut, std::string *valueOut)
 {
-	if (line[0] == '#')
+	if (line.empty() || line.front() == '#')
 		return;
 
-	size_t firstEquals = line.find("=", 0);
+	size_t firstEquals = line.find('=');
 
 	if (firstEquals != std::string::npos)
 	{
@@ -37,156 +34,54 @@ void IniFile::ParseLine(const std::string& line, std::string* keyOut, std::strin
 	}
 }
 
-const std::string& IniFile::NULL_STRING = "";
+const std::string &IniFile::NULL_STRING = "";
 
-void IniFile::Section::Set(const std::string& key, const std::string& newValue)
+IniFile::Section::Section() = default;
+
+IniFile::Section::Section(std::string name_)
+    : name{std::move(name_)}
+{
+}
+
+void IniFile::Section::Set(const std::string &key, std::string new_value)
 {
 	auto it = values.find(key);
 	if (it != values.end())
-		it->second = newValue;
+		it->second = new_value;
 	else
 	{
-		values[key] = newValue;
+		values[key] = new_value;
 		keys_order.push_back(key);
 	}
 }
 
-void IniFile::Section::Set(const std::string& key, const std::string& newValue, const std::string& defaultValue)
+bool IniFile::Section::Get(std::string key, std::string *value, const std::string &default_value) const
 {
-	if (newValue != defaultValue)
-		Set(key, newValue);
-	else
-		Delete(key);
-}
+	const auto it = values.find(key);
 
-void IniFile::Section::Set(const std::string& key, const std::vector<std::string>& newValues)
-{
-	std::string temp;
-	// Join the strings with ,
-	for (const std::string& value : newValues)
-	{
-		temp = value + ",";
-	}
-	// remove last ,
-	temp.resize(temp.length() - 1);
-	Set(key, temp);
-}
-
-bool IniFile::Section::Get(const std::string& key, std::string* value, const std::string& defaultValue) const
-{
-	auto it = values.find(key);
 	if (it != values.end())
 	{
 		*value = it->second;
 		return true;
 	}
-	else if (&defaultValue != &NULL_STRING)
+
+	if (&default_value != &NULL_STRING)
 	{
-		*value = defaultValue;
+		*value = default_value;
 		return true;
 	}
 
 	return false;
 }
 
-bool IniFile::Section::Get(const std::string& key, std::vector<std::string>* out) const
-{
-	std::string temp;
-	bool retval = Get(key, &temp);
-	if (!retval || temp.empty())
-	{
-		return false;
-	}
-
-	// ignore starting comma, if any
-	size_t subStart = temp.find_first_not_of(",");
-
-	// split by comma
-	while (subStart != std::string::npos)
-	{
-		// Find next comma
-		size_t subEnd = temp.find(',', subStart);
-		if (subStart != subEnd)
-		{
-			// take from first char until next comma
-			out->push_back(StripSpaces(temp.substr(subStart, subEnd - subStart)));
-		}
-
-		// Find the next non-comma char
-		subStart = temp.find_first_not_of(",", subEnd);
-	}
-
-	return true;
-}
-
-bool IniFile::Section::Get(const std::string& key, int* value, int defaultValue) const
-{
-	std::string temp;
-	bool retval = Get(key, &temp);
-
-	if (retval && TryParse(temp, value))
-		return true;
-
-	*value = defaultValue;
-	return false;
-}
-
-bool IniFile::Section::Get(const std::string& key, u32* value, u32 defaultValue) const
-{
-	std::string temp;
-	bool retval = Get(key, &temp);
-
-	if (retval && TryParse(temp, value))
-		return true;
-
-	*value = defaultValue;
-	return false;
-}
-
-bool IniFile::Section::Get(const std::string& key, bool* value, bool defaultValue) const
-{
-	std::string temp;
-	bool retval = Get(key, &temp);
-
-	if (retval && TryParse(temp, value))
-		return true;
-
-	*value = defaultValue;
-	return false;
-}
-
-bool IniFile::Section::Get(const std::string& key, float* value, float defaultValue) const
-{
-	std::string temp;
-	bool retval = Get(key, &temp);
-
-	if (retval && TryParse(temp, value))
-		return true;
-
-	*value = defaultValue;
-	return false;
-}
-
-bool IniFile::Section::Get(const std::string& key, double* value, double defaultValue) const
-{
-	std::string temp;
-	bool retval = Get(key, &temp);
-
-	if (retval && TryParse(temp, value))
-		return true;
-
-	*value = defaultValue;
-	return false;
-}
-
-bool IniFile::Section::Exists(const std::string& key) const
+bool IniFile::Section::Exists(std::string key) const
 {
 	return values.find(key) != values.end();
 }
 
-bool IniFile::Section::Delete(const std::string& key)
+bool IniFile::Section::Delete(std::string key)
 {
-	auto it = values.find(key);
+	const auto it = values.find(key);
 	if (it == values.end())
 		return false;
 
@@ -195,40 +90,82 @@ bool IniFile::Section::Delete(const std::string& key)
 	return true;
 }
 
+void IniFile::Section::SetLines(std::vector<std::string> lines)
+{
+	m_lines = std::move(lines);
+}
+
+bool IniFile::Section::GetLines(std::vector<std::string> *lines, const bool remove_comments) const
+{
+	for (const std::string &line : m_lines)
+	{
+		std::string stripped_line = StripSpaces(line);
+
+		if (remove_comments)
+		{
+			size_t commentPos = stripped_line.find('#');
+			if (commentPos == 0)
+			{
+				continue;
+			}
+
+			if (commentPos != std::string::npos)
+			{
+				stripped_line = StripSpaces(stripped_line.substr(0, commentPos));
+			}
+		}
+
+		lines->emplace_back(stripped_line);
+	}
+
+	return true;
+}
+
 // IniFile
 
-const IniFile::Section* IniFile::GetSection(const std::string& sectionName) const
+IniFile::IniFile() = default;
+
+IniFile::~IniFile() = default;
+
+const IniFile::Section *IniFile::GetSection(std::string section_name) const
 {
-	for (const Section& sect : sections)
-		if (!strcasecmp(sect.name.c_str(), sectionName.c_str()))
-			return (&(sect));
+	for (const Section &sect : sections)
+	{
+		if (CaseInsensitiveStringCompare::IsEqual(sect.name, section_name))
+			return &sect;
+	}
+
 	return nullptr;
 }
 
-IniFile::Section* IniFile::GetSection(const std::string& sectionName)
+IniFile::Section *IniFile::GetSection(std::string section_name)
 {
-	for (Section& sect : sections)
-		if (!strcasecmp(sect.name.c_str(), sectionName.c_str()))
-			return (&(sect));
+	for (Section &sect : sections)
+	{
+		if (CaseInsensitiveStringCompare::IsEqual(sect.name, section_name))
+			return &sect;
+	}
+
 	return nullptr;
 }
 
-IniFile::Section* IniFile::GetOrCreateSection(const std::string& sectionName)
+IniFile::Section *IniFile::GetOrCreateSection(std::string section_name)
 {
-	Section* section = GetSection(sectionName);
+	Section *section = GetSection(section_name);
 	if (!section)
 	{
-		sections.emplace_back(sectionName);
+		sections.emplace_back(std::string(section_name));
 		section = &sections.back();
 	}
 	return section;
 }
 
-bool IniFile::DeleteSection(const std::string& sectionName)
+bool IniFile::DeleteSection(std::string section_name)
 {
-	Section* s = GetSection(sectionName);
+	Section *s = GetSection(section_name);
 	if (!s)
 		return false;
+
 	for (auto iter = sections.begin(); iter != sections.end(); ++iter)
 	{
 		if (&(*iter) == s)
@@ -237,35 +174,42 @@ bool IniFile::DeleteSection(const std::string& sectionName)
 			return true;
 		}
 	}
+
 	return false;
 }
 
-bool IniFile::Exists(const std::string& sectionName, const std::string& key) const
+bool IniFile::Exists(std::string section_name) const
 {
-	const Section* section = GetSection(sectionName);
+	return GetSection(section_name) != nullptr;
+}
+
+bool IniFile::Exists(std::string section_name, std::string key) const
+{
+	const Section *section = GetSection(section_name);
 	if (!section)
 		return false;
+
 	return section->Exists(key);
 }
 
-void IniFile::SetLines(const std::string& sectionName, const std::vector<std::string> &lines)
+void IniFile::SetLines(std::string section_name, std::vector<std::string> lines)
 {
-	Section* section = GetOrCreateSection(sectionName);
-	section->lines = lines;
+	Section *section = GetOrCreateSection(section_name);
+	section->SetLines(std::move(lines));
 }
 
-bool IniFile::DeleteKey(const std::string& sectionName, const std::string& key)
+bool IniFile::DeleteKey(std::string section_name, std::string key)
 {
-	Section* section = GetSection(sectionName);
+	Section *section = GetSection(section_name);
 	if (!section)
 		return false;
 	return section->Delete(key);
 }
 
 // Return a list of all keys in a section
-bool IniFile::GetKeys(const std::string& sectionName, std::vector<std::string>* keys) const
+bool IniFile::GetKeys(std::string section_name, std::vector<std::string> *keys) const
 {
-	const Section* section = GetSection(sectionName);
+	const Section *section = GetSection(section_name);
 	if (!section)
 	{
 		return false;
@@ -275,36 +219,15 @@ bool IniFile::GetKeys(const std::string& sectionName, std::vector<std::string>* 
 }
 
 // Return a list of all lines in a section
-bool IniFile::GetLines(const std::string& sectionName, std::vector<std::string>* lines, const bool remove_comments) const
+bool IniFile::GetLines(std::string section_name, std::vector<std::string> *lines, const bool remove_comments) const
 {
 	lines->clear();
 
-	const Section* section = GetSection(sectionName);
+	const Section *section = GetSection(section_name);
 	if (!section)
 		return false;
 
-	for (std::string line : section->lines)
-	{
-		line = StripSpaces(line);
-
-		if (remove_comments)
-		{
-			size_t commentPos = line.find('#');
-			if (commentPos == 0)
-			{
-				continue;
-			}
-
-			if (commentPos != std::string::npos)
-			{
-				line = StripSpaces(line.substr(0, commentPos));
-			}
-		}
-
-		lines->push_back(line);
-	}
-
-	return true;
+	return section->GetLines(lines, remove_comments);
 }
 
 void IniFile::SortSections()
@@ -312,7 +235,7 @@ void IniFile::SortSections()
 	sections.sort();
 }
 
-bool IniFile::Load(const std::string& filename, bool keep_current_data)
+bool IniFile::Load(const std::string &filename, bool keep_current_data)
 {
 	if (!keep_current_data)
 		sections.clear();
@@ -325,13 +248,12 @@ bool IniFile::Load(const std::string& filename, bool keep_current_data)
 	if (in.fail())
 		return false;
 
-	Section* current_section = nullptr;
+	Section *current_section = nullptr;
 	bool first_line = true;
 	while (!in.eof())
 	{
-		std::string line;
-
-		if (!std::getline(in, line))
+		std::string line_str;
+		if (!std::getline(in, line_str))
 		{
 			if (in.eof())
 				return true;
@@ -339,24 +261,24 @@ bool IniFile::Load(const std::string& filename, bool keep_current_data)
 				return false;
 		}
 
+		std::string line = line_str;
+
 		// Skips the UTF-8 BOM at the start of files. Notepad likes to add this.
 		if (first_line && line.substr(0, 3) == "\xEF\xBB\xBF")
-			line = line.substr(3);
+			line.erase(0, 3);
 		first_line = false;
 
 #ifndef _WIN32
 		// Check for CRLF eol and convert it to LF
-		if (!line.empty() && line.at(line.size() - 1) == '\r')
-		{
-			line.erase(line.size() - 1);
-		}
+		if (!line.empty() && line.back() == '\r')
+			line.pop_back();
 #endif
 
-		if (line.size() > 0)
+		if (!line.empty())
 		{
 			if (line[0] == '[')
 			{
-				size_t endpos = line.find("]");
+				size_t endpos = line.find(']');
 
 				if (endpos != std::string::npos)
 				{
@@ -375,14 +297,15 @@ bool IniFile::Load(const std::string& filename, bool keep_current_data)
 					// Lines starting with '$', '*' or '+' are kept verbatim.
 					// Kind of a hack, but the support for raw lines inside an
 					// INI is a hack anyway.
-					if ((key == "" && value == "") ||
-						(line.size() >= 1 &&
-						(line[0] == '$' ||
-							line[0] == '+' ||
-							line[0] == '*')))
-						current_section->lines.push_back(line);
+					if ((key.empty() && value.empty()) ||
+					    (!line.empty() && (line[0] == '$' || line[0] == '+' || line[0] == '*')))
+					{
+						current_section->m_lines.emplace_back(line);
+					}
 					else
+					{
 						current_section->Set(key, value);
+					}
 				}
 			}
 		}
@@ -392,7 +315,7 @@ bool IniFile::Load(const std::string& filename, bool keep_current_data)
 	return true;
 }
 
-bool IniFile::Save(const std::string& filename)
+bool IniFile::Save(const std::string &filename)
 {
 	std::ofstream out;
 	std::string temp = File::GetTempFilenameForAtomicWrite(filename);
@@ -403,19 +326,19 @@ bool IniFile::Save(const std::string& filename)
 		return false;
 	}
 
-	for (const Section& section : sections)
+	for (const Section &section : sections)
 	{
-		if (section.keys_order.size() != 0 || section.lines.size() != 0)
-			out << "[" << section.name << "]" << std::endl;
+		if (!section.keys_order.empty() || !section.m_lines.empty())
+			out << '[' << section.name << ']' << std::endl;
 
-		if (section.keys_order.size() == 0)
+		if (section.keys_order.empty())
 		{
-			for (const std::string& s : section.lines)
+			for (const std::string &s : section.m_lines)
 				out << s << std::endl;
 		}
 		else
 		{
-			for (const std::string& kvit : section.keys_order)
+			for (const std::string &kvit : section.keys_order)
 			{
 				auto pair = section.values.find(kvit);
 				out << pair->first << " = " << pair->second << std::endl;
@@ -430,21 +353,21 @@ bool IniFile::Save(const std::string& filename)
 
 // Unit test. TODO: Move to the real unit test framework.
 /*
-	int main()
-	{
-	 IniFile ini;
-	 ini.Load("my.ini");
-	 ini.Set("Hej", "A", "amaskdfl");
-	 ini.Set("Mossa", "A", "amaskdfl");
-	 ini.Set("Aissa", "A", "amaskdfl");
-	 //ini.Read("my.ini");
-	 std::string x;
-	 ini.Get("Hej", "B", &x, "boo");
-	 ini.DeleteKey("Mossa", "A");
-	 ini.DeleteSection("Mossa");
-	 ini.SortSections();
-	 ini.Save("my.ini");
-	 //UpdateVars(ini);
-	 return 0;
-	}
+   int main()
+   {
+    IniFile ini;
+    ini.Load("my.ini");
+    ini.Set("Hello", "A", "amaskdfl");
+    ini.Set("Moss", "A", "amaskdfl");
+    ini.Set("Aissa", "A", "amaskdfl");
+    //ini.Read("my.ini");
+    std::string x;
+    ini.Get("Hello", "B", &x, "boo");
+    ini.DeleteKey("Moss", "A");
+    ini.DeleteSection("Moss");
+    ini.SortSections();
+    ini.Save("my.ini");
+    //UpdateVars(ini);
+    return 0;
+   }
  */

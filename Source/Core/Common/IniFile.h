@@ -4,155 +4,164 @@
 
 #pragma once
 
-#include <cstring>
+#include <algorithm>
+#include <cctype>
 #include <list>
 #include <map>
 #include <string>
+#include <string>
 #include <vector>
 
-#include "Common/CommonFuncs.h"
 #include "Common/CommonTypes.h"
 #include "Common/StringUtil.h"
 
 struct CaseInsensitiveStringCompare
 {
-	bool operator() (const std::string& a, const std::string& b) const
+	// Allow heterogenous lookup.
+	using is_transparent = void;
+
+	bool operator()(std::string a, std::string b) const
 	{
-		return strcasecmp(a.c_str(), b.c_str()) < 0;
+		return std::lexicographical_compare(
+		    a.begin(), a.end(), b.begin(), b.end(),
+		    [](char lhs, char rhs) { return std::tolower(static_cast<u8>(lhs)) < std::tolower(static_cast<u8>(rhs)); });
+	}
+
+	static bool IsEqual(std::string a, std::string b)
+	{
+		if (a.size() != b.size())
+			return false;
+
+		return std::equal(a.begin(), a.end(), b.begin(), b.end(),
+		                  [](char lhs, char rhs)
+		                  { return std::tolower(static_cast<u8>(lhs)) == std::tolower(static_cast<u8>(rhs)); });
 	}
 };
 
 class IniFile
 {
-public:
+  public:
 	class Section
 	{
 		friend class IniFile;
 
-	public:
-		Section()
-		{}
-		Section(const std::string& _name) : name(_name)
-		{}
+	  public:
+		Section();
+		explicit Section(std::string name_);
+		bool Exists(std::string key) const;
+		bool Delete(std::string key);
 
-		bool Exists(const std::string& key) const;
-		bool Delete(const std::string& key);
+		void Set(const std::string &key, std::string new_value);
 
-		void Set(const std::string& key, const std::string& newValue);
-		void Set(const std::string& key, const std::string& newValue, const std::string& defaultValue);
-
-		void Set(const std::string& key, u32 newValue)
+		template <typename T> void Set(const std::string &key, T &&new_value)
 		{
-			Set(key, StringFromFormat("0x%08x", newValue));
+			Set(key, ValueToString(std::forward<T>(new_value)));
 		}
 
-		void Set(const std::string& key, float newValue)
+		template <typename T>
+		void Set(const std::string &key, T &&new_value, const std::common_type_t<T> &default_value)
 		{
-			Set(key, StringFromFormat("%#.9g", newValue));
-		}
-
-		void Set(const std::string& key, double newValue)
-		{
-			Set(key, StringFromFormat("%#.17g", newValue));
-		}
-
-		void Set(const std::string& key, int newValue)
-		{
-			Set(key, StringFromInt(newValue));
-		}
-
-		void Set(const std::string& key, bool newValue)
-		{
-			Set(key, StringFromBool(newValue));
-		}
-
-		template<typename T>
-		void Set(const std::string& key, T newValue, const T defaultValue)
-		{
-			if (newValue != defaultValue)
-				Set(key, newValue);
+			if (new_value != default_value)
+				Set(key, std::forward<T>(new_value));
 			else
 				Delete(key);
 		}
 
-		void Set(const std::string& key, const std::vector<std::string>& newValues);
+		bool Get(std::string key, std::string *value, const std::string &default_value = NULL_STRING) const;
 
-		bool Get(const std::string& key, std::string* value, const std::string& defaultValue = NULL_STRING) const;
-		bool Get(const std::string& key, int* value, int defaultValue = 0) const;
-		bool Get(const std::string& key, u32* value, u32 defaultValue = 0) const;
-		bool Get(const std::string& key, bool* value, bool defaultValue = false) const;
-		bool Get(const std::string& key, float* value, float defaultValue = 0.0f) const;
-		bool Get(const std::string& key, double* value, double defaultValue = 0.0) const;
-		bool Get(const std::string& key, std::vector<std::string>* values) const;
-
-		bool operator < (const Section& other) const
+		template <typename T>
+		bool Get(std::string key, T *value, const std::common_type_t<T> &default_value = {}) const
 		{
-			return name < other.name;
+			std::string temp;
+			bool retval = Get(key, &temp);
+			if (retval && TryParse(temp, value))
+				return true;
+			*value = default_value;
+			return false;
 		}
 
-	protected:
+		void SetLines(std::vector<std::string> lines);
+		bool GetLines(std::vector<std::string> *lines, const bool remove_comments = true) const;
+
+		bool operator<(const Section &other) const { return name < other.name; }
+		using SectionMap = std::map<std::string, std::string, CaseInsensitiveStringCompare>;
+
+		const std::string &GetName() const { return name; }
+		const SectionMap &GetValues() const { return values; }
+		bool HasLines() const { return !m_lines.empty(); }
+
+	  protected:
 		std::string name;
 
 		std::vector<std::string> keys_order;
-		std::map<std::string, std::string, CaseInsensitiveStringCompare> values;
+		SectionMap values;
 
-		std::vector<std::string> lines;
+		std::vector<std::string> m_lines;
 	};
+
+	IniFile();
+	~IniFile();
 
 	/**
 	 * Loads sections and keys.
 	 * @param filename filename of the ini file which should be loaded
-	 * @param keep_current_data If true, "extends" the currently loaded list of sections and keys with the loaded data (and replaces existing entries). If false, existing data will be erased.
-	 * @warning Using any other operations than "Get*" and "Exists" is untested and will behave unexpectedly
-	 * @todo This really is just a hack to support having two levels of gameinis (defaults and user-specified) and should eventually be replaced with a less stupid system.
+	 * @param keep_current_data If true, "extends" the currently loaded list of sections and keys with
+	 * the loaded data (and replaces existing entries). If false, existing data will be erased.
+	 * @warning Using any other operations than "Get*" and "Exists" is untested and will behave
+	 * unexpectedly
+	 * @todo This really is just a hack to support having two levels of gameinis (defaults and
+	 * user-specified) and should eventually be replaced with a less stupid system.
 	 */
-	bool Load(const std::string& filename, bool keep_current_data = false);
+	bool Load(const std::string &filename, bool keep_current_data = false);
 
-	bool Save(const std::string& filename);
+	bool Save(const std::string &filename);
 
+	bool Exists(std::string section_name) const;
 	// Returns true if key exists in section
-	bool Exists(const std::string& sectionName, const std::string& key) const;
+	bool Exists(std::string section_name, std::string key) const;
 
-	template<typename T> bool GetIfExists(const std::string& sectionName, const std::string& key, T* value)
+	template <typename T> bool GetIfExists(std::string section_name, std::string key, T *value)
 	{
-		if (Exists(sectionName, key))
-			return GetOrCreateSection(sectionName)->Get(key, value);
+		if (Exists(section_name, key))
+			return GetOrCreateSection(section_name)->Get(key, value);
 
 		return false;
 	}
 
-	template<typename T> bool GetIfExists(const std::string& sectionName, const std::string& key, T* value, T defaultValue)
+	template <typename T>
+	bool GetIfExists(std::string section_name, std::string key, T *value, T default_value)
 	{
-		if (Exists(sectionName, key))
-			return GetOrCreateSection(sectionName)->Get(key, value, defaultValue);
-		else
-			*value = defaultValue;
+		if (Exists(section_name, key))
+			return GetOrCreateSection(section_name)->Get(key, value, default_value);
 
+		*value = default_value;
 		return false;
 	}
 
-	bool GetKeys(const std::string& sectionName, std::vector<std::string>* keys) const;
+	bool GetKeys(std::string section_name, std::vector<std::string> *keys) const;
 
-	void SetLines(const std::string& sectionName, const std::vector<std::string>& lines);
-	bool GetLines(const std::string& sectionName, std::vector<std::string>* lines, const bool remove_comments = true) const;
+	void SetLines(std::string section_name, std::vector<std::string> lines);
+	bool GetLines(std::string section_name, std::vector<std::string> *lines, bool remove_comments = true) const;
 
-	bool DeleteKey(const std::string& sectionName, const std::string& key);
-	bool DeleteSection(const std::string& sectionName);
+	bool DeleteKey(std::string section_name, std::string key);
+	bool DeleteSection(std::string section_name);
 
 	void SortSections();
 
-	Section* GetOrCreateSection(const std::string& section);
+	Section *GetOrCreateSection(std::string section_name);
 
 	// This function is related to parsing data from lines of INI files
 	// It's used outside of IniFile, which is why it is exposed publicly
 	// In particular it is used in PostProcessing for its configuration
-	static void ParseLine(const std::string& line, std::string* keyOut, std::string* valueOut);
+	static void ParseLine(std::string line, std::string *keyOut, std::string *valueOut);
 
-private:
+	const std::list<Section> &GetSections() const { return sections; }
+
+  private:
 	std::list<Section> sections;
 
-	const Section* GetSection(const std::string& section) const;
-	Section* GetSection(const std::string& section);
+	const Section *GetSection(std::string section_name) const;
+	Section *GetSection(std::string section_name);
 
-	static const std::string& NULL_STRING;
+	static const std::string &NULL_STRING;
 };

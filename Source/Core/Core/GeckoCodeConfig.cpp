@@ -63,16 +63,23 @@ void ParseCodes(const IniFile &ini, std::vector<GeckoCode> &gcodes, bool is_user
 
 // For each line in the Gecko_Enabled section of the global INI file, mark all
 // matching gecko codes as enabled, do the same for the user INI file but also handle disabling
-void MarkEnabledCodes(const IniFile& globalIni, const IniFile &localIni, std::vector<GeckoCode> &gcodes)
+void MarkEnabledCodes(const IniFile &globalIni, const IniFile &localIni, std::vector<GeckoCode> &gcodes)
 {
 	std::vector<std::string> globallines;
 	std::vector<std::string> userlines;
+	std::vector<std::string> userlines_disabled;
 	std::vector<std::string> lines;
 	globalIni.GetLines("Gecko_Enabled", &globallines, false);
 	localIni.GetLines("Gecko_Enabled", &userlines, false);
-	lines.reserve(globallines.size() + userlines.size());
-	lines.insert(lines.end(), globallines.begin(), globallines.end());
-	lines.insert(lines.end(), userlines.begin(), userlines.end());
+	localIni.GetLines("Gecko_Disabled", &userlines_disabled, false);
+
+	SetEnabledCodes(globallines, gcodes, true, true);
+	SetEnabledCodes(userlines, gcodes, true);
+	SetEnabledCodes(userlines_disabled, gcodes, false);
+}
+
+void SetEnabledCodes(const std::vector<std::string> lines, std::vector<GeckoCode> &gcodes, bool enable, bool is_default)
+{
 	for (const std::string &line : lines)
 	{
 		if (line.size() == 0)
@@ -85,16 +92,9 @@ void MarkEnabledCodes(const IniFile& globalIni, const IniFile &localIni, std::ve
 			{
 				if (ogcode.name == name)
 				{
-					ogcode.enabled = true;
-				}
-			}
-			break;
-		case '-':
-			for (GeckoCode &ogcode : gcodes)
-			{
-				if (ogcode.name == name)
-				{
-					ogcode.enabled = false;
+					ogcode.enabled = enable;
+					if (is_default)
+						ogcode.default_enabled = is_default;
 				}
 			}
 			break;
@@ -147,32 +147,25 @@ void MergeCodes(const IniFile &globalIni, const IniFile &localIni, std::vector<G
 	}
 }
 
-// Convert from a set of gecko codes to INI file contents (lines of text).
-static void FillLines(std::vector<std::string> &lines, std::vector<std::string> &enabledLines, const GeckoCode &gcode)
+static std::string MakeGeckoCodeTitle(const GeckoCode &code)
 {
-	if (gcode.enabled)
-		enabledLines.push_back("$" + gcode.name);
-	else
-		enabledLines.push_back("-" + gcode.name);
+	std::string title = '$' + code.name;
 
+	if (!code.creator.empty())
+	{
+		title += " [" + code.creator + ']';
+	}
+
+	return title;
+}
+
+// Convert from a set of gecko codes to INI file contents (lines of text).
+static void SaveGeckoCode(std::vector<std::string> &lines, const GeckoCode &gcode)
+{
 	if (!gcode.user_defined)
 		return;
 
-	std::string name;
-
-	// save the name
-	name += '$';
-	name += gcode.name;
-
-	// save the creator name
-	if (gcode.creator.size())
-	{
-		name += " [";
-		name += gcode.creator;
-		name += ']';
-	}
-
-	lines.push_back(name);
+	lines.push_back(MakeGeckoCodeTitle(gcode));
 
 	// save all the code lines
 	for (const GeckoCode::Code &code : gcode.codes)
@@ -182,25 +175,30 @@ static void FillLines(std::vector<std::string> &lines, std::vector<std::string> 
 
 	// save the notes
 	for (const std::string &note : gcode.notes)
-		lines.push_back(std::string("*") + note);
+		lines.push_back('*' + note);
 }
 
 // Convert from a set of gecko codes to a whole INI file.
-void FillIni(IniFile &inifile, const std::vector<GeckoCode> &gcodes)
+void SaveCodes(IniFile &inifile, const std::vector<GeckoCode> &gcodes)
 {
 	std::vector<std::string> lines;
-	std::vector<std::string> enabledLines;
+	std::vector<std::string> enabled_lines;
+	std::vector<std::string> disabled_lines;
 
 	for (const GeckoCode &geckoCode : gcodes)
 	{
-		FillLines(lines, enabledLines, geckoCode);
+		if (geckoCode.enabled != geckoCode.default_enabled)
+			(geckoCode.enabled ? enabled_lines : disabled_lines).push_back('$' + geckoCode.name);
+
+		SaveGeckoCode(lines, geckoCode);
 	}
 
 	// TODO: add a write flag to the Section class so we don't need this
 	if (lines.size() == 0)
 		lines.push_back("");
 	inifile.SetLines("Gecko", lines);
-	inifile.SetLines("Gecko_Enabled", enabledLines);
+	inifile.SetLines("Gecko_Enabled", enabled_lines);
+	inifile.SetLines("Gecko_Disabled", disabled_lines);
 }
 
 } // namespace Gecko

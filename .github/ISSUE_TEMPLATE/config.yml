@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Feature request
+    url: https://project-slippi.nolt.io/
+    about: Ideas for new features and functionality in our nolt or \#feature-requests discord channel (https://project-slippi.nolt.io/)
+  - name: Help/Support
+    url: https://slippi.gg/discord
+    about: Questions or issues about how to setup and use Slippi (slippi.gg/discord)

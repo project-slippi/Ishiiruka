@@ -26,7 +26,7 @@
 #ifndef IS_PLAYBACK
 #define SLIPPI_REV_STR "2.3.1" // netplay version
 #else
-#define SLIPPI_REV_STR "2.3.2" // playback version
+#define SLIPPI_REV_STR "2.3.5" // playback version
 #endif
 #ifdef IS_PLAYBACK
 const std::string scm_rev_str = "Faster Melee - Slippi (" SLIPPI_REV_STR ") - Playback";

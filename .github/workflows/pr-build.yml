@@ -93,9 +93,8 @@ jobs:
         working-directory: ${{ github.workspace }}
         if: matrix.build_type == 'Playback'
         run: |
-          git clone https://github.com/project-slippi/slippi-desktop-app
           Xcopy /Y /E /I .\Data\Sys .\Binary\x64\Sys
-          Xcopy /Y /E /I .\slippi-desktop-app\app\dolphin-dev\overwrite\Sys .\Binary\x64\Sys
+          Xcopy /Y /E /I .\Data\PlaybackGeckoCodes\* .\Binary\x64\Sys\GameSettings\
       - name: Package Artifact
         working-directory: ${{ github.workspace }}
         run: |
@@ -198,7 +197,10 @@ jobs:
           mkdir artifact
           FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-${{ matrix.artifact_name }}.zip
           chmod +x ./*.AppImage
-          zip -r "${FILE_NAME}" ./*.AppImage*
+          zip -r -j "${FILE_NAME}" ./*.AppImage*
+          pushd ./AppDir/usr/bin/
+          zip -r -u "../../../${FILE_NAME}" ./Sys
+          popd
           mv "${FILE_NAME}" ./artifact/
       - name: "Publish"
         if: success()
@@ -282,7 +284,7 @@ jobs:
           echo '${{ secrets.APPLE_CONNECT_API_KEY }}' > ~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
           /usr/bin/codesign -f -s "${{ secrets.APPLE_IDENTITY_HASH }}" --deep --options runtime --entitlements Source/Core/DolphinWX/Entitlements.plist ./build/Binaries/Slippi\ Dolphin.app
       - name: "Package, Sign and Notarize Netplay Release DMG"
-        if: success() && matrix.build_type == 'Netplay' && env.CERTIFICATE_MACOS_APPLICATION != null
+        if: success() && env.CERTIFICATE_MACOS_APPLICATION != null
         shell: bash
         working-directory: ${{ github.workspace }}
         env:
@@ -308,16 +310,6 @@ jobs:
           mv "${{ env.FILE_NAME }}.dmg" artifact/
           /usr/bin/codesign -f -s "${{ secrets.APPLE_IDENTITY_HASH }}" --deep --options runtime ./artifact/${{ env.FILE_NAME }}.dmg
           chmod +x Tools/notarize_netplay.sh && ./Tools/notarize_netplay.sh ./artifact/${{ env.FILE_NAME }}.dmg
-      - name: "Package ${{ matrix.build_type }}"
-        if: success() && (matrix.build_type == 'Playback' || env.CERTIFICATE_MACOS_APPLICATION == null)
-        shell: bash
-        working-directory: ${{ github.workspace }}
-        env:
-          CERTIFICATE_MACOS_APPLICATION: ${{ secrets.CERTIFICATE_MACOS_APPLICATION }}
-        run: |
-          cd  ./build/Binaries
-          zip -r "${{ env.FILE_NAME }}.zip" Slippi\ Dolphin.app
-          mv "${{ env.FILE_NAME }}.zip" ../../artifact/
       - name: "Publish"
         if: success()
         uses: actions/upload-artifact@v2-preview
