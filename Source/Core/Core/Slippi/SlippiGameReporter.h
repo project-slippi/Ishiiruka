@@ -18,6 +18,12 @@ class SlippiGameReporter
 	{
 		float damageDone;
 		u8 stocksRemaining;
+    float jitterMean = 0;
+    float jitterMax = 0;
+    float jitterVariance = 0;
+    float pingMean = 0;
+    u32 analogStickInputCount = 0;
+    u32 analogMaxBurstInput = 0;
 	};
 	struct GameReport
 	{
