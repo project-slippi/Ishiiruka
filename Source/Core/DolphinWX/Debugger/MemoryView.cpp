@@ -120,16 +120,45 @@ void CMemoryView::OnMouseDownL(wxMouseEvent& event)
 	}
 	else
 	{
-		debugger->ToggleMemCheck(YToAddress(y), memCheckRead, memCheckWrite, memCheckLog);
-
-		Refresh();
-
-		// Propagate back to the parent window to update the breakpoint list.
-		wxCommandEvent evt(wxEVT_HOST_COMMAND, IDM_UPDATE_BREAKPOINTS);
-		GetEventHandler()->AddPendingEvent(evt);
+		ToggleMemCheck(YToAddress(y));
+		
 	}
 
 	event.Skip();
+}
+
+void CMemoryView::ToggleMemCheck(u32 address)
+{
+	auto length = 15;
+	if (GetDataType() >= MemoryDataType::ASCII)
+	{
+		length = 3;
+	}
+
+	TMemCheck check;
+	if (!PowerPC::memchecks.OverlapsMemcheck(address, length))
+	{
+		check.StartAddress = address;
+		check.EndAddress = check.StartAddress + length;
+		check.bRange = length > 0;
+		check.OnRead = memCheckRead;
+		check.OnWrite = memCheckWrite;
+		check.Log = memCheckLog;
+		check.Break = true;
+
+
+		PowerPC::memchecks.Add(check);
+	}
+	else
+	{
+		PowerPC::memchecks.Remove(address);
+	}
+
+	Refresh();
+
+	// Propagate back to the parent window to update the breakpoint list.
+	wxCommandEvent evt(wxEVT_HOST_COMMAND, IDM_UPDATE_BREAKPOINTS);
+	GetEventHandler()->AddPendingEvent(evt);
 }
 
 void CMemoryView::OnMouseMove(wxMouseEvent& event)
