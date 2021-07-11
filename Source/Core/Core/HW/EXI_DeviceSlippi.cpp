@@ -1624,42 +1624,46 @@ bool CEXISlippi::shouldSkipOnlineFrame(s32 frame)
 
 	stallFrameCount = 0;
 
-	// Return true if we are over 60% of a frame ahead of our opponent. Currently limiting how
-	// often this happens because I'm worried about jittery data causing a lot of unneccesary delays.
-	// Only skip once for a given frame because our time detection method doesn't take into consideration
-	// waiting for a frame. Also it's less jarring and it happens often enough that it will smoothly
-	// get to the right place
+	return false;
+}
+
+bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame)
+{
+	// Return true if we are over 60% of a frame behind our opponent. We limit how often this happens
+	// to get a reliable average to act on. We will allow advancing up to 5 frames (spread out) over
+	// the 30 frame period. This makes the game feel relatively smooth still
 	auto isTimeSyncFrame = frame % SLIPPI_ONLINE_LOCKSTEP_INTERVAL; // Only time sync every 30 frames
-	if (isTimeSyncFrame == 0 && !isCurrentlySkipping)
+	if (isTimeSyncFrame == 0 && !isCurrentlyAdvancing)
 	{
 		auto offsetUs = slippi_netplay->CalcTimeOffsetUs();
 		INFO_LOG(SLIPPI_ONLINE, "[Frame %d] Offset is: %d us", frame, offsetUs);
 
-		// TODO: figure out a better solution here for doubles?
-		if (offsetUs > 10000)
+		if (offsetUs < -10000)
 		{
-			isCurrentlySkipping = true;
+			isCurrentlyAdvancing = true;
 
-			int maxSkipFrames = frame <= 120 ? 5 : 1; // On early frames, support skipping more frames
-			framesToSkip = ((offsetUs - 10000) / 16683) + 1;
-			framesToSkip = framesToSkip > maxSkipFrames ? maxSkipFrames : framesToSkip; // Only skip 5 frames max
+			int maxAdvanceFrames = 5;
+			framesToAdvance = ((-offsetUs - 10000) / 16683) + 1;
+			framesToAdvance = framesToAdvance > maxAdvanceFrames ? maxAdvanceFrames : framesToAdvance; // Only advance 5 frames max
 
-			WARN_LOG(SLIPPI_ONLINE, "Halting on frame %d due to time sync. Offset: %d us. Frames: %d...", frame,
-			         offsetUs, framesToSkip);
+			WARN_LOG(SLIPPI_ONLINE, "Advancing on frame %d due to time sync. Offset: %d us. Frames: %d...", frame,
+			         offsetUs, framesToAdvance);
 		}
 	}
 
 	// Handle the skipped frames
-	if (framesToSkip > 0)
+	if (framesToAdvance > 0)
 	{
-		// If ahead by 60% of a frame, stall. I opted to use 60% instead of half a frame
-		// because I was worried about two systems continuously stalling for each other
-		framesToSkip = framesToSkip - 1;
+		// Only advance once every 5 frames in an attempt to make the speed up feel smoother
+		if (frame % 5 != 0) {
+			return false;
+		}
+
+		framesToAdvance = framesToAdvance - 1;
 		return true;
 	}
 
-	isCurrentlySkipping = false;
-
+	isCurrentlyAdvancing = false;
 	return false;
 }
 
@@ -1691,6 +1695,8 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 {
 	m_read_queue.clear();
 
+	int32_t frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
+
 	u8 frameResult = 1; // Indicates to continue frame
 
 	auto state = slippi_netplay->GetSlippiConnectStatus();
@@ -1698,13 +1704,15 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 	{
 		frameResult = 3; // Indicates we have disconnected
 	}
+	else if (shouldAdvanceOnlineFrame(frame))
+	{
+		frameResult = 4;
+	}
 
 	m_read_queue.push_back(frameResult); // Indicate a continue frame
 
 	u8 remotePlayerCount = matchmaking->RemotePlayerCount();
 	m_read_queue.push_back(remotePlayerCount); // Indicate the number of remote players
-
-	int32_t frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
 
 	std::unique_ptr<SlippiRemotePadOutput> results[SLIPPI_REMOTE_PLAYER_MAX];
 	int offset[SLIPPI_REMOTE_PLAYER_MAX];
