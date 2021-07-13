@@ -21,6 +21,8 @@
 #include "Common/Thread.h"
 #include "Core/HW/Memmap.h"
 
+#include "VideoCommon/OnScreenDisplay.h"
+
 #include "Core/Core.h"
 #include "Core/CoreTiming.h"
 #include "Core/NetPlayClient.h"
@@ -1565,6 +1567,11 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 		isConnectionStalled = false;
 		stallFrameCount = 0;
 
+		// Reset advance stuff
+		framesToAdvance = 0;
+		isCurrentlyAdvancing = false;
+		fallBehindCounter = 0;
+
 		// Reset character selections as they are no longer needed
 		localSelections.Reset();
 		if (slippi_netplay)
@@ -1637,6 +1644,21 @@ bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame)
 	{
 		auto offsetUs = slippi_netplay->CalcTimeOffsetUs();
 		INFO_LOG(SLIPPI_ONLINE, "[Frame %d] Offset is: %d us", frame, offsetUs);
+
+		// Count the number of times we're below a threshold we should easily be able to clear. This is checked twice
+		// per frame.
+		if (offsetUs < -25000)
+		{
+			fallBehindCounter++;
+
+			// Checking if we are consistently behind. The quickest this can happen is after 10 seconds
+			if (fallBehindCounter > 20)
+			{
+				OSD::AddTypedMessage(OSD::MessageType::PerformanceWarning,
+				                     "Your computer is running slow and is impacting the performance of the match.",
+				                     10000, OSD::Color::RED);
+			}
+		}
 
 		if (offsetUs < -10000)
 		{
