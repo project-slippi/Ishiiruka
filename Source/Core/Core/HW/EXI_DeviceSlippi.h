@@ -253,6 +253,7 @@ class CEXISlippi : public IEXIDevice
 	// Frame advancing variables
 	int framesToAdvance = 0;
 	bool isCurrentlyAdvancing = false;
+	int fallBehindCounter = 0;
 
 	std::string forcedError = "";
 
