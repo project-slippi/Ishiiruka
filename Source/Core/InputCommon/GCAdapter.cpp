@@ -61,6 +61,8 @@ static std::thread s_adapter_detect_thread;
 static Common::Flag s_adapter_detect_thread_running;
 static Common::Event s_hotplug_event;
 
+static std::thread s_adapter_reset_thread;
+
 static std::function<void(void)> s_detect_callback;
 
 static bool s_libusb_driver_not_supported = false;
@@ -727,6 +729,14 @@ static void Reset()
 		return;
 	if (!s_detected)
 		return;
+
+	if (s_adapter_output_thread.get_id() == std::this_thread::get_id() ||
+	    s_adapter_input_thread.get_id() == std::this_thread::get_id())
+	{
+		lock.unlock();
+		s_adapter_reset_thread = std::thread(Reset);
+		return;
+	}
 
 	if (s_adapter_thread_running.TestAndClear())
 	{
