@@ -21,8 +21,8 @@
 #include "Core/CoreTiming.h"
 #include "Core/HW/SI.h"
 #include "Core/HW/SystemTimers.h"
+#include "Core/LibusbUtils.h"
 #include "Core/NetPlayProto.h"
-
 #include "InputCommon/GCAdapter.h"
 #include "InputCommon/GCPadStatus.h"
 
@@ -66,7 +66,7 @@ static std::thread s_adapter_reset_thread;
 static std::function<void(void)> s_detect_callback;
 
 static bool s_libusb_driver_not_supported = false;
-static libusb_context* s_libusb_context = nullptr;
+static LibusbUtils::Context s_libusb_context;
 static bool s_libusb_hotplug_enabled = false;
 #if defined(LIBUSB_API_VERSION) && LIBUSB_API_VERSION >= 0x01000102
 static libusb_hotplug_callback_handle s_hotplug_handle;
@@ -502,26 +502,17 @@ void Init()
 
 	s_libusb_driver_not_supported = false;
 
-	int ret = libusb_init(&s_libusb_context);
 
-	if (ret)
-	{
-		ERROR_LOG(SERIALINTERFACE, "libusb_init failed with error: %d", ret);
-		s_libusb_driver_not_supported = true;
-		Shutdown();
-	}
-	else
-	{
 		if (UseAdapter())
 			StartScanThread();
-	}
 }
 
 void StartScanThread()
 {
 	if (s_adapter_detect_thread_running.IsSet())
 		return;
-
+	if (!s_libusb_context.IsValid())
+		return;
 	s_adapter_detect_thread_running.Set(true);
 	s_adapter_detect_thread = std::thread(ScanThreadFunc);
 }
@@ -537,27 +528,21 @@ void StopScanThread()
 
 static void Setup()
 {
-	libusb_device **list;
-	ssize_t cnt = libusb_get_device_list(s_libusb_context, &list);
-
 	for (int i = 0; i < MAX_SI_CHANNELS; i++)
 	{
 		s_controller_type[i] = ControllerTypes::CONTROLLER_NONE;
 		s_controller_rumble[i] = 0;
 	}
 
-	for (int d = 0; d < cnt; d++)
-	{
-		libusb_device* device = list[d];
+	s_libusb_context.GetDeviceList([](libusb_device *device) {
 		if (CheckDeviceAccess(device))
 		{
 			// Only connect to a single adapter in case the user has multiple connected
 			AddGCAdapter(device);
-			break;
+			return false;
 		}
-	}
-
-	libusb_free_device_list(list, 1);
+		return true;
+	});
 }
 
 static bool CheckDeviceAccess(libusb_device* device)
@@ -708,16 +693,10 @@ void Shutdown()
 {
 	StopScanThread();
 #if defined(LIBUSB_API_VERSION) && LIBUSB_API_VERSION >= 0x01000102
-	if (s_libusb_hotplug_enabled)
+	if (s_libusb_context.IsValid() && s_libusb_hotplug_enabled)
 		libusb_hotplug_deregister_callback(s_libusb_context, s_hotplug_handle);
 #endif
 	Reset();
-
-	if (s_libusb_context)
-	{
-		libusb_exit(s_libusb_context);
-		s_libusb_context = nullptr;
-	}
 
 	s_libusb_driver_not_supported = false;
 }
@@ -729,15 +708,6 @@ static void Reset()
 		return;
 	if (!s_detected)
 		return;
-
-	if (s_adapter_output_thread.get_id() == std::this_thread::get_id() ||
-	    s_adapter_input_thread.get_id() == std::this_thread::get_id())
-	{
-		lock.unlock();
-		s_adapter_reset_thread = std::thread(Reset);
-		s_adapter_reset_thread.detach();
-		return;
-	}
 
 	if (s_adapter_thread_running.TestAndClear())
 	{
