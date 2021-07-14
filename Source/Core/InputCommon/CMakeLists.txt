@@ -1,6 +1,7 @@
 set(SRCS	ControllerEmu.cpp
 			InputConfig.cpp
 			InputStabilizer.cpp
+			LibusbUtils.cpp
 			ControllerInterface/ControllerInterface.cpp
 			ControllerInterface/Device.cpp
 			ControllerInterface/ExpressionParser.cpp)
