@@ -735,7 +735,7 @@ static void Reset()
 	{
 		lock.unlock();
 		s_adapter_reset_thread = std::thread(Reset);
-        s_adapter_reset_thread.detach();
+		s_adapter_reset_thread.detach();
 		return;
 	}
 
