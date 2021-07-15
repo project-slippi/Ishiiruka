@@ -783,7 +783,7 @@
 // Default is 1
 //
 // Recommended setting: 1
-#define wxUSE_WEBVIEW 1
+#define wxUSE_WEBVIEW 0
 
 // Use the IE wxWebView backend
 //
@@ -791,7 +791,7 @@
 //
 // Recommended setting: 1
 #ifdef __WXMSW__
-#define wxUSE_WEBVIEW_IE 1
+#define wxUSE_WEBVIEW_IE 0
 #else
 #define wxUSE_WEBVIEW_IE 0
 #endif
@@ -809,7 +809,7 @@
 //
 // Recommended setting: 1
 #if (defined(__WXGTK__) && !defined(__WXGTK3__)) || defined(__WXOSX__)
-#define wxUSE_WEBVIEW_WEBKIT 1
+#define wxUSE_WEBVIEW_WEBKIT 0
 #else
 #define wxUSE_WEBVIEW_WEBKIT 0
 #endif
@@ -820,7 +820,7 @@
 //
 // Recommended setting: 1
 #if defined(__WXGTK3__)
-#define wxUSE_WEBVIEW_WEBKIT2 1
+#define wxUSE_WEBVIEW_WEBKIT2 0
 #else
 #define wxUSE_WEBVIEW_WEBKIT2 0
 #endif

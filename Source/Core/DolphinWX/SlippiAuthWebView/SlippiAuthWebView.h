@@ -1,5 +1,6 @@
 #pragma once
 
+#ifdef __APPLE__
 #include <wx/dialog.h>
 #include <wx/webview.h>
 #include "Common/CommonTypes.h"
@@ -24,3 +25,4 @@ private:
 
     wxWebView* m_browser;
 };
+#endif

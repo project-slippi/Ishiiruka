@@ -21,7 +21,11 @@
 #include "Core/Slippi/SlippiTimer.h"
 #include "DolphinWX/Globals.h"
 #include "DolphinWX/PlaybackSlider.h"
+
+#ifdef __APPLE__
 #include "DolphinWX/SlippiAuthWebView/SlippiAuthWebView.h"
+#endif
+
 #include "InputCommon/GCPadStatus.h"
 
 #if defined(HAVE_X11) && HAVE_X11
@@ -117,7 +121,11 @@ public:
 	void DoExclusiveFullscreen(bool enable_fullscreen);
 	void ToggleDisplayMode(bool bFullscreen);
 	void ToggleScreenSaver(bool enable);
+
+#ifdef __APPLE__
     void OpenSlippiAuthenticationDialog();
+#endif
+
 	static void ConnectWiimote(int wm_idx, bool connect);
 	void UpdateTitle(const std::string& str);
 	void OpenGeneralConfiguration(wxWindowID tab_id = wxID_ANY);
@@ -153,7 +161,11 @@ public:
 private:
 	CGameListCtrl* m_GameListCtrl = nullptr;
 	CConfigMain* m_main_config_dialog = nullptr;
+
+#ifdef __APPLE__
     SlippiAuthWebView* m_slippi_auth_dialog = nullptr;
+#endif
+
 	wxPanel* m_Panel = nullptr;
 	CRenderFrame* m_RenderFrame = nullptr;
 	wxWindow* m_RenderParent = nullptr;
@@ -193,7 +205,10 @@ private:
 	void BindMenuBarEvents();
 	void BindDebuggerMenuBarEvents();
 	void BindDebuggerMenuBarUpdateEvents();
+
+#ifdef __APPLE__
     void ShowSlippiAuthenticationDialog();
+#endif
 
 	wxToolBar* OnCreateToolBar(long style, wxWindowID id, const wxString& name) override;
 	wxMenuBar* CreateMenuBar() const;
