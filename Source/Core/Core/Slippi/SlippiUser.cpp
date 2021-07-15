@@ -163,25 +163,25 @@ void SlippiUser::OpenLogInPage()
 	CFrame *cframe = wxGetApp().GetCFrame();
 	cframe->OpenSlippiAuthenticationDialog();
 #else
-    std::string url = "https://slippi.gg/online/enable";
-    std::string path = File::GetSlippiUserJSONPath();
+	std::string url = "https://slippi.gg/online/enable";
+	std::string path = File::GetSlippiUserJSONPath();
 
 #ifdef _WIN32
-    // On windows, sometimes the path can have backslashes and slashes mixed, convert all to backslashes
-    path = ReplaceAll(path, "\\", "\\");
-    path = ReplaceAll(path, "/", "\\");
+	// On windows, sometimes the path can have backslashes and slashes mixed, convert all to backslashes
+	path = ReplaceAll(path, "\\", "\\");
+	path = ReplaceAll(path, "/", "\\");
 #endif
 
-    std::string fullUrl = url + "?path=" + path;
-    INFO_LOG(SLIPPI_ONLINE, "[User] Login at path: %s", fullUrl.c_str());
+	std::string fullUrl = url + "?path=" + path;
+	INFO_LOG(SLIPPI_ONLINE, "[User] Login at path: %s", fullUrl.c_str());
 
 #ifdef _WIN32
-    std::string command = "explorer \"" + fullUrl + "\"";
+	std::string command = "explorer \"" + fullUrl + "\"";
 #else
-    std::string command = "xdg-open \"" + fullUrl + "\""; // Linux
+	std::string command = "xdg-open \"" + fullUrl + "\""; // Linux
 #endif
 
-    RunSystemCommand(command);
+	RunSystemCommand(command);
 #endif
 }
 
@@ -209,9 +209,9 @@ bool SlippiUser::UpdateApp()
 	return true;
 #elif defined(__APPLE__)
 	CriticalAlertT(
-	    "Automatic updates are not available for standalone Netplay builds on macOS. Please get the latest update from slippi.gg/netplay. "
-        "(The Slippi Launcher has automatic updates on macOS, and you should consider switching to that)"
-    );
+		"Automatic updates are not available for standalone Netplay builds on macOS. Please get the latest update from slippi.gg/netplay. "
+		"(The Slippi Launcher has automatic updates on macOS, and you should consider switching to that)"
+	);
 	return false;
 #else
 	const char *appimage_path = getenv("APPIMAGE");
