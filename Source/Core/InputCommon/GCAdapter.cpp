@@ -21,10 +21,10 @@
 #include "Core/CoreTiming.h"
 #include "Core/HW/SI.h"
 #include "Core/HW/SystemTimers.h"
-#include "Core/LibusbUtils.h"
 #include "Core/NetPlayProto.h"
 #include "InputCommon/GCAdapter.h"
 #include "InputCommon/GCPadStatus.h"
+#include "InputCommon/LibusbUtils.h"
 
 namespace GCAdapter
 {

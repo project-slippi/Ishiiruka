@@ -11,7 +11,7 @@
 #include "Common/Assert.h"
 #include "Common/Flag.h"
 #include "Common/Thread.h"
-#include "Core/LibusbUtils.h"
+#include "InputCommon/LibusbUtils.h"
 
 namespace LibusbUtils
 {

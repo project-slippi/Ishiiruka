@@ -10,7 +10,6 @@ set(SRCS	ActionReplay.cpp
 			GeckoCodeConfig.cpp
 			GeckoCode.cpp
 			HotkeyManager.cpp
-			LibusbUtils.cpp
 			MemTools.cpp
 			Movie.cpp
 			NetPlayClient.cpp
