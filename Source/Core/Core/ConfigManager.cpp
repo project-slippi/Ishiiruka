@@ -529,7 +529,11 @@ void SConfig::LoadDisplaySettings(IniFile &ini)
 {
 	IniFile::Section *display = ini.GetOrCreateSection("Display");
 
+#ifdef IS_PLAYBACK
+	display->Get("Fullscreen", &bFullscreen, false);
+#else
 	display->Get("Fullscreen", &bFullscreen, true);
+#endif
 	display->Get("FullscreenResolution", &strFullscreenResolution, "Auto");
 #if defined IS_PLAYBACK && (defined _WIN32 || defined __APPLE__)
 	display->Get("RenderToMain", &bRenderToMain, true);
