@@ -407,6 +407,9 @@ void DolphinApp::MacOpenFile(const wxString &fileName)
 
 void DolphinApp::AfterInit()
 {
+	// always raise the frame so that it is in the foreground on launch
+	main_frame->Raise();
+
 	if (!m_batch_mode)
 		main_frame->UpdateGameList();
 
