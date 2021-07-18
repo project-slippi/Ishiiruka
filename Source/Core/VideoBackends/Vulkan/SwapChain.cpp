@@ -369,6 +369,7 @@ bool SwapChain::CreateSwapChain()
 
 	res =
 		vkCreateSwapchainKHR(g_vulkan_context->GetDevice(), &swap_chain_info, nullptr, &m_swap_chain);
+
 	if (res != VK_SUCCESS)
 	{
 		LOG_VULKAN_ERROR(res, "vkCreateSwapchainKHR failed: ");

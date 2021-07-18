@@ -67,6 +67,7 @@ public:
 	void SetViewport() override;
 
 	void ChangeSurface(void* new_surface_handle) override;
+	void CacheSurfaceHandle(void* new_surface_handle) override;
 
 private:
 	bool CreateSemaphores();
