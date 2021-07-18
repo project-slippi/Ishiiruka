@@ -30,6 +30,8 @@ CMakeLists.txt.user
 # Ignore emacs temp files
 \#*\#
 .\#*
+# Ignore emacs etags code navigation
+TAGS
 # Ignore kdevelop files/dirs
 *.kdev4
 # Ignore IDEA/Clion files/dirs
