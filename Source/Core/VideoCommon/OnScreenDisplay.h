@@ -30,6 +30,7 @@ enum class MessageType
 	NetPlayPing,
 	NetPlayBuffer,
 	FrameIndex,
+	PerformanceWarning,
 
 	// This entry must be kept last so that persistent typed messages are
 	// displayed before other messages

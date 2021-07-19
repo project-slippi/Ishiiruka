@@ -1209,7 +1209,7 @@ int32_t SlippiNetplayClient::GetSlippiLatestRemoteFrame()
 	return lowestFrame;
 }
 
-// return the largest time offset among all remote players
+// return the smallest time offset among all remote players
 s32 SlippiNetplayClient::CalcTimeOffsetUs()
 {
 	bool empty = true;
@@ -1258,13 +1258,13 @@ s32 SlippiNetplayClient::CalcTimeOffsetUs()
 		offsets.push_back(result);
 	}
 
-	s32 maxOffset = offsets.front();
+	s32 minOffset = offsets.front();
 	for (int i = 1; i < offsets.size(); i++)
 	{
-		if (offsets[i] > maxOffset)
-			maxOffset = offsets[i];
+		if (offsets[i] < minOffset)
+			minOffset = offsets[i];
 	}
 
 	// INFO_LOG(SLIPPI_ONLINE, "Time offsets, [0]: %d, [1]: %d, [2]: %d", offsets[0], offsets[1], offsets[2]);
-	return maxOffset;
+	return minOffset;
 }
