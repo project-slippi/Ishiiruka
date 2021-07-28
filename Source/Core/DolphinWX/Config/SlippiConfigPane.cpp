@@ -301,8 +301,8 @@ SlippiPlaybackConfigPane::SlippiPlaybackConfigPane(wxWindow *parent, wxWindowID 
 void SlippiPlaybackConfigPane::InitializeGUI()
 {
 	// Slippi Replay settings
-	m_display_frame_index = new wxCheckBox(this, wxID_ANY, _("Display Frame index"));
-	m_display_frame_index->SetToolTip(_("Enable this to display the Frame Index when viewing replays."));
+	m_display_frame_index = new wxCheckBox(this, wxID_ANY, _("Display Frame Index"));
+	m_display_frame_index->SetToolTip(_("Displays the Frame Index when viewing replays. On-Screen Display Messages must also be enabled"));
 
 	const int space5 = FromDIP(5);
 
