@@ -1756,6 +1756,8 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 	int32_t minFrameRead = *std::min_element(latestFrameRead, latestFrameRead + SLIPPI_REMOTE_PLAYER_MAX);
 	slippi_netplay->DropOldRemoteInputs(minFrameRead);
 
+	appendWordToBuffer(&m_read_queue, *(u32 *)&minFrameRead);
+
 	// ERROR_LOG(SLIPPI_ONLINE, "EXI: [%d] %X %X %X %X %X %X %X %X", latestFrame, m_read_queue[5], m_read_queue[6],
 	// m_read_queue[7], m_read_queue[8], m_read_queue[9], m_read_queue[10], m_read_queue[11], m_read_queue[12]);
 }
