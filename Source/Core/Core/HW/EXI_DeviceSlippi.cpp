@@ -2336,7 +2336,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		}
 		else if (lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::TEAMS)
 		{
-            auto isAkaneia = SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_AKANEIA;
+            		auto isAkaneia = SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_AKANEIA;
 			auto isBeyond = SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_BEYOND;
 
 			if (!localCharOk && (!isAkaneia || !isBeyond))
