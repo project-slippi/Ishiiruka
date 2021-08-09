@@ -85,8 +85,26 @@ void VideoBackendBase::PopulateList()
 	// disable OGL video Backend while is merged from master
 	g_available_video_backends.push_back(std::make_unique<OGL::VideoBackend>());
 
-    if(PlatformSupportsVulkan()) {
-	    g_available_video_backends.push_back(std::make_unique<Vulkan::VideoBackend>());
+	// on macOS, we want to push users to use Vulkan on 10.14+ (Mojave onwards). OpenGL has been 
+	// long deprecated by Apple there and is a known stumbling block for performance for new players.
+	//
+	// That said, we still support High Sierra, which can't use Metal (it will load, but lacks certain critical pieces).
+	//
+	// This mirrors a recent (2021) change in mainline Dolphin, so should be relatively safe to do here as well. All
+	// we're doing is shoving Vulkan to the front if it's macOS 10.14 or later, so it loads first.
+	if(PlatformSupportsVulkan()) {
+#ifdef __APPLE__
+	if (__builtin_available(macOS 10.14, *)) {
+		g_available_video_backends.emplace(
+			g_available_video_backends.begin(),
+			std::make_unique<Vulkan::VideoBackend>()
+		);
+	} 
+	else
+#endif
+        {
+	        g_available_video_backends.push_back(std::make_unique<Vulkan::VideoBackend>());
+        }
     }
 
 	// Disable software video backend as is currently not working
