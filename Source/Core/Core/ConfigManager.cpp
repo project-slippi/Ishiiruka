@@ -952,6 +952,9 @@ bool SConfig::AutoSetup(EBootBS2 _BootBS2)
 				else if (pVolume->GetLongNames()[DiscIO::Language::LANGUAGE_ENGLISH].find("Akaneia") !=
 				         std::string::npos)
 					m_gameType = GAMETYPE_MELEE_AKANEIA;
+				else if (pVolume->GetLongNames()[DiscIO::Language::LANGUAGE_ENGLISH].find("Beyond") !=
+				         std::string::npos)
+					m_gameType = GAMETYPE_MELEE_BEYOND;
 			}
 			else if (m_strGameID == "GTME01")
 			{
