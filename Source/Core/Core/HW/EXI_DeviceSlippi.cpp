@@ -2206,12 +2206,13 @@ void CEXISlippi::prepareOnlineMatchState()
 	if (slippi_netplay)
 	{
 		auto isSingleMode = matchmaking && matchmaking->RemotePlayerCount() == 1;
-		sentChatMessageId = slippi_netplay->GetSlippiRemoteSentChatMessage();
+		bool isChatEnabled = isSlippiChatEnabled();
+		sentChatMessageId = slippi_netplay->GetSlippiRemoteSentChatMessage(isChatEnabled);
 
 		// Prevent processing a message in the same frame
 		if (sentChatMessageId <= 0)
 		{
-			auto remoteMessageSelection = slippi_netplay->GetSlippiRemoteChatMessage();
+			auto remoteMessageSelection = slippi_netplay->GetSlippiRemoteChatMessage(isChatEnabled);
 			chatMessageId = remoteMessageSelection.messageId;
 			chatMessagePlayerIdx = remoteMessageSelection.playerIdx;
 			if (chatMessageId == SlippiPremadeText::CHAT_MSG_CHAT_DISABLED && !isSingleMode)
@@ -2738,9 +2739,24 @@ void CEXISlippi::preparePremadeTextLoad(u8 *payload)
 	m_read_queue.insert(m_read_queue.end(), premadeTextData.begin(), premadeTextData.end());
 }
 
+bool CEXISlippi::isSlippiChatEnabled(){
+	auto chatEnabledChoice = SConfig::GetInstance().m_slippiEnableQuickChat;
+	switch (lastSearch.mode)
+	{
+	case SlippiMatchmaking::DIRECT:
+		return
+		    chatEnabledChoice == ENABLE_CHAT_CHOICE_YES ||
+            chatEnabledChoice == ENABLE_CHAT_CHOICE_DIRECT_ONLY;
+	default:
+		    return chatEnabledChoice == ENABLE_CHAT_CHOICE_YES;
+		break;
+	}
+	return true; // default is enabled
+}
+
 void CEXISlippi::handleChatMessage(u8 *payload)
 {
-	if (!SConfig::GetInstance().m_slippiEnableQuickChat)
+	if (!isSlippiChatEnabled())
 		return;
 
 	int messageId = payload[0];

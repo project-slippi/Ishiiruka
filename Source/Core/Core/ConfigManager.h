@@ -18,6 +18,18 @@ namespace DiscIO
 enum class Language;
 }
 
+// Slippi Types
+
+#define ENABLE_CHAT_CHOICE_YES 0
+#define ENABLE_CHAT_CHOICE_DIRECT_ONLY 1
+#define ENABLE_CHAT_CHOICE_NO 2
+
+std::unordered_map<int, std::string> enableQuickChatOptions = {
+    {ENABLE_CHAT_CHOICE_YES, "Yes"},
+    {ENABLE_CHAT_CHOICE_DIRECT_ONLY, "Direct Only"},
+    {ENABLE_CHAT_CHOICE_NO, "No"},
+};
+
 // DSP Backend Types
 #define BACKEND_NULLSOUND _trans("No audio output")
 #define BACKEND_ALSA "ALSA"
@@ -143,7 +155,7 @@ struct SConfig : NonCopyable
 
 	// Slippi
 	bool m_slippiSaveReplays = true;
-	bool m_slippiEnableQuickChat = true;
+	int m_slippiEnableQuickChat = ENABLE_CHAT_CHOICE_YES;
 	bool m_slippiReplayMonthFolders = false;
 	std::string m_strSlippiReplayDir;
 	bool m_slippiForceNetplayPort = false;

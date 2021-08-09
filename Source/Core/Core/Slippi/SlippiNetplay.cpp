@@ -412,17 +412,6 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 		INFO_LOG(SLIPPI_ONLINE, "[Netplay] Received chat message from opponent %d: %d", playerSelection->playerIdx,
 		         playerSelection->messageId);
 
-		// if chat is not enabled, automatically send back a message saying so
-		if (!SConfig::GetInstance().m_slippiEnableQuickChat)
-		{
-			auto packet = std::make_unique<sf::Packet>();
-			remoteSentChatMessageId = SlippiPremadeText::CHAT_MSG_CHAT_DISABLED;
-			WriteChatMessageToPacket(*packet, remoteSentChatMessageId, LocalPlayerPort());
-			SendAsync(std::move(packet));
-			remoteSentChatMessageId = 0;
-			break;
-		}
-
 		if (!playerSelection->error)
 		{
 			// set message id to netplay instance
@@ -1097,11 +1086,11 @@ void SlippiNetplayClient::SetMatchSelections(SlippiPlayerSelections &s)
 	SendAsync(std::move(spac));
 }
 
-SlippiPlayerSelections SlippiNetplayClient::GetSlippiRemoteChatMessage()
+SlippiPlayerSelections SlippiNetplayClient::GetSlippiRemoteChatMessage(bool isChatEnabled)
 {
 	SlippiPlayerSelections copiedSelection = SlippiPlayerSelections();
 
-	if (remoteChatMessageSelection != nullptr && SConfig::GetInstance().m_slippiEnableQuickChat)
+	if (remoteChatMessageSelection != nullptr && isChatEnabled)
 	{
 		copiedSelection.messageId = remoteChatMessageSelection->messageId;
 		copiedSelection.playerIdx = remoteChatMessageSelection->playerIdx;
@@ -1114,14 +1103,23 @@ SlippiPlayerSelections SlippiNetplayClient::GetSlippiRemoteChatMessage()
 	{
 		copiedSelection.messageId = 0;
 		copiedSelection.playerIdx = 0;
+
+        // if chat is not enabled, automatically send back a message saying so.
+        if(remoteChatMessageSelection !=  nullptr){
+            auto packet = std::make_unique<sf::Packet>();
+            remoteSentChatMessageId = SlippiPremadeText::CHAT_MSG_CHAT_DISABLED;
+            WriteChatMessageToPacket(*packet, remoteSentChatMessageId, LocalPlayerPort());
+            SendAsync(std::move(packet));
+            remoteSentChatMessageId = 0;
+        }
 	}
 
 	return copiedSelection;
 }
 
-u8 SlippiNetplayClient::GetSlippiRemoteSentChatMessage()
+u8 SlippiNetplayClient::GetSlippiRemoteSentChatMessage(bool isChatEnabled)
 {
-	if (!SConfig::GetInstance().m_slippiEnableQuickChat)
+	if (!isChatEnabled)
 	{
 		return 0;
 	}

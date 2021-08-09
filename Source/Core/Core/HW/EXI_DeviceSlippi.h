@@ -176,7 +176,8 @@ class CEXISlippi : public IEXIDevice
 	// online play stuff
 	u16 getRandomStage();
 	bool isDisconnected();
-	void handleOnlineInputs(u8 *payload);
+    bool isSlippiChatEnabled();
+    void handleOnlineInputs(u8 *payload);
 	void prepareOpponentInputs(u8 *payload);
 	void handleSendInputs(u8 *payload);
 	void handleCaptureSavestate(u8 *payload);
@@ -204,7 +205,7 @@ class CEXISlippi : public IEXIDevice
 	void prepareIsFileReady();
 
 	// misc stuff
-	void handleChatMessage(u8 *payload);
+    void handleChatMessage(u8 *payload);
 	void logMessageFromGame(u8 *payload);
 	void prepareFileLength(u8 *payload);
 	void prepareFileLoad(u8 *payload);
