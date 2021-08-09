@@ -94,17 +94,17 @@ void VideoBackendBase::PopulateList()
 	// we're doing is shoving Vulkan to the front if it's macOS 10.14 or later, so it loads first.
 	if(PlatformSupportsVulkan()) {
 #ifdef __APPLE__
-	if (__builtin_available(macOS 10.14, *)) {
-		g_available_video_backends.emplace(
-			g_available_video_backends.begin(),
-			std::make_unique<Vulkan::VideoBackend>()
-		);
-	} 
-	else
+		if (__builtin_available(macOS 10.14, *)) {
+			g_available_video_backends.emplace(
+				g_available_video_backends.begin(),
+				std::make_unique<Vulkan::VideoBackend>()
+			);
+		} 
+		else
 #endif
-        {
-	        g_available_video_backends.push_back(std::make_unique<Vulkan::VideoBackend>());
-        }
+        	{
+	        	g_available_video_backends.push_back(std::make_unique<Vulkan::VideoBackend>());
+        	}
     }
 
 	// Disable software video backend as is currently not working
