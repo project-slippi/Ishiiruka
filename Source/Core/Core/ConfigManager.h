@@ -5,6 +5,7 @@
 #pragma once
 
 #include <limits>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -20,14 +21,14 @@ enum class Language;
 
 // Slippi Types
 
-#define ENABLE_CHAT_CHOICE_YES 0
-#define ENABLE_CHAT_CHOICE_DIRECT_ONLY 1
-#define ENABLE_CHAT_CHOICE_NO 2
+#define SLIPPI_CHAT_ON 0
+#define SLIPPI_CHAT_DIRECT_ONLY 1
+#define SLIPPI_CHAT_OFF 2
 
-static std::map<int, std::string> enableQuickChatOptions = {
-    {ENABLE_CHAT_CHOICE_YES, "Yes"},
-    {ENABLE_CHAT_CHOICE_DIRECT_ONLY, "Direct Only"},
-    {ENABLE_CHAT_CHOICE_NO, "No"},
+static std::map<int, std::string> quickChatOptions = {
+    {SLIPPI_CHAT_ON, "Enabled"},
+    {SLIPPI_CHAT_DIRECT_ONLY, "Direct Only"},
+    {SLIPPI_CHAT_OFF, "Disabled"},
 };
 
 // DSP Backend Types
@@ -155,7 +156,7 @@ struct SConfig : NonCopyable
 
 	// Slippi
 	bool m_slippiSaveReplays = true;
-	int m_slippiEnableQuickChat = ENABLE_CHAT_CHOICE_YES;
+	int m_slippiEnableQuickChat = SLIPPI_CHAT_ON;
 	bool m_slippiReplayMonthFolders = false;
 	std::string m_strSlippiReplayDir;
 	bool m_slippiForceNetplayPort = false;

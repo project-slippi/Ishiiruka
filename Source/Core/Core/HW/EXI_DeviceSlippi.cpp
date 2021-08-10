@@ -1630,7 +1630,7 @@ bool CEXISlippi::shouldSkipOnlineFrame(s32 frame)
 	if (isTimeSyncFrame == 0 && !isCurrentlySkipping)
 	{
 		auto offsetUs = slippi_netplay->CalcTimeOffsetUs();
-		//INFO_LOG(SLIPPI_ONLINE, "[Frame %d] Offset is: %d us", frame, offsetUs);
+		// INFO_LOG(SLIPPI_ONLINE, "[Frame %d] Offset is: %d us", frame, offsetUs);
 
 		// TODO: figure out a better solution here for doubles?
 		if (offsetUs > 10000)
@@ -1705,7 +1705,7 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 
 	std::unique_ptr<SlippiRemotePadOutput> results[SLIPPI_REMOTE_PLAYER_MAX];
 	int offset[SLIPPI_REMOTE_PLAYER_MAX];
-	//INFO_LOG(SLIPPI_ONLINE, "Preparing pad data for frame %d", frame);
+	// INFO_LOG(SLIPPI_ONLINE, "Preparing pad data for frame %d", frame);
 
 	int32_t latestFrameRead[SLIPPI_REMOTE_PLAYER_MAX]{};
 
@@ -1799,7 +1799,7 @@ void CEXISlippi::handleCaptureSavestate(u8 *payload)
 	activeSavestates[frame] = std::move(ss);
 
 	u32 timeDiff = (u32)(Common::Timer::GetTimeUs() - startTime);
-	//INFO_LOG(SLIPPI_ONLINE, "SLIPPI ONLINE: Captured savestate for frame %d in: %f ms", frame,
+	// INFO_LOG(SLIPPI_ONLINE, "SLIPPI ONLINE: Captured savestate for frame %d in: %f ms", frame,
 	//         ((double)timeDiff) / 1000);
 }
 
@@ -1841,7 +1841,8 @@ void CEXISlippi::handleLoadSavestate(u8 *payload)
 	activeSavestates.clear();
 
 	u32 timeDiff = (u32)(Common::Timer::GetTimeUs() - startTime);
-	//INFO_LOG(SLIPPI_ONLINE, "SLIPPI ONLINE: Loaded savestate for frame %d in: %f ms", frame, ((double)timeDiff) / 1000);
+	// INFO_LOG(SLIPPI_ONLINE, "SLIPPI ONLINE: Loaded savestate for frame %d in: %f ms", frame, ((double)timeDiff) /
+	// 1000);
 }
 
 void CEXISlippi::startFindMatch(u8 *payload)
@@ -1921,7 +1922,6 @@ void CEXISlippi::startFindMatch(u8 *payload)
 #endif
 }
 
-
 bool CEXISlippi::doesTagMatchInput(u8 *input, u8 inputLen, std::string tag)
 {
 	auto jisTag = UTF8ToSHIFTJIS(tag);
@@ -1930,7 +1930,7 @@ bool CEXISlippi::doesTagMatchInput(u8 *input, u8 inputLen, std::string tag)
 	bool isMatch = true;
 	for (int i = 0; i < inputLen; i++)
 	{
-		//ERROR_LOG(SLIPPI_ONLINE, "Entered: %X%X. History: %X%X", input[i * 3], input[i * 3 + 1], (u8)jisTag[i * 2],
+		// ERROR_LOG(SLIPPI_ONLINE, "Entered: %X%X. History: %X%X", input[i * 3], input[i * 3 + 1], (u8)jisTag[i * 2],
 		//          (u8)jisTag[i * 2 + 1]);
 		if (input[i * 3] != (u8)jisTag[i * 2] || input[i * 3 + 1] != (u8)jisTag[i * 2 + 1])
 		{
@@ -1984,7 +1984,7 @@ void CEXISlippi::handleNameEntryLoad(u8 *payload)
 	}
 
 	INFO_LOG(SLIPPI_ONLINE, "Idx: %d, InitIdx: %d, Scroll: %d. Len: %d", curIndex, initialIndex, scrollDirection,
-	          inputLen);
+	         inputLen);
 
 	tagAtIndex = codeHistory->get(curIndex);
 	if (tagAtIndex == "1")
@@ -2396,7 +2396,7 @@ void CEXISlippi::prepareOnlineMatchState()
 				s.teamId = teamAssignments[s.playerIdx];
 			}
 
-			//ERROR_LOG(SLIPPI_ONLINE, "idx: %d, char: %d", s.playerIdx, s.characterId);
+			// ERROR_LOG(SLIPPI_ONLINE, "idx: %d, char: %d", s.playerIdx, s.characterId);
 
 			// Overwrite player character
 			onlineMatchBlock[0x60 + (s.playerIdx) * 0x24] = s.characterId;
@@ -2438,7 +2438,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		auto pauseAllowed = !SlippiMatchmaking::IsFixedRulesMode(lastSearch.mode) &&
 		                    lastSearch.mode != SlippiMatchmaking::OnlinePlayMode::TEAMS;
 		u8 *gameBitField3 = (u8 *)&onlineMatchBlock[2];
-		*gameBitField3 = pauseAllowed ? *gameBitField3 & 0xF7 : * gameBitField3 | 0x8;
+		*gameBitField3 = pauseAllowed ? *gameBitField3 & 0xF7 : *gameBitField3 | 0x8;
 		//*gameBitField3 = *gameBitField3 | 0x8;
 
 		// Group players into left/right side for team splash screen display
@@ -2671,7 +2671,7 @@ std::vector<u8> CEXISlippi::loadPremadeText(u8 *payload)
 	std::vector<u8> premadeTextData;
 	auto spt = SlippiPremadeText();
 
-	//WARN_LOG(SLIPPI, "SLIPPI premade text texture id: 0x%x", payload[0]);
+	// WARN_LOG(SLIPPI, "SLIPPI premade text texture id: 0x%x", payload[0]);
 
 	if (textId >= SlippiPremadeText::SPT_CHAT_P1 && textId <= SlippiPremadeText::SPT_CHAT_P4)
 	{
@@ -2684,12 +2684,12 @@ std::vector<u8> CEXISlippi::loadPremadeText(u8 *payload)
 		playerName = defaultNames[port];
 #endif
 
-		//WARN_LOG(SLIPPI, "SLIPPI premade text param: 0x%x", payload[1]);
+		// WARN_LOG(SLIPPI, "SLIPPI premade text param: 0x%x", payload[1]);
 		u8 paramId = payload[1];
 
 		for (auto it = spt.unsupportedStringMap.begin(); it != spt.unsupportedStringMap.end(); it++)
 		{
-			playerName = ReplaceAll(playerName.c_str(), it->second, ""); // Remove unsupported chars
+			playerName = ReplaceAll(playerName.c_str(), it->second, "");        // Remove unsupported chars
 			playerName = ReplaceAll(playerName.c_str(), it->first, it->second); // Remap delimiters for premade text
 		}
 
@@ -2710,8 +2710,8 @@ std::vector<u8> CEXISlippi::loadPremadeText(u8 *payload)
 		premadeTextData = spt.GetPremadeTextData(textId);
 	}
 
-	//ERROR_LOG(SLIPPI, "SLIPPI premade text (%d):", premadeTextData.size());
-	//for (int i = 0; i < premadeTextData.size(); i++)
+	// ERROR_LOG(SLIPPI, "SLIPPI premade text (%d):", premadeTextData.size());
+	// for (int i = 0; i < premadeTextData.size(); i++)
 	//{
 	//	WARN_LOG(SLIPPI, "%X", premadeTextData[i]);
 	//}
@@ -2739,21 +2739,20 @@ void CEXISlippi::preparePremadeTextLoad(u8 *payload)
 	m_read_queue.insert(m_read_queue.end(), premadeTextData.begin(), premadeTextData.end());
 }
 
-bool CEXISlippi::isSlippiChatEnabled(){
+bool CEXISlippi::isSlippiChatEnabled()
+{
 	auto chatEnabledChoice = SConfig::GetInstance().m_slippiEnableQuickChat;
 	bool res = true;
 	switch (lastSearch.mode)
 	{
 	case SlippiMatchmaking::DIRECT:
-        res =
-		    chatEnabledChoice == ENABLE_CHAT_CHOICE_YES ||
-            chatEnabledChoice == ENABLE_CHAT_CHOICE_DIRECT_ONLY;
+		res = chatEnabledChoice == SLIPPI_CHAT_ON || chatEnabledChoice == SLIPPI_CHAT_DIRECT_ONLY;
 		break;
 	default:
-        res = chatEnabledChoice == ENABLE_CHAT_CHOICE_YES;
+		res = chatEnabledChoice == SLIPPI_CHAT_ON;
 		break;
 	}
-    return res; // default is enabled
+	return res; // default is enabled
 }
 
 void CEXISlippi::handleChatMessage(u8 *payload)
@@ -2985,7 +2984,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 	while (bufLoc < _uSize)
 	{
 		byte = memPtr[bufLoc];
-		//INFO_LOG(SLIPPI, "EXI SLIPPI: Loc: %d, Size: %d, Cmd: 0x%x", bufLoc, _uSize, byte);
+		// INFO_LOG(SLIPPI, "EXI SLIPPI: Loc: %d, Size: %d, Cmd: 0x%x", bufLoc, _uSize, byte);
 		if (!payloadSizes.count(byte))
 		{
 			// This should never happen. Do something else if it does?
