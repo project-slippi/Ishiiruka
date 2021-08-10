@@ -24,7 +24,7 @@ enum class Language;
 #define ENABLE_CHAT_CHOICE_DIRECT_ONLY 1
 #define ENABLE_CHAT_CHOICE_NO 2
 
-std::map<int, std::string> enableQuickChatOptions = {
+static std::map<int, std::string> enableQuickChatOptions = {
     {ENABLE_CHAT_CHOICE_YES, "Yes"},
     {ENABLE_CHAT_CHOICE_DIRECT_ONLY, "Direct Only"},
     {ENABLE_CHAT_CHOICE_NO, "No"},
