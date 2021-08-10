@@ -297,7 +297,6 @@ void SConfig::SaveCoreSettings(IniFile &ini)
 	core->Set("AgpCartAPath", m_strGbaCartA);
 	core->Set("AgpCartBPath", m_strGbaCartB);
 	core->Set("SlotA", m_EXIDevice[0]);
-	core->Set("SlotB", m_EXIDevice[1]);
 	core->Set("SerialPort1", m_EXIDevice[2]);
 	core->Set("BBA_MAC", m_bba_mac);
 	for (int i = 0; i < MAX_SI_CHANNELS; ++i)
@@ -643,7 +642,6 @@ void SConfig::LoadCoreSettings(IniFile &ini)
 	core->Get("AgpCartAPath", &m_strGbaCartA);
 	core->Get("AgpCartBPath", &m_strGbaCartB);
 	core->Get("SlotA", (int *)&m_EXIDevice[0], EXIDEVICE_NONE);
-	core->Get("SlotB", (int *)&m_EXIDevice[1], EXIDEVICE_SLIPPI);
 	core->Get("SerialPort1", (int *)&m_EXIDevice[2], EXIDEVICE_NONE);
 	core->Get("BBA_MAC", &m_bba_mac);
 	core->Get("TimeProfiling", &bJITILTimeProfiling, false);

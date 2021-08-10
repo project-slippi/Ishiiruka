@@ -45,6 +45,6 @@ private:
 	wxChoice* m_system_lang_choice;
 	wxCheckBox* m_override_lang_checkbox;
 	wxCheckBox* m_skip_bios_checkbox;
-	wxChoice* m_exi_devices[3];
-	wxButton* m_memcard_path[2];
+	wxChoice* m_exi_devices[2];
+	wxButton* m_memcard_path[1];
 };
