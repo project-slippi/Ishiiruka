@@ -128,7 +128,7 @@ struct SConfig : NonCopyable
 	bool bNTSC = false;
 	bool bForceNTSCJ = false;
 	bool bHLE_BS2 = true;
-	bool bEnableCheats = false;
+	bool bEnableCheats = true;
 	bool bBootDefaultISO = false;
 	bool bEnableMemcardSdWriting = true;
 	bool bAllowAllNetplayVersions = false;
