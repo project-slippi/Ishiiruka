@@ -303,7 +303,7 @@ struct SConfig : NonCopyable
 	std::string m_strMemoryCardB;
 	std::string m_strGbaCartA;
 	std::string m_strGbaCartB;
-	TEXIDevices m_EXIDevice[3];
+	TEXIDevices m_EXIDevice[3] = {EXIDEVICE_NONE, EXIDEVICE_SLIPPI, EXIDEVICE_NONE};
 	SIDevices m_SIDevice[4];
 	std::string m_bba_mac;
 
