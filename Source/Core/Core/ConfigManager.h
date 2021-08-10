@@ -14,6 +14,8 @@
 #include "Core/HW/EXI_Device.h"
 #include "Core/HW/SI_Device.h"
 
+#include "DiscIO/Filesystem.h"
+
 namespace DiscIO
 {
 enum class Language;
@@ -60,8 +62,7 @@ enum GameType
 	GAMETYPE_MELEE_NTSC,
 	GAMETYPE_MELEE_20XX,
 	GAMETYPE_MELEE_UPTM,
-	GAMETYPE_MELEE_AKANEIA,
-	GAMETYPE_MELEE_BEYOND,
+	GAMETYPE_MELEE_MEX,
 };
 
 enum PollingMethod
@@ -293,6 +294,8 @@ struct SConfig : NonCopyable
 	void CheckMemcardPath(std::string &memcardPath, const std::string &gameRegion, bool isSlotA);
 	DiscIO::Language GetCurrentLanguage(bool wii) const;
 
+	bool CheckDirectoryForFile(const std::vector<DiscIO::SFileInfo> &file_infos, const size_t first_index,
+	                           const size_t last_index, const std::string &filename, size_t &current_index) const;
 	u16 GetGameRevision() const;
 	std::string GetGameID_Wrapper() const;
 	bool GameHasDefaultGameIni() const;
