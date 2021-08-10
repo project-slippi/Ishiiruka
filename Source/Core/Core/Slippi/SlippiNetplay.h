@@ -105,6 +105,7 @@ class SlippiMatchInfo
 	}
 };
 
+class OnlinePlayMode;
 class SlippiNetplayClient
 {
   public:
@@ -139,8 +140,8 @@ class SlippiNetplayClient
 	void DropOldRemoteInputs(int32_t minFrameRead);
 	SlippiMatchInfo *GetMatchInfo();
 	int32_t GetSlippiLatestRemoteFrame();
-	SlippiPlayerSelections GetSlippiRemoteChatMessage();
-	u8 GetSlippiRemoteSentChatMessage();
+	SlippiPlayerSelections GetSlippiRemoteChatMessage(bool isChatEnabled);
+	u8 GetSlippiRemoteSentChatMessage(bool isChatEnabled);
 	s32 CalcTimeOffsetUs();
 
 	void WriteChatMessageToPacket(sf::Packet &packet, int messageId, u8 playerIdx);
