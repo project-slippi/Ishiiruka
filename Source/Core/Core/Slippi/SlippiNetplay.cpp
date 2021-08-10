@@ -487,7 +487,8 @@ std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::ReadChatMessageFrom
 	case 24:
 	case 18:
 	case 20:
-	case 17:
+    case 17:
+    case SlippiPremadeText::CHAT_MSG_CHAT_DISABLED: // Opponent Chat Message Disabled
 	{
 		// Good message ID. Do nothing
 		break;
@@ -1105,12 +1106,14 @@ SlippiPlayerSelections SlippiNetplayClient::GetSlippiRemoteChatMessage(bool isCh
 		copiedSelection.playerIdx = 0;
 
         // if chat is not enabled, automatically send back a message saying so.
-        if(remoteChatMessageSelection !=  nullptr){
+        if(remoteChatMessageSelection != nullptr && !isChatEnabled &&
+		    (remoteChatMessageSelection->messageId > 0 && remoteChatMessageSelection->messageId != SlippiPremadeText::CHAT_MSG_CHAT_DISABLED)){
             auto packet = std::make_unique<sf::Packet>();
             remoteSentChatMessageId = SlippiPremadeText::CHAT_MSG_CHAT_DISABLED;
             WriteChatMessageToPacket(*packet, remoteSentChatMessageId, LocalPlayerPort());
             SendAsync(std::move(packet));
             remoteSentChatMessageId = 0;
+			remoteChatMessageSelection = nullptr;
         }
 	}
 

@@ -2741,17 +2741,19 @@ void CEXISlippi::preparePremadeTextLoad(u8 *payload)
 
 bool CEXISlippi::isSlippiChatEnabled(){
 	auto chatEnabledChoice = SConfig::GetInstance().m_slippiEnableQuickChat;
+	bool res = true;
 	switch (lastSearch.mode)
 	{
 	case SlippiMatchmaking::DIRECT:
-		return
+        res =
 		    chatEnabledChoice == ENABLE_CHAT_CHOICE_YES ||
             chatEnabledChoice == ENABLE_CHAT_CHOICE_DIRECT_ONLY;
+		break;
 	default:
-		    return chatEnabledChoice == ENABLE_CHAT_CHOICE_YES;
+        res = chatEnabledChoice == ENABLE_CHAT_CHOICE_YES;
 		break;
 	}
-	return true; // default is enabled
+    return res; // default is enabled
 }
 
 void CEXISlippi::handleChatMessage(u8 *payload)

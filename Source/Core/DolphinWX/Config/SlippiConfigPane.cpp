@@ -203,7 +203,7 @@ void SlippiNetplayConfigPane::BindEvents()
 	m_replay_directory_picker->Bind(wxEVT_DIRPICKER_CHANGED, &SlippiNetplayConfigPane::OnReplayDirChanged, this);
 
 	m_slippi_delay_frames_ctrl->Bind(wxEVT_SPINCTRL, &SlippiNetplayConfigPane::OnDelayFramesChanged, this);
-	m_slippi_enable_quick_chat_choice->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnQuickChatChanged, this);
+	m_slippi_enable_quick_chat_choice->Bind(wxEVT_CHOICE, &SlippiNetplayConfigPane::OnQuickChatChanged, this);
 	m_slippi_force_netplay_port_checkbox->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnForceNetplayPortToggle,
 	                                           this);
 	m_slippi_force_netplay_port_ctrl->Bind(wxEVT_SPINCTRL, &SlippiNetplayConfigPane::OnNetplayPortChanged, this);
@@ -218,20 +218,20 @@ void SlippiNetplayConfigPane::BindEvents()
 
 void SlippiNetplayConfigPane::OnQuickChatChanged(wxCommandEvent &event)
 {
-	auto selectedStr = m_slippi_enable_quick_chat_choice->GetSelection()
+	auto selectedStr = m_slippi_enable_quick_chat_choice->GetSelection() != wxNOT_FOUND
 	                       ? WxStrToStr(m_slippi_enable_quick_chat_choice->GetStringSelection())
 	                       : enableQuickChatOptions[ENABLE_CHAT_CHOICE_YES];
 
 	int selectedChoice = ENABLE_CHAT_CHOICE_YES; // default is enabled
 
 	for (auto it = enableQuickChatOptions.begin(); it != enableQuickChatOptions.end(); it++)
-		if (strcmp(it->second.c_str(), selectedStr.c_str()))
+		if (strcmp(it->second.c_str(), selectedStr.c_str()) == 0)
 		{
-			selectedChoice = it->first;
+            selectedChoice = it->first;
 			break;
 		}
 
-	SConfig::GetInstance().m_slippiEnableQuickChat = selectedChoice;
+    SConfig::GetInstance().m_slippiEnableQuickChat = selectedChoice;
 }
 
 void SlippiNetplayConfigPane::OnReplaySavingToggle(wxCommandEvent &event)
