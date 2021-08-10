@@ -271,7 +271,6 @@ void SConfig::SaveCoreSettings(IniFile &ini)
 	core->Set("BootDefaultISO", bBootDefaultISO);
 	core->Set("DVDRoot", m_strDVDRoot);
 	core->Set("Apploader", m_strApploader);
-	core->Set("EnableCheats", bEnableCheats);
 	core->Set("SelectedLanguage", SelectedLanguage);
 	core->Set("OverrideGCLang", bOverrideGCLanguage);
 	core->Set("DPL2Decoder", bDPL2Decoder);
@@ -297,7 +296,6 @@ void SConfig::SaveCoreSettings(IniFile &ini)
 	core->Set("AgpCartAPath", m_strGbaCartA);
 	core->Set("AgpCartBPath", m_strGbaCartB);
 	core->Set("SlotA", m_EXIDevice[0]);
-	core->Set("SlotB", m_EXIDevice[1]);
 	core->Set("SerialPort1", m_EXIDevice[2]);
 	core->Set("BBA_MAC", m_bba_mac);
 	for (int i = 0; i < MAX_SI_CHANNELS; ++i)
@@ -614,7 +612,6 @@ void SConfig::LoadCoreSettings(IniFile &ini)
 	core->Get("BootDefaultISO", &bBootDefaultISO, false);
 	core->Get("DVDRoot", &m_strDVDRoot);
 	core->Get("Apploader", &m_strApploader);
-	core->Get("EnableCheats", &bEnableCheats, true);
 	core->Get("SelectedLanguage", &SelectedLanguage, 0);
 	core->Get("OverrideGCLang", &bOverrideGCLanguage, false);
 	core->Get("DPL2Decoder", &bDPL2Decoder, false);
@@ -643,7 +640,6 @@ void SConfig::LoadCoreSettings(IniFile &ini)
 	core->Get("AgpCartAPath", &m_strGbaCartA);
 	core->Get("AgpCartBPath", &m_strGbaCartB);
 	core->Get("SlotA", (int *)&m_EXIDevice[0], EXIDEVICE_NONE);
-	core->Get("SlotB", (int *)&m_EXIDevice[1], EXIDEVICE_SLIPPI);
 	core->Get("SerialPort1", (int *)&m_EXIDevice[2], EXIDEVICE_NONE);
 	core->Get("BBA_MAC", &m_bba_mac);
 	core->Get("TimeProfiling", &bJITILTimeProfiling, false);

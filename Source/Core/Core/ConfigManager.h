@@ -140,7 +140,7 @@ struct SConfig : NonCopyable
 	bool bNTSC = false;
 	bool bForceNTSCJ = false;
 	bool bHLE_BS2 = true;
-	bool bEnableCheats = false;
+	bool bEnableCheats = true;
 	bool bBootDefaultISO = false;
 	bool bEnableMemcardSdWriting = true;
 	bool bAllowAllNetplayVersions = false;
@@ -315,7 +315,7 @@ struct SConfig : NonCopyable
 	std::string m_strMemoryCardB;
 	std::string m_strGbaCartA;
 	std::string m_strGbaCartB;
-	TEXIDevices m_EXIDevice[3];
+	TEXIDevices m_EXIDevice[3] = {EXIDEVICE_NONE, EXIDEVICE_SLIPPI, EXIDEVICE_NONE};
 	SIDevices m_SIDevice[4];
 	std::string m_bba_mac;
 
