@@ -66,7 +66,7 @@ void SlippiNetplayConfigPane::InitializeGUI()
 	      "Increasing this can cause unplayable input delay, and lowering it can cause visual artifacts/lag."));
 	m_slippi_delay_frames_ctrl->SetRange(1, 9);
 
-	m_slippi_enable_quick_chat_txt = new wxStaticText(this, wxID_ANY, _("Quick Chat"));
+	m_slippi_enable_quick_chat_txt = new wxStaticText(this, wxID_ANY, _("Quick Chat:"));
 	m_slippi_enable_quick_chat_choice =
 	    new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, m_slippi_enable_quick_chat_strings);
 	m_slippi_enable_quick_chat_choice->SetToolTip(
