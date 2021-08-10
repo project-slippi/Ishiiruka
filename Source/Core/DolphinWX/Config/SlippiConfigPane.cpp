@@ -310,15 +310,15 @@ void SlippiNetplayConfigPane::OnReduceTimingDispersionToggle(wxCommandEvent &eve
 void SlippiNetplayConfigPane::PopulateEnableChatChoiceBox()
 {
 
-    for (auto it = enableQuickChatOptions.begin(); it != enableQuickChatOptions.end(); it++)
-    {
-        m_slippi_enable_quick_chat_choice->Append(StrToWxStr(it->second));
-    }
+	for (auto it = enableQuickChatOptions.begin(); it != enableQuickChatOptions.end(); it++)
+	{
+		m_slippi_enable_quick_chat_choice->Append(StrToWxStr(it->second));
+	}
 
 	auto currentChoice = SConfig::GetInstance().m_slippiEnableQuickChat;
 	auto currentChoiceStr = enableQuickChatOptions[currentChoice];
-    int num = m_slippi_enable_quick_chat_choice->FindString(StrToWxStr(currentChoiceStr));
-    m_slippi_enable_quick_chat_choice->SetSelection(num);
+	int num = m_slippi_enable_quick_chat_choice->FindString(StrToWxStr(currentChoiceStr));
+	m_slippi_enable_quick_chat_choice->SetSelection(num);
 }
 
 SlippiPlaybackConfigPane::SlippiPlaybackConfigPane(wxWindow *parent, wxWindowID id)

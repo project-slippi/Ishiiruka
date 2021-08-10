@@ -487,8 +487,8 @@ std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::ReadChatMessageFrom
 	case 24:
 	case 18:
 	case 20:
-    case 17:
-    case SlippiPremadeText::CHAT_MSG_CHAT_DISABLED: // Opponent Chat Message Disabled
+	case 17:
+	case SlippiPremadeText::CHAT_MSG_CHAT_DISABLED: // Opponent Chat Message Disabled
 	{
 		// Good message ID. Do nothing
 		break;

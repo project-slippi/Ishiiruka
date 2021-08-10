@@ -39,11 +39,11 @@ class SlippiNetplayConfigPane final : public wxPanel
 	void OnNetplayLanIpChanged(wxCommandEvent &event);
 	void OnQuickChatChanged(wxCommandEvent &event);
 	void OnReduceTimingDispersionToggle(wxCommandEvent &event);
-    void PopulateEnableChatChoiceBox();
+	void PopulateEnableChatChoiceBox();
 
-    wxArrayString m_slippi_enable_quick_chat_strings;
+	wxArrayString m_slippi_enable_quick_chat_strings;
 
-    wxCheckBox *m_replay_enable_checkbox;
+	wxCheckBox *m_replay_enable_checkbox;
 	wxDirPickerCtrl *m_replay_directory_picker;
 	wxCheckBox *m_replay_month_folders_checkbox;
 	wxStaticText *m_slippi_delay_frames_txt;
@@ -52,10 +52,10 @@ class SlippiNetplayConfigPane final : public wxPanel
 	wxSpinCtrl *m_slippi_force_netplay_port_ctrl;
 	wxCheckBox *m_slippi_force_netplay_lan_ip_checkbox;
 	wxTextCtrl *m_slippi_netplay_lan_ip_ctrl;
-    wxStaticText *m_slippi_enable_quick_chat_txt;
-    wxChoice* m_slippi_enable_quick_chat_choice;
+	wxStaticText *m_slippi_enable_quick_chat_txt;
+	wxChoice *m_slippi_enable_quick_chat_choice;
 
-    wxCheckBox *m_reduce_timing_dispersion_checkbox;
+	wxCheckBox *m_reduce_timing_dispersion_checkbox;
 };
 
 class SlippiPlaybackConfigPane final : public wxPanel
