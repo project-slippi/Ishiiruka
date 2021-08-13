@@ -296,7 +296,7 @@ wxMenu* MainMenuBar::CreateViewMenu() const
 	view_menu->Check(IDM_TOGGLE_STATUSBAR, config_instance.m_InterfaceStatusbar);
 #ifdef IS_PLAYBACK
 	view_menu->AppendCheckItem(IDM_TOGGLE_SEEKBAR, _("Show &Seekbar"));
-	view_menu->Check(IDM_TOGGLE_SEEKBAR, config_instance.m_InterfaceSeekbar);
+	view_menu->Check(IDM_TOGGLE_SEEKBAR, config_instance.m_InterfaceSeekbar && !config_instance.m_CLIHideSeekbar);
 #endif
 	view_menu->AppendSeparator();
 	view_menu->AppendCheckItem(IDM_LOG_WINDOW, _("Show &Log"));

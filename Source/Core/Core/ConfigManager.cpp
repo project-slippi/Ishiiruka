@@ -271,7 +271,6 @@ void SConfig::SaveCoreSettings(IniFile &ini)
 	core->Set("BootDefaultISO", bBootDefaultISO);
 	core->Set("DVDRoot", m_strDVDRoot);
 	core->Set("Apploader", m_strApploader);
-	core->Set("EnableCheats", bEnableCheats);
 	core->Set("SelectedLanguage", SelectedLanguage);
 	core->Set("OverrideGCLang", bOverrideGCLanguage);
 	core->Set("DPL2Decoder", bDPL2Decoder);
@@ -297,7 +296,6 @@ void SConfig::SaveCoreSettings(IniFile &ini)
 	core->Set("AgpCartAPath", m_strGbaCartA);
 	core->Set("AgpCartBPath", m_strGbaCartB);
 	core->Set("SlotA", m_EXIDevice[0]);
-	core->Set("SlotB", m_EXIDevice[1]);
 	core->Set("SerialPort1", m_EXIDevice[2]);
 	core->Set("BBA_MAC", m_bba_mac);
 	for (int i = 0; i < MAX_SI_CHANNELS; ++i)
@@ -529,9 +527,13 @@ void SConfig::LoadDisplaySettings(IniFile &ini)
 {
 	IniFile::Section *display = ini.GetOrCreateSection("Display");
 
-	display->Get("Fullscreen", &bFullscreen, false);
-	display->Get("FullscreenResolution", &strFullscreenResolution, "Auto");
 #ifdef IS_PLAYBACK
+	display->Get("Fullscreen", &bFullscreen, false);
+#else
+	display->Get("Fullscreen", &bFullscreen, true);
+#endif
+	display->Get("FullscreenResolution", &strFullscreenResolution, "Auto");
+#if defined IS_PLAYBACK && (defined _WIN32 || defined __APPLE__)
 	display->Get("RenderToMain", &bRenderToMain, true);
 #else
 	display->Get("RenderToMain", &bRenderToMain, false);
@@ -610,7 +612,6 @@ void SConfig::LoadCoreSettings(IniFile &ini)
 	core->Get("BootDefaultISO", &bBootDefaultISO, false);
 	core->Get("DVDRoot", &m_strDVDRoot);
 	core->Get("Apploader", &m_strApploader);
-	core->Get("EnableCheats", &bEnableCheats, true);
 	core->Get("SelectedLanguage", &SelectedLanguage, 0);
 	core->Get("OverrideGCLang", &bOverrideGCLanguage, false);
 	core->Get("DPL2Decoder", &bDPL2Decoder, false);
@@ -622,7 +623,7 @@ void SConfig::LoadCoreSettings(IniFile &ini)
 	core->Get("SlippiSpectatorLocalPort", &m_spectator_local_port, 51441);
 	core->Get("SlippiOnlineDelay", &m_slippiOnlineDelay, 2);
 	core->Get("SlippiSaveReplays", &m_slippiSaveReplays, true);
-	core->Get("SlippiEnableQuickChat", &m_slippiEnableQuickChat, true);
+	core->Get("SlippiEnableQuickChat", &m_slippiEnableQuickChat, SLIPPI_CHAT_ON);
 	core->Get("SlippiForceNetplayPort", &m_slippiForceNetplayPort, false);
 	core->Get("SlippiNetplayPort", &m_slippiNetplayPort, 2626);
 	core->Get("SlippiForceLanIp", &m_slippiForceLanIp, false);
@@ -639,7 +640,6 @@ void SConfig::LoadCoreSettings(IniFile &ini)
 	core->Get("AgpCartAPath", &m_strGbaCartA);
 	core->Get("AgpCartBPath", &m_strGbaCartB);
 	core->Get("SlotA", (int *)&m_EXIDevice[0], EXIDEVICE_NONE);
-	core->Get("SlotB", (int *)&m_EXIDevice[1], EXIDEVICE_SLIPPI);
 	core->Get("SerialPort1", (int *)&m_EXIDevice[2], EXIDEVICE_NONE);
 	core->Get("BBA_MAC", &m_bba_mac);
 	core->Get("TimeProfiling", &bJITILTimeProfiling, false);
@@ -948,6 +948,9 @@ bool SConfig::AutoSetup(EBootBS2 _BootBS2)
 				else if (pVolume->GetLongNames()[DiscIO::Language::LANGUAGE_ENGLISH].find("Akaneia") !=
 				         std::string::npos)
 					m_gameType = GAMETYPE_MELEE_AKANEIA;
+				else if (pVolume->GetLongNames()[DiscIO::Language::LANGUAGE_ENGLISH].find("Beyond") !=
+				         std::string::npos)
+					m_gameType = GAMETYPE_MELEE_BEYOND;
 			}
 			else if (m_strGameID == "GTME01")
 			{

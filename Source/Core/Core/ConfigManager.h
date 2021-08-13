@@ -5,6 +5,7 @@
 #pragma once
 
 #include <limits>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -17,6 +18,18 @@ namespace DiscIO
 {
 enum class Language;
 }
+
+// Slippi Types
+
+#define SLIPPI_CHAT_ON 0
+#define SLIPPI_CHAT_DIRECT_ONLY 1
+#define SLIPPI_CHAT_OFF 2
+
+static std::map<int, std::string> quickChatOptions = {
+    {SLIPPI_CHAT_ON, "Enabled"},
+    {SLIPPI_CHAT_DIRECT_ONLY, "Direct Only"},
+    {SLIPPI_CHAT_OFF, "Disabled"},
+};
 
 // DSP Backend Types
 #define BACKEND_NULLSOUND _trans("No audio output")
@@ -48,6 +61,7 @@ enum GameType
 	GAMETYPE_MELEE_20XX,
 	GAMETYPE_MELEE_UPTM,
 	GAMETYPE_MELEE_AKANEIA,
+	GAMETYPE_MELEE_BEYOND,
 };
 
 enum PollingMethod
@@ -127,7 +141,7 @@ struct SConfig : NonCopyable
 	bool bNTSC = false;
 	bool bForceNTSCJ = false;
 	bool bHLE_BS2 = true;
-	bool bEnableCheats = false;
+	bool bEnableCheats = true;
 	bool bBootDefaultISO = false;
 	bool bEnableMemcardSdWriting = true;
 	bool bAllowAllNetplayVersions = false;
@@ -142,7 +156,7 @@ struct SConfig : NonCopyable
 
 	// Slippi
 	bool m_slippiSaveReplays = true;
-	bool m_slippiEnableQuickChat = true;
+	int m_slippiEnableQuickChat = SLIPPI_CHAT_ON;
 	bool m_slippiReplayMonthFolders = false;
 	std::string m_strSlippiReplayDir;
 	bool m_slippiForceNetplayPort = false;
@@ -302,7 +316,7 @@ struct SConfig : NonCopyable
 	std::string m_strMemoryCardB;
 	std::string m_strGbaCartA;
 	std::string m_strGbaCartB;
-	TEXIDevices m_EXIDevice[3];
+	TEXIDevices m_EXIDevice[3] = {EXIDEVICE_NONE, EXIDEVICE_SLIPPI, EXIDEVICE_NONE};
 	SIDevices m_SIDevice[4];
 	std::string m_bba_mac;
 
@@ -315,6 +329,8 @@ struct SConfig : NonCopyable
 	bool m_InterfaceToolbar;
 	bool m_InterfaceStatusbar;
 	bool m_InterfaceSeekbar;
+	// a transient setting for when a program hides the seekbar via the command line
+	bool m_CLIHideSeekbar = false;
 	bool m_InterfaceLogWindow;
 	bool m_InterfaceLogConfigWindow;
 	bool m_InterfaceExtendedFPSInfo;
