@@ -409,11 +409,18 @@ Class getSLPMetalLayerViewClassType()
 
 	if (SLPMetalLayerViewClass == nullptr)
 	{
+#ifdef IS_PLAYBACK
+		// These are disabled on Playback builds for now, as M1 devices running Playback under Rosetta 2
+		// seem to hit a race condition with asynchronous queue submits. Rendering takes a slight hit but
+		// this matters less in playback, and it's still better than OpenGL.
+		//setenv("MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS", "0", 0);
+		//setenv("MVK_CONFIG_PRESENT_WITH_COMMAND_BUFFER", "0", 0);
+#else
 		// This does a one-time opt-in to a MVK flag that seems to universally help in Ishiiruka.
 		// (mainline should not need this)
 		setenv("MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS", "0", 0);
-		setenv("MVK_CONFIG_PRESENT_WITH_COMMAND_BUFFER", "0", 0);
-
+		setenv("MVK_CONFIG_PRESENT_WITH_COMMAND_BUFFER", "0", 0);		
+#endif
 		SLPMetalLayerViewClass = objc_allocateClassPair(
 			(Class)objc_getClass("NSView"),
 			kSLPMetalLayerViewClassName,
