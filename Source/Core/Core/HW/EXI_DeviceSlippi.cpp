@@ -1897,10 +1897,9 @@ void CEXISlippi::startFindMatch(u8 *payload)
 	}
 	else if (search.mode == SlippiMatchmaking::OnlinePlayMode::TEAMS)
 	{
-		auto isAkaneia = SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_AKANEIA;
-		auto isBeyond = SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_BEYOND;
+		auto isMex = SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_MEX;
 		// Some special handling for teams since it is being heavily used for unranked
-		if (localSelections.characterId >= 26 && (!isAkaneia && !isBeyond))
+		if (localSelections.characterId >= 26 && !isMex)
 		{
 			forcedError = "The character you selected is not allowed in this mode";
 			return;
@@ -2339,10 +2338,9 @@ void CEXISlippi::prepareOnlineMatchState()
 		}
 		else if (lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::TEAMS)
 		{
-			auto isAkaneia = SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_AKANEIA;
-			auto isBeyond = SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_BEYOND;
+			auto isMex = SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_MEX;
 
-			if (!localCharOk && (!isAkaneia && !isBeyond))
+			if (!localCharOk && !isMex)
 			{
 				handleConnectionCleanup();
 				forcedError = "The character you selected is not allowed in this mode";
@@ -2350,7 +2348,7 @@ void CEXISlippi::prepareOnlineMatchState()
 				return;
 			}
 
-			if (!remoteCharOk && (!isAkaneia && !isBeyond))
+			if (!remoteCharOk && !isMex)
 			{
 				handleConnectionCleanup();
 				prepareOnlineMatchState();

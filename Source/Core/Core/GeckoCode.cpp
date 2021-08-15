@@ -158,8 +158,7 @@ static bool InstallCodeHandler()
     // SConfig::GetMeleeCapabilities(CAPABILITY_GECKO_CODE) // returns boolean
     // SConfig::GetMeleeCapabilities(CAPABILITY_SLIPPI_TEAMS) // returns boolean   
 	if (SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_NTSC    || 
-	    SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_AKANEIA || 
-	    SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_BEYOND)
+	    SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_MEX)
 	{
 		// Here we are replacing a line in the codehandler with a blr.
 		// The reason for this is that this is the section of the codehandler
