@@ -385,16 +385,24 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 	case NP_MSG_SLIPPI_MATCH_SELECTIONS:
 	{
 		auto s = readSelectionsFromPacket(packet);
-		INFO_LOG(SLIPPI_ONLINE, "[Netplay] Received selections from opponent with player idx %d", s->playerIdx);
-		u8 idx = PlayerIdxFromPort(s->playerIdx);
-		matchInfo.remotePlayerSelections[idx].Merge(*s);
+		if (!s->error)
+		{
+			INFO_LOG(SLIPPI_ONLINE, "[Netplay] Received selections from opponent with player idx %d", s->playerIdx);
+			u8 idx = PlayerIdxFromPort(s->playerIdx);
+			if (idx >= m_remotePlayerCount)
+			{
+				ERROR_LOG(SLIPPI_ONLINE, "Got match selection packet with invalid player idx %d", idx);
+				break;
+			}
+			matchInfo.remotePlayerSelections[idx].Merge(*s);
 
-		// This might be a good place to reset some logic? Game can't start until we receive this msg
-		// so this should ensure that everything is initialized before the game starts
-		hasGameStarted = false;
+			// This might be a good place to reset some logic? Game can't start until we receive this msg
+			// so this should ensure that everything is initialized before the game starts
+			hasGameStarted = false;
 
-		// Reset remote pad queue such that next inputs that we get are not compared to inputs from last game
-		remotePadQueue[idx].clear();
+			// Reset remote pad queue such that next inputs that we get are not compared to inputs from last game
+			remotePadQueue[idx].clear();
+		}
 	}
 	break;
 
@@ -404,19 +412,11 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 		INFO_LOG(SLIPPI_ONLINE, "[Netplay] Received chat message from opponent %d: %d", playerSelection->playerIdx,
 		         playerSelection->messageId);
 
-		// if chat is not enabled, automatically send back a message saying so
-		if (!SConfig::GetInstance().m_slippiEnableQuickChat)
+		if (!playerSelection->error)
 		{
-			auto packet = std::make_unique<sf::Packet>();
-			remoteSentChatMessageId = SlippiPremadeText::CHAT_MSG_CHAT_DISABLED;
-			WriteChatMessageToPacket(*packet, remoteSentChatMessageId, LocalPlayerPort());
-			SendAsync(std::move(packet));
-			remoteSentChatMessageId = 0;
-			break;
+			// set message id to netplay instance
+			remoteChatMessageSelection = std::move(playerSelection);
 		}
-
-		// set message id to netplay instance
-		remoteChatMessageSelection = std::move(playerSelection);
 	}
 	break;
 
@@ -446,6 +446,10 @@ void SlippiNetplayClient::writeToPacket(sf::Packet &packet, SlippiPlayerSelectio
 	packet << s.stagesBlock;
 	packet << s.areCustomRulesAllowed;
 	packet << s.isMatchConfigSet;
+	ERROR_LOG(SLIPPI_ONLINE, "stagesBlock: 0x%x", s.stagesBlock);
+	ERROR_LOG(SLIPPI_ONLINE, "areCustomRulesAllowed: 0x%x", s.areCustomRulesAllowed);
+	ERROR_LOG(SLIPPI_ONLINE, "isMatchConfigSet: 0x%x", s.isMatchConfigSet);
+
 	if (s.isMatchConfigSet)
 	{
 		u16 matchConfigSize = (u16)s.matchConfig.size();
@@ -453,42 +457,9 @@ void SlippiNetplayClient::writeToPacket(sf::Packet &packet, SlippiPlayerSelectio
 		for (int i = 0; i < matchConfigSize; i++)
 		{
 			packet << (u8)s.matchConfig[i];
+			ERROR_LOG(SLIPPI_ONLINE, "block: %i 0x%x", i, s.matchConfig[i]);
 		}
 	}
-}
-
-std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::readSelectionsFromPacket(sf::Packet &packet)
-{
-	auto s = std::make_unique<SlippiPlayerSelections>();
-
-	packet >> s->characterId;
-	packet >> s->characterColor;
-	packet >> s->isCharacterSelected;
-
-	packet >> s->playerIdx;
-
-	packet >> s->stageId;
-	packet >> s->isStageSelected;
-
-	packet >> s->rngOffset;
-	packet >> s->teamId;
-
-	packet >> s->stagesBlock;
-	packet >> s->areCustomRulesAllowed;
-	packet >> s->isMatchConfigSet;
-	u16 matchConfigSize = 0;
-	if (s->isMatchConfigSet)
-	{
-		packet >> matchConfigSize;
-		for (int i = 0; i < matchConfigSize; i++)
-		{
-			u8 data;
-			packet >> data;
-			s->matchConfig.push_back(data);
-		}
-	}
-
-	return std::move(s);
 }
 
 void SlippiNetplayClient::WriteChatMessageToPacket(sf::Packet &packet, int messageId, u8 playerIdx)
@@ -502,9 +473,123 @@ std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::ReadChatMessageFrom
 {
 	auto s = std::make_unique<SlippiPlayerSelections>();
 
-	packet >> s->messageId;
-	packet >> s->playerIdx;
+	if (!(packet >> s->messageId))
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Chat packet too small to read message ID");
+		s->error = true;
+		return std::move(s);
+	}
+	if (!(packet >> s->playerIdx))
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Chat packet too small to read player index");
+		s->error = true;
+		return std::move(s);
+	}
 
+	switch (s->messageId)
+	{
+	// Only these 16 message IDs are allowed
+	case 136:
+	case 129:
+	case 130:
+	case 132:
+	case 34:
+	case 40:
+	case 33:
+	case 36:
+	case 72:
+	case 66:
+	case 68:
+	case 65:
+	case 24:
+	case 18:
+	case 20:
+	case 17:
+	case SlippiPremadeText::CHAT_MSG_CHAT_DISABLED: // Opponent Chat Message Disabled
+	{
+		// Good message ID. Do nothing
+		break;
+	}
+	default:
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Received invalid chat message index: %d", s->messageId);
+		s->error = true;
+		break;
+	}
+	}
+
+	return std::move(s);
+}
+
+std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::readSelectionsFromPacket(sf::Packet &packet)
+{
+	auto s = std::make_unique<SlippiPlayerSelections>();
+
+	if (!(packet >> s->characterId))
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Received invalid player selection");
+		s->error = true;
+	}
+	if (!(packet >> s->characterColor))
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Received invalid player selection");
+		s->error = true;
+	}
+	if (!(packet >> s->isCharacterSelected))
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Received invalid player selection");
+		s->error = true;
+	}
+	if (!(packet >> s->playerIdx))
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Received invalid player selection");
+		s->error = true;
+	}
+	if (!(packet >> s->stageId))
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Received invalid player selection");
+		s->error = true;
+	}
+	if (!(packet >> s->isStageSelected))
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Received invalid player selection");
+		s->error = true;
+	}
+	if (!(packet >> s->rngOffset))
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Received invalid player selection");
+		s->error = true;
+	}
+	if (!(packet >> s->teamId))
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Received invalid player selection");
+		s->error = true;
+	}
+	if (!(packet >> s->stagesBlock))
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Received invalid player selection");
+		s->error = true;
+	}
+	packet >> s->areCustomRulesAllowed;
+	packet >> s->isMatchConfigSet;
+
+	
+	ERROR_LOG(SLIPPI_ONLINE, "read stagesBlock: 0x%x", s->stagesBlock);
+	ERROR_LOG(SLIPPI_ONLINE, "read areCustomRulesAllowed: 0x%x", s->areCustomRulesAllowed);
+	ERROR_LOG(SLIPPI_ONLINE, "read isMatchConfigSet: 0x%x", s->isMatchConfigSet);
+
+	u16 matchConfigSize = 0;
+	if (s->isMatchConfigSet)
+	{
+		packet >> matchConfigSize;
+	
+		for (int i = 0; i < matchConfigSize; i++)
+		{
+			u8 data;
+			packet >> data;
+			s->matchConfig.push_back(data);
+		}
+	}
 	return std::move(s);
 }
 
@@ -1044,11 +1129,11 @@ void SlippiNetplayClient::SetMatchSelections(SlippiPlayerSelections &s)
 	SendAsync(std::move(spac));
 }
 
-SlippiPlayerSelections SlippiNetplayClient::GetSlippiRemoteChatMessage()
+SlippiPlayerSelections SlippiNetplayClient::GetSlippiRemoteChatMessage(bool isChatEnabled)
 {
 	SlippiPlayerSelections copiedSelection = SlippiPlayerSelections();
 
-	if (remoteChatMessageSelection != nullptr && SConfig::GetInstance().m_slippiEnableQuickChat)
+	if (remoteChatMessageSelection != nullptr && isChatEnabled)
 	{
 		copiedSelection.messageId = remoteChatMessageSelection->messageId;
 		copiedSelection.playerIdx = remoteChatMessageSelection->playerIdx;
@@ -1061,14 +1146,25 @@ SlippiPlayerSelections SlippiNetplayClient::GetSlippiRemoteChatMessage()
 	{
 		copiedSelection.messageId = 0;
 		copiedSelection.playerIdx = 0;
+
+        // if chat is not enabled, automatically send back a message saying so.
+        if(remoteChatMessageSelection != nullptr && !isChatEnabled &&
+		    (remoteChatMessageSelection->messageId > 0 && remoteChatMessageSelection->messageId != SlippiPremadeText::CHAT_MSG_CHAT_DISABLED)){
+            auto packet = std::make_unique<sf::Packet>();
+            remoteSentChatMessageId = SlippiPremadeText::CHAT_MSG_CHAT_DISABLED;
+            WriteChatMessageToPacket(*packet, remoteSentChatMessageId, LocalPlayerPort());
+            SendAsync(std::move(packet));
+            remoteSentChatMessageId = 0;
+			remoteChatMessageSelection = nullptr;
+        }
 	}
 
 	return copiedSelection;
 }
 
-u8 SlippiNetplayClient::GetSlippiRemoteSentChatMessage()
+u8 SlippiNetplayClient::GetSlippiRemoteSentChatMessage(bool isChatEnabled)
 {
-	if (!SConfig::GetInstance().m_slippiEnableQuickChat)
+	if (!isChatEnabled)
 	{
 		return 0;
 	}
@@ -1109,25 +1205,9 @@ std::unique_ptr<SlippiRemotePadOutput> SlippiNetplayClient::GetSlippiRemotePad(i
 	return std::move(padOutput);
 }
 
-void SlippiNetplayClient::DropOldRemoteInputs(int32_t curFrame)
+void SlippiNetplayClient::DropOldRemoteInputs(int32_t minFrameRead)
 {
 	std::lock_guard<std::mutex> lk(pad_mutex);
-
-	// Remove pad reports that should no longer be needed, compute the lowest frame recieved by
-	// all remote players that can be safely dropped.
-	int lowestCommonFrame = 0;
-	for (int i = 0; i < m_remotePlayerCount; i++)
-	{
-		int playerFrame = 0;
-		for (auto it = remotePadQueue[i].begin(); it != remotePadQueue[i].end(); ++it)
-		{
-			if (it->get()->frame > playerFrame)
-				playerFrame = it->get()->frame;
-		}
-
-		if (lowestCommonFrame == 0 || playerFrame < lowestCommonFrame)
-			lowestCommonFrame = playerFrame;
-	}
 
 	// INFO_LOG(SLIPPI_ONLINE, "Checking for remotePadQueue inputs to drop, lowest common: %d, [0]: %d, [1]: %d, [2]:
 	// %d",
@@ -1135,8 +1215,7 @@ void SlippiNetplayClient::DropOldRemoteInputs(int32_t curFrame)
 	for (int i = 0; i < m_remotePlayerCount; i++)
 	{
 		// INFO_LOG(SLIPPI_ONLINE, "remotePadQueue[%d] size: %d", i, remotePadQueue[i].size());
-		while (remotePadQueue[i].size() > 1 && remotePadQueue[i].back()->frame < lowestCommonFrame &&
-		       remotePadQueue[i].back()->frame < curFrame)
+		while (remotePadQueue[i].size() > 1 && remotePadQueue[i].back()->frame < minFrameRead)
 		{
 			// INFO_LOG(SLIPPI_ONLINE, "Popping inputs for frame %d from back of player %d queue",
 			//         remotePadQueue[i].back()->frame, i);

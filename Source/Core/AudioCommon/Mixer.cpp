@@ -8,6 +8,7 @@
 #include "Common/Atomic.h"
 #include "Common/CPUDetect.h"
 #include "Common/MathUtil.h"
+#include "Common/CommonFuncs.h"
 #include "Core/ConfigManager.h"
 #include "Core/Core.h"
 #include "Core/HW/AudioInterface.h"

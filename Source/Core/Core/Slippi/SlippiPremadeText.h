@@ -58,13 +58,13 @@ class SlippiPremadeText
 	    {CHAT_MSG_L_PAD_RIGHT, "thanks"},
 	    {CHAT_MSG_L_PAD_DOWN, "too good"},
 
-	    {CHAT_MSG_R_PAD_UP, "oof"},
+	    {CHAT_MSG_R_PAD_UP, "sorry"},
 	    {CHAT_MSG_R_PAD_LEFT, "my b"},
 	    {CHAT_MSG_R_PAD_RIGHT, "lol"},
 	    {CHAT_MSG_R_PAD_DOWN, "wow"},
 
-	    {CHAT_MSG_D_PAD_UP, "okay"},
-	    {CHAT_MSG_D_PAD_LEFT, "thinking"},
+	    {CHAT_MSG_D_PAD_UP, "gotta go"},
+	    {CHAT_MSG_D_PAD_LEFT, "one sec"},
 	    {CHAT_MSG_D_PAD_RIGHT, "lets play again later"},
 	    {CHAT_MSG_D_PAD_DOWN, "bad connection"},
 
@@ -81,6 +81,14 @@ class SlippiPremadeText
 	    {SPT_Z_TO_RESET, "<FIT>Press<S><COLOR, 59, 189, 255>Z</COLOR><S>To<S>Reset<S>Ruleset<END>"},
 	};
 
+	// This is just a map of delimiters and temporary replacements to remap them before the name is converted
+	// to Slippi Premade Text format
+	unordered_map<string, string> unsupportedStringMap = {
+	    {"<", "\\"},
+	    {">", "`"},
+	    {",", ""}, // DELETE U+007F
+	};
+
 	// TODO: use va_list to handle any no. or args
 	string GetPremadeTextString(u8 textId) { return premadeTexts[textId]; }
 
@@ -92,7 +100,7 @@ class SlippiPremadeText
 		va_start(args, textId);
 		vsprintf(str, format.c_str(), args);
 		va_end(args);
-		//		DEBUG_LOG(SLIPPI, "%s", str);
+		// DEBUG_LOG(SLIPPI, "%s", str);
 
 		vector<u8> data = {};
 		vector<u8> empty = {};
@@ -191,8 +199,13 @@ class SlippiPremadeText
 						int chr = utfMatch[c];
 						// We are manually replacing "<" for "\" and ">" for "`" because I don't want to handle vargs
 						// and we need to prevent "format injection" lol...
-						chr = chr == '\\' ? '<' : chr == '`' ? '>' : chr;
-						// DEBUG_LOG(SLIPPI, "CHAR 0x%x", chr);
+						for (auto it = unsupportedStringMap.begin(); it != unsupportedStringMap.end(); it++)
+						{
+							if (it->second.find(chr) != std::string::npos || (chr == U'' && it->first[0] == ','))
+							{ // Need to figure out how to find extended ascii chars ()
+								chr = it->first[0];
+							}
+						}
 
 						// Yup, fuck strchr and cpp too, I'm not in the mood to spend 4 more hours researching how to
 						// get Japanese characters properly working with a map, so I put everything on an int array in

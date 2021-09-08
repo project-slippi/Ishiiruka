@@ -69,8 +69,16 @@ SlippiPlaybackStatus::SlippiPlaybackStatus()
 void SlippiPlaybackStatus::startThreads()
 {
 	shouldRunThreads = true;
-	m_savestateThread = std::thread(&SlippiPlaybackStatus::SavestateThread, this);
-	m_seekThread = std::thread(&SlippiPlaybackStatus::SeekThread, this);
+
+	if (!m_savestateThread.joinable())
+	{
+		m_savestateThread = std::thread(&SlippiPlaybackStatus::SavestateThread, this);
+	}
+	
+	if (!m_seekThread.joinable())
+	{
+		m_seekThread = std::thread(&SlippiPlaybackStatus::SeekThread, this);
+	}
 }
 
 void SlippiPlaybackStatus::prepareSlippiPlayback(s32 &frameIndex)
@@ -174,7 +182,8 @@ void SlippiPlaybackStatus::SavestateThread()
 			processInitialState(iState);
 			inSlippiPlayback = true;
 		}
-		else if (SConfig::GetInstance().m_InterfaceSeekbar && !hasStateBeenProcessed && !isStartFrame)
+		else if (SConfig::GetInstance().m_InterfaceSeekbar && !SConfig::GetInstance().m_CLIHideSeekbar &&
+		         !hasStateBeenProcessed && !isStartFrame)
 		{
 			INFO_LOG(SLIPPI, "saving diff at frame: %d", fixedFrameNumber);
 			State::SaveToBuffer(cState);

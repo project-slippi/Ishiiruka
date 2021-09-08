@@ -159,3 +159,17 @@ inline std::string UTF8ToTStr(const std::string& str)
 #endif
 
 #endif
+
+std::string ValueToString(u16 value);
+std::string ValueToString(u32 value);
+std::string ValueToString(u64 value);
+std::string ValueToString(float value);
+std::string ValueToString(double value);
+std::string ValueToString(int value);
+std::string ValueToString(s64 value);
+std::string ValueToString(bool value);
+template <typename T, std::enable_if_t<std::is_enum<T>::value>* = nullptr>
+std::string ValueToString(T value)
+{
+  return ValueToString(static_cast<std::underlying_type_t<T>>(value));
+}

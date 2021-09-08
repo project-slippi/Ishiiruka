@@ -270,6 +270,8 @@ void CFrame::OpenGeneralConfiguration(wxWindowID tab_id)
 	m_main_config_dialog->SetFocus();
 }
 
+// Only macOS has WebView support.
+#ifdef __APPLE__
 // Actually create and show the wxWebView control.
 void CFrame::ShowSlippiAuthenticationDialog()
 {
@@ -285,6 +287,7 @@ void CFrame::OpenSlippiAuthenticationDialog()
 {
     CallAfter(&CFrame::ShowSlippiAuthenticationDialog);
 }
+#endif
 
 // Menu items
 
@@ -1703,6 +1706,8 @@ void CFrame::OnToggleStatusbar(wxCommandEvent& event)
 
 void CFrame::OnToggleSeekbar(wxCommandEvent &event)
 {
+	if (SConfig::GetInstance().m_CLIHideSeekbar)
+		SConfig::GetInstance().m_CLIHideSeekbar = false;
 	SConfig::GetInstance().m_InterfaceSeekbar = event.IsChecked();
 
 	SendSizeEvent();

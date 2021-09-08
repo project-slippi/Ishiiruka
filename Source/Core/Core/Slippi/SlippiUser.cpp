@@ -17,7 +17,10 @@
 
 #include "DolphinWX/Frame.h"
 #include "DolphinWX/Main.h"
+
+#ifdef __APPLE__
 #include "DolphinWX/SlippiAuthWebView/SlippiAuthWebView.h"
+#endif
 
 #include "VideoCommon/OnScreenDisplay.h"
 
@@ -148,39 +151,38 @@ bool SlippiUser::AttemptLogin()
 	return isLoggedIn;
 }
 
-// macOS and Linux have modern WebKit views (in our wxWidgets build) that can pop open and enable login
-// with relative ease; Windows unfortunately requires an extra check as Edge may not be present yet.
+// On macOS, this will pop open a built-in webview to handle authentication. This is likely to see less and less
+// use over time but should hang around for a bit longer; macOS in particular benefits from having this for some
+// testing scenarios due to the cumbersome user.json location placement on that system.
 //
-// If it's not, they just get routed to the older method (pop them over to browser and guide
-// them to place the file).
+// Windows and Linux don't have reliable WebView components, so this just pops the user over to slippi.gg for those
+// platforms.
 void SlippiUser::OpenLogInPage()
 {
-#ifdef _WIN32
-	// Uncomment this if Windows is in a position to try the login flow.
-	//if (!SlippiAuthWebView::IsAvailable())
-	//{
-		std::string url = "https://slippi.gg/online/enable";
-		std::string path = File::GetSlippiUserJSONPath();
-
-		// On windows, sometimes the path can have backslashes and slashes mixed, convert all to backslashes
-		path = ReplaceAll(path, "\\", "\\");
-		path = ReplaceAll(path, "/", "\\");
-
-		std::string fullUrl = url + "?path=" + path;
-		INFO_LOG(SLIPPI_ONLINE, "[User] Login at path: %s", fullUrl.c_str());
-
-		std::string command = "explorer \"" + fullUrl + "\"";
-		RunSystemCommand(command);
-		return;
-	//}
-#endif
-
-	// macOS and Linux have stable WebView components that we can use to
-	// enable an easier login flow for users. On macOS, this is backed by
-	// the system-integrated WebKit framework. On Linux, this is provided
-	// by linking Webkit2.
+#ifdef __APPLE__
 	CFrame *cframe = wxGetApp().GetCFrame();
 	cframe->OpenSlippiAuthenticationDialog();
+#else
+	std::string url = "https://slippi.gg/online/enable";
+	std::string path = File::GetSlippiUserJSONPath();
+
+#ifdef _WIN32
+	// On windows, sometimes the path can have backslashes and slashes mixed, convert all to backslashes
+	path = ReplaceAll(path, "\\", "\\");
+	path = ReplaceAll(path, "/", "\\");
+#endif
+
+	std::string fullUrl = url + "?path=" + path;
+	INFO_LOG(SLIPPI_ONLINE, "[User] Login at path: %s", fullUrl.c_str());
+
+#ifdef _WIN32
+	std::string command = "explorer \"" + fullUrl + "\"";
+#else
+	std::string command = "xdg-open \"" + fullUrl + "\""; // Linux
+#endif
+
+	RunSystemCommand(command);
+#endif
 }
 
 bool SlippiUser::UpdateApp()
@@ -207,7 +209,9 @@ bool SlippiUser::UpdateApp()
 	return true;
 #elif defined(__APPLE__)
 	CriticalAlertT(
-	    "Automatic updates are not available for macOS, please get the latest update from slippi.gg/netplay.");
+		"Automatic updates are not available for standalone Netplay builds on macOS. Please get the latest update from slippi.gg/netplay. "
+		"(The Slippi Launcher has automatic updates on macOS, and you should consider switching to that)"
+	);
 	return false;
 #else
 	const char *appimage_path = getenv("APPIMAGE");

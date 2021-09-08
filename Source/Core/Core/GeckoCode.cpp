@@ -153,7 +153,12 @@ static bool InstallCodeHandler()
 	// Write a magic value to 'gameid' (codehandleronly does not actually read this).
 	PowerPC::HostWrite_U32(0xd01f1bad, INSTALLER_BASE_ADDRESS);
 
-	if (SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_NTSC || SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_AKANEIA)
+    // TODO: There should be a map for game types and allowed modes, and check that instead on all places
+    // that way you can just simply do something like 
+    // SConfig::GetMeleeCapabilities(CAPABILITY_GECKO_CODE) // returns boolean
+    // SConfig::GetMeleeCapabilities(CAPABILITY_SLIPPI_TEAMS) // returns boolean   
+	if (SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_NTSC    || 
+	    SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_MEX)
 	{
 		// Here we are replacing a line in the codehandler with a blr.
 		// The reason for this is that this is the section of the codehandler

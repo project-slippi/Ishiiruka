@@ -22,9 +22,9 @@
 #include "Core/HW/SI.h"
 #include "Core/HW/SystemTimers.h"
 #include "Core/NetPlayProto.h"
-
 #include "InputCommon/GCAdapter.h"
 #include "InputCommon/GCPadStatus.h"
+#include "InputCommon/LibusbUtils.h"
 
 namespace GCAdapter
 {
@@ -34,7 +34,7 @@ static void ResetRumbleLockNeeded();
 static void Reset();
 static void Setup();
 
-static bool s_detected = false;
+static std::atomic<bool> s_detected = {false};
 static libusb_device_handle* s_handle = nullptr;
 static u8 s_controller_type[MAX_SI_CHANNELS] = {
 		ControllerTypes::CONTROLLER_NONE, ControllerTypes::CONTROLLER_NONE,
@@ -61,10 +61,12 @@ static std::thread s_adapter_detect_thread;
 static Common::Flag s_adapter_detect_thread_running;
 static Common::Event s_hotplug_event;
 
+static std::thread s_adapter_reset_thread;
+
 static std::function<void(void)> s_detect_callback;
 
 static bool s_libusb_driver_not_supported = false;
-static libusb_context* s_libusb_context = nullptr;
+static LibusbUtils::Context s_libusb_context;
 static bool s_libusb_hotplug_enabled = false;
 #if defined(LIBUSB_API_VERSION) && LIBUSB_API_VERSION >= 0x01000102
 static libusb_hotplug_callback_handle s_hotplug_handle;
@@ -77,6 +79,10 @@ static u64 s_last_init = 0;
 
 static u64 s_consecutive_slow_transfers = 0;
 static double s_read_rate = 0.0;
+
+static std::atomic<bool> external_thread_should_reset_polling_threads = {false};
+static u64 s_consecutive_adapter_errors = 0;
+static u64 s_consecutive_adapter_errors_limit = 100;
 
 // Schmidtt trigger style, start applying if effective report rate > 290Hz, stop if < 260Hz
 static const int stopApplyingEILVOptimsHz = 260;
@@ -341,13 +347,24 @@ const u8 *Fetch(std::chrono::high_resolution_clock::time_point *tp)
 	return controller_payload_entries.front().controller_payload;
 }
 
+void ResetAdapterIfNecessary()
+{
+	if (external_thread_should_reset_polling_threads)
+		Reset();
+}
+
 bool IsReadingAtReducedRate()
 {
 	return s_consecutive_slow_transfers > 80;
 }
 
-double ReadRate() 
+double ReadRate()
 {
+	if (external_thread_should_reset_polling_threads)
+	{
+		Reset();
+		return 1e10;
+	}
 	return s_read_rate;
 }
 
@@ -374,6 +391,20 @@ static void Read()
 
 		double elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - start).count() / 1000000.0;
 
+		if (adapter_error && !external_thread_should_reset_polling_threads)
+		{
+			s_consecutive_adapter_errors++;
+			if (s_consecutive_adapter_errors >= s_consecutive_adapter_errors_limit)
+			{
+				s_consecutive_adapter_errors = 0;
+				external_thread_should_reset_polling_threads = true;
+				return;
+			}
+		}
+		else
+		{
+			s_consecutive_adapter_errors = 0;
+		}
 		// Store previous input and restore in the case of an adapter error
 		if (reuseOldInputsEnabled)
 		{
@@ -500,26 +531,17 @@ void Init()
 
 	s_libusb_driver_not_supported = false;
 
-	int ret = libusb_init(&s_libusb_context);
 
-	if (ret)
-	{
-		ERROR_LOG(SERIALINTERFACE, "libusb_init failed with error: %d", ret);
-		s_libusb_driver_not_supported = true;
-		Shutdown();
-	}
-	else
-	{
 		if (UseAdapter())
 			StartScanThread();
-	}
 }
 
 void StartScanThread()
 {
 	if (s_adapter_detect_thread_running.IsSet())
 		return;
-
+	if (!s_libusb_context.IsValid())
+		return;
 	s_adapter_detect_thread_running.Set(true);
 	s_adapter_detect_thread = std::thread(ScanThreadFunc);
 }
@@ -535,27 +557,21 @@ void StopScanThread()
 
 static void Setup()
 {
-	libusb_device **list;
-	ssize_t cnt = libusb_get_device_list(s_libusb_context, &list);
-
 	for (int i = 0; i < MAX_SI_CHANNELS; i++)
 	{
 		s_controller_type[i] = ControllerTypes::CONTROLLER_NONE;
 		s_controller_rumble[i] = 0;
 	}
 
-	for (int d = 0; d < cnt; d++)
-	{
-		libusb_device* device = list[d];
+	s_libusb_context.GetDeviceList([](libusb_device *device) {
 		if (CheckDeviceAccess(device))
 		{
 			// Only connect to a single adapter in case the user has multiple connected
 			AddGCAdapter(device);
-			break;
+			return false;
 		}
-	}
-
-	libusb_free_device_list(list, 1);
+		return true;
+	});
 }
 
 static bool CheckDeviceAccess(libusb_device* device)
@@ -613,9 +629,11 @@ static bool CheckDeviceAccess(libusb_device* device)
 		}
 		// This call makes Nyko-brand (and perhaps other) adapters work.
 		// However it returns LIBUSB_ERROR_PIPE with Mayflash adapters.
+
 		const int transfer = libusb_control_transfer(s_handle, 0x21, 11, 0x0001, 0, nullptr, 0, 1000);
 		if (transfer < 0)
 			WARN_LOG(SERIALINTERFACE, "libusb_control_transfer failed with error: %d", transfer);
+		
 
 		// this split is needed so that we don't avoid claiming the interface when
 		// detaching the kernel driver is successful
@@ -706,16 +724,10 @@ void Shutdown()
 {
 	StopScanThread();
 #if defined(LIBUSB_API_VERSION) && LIBUSB_API_VERSION >= 0x01000102
-	if (s_libusb_hotplug_enabled)
+	if (s_libusb_context.IsValid() && s_libusb_hotplug_enabled)
 		libusb_hotplug_deregister_callback(s_libusb_context, s_hotplug_handle);
 #endif
 	Reset();
-
-	if (s_libusb_context)
-	{
-		libusb_exit(s_libusb_context);
-		s_libusb_context = nullptr;
-	}
 
 	s_libusb_driver_not_supported = false;
 }
@@ -728,6 +740,8 @@ static void Reset()
 	if (!s_detected)
 		return;
 
+	external_thread_should_reset_polling_threads = false;
+	
 	if (s_adapter_thread_running.TestAndClear())
 	{
 		s_adapter_input_thread.join();
@@ -760,9 +774,15 @@ GCPadStatus Input(int chan, std::chrono::high_resolution_clock::time_point *tp)
 
 	const SConfig &sconfig = SConfig::GetInstance();
 
-	#if defined(_WIN32)
+#if defined(_WIN32)
 	refreshThreadPriorities(sconfig);
-	#endif
+#endif
+
+	if (external_thread_should_reset_polling_threads)
+	{
+		Reset();
+		return{};
+	}
 
 	int payload_size = 0;
 	u8 controller_payload_copy[adapter_payload_size];
