@@ -446,9 +446,9 @@ void SlippiNetplayClient::writeToPacket(sf::Packet &packet, SlippiPlayerSelectio
 	packet << s.stagesBlock;
 	packet << s.areCustomRulesAllowed;
 	packet << s.isMatchConfigSet;
-	ERROR_LOG(SLIPPI_ONLINE, "stagesBlock: 0x%x", s.stagesBlock);
-	ERROR_LOG(SLIPPI_ONLINE, "areCustomRulesAllowed: 0x%x", s.areCustomRulesAllowed);
-	ERROR_LOG(SLIPPI_ONLINE, "isMatchConfigSet: 0x%x", s.isMatchConfigSet);
+	//DEBUG_LOG(SLIPPI_ONLINE, "stagesBlock: 0x%x", s.stagesBlock);
+	//DEBUG_LOG(SLIPPI_ONLINE, "areCustomRulesAllowed: 0x%x", s.areCustomRulesAllowed);
+	//DEBUG_LOG(SLIPPI_ONLINE, "isMatchConfigSet: 0x%x", s.isMatchConfigSet);
 
 	if (s.isMatchConfigSet)
 	{
@@ -457,7 +457,7 @@ void SlippiNetplayClient::writeToPacket(sf::Packet &packet, SlippiPlayerSelectio
 		for (int i = 0; i < matchConfigSize; i++)
 		{
 			packet << (u8)s.matchConfig[i];
-			ERROR_LOG(SLIPPI_ONLINE, "block: %i 0x%x", i, s.matchConfig[i]);
+			//DEBUG_LOG(SLIPPI_ONLINE, "block: %i 0x%x", i, s.matchConfig[i]);
 		}
 	}
 }
@@ -570,23 +570,38 @@ std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::readSelectionsFromP
 		ERROR_LOG(SLIPPI_ONLINE, "Received invalid player selection");
 		s->error = true;
 	}
-	packet >> s->areCustomRulesAllowed;
-	packet >> s->isMatchConfigSet;
+	if (!(packet >> s->areCustomRulesAllowed))
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Received invalid player selection");
+		s->error = true;
+	}
+	if (!(packet >> s->isMatchConfigSet))
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Received invalid player selection");
+		s->error = true;
+	}
 
-	
-	ERROR_LOG(SLIPPI_ONLINE, "read stagesBlock: 0x%x", s->stagesBlock);
-	ERROR_LOG(SLIPPI_ONLINE, "read areCustomRulesAllowed: 0x%x", s->areCustomRulesAllowed);
-	ERROR_LOG(SLIPPI_ONLINE, "read isMatchConfigSet: 0x%x", s->isMatchConfigSet);
+	//DEBUG_LOG(SLIPPI_ONLINE, "read stagesBlock: 0x%x", s->stagesBlock);
+	//DEBUG_LOG(SLIPPI_ONLINE, "read areCustomRulesAllowed: 0x%x", s->areCustomRulesAllowed);
+	//DEBUG_LOG(SLIPPI_ONLINE, "read isMatchConfigSet: 0x%x", s->isMatchConfigSet);
 
 	u16 matchConfigSize = 0;
 	if (s->isMatchConfigSet)
 	{
-		packet >> matchConfigSize;
+		if (!(packet >> matchConfigSize))
+		{
+			ERROR_LOG(SLIPPI_ONLINE, "Received invalid player selection");
+			s->error = true;
+		}
 	
 		for (int i = 0; i < matchConfigSize; i++)
 		{
 			u8 data;
-			packet >> data;
+			if (!(packet >> data))
+			{
+				ERROR_LOG(SLIPPI_ONLINE, "Received invalid player selection");
+				s->error = true;
+			}
 			s->matchConfig.push_back(data);
 		}
 	}

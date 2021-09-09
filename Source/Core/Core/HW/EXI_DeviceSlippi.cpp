@@ -2061,7 +2061,7 @@ void CEXISlippi::prepareOnlineMatchState()
 #endif
 
 	m_read_queue.push_back(mmState); // Matchmaking State
-	WARN_LOG(SLIPPI_ONLINE, "mmState: %i", mmState);
+	//DEBUG_LOG(SLIPPI, "mmState: %i", mmState);
 	u8 localPlayerReady = localSelections.isCharacterSelected;
 	u8 remotePlayersReady = 0;
 
@@ -2190,10 +2190,10 @@ void CEXISlippi::prepareOnlineMatchState()
 	m_read_queue.push_back(remotePlayersReady); // Remote players ready
 	m_read_queue.push_back(localPlayerIndex);   // Local player index
 	m_read_queue.push_back(remotePlayerIndex);  // Remote player index
-	WARN_LOG(SLIPPI_ONLINE, "localPlayerReady: %i", localPlayerReady);
-	WARN_LOG(SLIPPI_ONLINE, "remotePlayersReady: %i", remotePlayersReady);
-	WARN_LOG(SLIPPI_ONLINE, "localPlayerIndex: %i", localPlayerIndex);
-	WARN_LOG(SLIPPI_ONLINE, "remotePlayerIndex: %i", remotePlayerIndex);
+	// DEBUG_LOG(SLIPPI, "localPlayerReady: %i", localPlayerReady);
+	// DEBUG_LOG(SLIPPI, "remotePlayersReady: %i", remotePlayersReady);
+	// DEBUG_LOG(SLIPPI, "localPlayerIndex: %i", localPlayerIndex);
+	// DEBUG_LOG(SLIPPI, "remotePlayerIndex: %i", remotePlayerIndex);
 
 	// Set chat message if any
 	if (slippi_netplay)
@@ -2420,11 +2420,11 @@ void CEXISlippi::prepareOnlineMatchState()
 					allowCustomRules = false;
 					break;
 				}
-				// DEBUG_LOG(SLIPPI_ONLINE, "shouldCheckForCustomRules isMatchInfoReady: %d, allowCustomRules: %d" ,
+				// DEBUG_LOG(SLIPPI, "shouldCheckForCustomRules isMatchInfoReady: %d, allowCustomRules: %d" ,
 				// isMatchInfoReady, allowCustomRules);
 			}
 		}
-		// WARN_LOG(SLIPPI_ONLINE, "shouldCheckForCustomRules isMatchInfoReady: %d", isMatchInfoReady);
+		// DEBUG_LOG(SLIPPI, "shouldCheckForCustomRules isMatchInfoReady: %d", isMatchInfoReady);
 
 		// This loop compares each 4 bytes of the match info block to verify is tournament ruleset or not
 		for (int i = 0; i < 320 / 4; i += 4)
@@ -2435,7 +2435,7 @@ void CEXISlippi::prepareOnlineMatchState()
 			u32 original = (defaultMatchBlock[i] << 24) | (defaultMatchBlock[i + 1] << 16) |
 			               (defaultMatchBlock[i + 2] << 8) | defaultMatchBlock[i + 3];
 
-			WARN_LOG(SLIPPI, "prepareOnlineMatchState comparing blocks %d: 0x%08X", i, res);
+			//DEBUG_LOG(SLIPPI, "prepareOnlineMatchState comparing blocks %d: 0x%08X", i, res);
 			bool equals = true;
 
 			switch (i)
@@ -2590,14 +2590,14 @@ void CEXISlippi::prepareOnlineMatchState()
 	m_read_queue.push_back((u8)chatMessageId);
 	m_read_queue.push_back((u8)chatMessagePlayerIdx);
 
-	WARN_LOG(SLIPPI_ONLINE, "isMatchInfoReady: %i", isMatchInfoReady);
-	WARN_LOG(SLIPPI_ONLINE, "isCustomRules: %i", isCustomRules);
-	WARN_LOG(SLIPPI_ONLINE, "stagesBlock: 0x%x", stagesBlock);
-	WARN_LOG(SLIPPI_ONLINE, "rngOffset: 0x%x", rngOffset);
-	WARN_LOG(SLIPPI_ONLINE, "m_slippiOnlineDelay: %i", SConfig::GetInstance().m_slippiOnlineDelay);
-	WARN_LOG(SLIPPI_ONLINE, "sentChatMessageId: %i", sentChatMessageId);
-	WARN_LOG(SLIPPI_ONLINE, "chatMessageId: %i", chatMessageId);
-	WARN_LOG(SLIPPI_ONLINE, "chatMessagePlayerIdx: %i", chatMessagePlayerIdx);
+	// DEBUG_LOG(SLIPPI, "isMatchInfoReady: %i", isMatchInfoReady);
+	// DEBUG_LOG(SLIPPI, "isCustomRules: %i", isCustomRules);
+	// DEBUG_LOG(SLIPPI, "stagesBlock: 0x%x", stagesBlock);
+	// DEBUG_LOG(SLIPPI, "rngOffset: 0x%x", rngOffset);
+	// DEBUG_LOG(SLIPPI, "m_slippiOnlineDelay: %i", SConfig::GetInstance().m_slippiOnlineDelay);
+	// DEBUG_LOG(SLIPPI, "sentChatMessageId: %i", sentChatMessageId);
+	// DEBUG_LOG(SLIPPI, "chatMessageId: %i", chatMessageId);
+	// DEBUG_LOG(SLIPPI, "chatMessagePlayerIdx: %i", chatMessagePlayerIdx);
 
 
 	// Add player groupings for VS splash screen
@@ -2605,12 +2605,12 @@ void CEXISlippi::prepareOnlineMatchState()
 	rightTeamPlayers.resize(4, 0);
 	m_read_queue.insert(m_read_queue.end(), leftTeamPlayers.begin(), leftTeamPlayers.end());
 	m_read_queue.insert(m_read_queue.end(), rightTeamPlayers.begin(), rightTeamPlayers.end());
-	WARN_LOG(SLIPPI_ONLINE, "leftTeamPlayers: %i%i%i%i", leftTeamPlayers[0], leftTeamPlayers[1], leftTeamPlayers[2],leftTeamPlayers[3]);
-	WARN_LOG(SLIPPI_ONLINE, "rightTeamPlayers: %i%i%i%i", rightTeamPlayers[0], rightTeamPlayers[1], rightTeamPlayers[2], rightTeamPlayers[3]);
+	// DEBUG_LOG(SLIPPI, "leftTeamPlayers: %i%i%i%i", leftTeamPlayers[0], leftTeamPlayers[1], leftTeamPlayers[2],leftTeamPlayers[3]);
+	// DEBUG_LOG(SLIPPI, "rightTeamPlayers: %i%i%i%i", rightTeamPlayers[0], rightTeamPlayers[1], rightTeamPlayers[2], rightTeamPlayers[3]);
 
 	// Add names to output
 	// Always send static local player name
-	WARN_LOG(SLIPPI_ONLINE, "localPlayerName: %s", localPlayerName);
+	// DEBUG_LOG(SLIPPI, "localPlayerName: %s", localPlayerName);
 	localPlayerName = ConvertStringForGame(localPlayerName, MAX_NAME_LENGTH);
 	m_read_queue.insert(m_read_queue.end(), localPlayerName.begin(), localPlayerName.end());
 
@@ -2626,7 +2626,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		name = defaultNames[i];
 #endif
 
-		WARN_LOG(SLIPPI_ONLINE, "p%i name: %s", i, name);
+		//DEBUG_LOG(SLIPPI, "p%i name: %s", i, name);
 		name = ConvertStringForGame(name, MAX_NAME_LENGTH);
 		m_read_queue.insert(m_read_queue.end(), name.begin(), name.end());
 	}
@@ -2656,7 +2656,7 @@ void CEXISlippi::prepareOnlineMatchState()
 
 	oppName = ConvertStringForGame(oppText, MAX_NAME_LENGTH * 2 + 1);
 	m_read_queue.insert(m_read_queue.end(), oppName.begin(), oppName.end());
-	WARN_LOG(SLIPPI_ONLINE, "oppName: %s", oppText);
+	//DEBUG_LOG(SLIPPI, "oppName: %s", oppText);
 
 #ifdef LOCAL_TESTING
 	std::string defaultConnectCodes[] = {"PLYR#001", "PLYR#002", "PLYR#003", "PLYR#004"};
@@ -2669,7 +2669,7 @@ void CEXISlippi::prepareOnlineMatchState()
 #ifdef LOCAL_TESTING
 		connectCode = defaultConnectCodes[i];
 #endif
-		WARN_LOG(SLIPPI_ONLINE, "p%i connect code: %s", i, connectCode);
+		//DEBUG_LOG(SLIPPI, "p%i connect code: %s", i, connectCode);
 		connectCode = ConvertConnectCodeForGame(connectCode);
 		m_read_queue.insert(m_read_queue.end(), connectCode.begin(), connectCode.end());
 		
@@ -2678,13 +2678,13 @@ void CEXISlippi::prepareOnlineMatchState()
 	// Add error message if there is one
 	auto errorStr = !forcedError.empty() ? forcedError : matchmaking->GetErrorMessage();
 
-	WARN_LOG(SLIPPI_ONLINE, "errorStr: %s", errorStr);
+	//DEBUG_LOG(SLIPPI, "errorStr: %s", errorStr);
 	errorStr = ConvertStringForGame(errorStr, 120);
 	m_read_queue.insert(m_read_queue.end(), errorStr.begin(), errorStr.end());
 
 	// Add the match struct block to output
 	m_read_queue.insert(m_read_queue.end(), onlineMatchBlock.begin(), onlineMatchBlock.end());
-	WARN_LOG(SLIPPI_ONLINE, "onlineMatchBlock: 0x%x", onlineMatchBlock[0]);
+	//DEBUG_LOG(SLIPPI, "onlineMatchBlock: 0x%x", onlineMatchBlock[0]);
 }
 
 u16 CEXISlippi::getRandomStage()
@@ -2748,7 +2748,7 @@ void CEXISlippi::setMatchInfo(u8 *payload)
 
 	std::vector<u8> matchConfig = std::vector<u8>();
 	matchConfig.insert(matchConfig.end(), payload, payload + 0x138);
-	ERROR_LOG(SLIPPI, "setMatchInfo: 0x%x", matchConfig[0]);
+	// DEBUG_LOG(SLIPPI, "setMatchInfo: 0x%x", matchConfig[0]);
 
 	s.areCustomRulesAllowed = SConfig::GetInstance().m_slippiEnableCustomRules;
 	s.isMatchConfigSet = true;
