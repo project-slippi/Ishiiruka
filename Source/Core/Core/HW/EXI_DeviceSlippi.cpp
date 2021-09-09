@@ -2378,7 +2378,37 @@ void CEXISlippi::prepareOnlineMatchState()
 		};
 		auto teamAssignments = teamAssignmentPermutations[rngOffset % teamAssignmentPermutations.size()];
 
-        //DEBUG_LOG(SLIPPI, "prepareOnlineMatchState isMatchConfigSet: %d, areCustomRulesAllowed: %d", lps.isMatchConfigSet, lps.areCustomRulesAllowed);
+		isMatchInfoReady = true;
+		if (!SlippiMatchmaking::IsFixedRulesMode(lastSearch.mode))
+		{
+			// DEBUG_LOG(SLIPPI, "CurrentPlayerCount: %d", remotePlayerCount+1);
+			for (int i = 0; i <= remotePlayerCount; i++)
+			{
+				auto s = orderedSelections[i];
+
+				 // DEBUG_LOG(SLIPPI_ONLINE, "playerIndex: %d, isDecider: %d, allowCustomRules: %d, s.areCustomRulesAllowed: %d, s.isMatchConfigSet: %d" , 
+					 s.playerIdx, isDecider, allowCustomRules, s.areCustomRulesAllowed, s.isMatchConfigSet);
+				// Check if all players already set their match info
+				if (!s.isMatchConfigSet || !s.isCharacterSelected)
+				{
+					// if there's at least one player that has not set their rules,
+					// then set match info as not ready
+					isMatchInfoReady = false;
+				}
+
+				if (!s.areCustomRulesAllowed)
+				{
+					allowCustomRules = false;
+					break;
+				}
+				// DEBUG_LOG(SLIPPI, "Result: isMatchInfoReady: %d, allowCustomRules: %d" , isMatchInfoReady, allowCustomRules);
+			}
+		}
+		//DEBUG_LOG(SLIPPI, "Result: isMatchInfoReady: %d, allowCustomRules: %d", isMatchInfoReady, allowCustomRules);
+
+		
+        // DEBUG_LOG(SLIPPI, "prepareOnlineMatchState isMatchConfigSet: %d, areCustomRulesAllowed: %d",
+		// lps.isMatchConfigSet, lps.areCustomRulesAllowed);
 		if (lps.isMatchConfigSet && allowCustomRules && !SlippiMatchmaking::IsFixedRulesMode(lastSearch.mode))
 		{
 			onlineMatchBlock = !isDecider ? rps[0].matchConfig : lps.matchConfig;
@@ -2396,35 +2426,6 @@ void CEXISlippi::prepareOnlineMatchState()
 			stagesBlock = defaultStagesBlock;
 			// DEBUG_LOG(SLIPPI, "prepareOnlineMatchState setting custom default match block");
 		}
-
-		isMatchInfoReady = true;
-		if (!SlippiMatchmaking::IsFixedRulesMode(lastSearch.mode) && lps.isCharacterSelected)
-		{
-			for (int i = 0; i <= remotePlayerCount; i++)
-			{
-				auto s = orderedSelections[i];
-
-				// WARN_LOG(SLIPPI_ONLINE, "shouldCheckForCustomRules playerIndex: %d, isDecider: %d, allowCustomRules:
-				// %d, s.areCustomRulesAllowed: %d, s.isMatchConfigSet: %d" , s.playerIdx, isDecider, allowCustomRules,
-				// s.areCustomRulesAllowed, s.isMatchConfigSet);
-				// Check if all players already set their match info
-				if (!s.isMatchConfigSet || !s.isCharacterSelected)
-				{
-					// if there's at least one player that has not set their rules,
-					// then set match info as not ready
-					isMatchInfoReady = false;
-				}
-
-				if (!s.areCustomRulesAllowed)
-				{
-					allowCustomRules = false;
-					break;
-				}
-				// DEBUG_LOG(SLIPPI, "shouldCheckForCustomRules isMatchInfoReady: %d, allowCustomRules: %d" ,
-				// isMatchInfoReady, allowCustomRules);
-			}
-		}
-		// DEBUG_LOG(SLIPPI, "shouldCheckForCustomRules isMatchInfoReady: %d", isMatchInfoReady);
 
 		// This loop compares each 4 bytes of the match info block to verify is tournament ruleset or not
 		for (int i = 0; i < 320 / 4; i += 4)
@@ -2546,7 +2547,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		auto pauseAllowed = !SlippiMatchmaking::IsFixedRulesMode(lastSearch.mode) &&
 		                    lastSearch.mode != SlippiMatchmaking::OnlinePlayMode::TEAMS;
 		u8 *gameBitField3 = (u8 *)&onlineMatchBlock[2];
-		*gameBitField3 = isCustomRules ? *gameBitField3 : pauseAllowed ? *gameBitField3 & 0xF7 : *gameBitField3 | 0x8;
+		*gameBitField3 = allowCustomRules && isCustomRules ? *gameBitField3 : pauseAllowed ? *gameBitField3 & 0xF7 : *gameBitField3 | 0x8;
 		//*gameBitField3 = *gameBitField3 | 0x8;
 
 		// Group players into left/right side for team splash screen display
@@ -2574,7 +2575,7 @@ void CEXISlippi::prepareOnlineMatchState()
 	m_read_queue.push_back((bool)isMatchInfoReady);
 
 	// Add custom rules boolean
-	m_read_queue.push_back((bool)isCustomRules);
+	m_read_queue.push_back((bool)isCustomRules && allowCustomRules);
 
 	// Add random stages settings
 	appendWordToBuffer(&m_read_queue, stagesBlock);
@@ -2591,7 +2592,7 @@ void CEXISlippi::prepareOnlineMatchState()
 	m_read_queue.push_back((u8)chatMessagePlayerIdx);
 
 	// DEBUG_LOG(SLIPPI, "isMatchInfoReady: %i", isMatchInfoReady);
-	// DEBUG_LOG(SLIPPI, "isCustomRules: %i", isCustomRules);
+	// DEBUG_LOG(SLIPPI, "isCustomRules: %i", isCustomRules && allowCustomRules);
 	// DEBUG_LOG(SLIPPI, "stagesBlock: 0x%x", stagesBlock);
 	// DEBUG_LOG(SLIPPI, "rngOffset: 0x%x", rngOffset);
 	// DEBUG_LOG(SLIPPI, "m_slippiOnlineDelay: %i", SConfig::GetInstance().m_slippiOnlineDelay);
@@ -2748,11 +2749,13 @@ void CEXISlippi::setMatchInfo(u8 *payload)
 
 	std::vector<u8> matchConfig = std::vector<u8>();
 	matchConfig.insert(matchConfig.end(), payload, payload + 0x138);
-	// DEBUG_LOG(SLIPPI, "setMatchInfo: 0x%x", matchConfig[0]);
 
 	s.areCustomRulesAllowed = SConfig::GetInstance().m_slippiEnableCustomRules;
 	s.isMatchConfigSet = true;
 	s.matchConfig = s.areCustomRulesAllowed ? matchConfig : defaultMatchBlock;
+
+	// DEBUG_LOG(SLIPPI, "setMatchInfo: 0x%x", matchConfig[0]);
+	// DEBUG_LOG(SLIPPI, "areCustomRulesAllowed: 0x%x", s.areCustomRulesAllowed);
 
 	// Merge these selections
 	localSelections.Merge(s);
