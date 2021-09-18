@@ -38,7 +38,7 @@ TargetRectangle Renderer::ConvertEFBRectangle(const EFBRectangle& rc)
   return result;
 }
 
-void Renderer::SwapImpl(u32, u32, u32, u32, const EFBRectangle&, float)
+void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height, const EFBRectangle& rc, u64 ticks, float gamma)
 {
   UpdateActiveConfig();
 }

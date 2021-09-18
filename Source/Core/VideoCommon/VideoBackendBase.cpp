@@ -110,7 +110,7 @@ void VideoBackendBase::PopulateList()
 
 	// Disable software video backend as is currently not working
 	//g_available_video_backends.push_back(std::make_unique<SW::VideoSoftware>());
-  g_available_video_backends.push_back(std::make_unique<Null::VideoBackend>());
+	g_available_video_backends.push_back(std::make_unique<Null::VideoBackend>());
 
 	for (auto& backend : g_available_video_backends)
 	{

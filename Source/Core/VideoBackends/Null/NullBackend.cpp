@@ -12,7 +12,6 @@
 #include "VideoBackends/Null/FramebufferManager.h"
 #include "VideoBackends/Null/PerfQuery.h"
 #include "VideoBackends/Null/Render.h"
-#include "VideoBackends/Null/ShaderCache.h"
 #include "VideoBackends/Null/TextureCache.h"
 #include "VideoBackends/Null/VertexManager.h"
 #include "VideoBackends/Null/VideoBackend.h"
@@ -32,13 +31,12 @@
 
 namespace Null
 {
-static void InitBackendInfo()
+void VideoBackend::InitBackendInfo()
 {
   g_Config.backend_info.APIType = API_NONE;
   g_Config.backend_info.bSupportsExclusiveFullscreen = true;
   g_Config.backend_info.bSupportsDualSourceBlend = true;
   g_Config.backend_info.bSupportsEarlyZ = true;
-  g_Config.backend_info.bSupportsPrimitiveRestart = true;
   g_Config.backend_info.bSupportsOversizedViewports = true;
   g_Config.backend_info.bSupportsGeometryShaders = true;
   g_Config.backend_info.bSupports3DVision = false;
@@ -50,38 +48,10 @@ static void InitBackendInfo()
   g_Config.backend_info.AAModes = {1};
 }
 
-void VideoBackend::ShowConfig(void* parent)
-{
-  InitBackendInfo();
-  Host_ShowVideoConfig(parent, GetDisplayName(), "gfx_null");
-}
-
 bool VideoBackend::Initialize(void* window_handle)
 {
   InitializeShared();
   InitBackendInfo();
-
-  // Load Configs
-  g_Config.Load(File::GetUserPath(D_CONFIG_IDX) + "GFX.ini");
-  g_Config.GameIniLoad();
-  g_Config.UpdateProjectionHack();
-  g_Config.VerifyValidity();
-  UpdateActiveConfig();
-
-  // Do our OSD callbacks
-  OSD::DoCallbacks(OSD::CallbackType::Initialization);
-
-  // Initialize VideoCommon
-  CommandProcessor::Init();
-  PixelEngine::Init();
-  BPInit();
-  Fifo::Init();
-  OpcodeDecoder::Init();
-  IndexGenerator::Init();
-  VertexShaderManager::Init();
-  PixelShaderManager::Init();
-  VertexLoaderManager::Init();
-  Host_Message(WM_USER_CREATE);
 
   return true;
 }
@@ -95,29 +65,16 @@ void VideoBackend::Video_Prepare()
   g_perf_query = std::make_unique<PerfQuery>();
   g_framebuffer_manager = std::make_unique<FramebufferManager>();
   g_texture_cache = std::make_unique<TextureCache>();
-  VertexShaderCache::s_instance = std::make_unique<VertexShaderCache>();
-  GeometryShaderCache::s_instance = std::make_unique<GeometryShaderCache>();
-  PixelShaderCache::s_instance = std::make_unique<PixelShaderCache>();
 }
 
 void VideoBackend::Shutdown()
 {
-  // Shutdown VideoCommon
-  Fifo::Shutdown();
-  VertexLoaderManager::Shutdown();
-  VertexShaderManager::Shutdown();
-  PixelShaderManager::Shutdown();
-  OpcodeDecoder::Shutdown();
-
-  // Do our OSD callbacks
-  OSD::DoCallbacks(OSD::CallbackType::Shutdown);
+  ShutdownShared();
 }
 
 void VideoBackend::Video_Cleanup()
 {
-  PixelShaderCache::s_instance.reset();
-  VertexShaderCache::s_instance.reset();
-  GeometryShaderCache::s_instance.reset();
+  CleanupShared();
   g_texture_cache.reset();
   g_perf_query.reset();
   g_vertex_manager.reset();

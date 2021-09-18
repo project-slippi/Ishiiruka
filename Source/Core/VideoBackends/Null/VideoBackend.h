@@ -14,11 +14,11 @@ class VideoBackend : public VideoBackendBase
   void Shutdown() override;
 
   std::string GetName() const override { return "Null"; }
-  std::string GetDisplayName() const override { return "Null"; }
   void Video_Prepare() override;
   void Video_Cleanup() override;
 
-  void ShowConfig(void* parent) override;
+  void InitBackendInfo() override;
+  void PrepareWindow(void* window_handle) override {};
 
   unsigned int PeekMessages() override { return 0; }
 };
