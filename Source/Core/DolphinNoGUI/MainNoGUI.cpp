@@ -42,7 +42,7 @@ static Common::Flag s_tried_graceful_shutdown{ false };
 
 static void signal_handler(int)
 {
-	const char message[] = "A signal was received. A second signal will force Dolphin to stop.\n";
+	const char message[] = "A signal was received. Requesting shutdown.\n";
 	if (write(STDERR_FILENO, message, sizeof(message)) < 0)
 	{
 	}
@@ -63,6 +63,10 @@ public:
 	{
 		while (s_running.IsSet())
 		{
+			if (s_shutdown_requested.TestAndClear())
+			{
+				s_running.Clear();
+			}
 			Core::HostDispatchJobs();
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
@@ -436,7 +440,7 @@ int main(int argc, char* argv[])
 	struct sigaction sa;
 	sa.sa_handler = signal_handler;
 	sigemptyset(&sa.sa_mask);
-	sa.sa_flags = SA_RESETHAND;
+	// sa.sa_flags = SA_RESETHAND;
 	sigaction(SIGINT, &sa, nullptr);
 	sigaction(SIGTERM, &sa, nullptr);
 
