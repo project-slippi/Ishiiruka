@@ -15,8 +15,8 @@
 #include "Common/Common.h"
 #include "Core/ConfigManager.h"
 
-#include "DolphinWX/Frame.h"
-#include "DolphinWX/Main.h"
+// #include "DolphinWX/Frame.h"
+// #include "DolphinWX/Main.h"
 
 #ifdef __APPLE__
 #include "DolphinWX/SlippiAuthWebView/SlippiAuthWebView.h"
@@ -276,7 +276,7 @@ void SlippiUser::FileListenThread()
 		if (AttemptLogin())
 		{
 			runThread = false;
-			main_frame->RaiseRenderWindow();
+			// main_frame->RaiseRenderWindow();
 			break;
 		}
 
