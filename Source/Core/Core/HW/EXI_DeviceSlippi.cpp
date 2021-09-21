@@ -137,6 +137,7 @@ CEXISlippi::CEXISlippi()
 	g_replayComm = std::make_unique<SlippiReplayComm>();
 	directCodes = std::make_unique<SlippiDirectCodes>("direct-codes.json");
 	teamsCodes = std::make_unique<SlippiDirectCodes>("teams-codes.json");
+	discordPresence = std::make_unique<SlippiDiscordPresence>();
 
 	generator = std::default_random_engine(Common::Timer::GetTimeMs());
 

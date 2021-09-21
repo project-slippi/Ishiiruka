@@ -793,6 +793,9 @@
     <ClCompile Include="Slippi\SlippiGameReporter.cpp">
       <Filter>Slippi</Filter>
     </ClCompile>
+    <ClCompile Include="Slippi\SlippiDiscordPresence.cpp">
+      <Filter>Slippi</Filter>
+    </ClCompile>
     <ClCompile Include="Slippi\SlippiDirectCodes.cpp">
       <Filter>Slippi</Filter>
     </ClCompile>

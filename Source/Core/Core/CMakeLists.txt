@@ -200,6 +200,7 @@ set(SRCS	ActionReplay.cpp
 			Slippi/SlippiUser.cpp
 			Slippi/SlippiGameReporter.cpp
 			Slippi/SlippiDirectCodes.cpp
+			Slippi/SlippiDiscordPresence.cpp
 			)
 
 if(_M_X86)

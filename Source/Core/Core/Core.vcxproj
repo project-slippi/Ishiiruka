@@ -498,6 +498,7 @@
     <ClInclude Include="PowerPC\Profiler.h" />
     <ClInclude Include="PowerPC\SignatureDB.h" />
     <ClInclude Include="Slippi\SlippiGameReporter.h" />
+     <ClCompile Include="Slippi\SlippiDiscordPresence.cpp" /
     <ClInclude Include="Slippi\SlippiDirectCodes.h" />
     <ClInclude Include="Slippi\SlippiPlayback.h" />
     <ClInclude Include="Slippi\SlippiPremadeText.h" />
