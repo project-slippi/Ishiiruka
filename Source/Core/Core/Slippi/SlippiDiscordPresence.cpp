@@ -1,3 +1,5 @@
+#ifdef HAVE_DISCORD_RPC
+
 #include "Core/Slippi/SlippiDiscordPresence.h"
 #include "Common/Logging/Log.h"
 
@@ -18,3 +20,5 @@ void SlippiDiscordPresence::UpdateGameInfo(Slippi::GameSettings* gameInfo) {
 	INFO_LOG(SLIPPI_ONLINE, "Playing stage %d", gameInfo->stage);
 	INFO_LOG(SLIPPI_ONLINE, "Playing character %d", gameInfo->players[0].characterId);
 };
+
+#endif

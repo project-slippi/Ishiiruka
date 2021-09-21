@@ -1,3 +1,5 @@
+#ifdef HAVE_DISCORD_RPC
+
 #include "Core/Slippi/SlippiGameReporter.h"
 #include <SlippiGame.h>
 
@@ -10,3 +12,5 @@ class SlippiDiscordPresence {
 	private:
 		const long int ApplicationID = 635924792893112320;
 };
+
+#endif

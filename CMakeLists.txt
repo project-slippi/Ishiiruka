@@ -24,6 +24,7 @@ option(ENABLE_PULSEAUDIO "Enables PulseAudio sound backend" ON)
 option(ENABLE_OPENAL "Enables OpenAL sound backend" ON)
 option(ENABLE_LLVM "Enables LLVM support, for disassembly" ON)
 option(ENABLE_BLUEZ "Enables bluetooth support" ON)
+option(ENABLE_DISCORD_RPC "Enables Discord Rich Presence support" ON)
 
 # Maintainers: if you consider blanket disabling this for your users, please
 # consider the following points:
@@ -770,6 +771,14 @@ endif()
 message("Using static soundtouch from Externals")
 add_subdirectory(Externals/soundtouch)
 include_directories(Externals)
+
+
+if(ENABLE_DISCORD_RPC)
+	message("Using static discord-rpc from Externals")
+	add_definitions(-DHAVE_DISCORD_RPC=1)
+	add_subdirectory(Externals/discord-rpc)
+	include_directories(Externals/discord-rpc)
+endif()
 
 if(ENABLE_SDL)
 	include(FindSDL2 OPTIONAL)
