@@ -43,30 +43,101 @@ static uintptr_t RoundPage(uintptr_t addr)
 }
 #endif
 
-#if defined __APPLE__
-// On High Sierra, passing MAP_JIT seems to cause weird issues - the hardened runtime only exists
-// from Mojave (10.14) onwards, so there's some clash happening in 10.13. Thus, we just need to branch
-// here for that one OS (18 is the kernel for Mojave)... and this should be removed at some point. 
-static inline int determine_macos_jit_flag()
-{
-	static int jit_flag = -1;
-
-	if (jit_flag == -1)
-	{
-		struct utsname name;
-		uname(&name);
-
-		// Kernel version 18 = Mojave
-		jit_flag = (atoi(name.release) >= 18) ? MAP_JIT : 0;
-	}
-
-	return jit_flag;
-}
-#endif
-
 // This is purposely not a full wrapper for virtualalloc/mmap, but it
 // provides exactly the primitive operations that Dolphin needs.
+#ifdef __APPLE__
+// This is an `AllocateExecutableMemory()` implementation that's specific to macOS. This
+// method is ifdef'd from the normal `AllocateExecutableMemory()` implementation below as
+// this is an old fork, mostly Slippi-specific at this point, and I'm very hesitant to even 
+// muck with code that might fix things on macOS but cause issues elsewhere.
+//
+// The gist of it: MAP32_BIT is actually supported from macOS 10.15+ (though it's gated
+// behind an entitlement prior to 10.15.4), which we can use to allocate memory below the 4GB
+// boundary. Prior to this, macOS would always try an older method of requesting a
+// lower boundary by hinting where it wanted it to be; the method is not foolproof, often
+// failing and resulting in the infamous "2GB Memory" error.
+//
+// Thus, this function does a runtime check to try and pass the MAP32_BIT flag when low
+// allocations are requested on 10.15.4+, and falls back to the old routine for anything
+// prior (Mojave, High Sierra, early Catalina). The 2GB bug would theoretically still show
+// up on older macOS variants, however I didn't see it nearly as much on them to begin with,
+// and Catalina was notably the OS where things got a bit more difficult with this kind of thing,
+// so they might actually be "okay" on their own.
+//
+// This function also handles a specific MAP_JIT check that macOS needs, opting in to it for
+// Mojave onwards (10.14+).
+//
+// Note that this function does not bother checking for `defined(_M_X86_64)` since Slippi will only
+// ever natively support another architecture by migrating to mainline, so we don't need the check here
+// (on macOS/M1, it'll be under Rosetta 2).
+void* AllocateExecutableMemory(size_t size, bool low)
+{
+	int map_flags = MAP_ANON | MAP_PRIVATE;
 
+	// macOS High Sierra has a MAP_JIT implementation that limits to one
+	// JIT'd block, so we can't use it there - it causes a crash when combined
+	// with the necessary entitlement. Thus, only apply this flag from Mojave-onwards (10.14+). 
+	if (__builtin_available(macOS 10.14, *))
+	{
+		map_flags |= MAP_JIT;
+	}
+
+	static char* map_hint = nullptr;
+    
+	// Due to when this was implemented (and free of an entitlement gate), we need to do a runtime
+	// check. :(
+	bool supports_map32_bit = false;
+	if (__builtin_available(macOS 10.15.4, *))
+	{
+		supports_map32_bit = true;
+
+		// The flag value used here is pulled from the Darwin kernel source:
+		// (MAP32BIT = 0x800)
+		// https://github.com/apple/darwin-xnu/blob/2ff845c2e033bd0ff64b5b6aa6063a1f8f65aa32/bsd/sys/mman.h#L155
+		if (low)
+			map_flags |= 0x800;
+	} else {
+		// For older versions of macOS where MAP_32BIT is not available, we'll try the older
+		// route of hinting at a low address to get an allocation below the 4GB boundary.
+ 		//
+ 		// This is noted elsewhere in this file, but MAP_FIXED is not appropriate here due to
+ 		// the side effect of discarding already mapped pages that happen to be in the requested
+ 		// virtual memory range (e.g emulated RAM).
+		if (low && (!map_hint))
+			map_hint = (char*)RoundPage(512 * 1024 * 1024); /* 0.5 GB rounded up to the next page */
+	}
+    
+	void* ptr = mmap(
+		map_hint,
+		size,
+		PROT_READ | PROT_WRITE | PROT_EXEC,
+		map_flags,
+ 		-1,
+		0
+	);
+
+	if (ptr == MAP_FAILED)
+	{
+		ptr = nullptr;
+		PanicAlert("Failed to allocate executable memory.");
+	}
+	else
+	{
+        	if (low && !supports_map32_bit)
+        	{
+			map_hint += size;
+			map_hint = (char*)RoundPage((uintptr_t)map_hint); /* round up to the next page */
+        	}
+    	}
+
+	if ((u64)ptr >= 0x80000000 && low == true)
+	{
+		PanicAlert("Executable memory ended up above 2GB!");
+	}
+
+	return ptr;
+}
+#else
 void* AllocateExecutableMemory(size_t size, bool low)
 {
 #if defined(_WIN32)
@@ -85,9 +156,6 @@ void* AllocateExecutableMemory(size_t size, bool low)
 #endif
 
 	int flags = MAP_ANON | MAP_PRIVATE;
-#ifdef __APPLE__
-	flags |= determine_macos_jit_flag();
-#endif
 
 	void* ptr = mmap(map_hint, size, PROT_READ | PROT_WRITE | PROT_EXEC, flags
 #if defined(_M_X86_64) && defined(MAP_32BIT)
@@ -125,7 +193,8 @@ void* AllocateExecutableMemory(size_t size, bool low)
 #endif
 
 	return ptr;
-	}
+}
+#endif /* End of AllocateExecutableMemory() (non-Apple) */
 
 void* AllocateMemoryPages(size_t size)
 {
