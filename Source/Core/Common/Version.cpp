@@ -24,7 +24,7 @@
 //" " BUILD_TYPE_STR " " SCM_DESC_STR;
 //#endif
 #ifndef IS_PLAYBACK
-#define SLIPPI_REV_STR "2.3.2" // netplay version
+#define SLIPPI_REV_STR "2.3.3-dev" // netplay version
 #else
 #define SLIPPI_REV_STR "2.3.6" // playback version
 #endif

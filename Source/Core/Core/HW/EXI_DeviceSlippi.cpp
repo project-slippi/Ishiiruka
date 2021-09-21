@@ -2941,6 +2941,13 @@ void CEXISlippi::prepareDelayResponse()
 	}
 }
 
+void CEXISlippi::prepareOverwriteInputs()
+{
+	m_read_queue.clear();
+	m_read_queue.push_back(1);
+	m_read_queue.resize(9 * 4, 0);
+}
+
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 {
 	u8 *memPtr = Memory::GetPointer(_uAddr);
@@ -3088,6 +3095,9 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_GET_DELAY:
 			prepareDelayResponse();
+			break;
+		case CMD_OVERWRITE_INPUTS:
+			prepareOverwriteInputs();
 			break;
 		default:
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "");
