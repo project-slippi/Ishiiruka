@@ -778,6 +778,7 @@ if(ENABLE_DISCORD_RPC)
 	add_definitions(-DHAVE_DISCORD_RPC=1)
 	add_subdirectory(Externals/discord-rpc)
 	include_directories(Externals/discord-rpc)
+	LIST(APPEND LIBS discord-rpc)
 endif()
 
 if(ENABLE_SDL)
