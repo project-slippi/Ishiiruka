@@ -1,16 +1,17 @@
 #ifdef HAVE_DISCORD_RPC
 
 #include "Core/Slippi/SlippiGameReporter.h"
-#include <SlippiGame.h>
+#include <discord-rpc/include/discord_rpc.h>
 
 class SlippiDiscordPresence {
 	public:
 		SlippiDiscordPresence();
 		~SlippiDiscordPresence();
-		void ReportGame(SlippiGameReporter::GameReport);
-		void UpdateGameInfo(Slippi::GameSettings*);
+		// void ReportGame(SlippiGameReporter::GameReport);
+		// void UpdateGameInfo(Slippi::GameSettings*);
+		static void DiscordReady(const DiscordUser*);
 	private:
-		const long int ApplicationID = 635924792893112320;
+		const char* ApplicationID = "635924792893112320";
 };
 
 #endif
