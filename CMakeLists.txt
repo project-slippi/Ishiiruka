@@ -777,7 +777,7 @@ if(ENABLE_DISCORD_RPC)
 	message("Using static discord-rpc from Externals")
 	add_definitions(-DHAVE_DISCORD_RPC=1)
 	# Need to do this so it doesnt build discord-rpc examples
-	set(BUILD_EXAMPLES OFF)
+	set(BUILD_EXAMPLES OFF CACHE BOOL "Build example apps")
 	add_subdirectory(Externals/discord-rpc)
 	include_directories(Externals/discord-rpc)
 	LIST(APPEND LIBS discord-rpc)
