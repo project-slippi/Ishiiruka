@@ -13,4 +13,7 @@ void Shutdown();
 void CreateDirectories();
 void SetUserDirectory(const std::string& custom_path);
 
+void RaiseRenderWindow();
+void LowerRenderWindow();
+
 } // namespace UICommon

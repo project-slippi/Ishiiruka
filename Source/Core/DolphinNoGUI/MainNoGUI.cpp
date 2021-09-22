@@ -54,6 +54,13 @@ namespace ProcessorInterface
 void PowerButton_Tap();
 }
 
+namespace UICommon
+{
+	// could do something with PlatformX11?
+	void RaiseRenderWindow() {}
+	void LowerRenderWindow() {}
+}
+
 class Platform
 {
 public:

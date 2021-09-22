@@ -33,9 +33,8 @@
 //#include "Core/PatchEngine.h"
 #include "Core/PowerPC/PowerPC.h"
 
-// Not clean but idk a better way atm
-// #include "DolphinWX/Frame.h"
-// #include "DolphinWX/Main.h"
+// For LowerRenderWindow
+#include "UICommon/UICommon.h"
 
 #define FRAME_INTERVAL 900
 #define SLEEP_TIME_MS 8
@@ -2798,6 +2797,7 @@ void CEXISlippi::handleLogInRequest()
 	if (!logInRes)
 	{
 		// main_frame->LowerRenderWindow();
+		UICommon::LowerRenderWindow();
 		user->OpenLogInPage();
 		user->ListenForLogIn();
 	}
