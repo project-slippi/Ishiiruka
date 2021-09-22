@@ -18,7 +18,7 @@
 #include "Common/CommonTypes.h"
 #include "Common/Event.h"
 #include "Core/HW/WiimoteEmu/WiimoteEmu.h"
-#include "Core/Slippi/SlippiTimer.h"
+#include "DolphinWX/SlippiTimer.h"
 #include "DolphinWX/Globals.h"
 #include "DolphinWX/PlaybackSlider.h"
 

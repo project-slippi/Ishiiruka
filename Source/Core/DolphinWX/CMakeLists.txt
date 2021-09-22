@@ -72,6 +72,7 @@ set(GUI_SRCS
 	MemcardManager.cpp
 	PatchAddEdit.cpp
 	PostProcessingConfigDiag.cpp
+	SlippiTimer.cpp
 	SoftwareVideoConfigDialog.cpp
 	TASInputDlg.cpp
 	VideoConfigDiag.cpp
