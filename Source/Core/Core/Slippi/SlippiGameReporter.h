@@ -11,6 +11,9 @@
 #include <thread>
 #include <vector>
 
+#define SLIPPI_REPORT_URL "https://rankings-dot-slippi.uc.r.appspot.com/report"
+#define EX_REPORT_URL "https://lylat.gg/reports"
+
 class SlippiGameReporter
 {
   public:
@@ -25,7 +28,7 @@ class SlippiGameReporter
 		std::vector<PlayerReport> players;
 	};
 
-	SlippiGameReporter(SlippiUser *user);
+	SlippiGameReporter(SlippiUser *user, bool useSlippiUrl);
 	~SlippiGameReporter();
 
 	void StartReport(GameReport report);
@@ -33,7 +36,7 @@ class SlippiGameReporter
 	void ReportThreadHandler();
 
   protected:
-	const std::string REPORT_URL = "https://rankings-dot-slippi.uc.r.appspot.com/report";
+	std::string reportUrl = SLIPPI_REPORT_URL;
 	CURL *m_curl = nullptr;
 	struct curl_slist *m_curlHeaderList = nullptr;
 

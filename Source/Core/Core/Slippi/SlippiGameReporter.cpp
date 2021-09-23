@@ -28,8 +28,10 @@ static size_t receive(char *ptr, size_t size, size_t nmemb, void *rcvBuf)
 	return len;
 }
 
-SlippiGameReporter::SlippiGameReporter(SlippiUser *user)
+SlippiGameReporter::SlippiGameReporter(SlippiUser *user, bool useSlippiUrl)
 {
+	this->reportUrl = useSlippiUrl ? SLIPPI_REPORT_URL : EX_REPORT_URL;
+
 	CURL *curl = curl_easy_init();
 	if (curl)
 	{
@@ -124,7 +126,7 @@ void SlippiGameReporter::ReportThreadHandler()
 
 			// Send report
 			curl_easy_setopt(m_curl, CURLOPT_POST, true);
-			curl_easy_setopt(m_curl, CURLOPT_URL, REPORT_URL.c_str());
+			curl_easy_setopt(m_curl, CURLOPT_URL, this->reportUrl.c_str());
 			curl_easy_setopt(m_curl, CURLOPT_POSTFIELDS, requestString.c_str());
 			curl_easy_setopt(m_curl, CURLOPT_POSTFIELDSIZE, requestString.length());
 			CURLcode res = curl_easy_perform(m_curl);

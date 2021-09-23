@@ -127,13 +127,14 @@ std::string ConvertConnectCodeForGame(const std::string &input)
 CEXISlippi::CEXISlippi()
 {
 	INFO_LOG(SLIPPI, "EXI SLIPPI Constructor called.");
+    auto isMex = SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_MEX;
 
 	m_slippiserver = SlippiSpectateServer::getInstance();
 	user = std::make_unique<SlippiUser>();
 	g_playbackStatus = std::make_unique<SlippiPlaybackStatus>();
-	matchmaking = std::make_unique<SlippiMatchmaking>(user.get());
+	matchmaking = std::make_unique<SlippiMatchmaking>(user.get(), !isMex);
 	gameFileLoader = std::make_unique<SlippiGameFileLoader>();
-	gameReporter = std::make_unique<SlippiGameReporter>(user.get());
+	gameReporter = std::make_unique<SlippiGameReporter>(user.get(), !isMex);
 	g_replayComm = std::make_unique<SlippiReplayComm>();
 	directCodes = std::make_unique<SlippiDirectCodes>("direct-codes.json");
 	teamsCodes = std::make_unique<SlippiDirectCodes>("teams-codes.json");
@@ -2866,7 +2867,8 @@ void CEXISlippi::handleConnectionCleanup()
 	cleanup.detach();
 
 	// Reset matchmaking
-	matchmaking = std::make_unique<SlippiMatchmaking>(user.get());
+    auto isMex = SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_MEX;
+	matchmaking = std::make_unique<SlippiMatchmaking>(user.get(), !isMex);
 
 	// Disconnect netplay client
 	slippi_netplay = nullptr;

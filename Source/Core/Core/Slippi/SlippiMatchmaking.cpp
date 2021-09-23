@@ -25,7 +25,7 @@ std::string MmMessageType::CREATE_TICKET = "create-ticket";
 std::string MmMessageType::CREATE_TICKET_RESP = "create-ticket-resp";
 std::string MmMessageType::GET_TICKET_RESP = "get-ticket-resp";
 
-SlippiMatchmaking::SlippiMatchmaking(SlippiUser *user)
+SlippiMatchmaking::SlippiMatchmaking(SlippiUser *user, bool useSlippiUrl)
 {
 	m_user = user;
 	m_state = ProcessState::IDLE;
@@ -34,8 +34,16 @@ SlippiMatchmaking::SlippiMatchmaking(SlippiUser *user)
 	m_client = nullptr;
 	m_server = nullptr;
 
-	MM_HOST = scm_slippi_semver_str.find("dev") == std::string::npos ? MM_HOST_PROD : MM_HOST_DEV;
+	auto prodUrl = MM_HOST_PROD;
+	auto devUrl = MM_HOST_DEV;
 
+	if (!useSlippiUrl)
+	{
+		prodUrl = MM_HOST_PROD_EX;
+		devUrl = MM_HOST_DEV_EX;
+	}
+
+	MM_HOST = scm_slippi_semver_str.find("dev") == std::string::npos ? prodUrl : devUrl;
 	generator = std::default_random_engine(Common::Timer::GetTimeMs());
 }
 
@@ -128,6 +136,7 @@ int SlippiMatchmaking::receiveMessage(json &msg, int timeoutMs)
 
 			std::string str(buf.begin(), buf.end());
 			msg = json::parse(str);
+			// ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] MESSAGE: %s", msg.dump());
 
 			enet_packet_destroy(netEvent.packet);
 			return 0;
@@ -245,6 +254,8 @@ void SlippiMatchmaking::startMatchmaking()
 	}
 
 	ENetAddress addr;
+	//ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] HOST: %s", MM_HOST.c_str());
+
 	enet_address_set_host(&addr, MM_HOST.c_str());
 	addr.port = MM_PORT;
 
@@ -358,7 +369,15 @@ void SlippiMatchmaking::startMatchmaking()
 	json request;
 	request["type"] = MmMessageType::CREATE_TICKET;
 	request["user"] = {{"uid", userInfo.uid}, {"playKey", userInfo.playKey}};
-	request["search"] = {{"mode", m_searchSettings.mode}, {"connectCode", connectCodeBuf}};
+	request["search"] = {
+	        {"mode", m_searchSettings.mode},
+	        {"connectCode", connectCodeBuf},
+	        {"game", {
+	            {"id", SConfig::GetInstance().m_strGameID},
+	            {"revision", SConfig::GetInstance().m_revision},
+	            {"type", SConfig::GetInstance().m_gameType},
+	        }}
+	};
 	request["appVersion"] = scm_slippi_semver_str;
 	request["ipAddressLan"] = lanAddr;
 	sendMessage(request);

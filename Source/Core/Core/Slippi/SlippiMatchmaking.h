@@ -19,7 +19,7 @@ using json = nlohmann::json;
 class SlippiMatchmaking
 {
   public:
-	SlippiMatchmaking(SlippiUser *user);
+	SlippiMatchmaking(SlippiUser *user, bool useSlippiUrl);
 	~SlippiMatchmaking();
 
 	enum OnlinePlayMode
@@ -60,6 +60,8 @@ class SlippiMatchmaking
 	static bool IsFixedRulesMode(OnlinePlayMode mode);
 
   protected:
+	const std::string MM_HOST_DEV_EX = "165.227.213.180";
+	const std::string MM_HOST_PROD_EX = "165.227.213.180";
 	const std::string MM_HOST_DEV = "mm2.slippi.gg";
 	const std::string MM_HOST_PROD = "mm.slippi.gg";
 	const u16 MM_PORT = 43113;
