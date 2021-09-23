@@ -127,6 +127,7 @@ void SlippiGameReporter::ReportThreadHandler()
 
 			bool isMexMode = SlippiMatchmaking::IsMexMode(this->isMex, report.mode);
 			std::string effectiveUrl = isMexMode ? EX_REPORT_URL : this->reportUrl;
+			// ERROR_LOG(SLIPPI_ONLINE, "[GameReport] REPORT_URL: %s", effectiveUrl.c_str());
 
 			// Send report
 			curl_easy_setopt(m_curl, CURLOPT_POST, true);
