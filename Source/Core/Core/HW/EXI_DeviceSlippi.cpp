@@ -127,7 +127,7 @@ std::string ConvertConnectCodeForGame(const std::string &input)
 CEXISlippi::CEXISlippi()
 {
 	INFO_LOG(SLIPPI, "EXI SLIPPI Constructor called.");
-    auto isMex = SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_MEX;
+	auto isMex = SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_MEX;
 
 	m_slippiserver = SlippiSpectateServer::getInstance();
 	user = std::make_unique<SlippiUser>();
@@ -2867,7 +2867,7 @@ void CEXISlippi::handleConnectionCleanup()
 	cleanup.detach();
 
 	// Reset matchmaking
-    auto isMex = SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_MEX;
+	auto isMex = SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_MEX;
 	matchmaking = std::make_unique<SlippiMatchmaking>(user.get(), isMex);
 
 	// Disconnect netplay client
