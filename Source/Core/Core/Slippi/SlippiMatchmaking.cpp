@@ -25,8 +25,10 @@ std::string MmMessageType::CREATE_TICKET = "create-ticket";
 std::string MmMessageType::CREATE_TICKET_RESP = "create-ticket-resp";
 std::string MmMessageType::GET_TICKET_RESP = "get-ticket-resp";
 
-SlippiMatchmaking::SlippiMatchmaking(SlippiUser *user, bool useSlippiUrl)
+SlippiMatchmaking::SlippiMatchmaking(SlippiUser *user, bool isMex)
 {
+	this->isMex = isMex;
+
 	m_user = user;
 	m_state = ProcessState::IDLE;
 	m_errorMsg = "";
@@ -34,16 +36,7 @@ SlippiMatchmaking::SlippiMatchmaking(SlippiUser *user, bool useSlippiUrl)
 	m_client = nullptr;
 	m_server = nullptr;
 
-	auto prodUrl = MM_HOST_PROD;
-	auto devUrl = MM_HOST_DEV;
-
-	if (!useSlippiUrl)
-	{
-		prodUrl = MM_HOST_PROD_EX;
-		devUrl = MM_HOST_DEV_EX;
-	}
-
-	MM_HOST = scm_slippi_semver_str.find("dev") == std::string::npos ? prodUrl : devUrl;
+	MM_HOST = getSlippiMMHost();
 	generator = std::default_random_engine(Common::Timer::GetTimeMs());
 }
 
@@ -56,6 +49,65 @@ SlippiMatchmaking::~SlippiMatchmaking()
 		m_matchmakeThread.join();
 
 	terminateMmConnection();
+}
+
+/**
+ * Resolves to the Production or development MM Host URI
+ * for Vanilla Melee
+ * @return
+ */
+std::string SlippiMatchmaking::getSlippiMMHost()
+{
+	auto prodUrl = MM_HOST_PROD;
+	auto devUrl = MM_HOST_DEV;
+	return scm_slippi_semver_str.find("dev") == std::string::npos ? prodUrl : devUrl;
+}
+
+/**
+ * Resolves to the Production or development MM Host URI
+ * for MEX-type games
+ * @return
+ */
+std::string SlippiMatchmaking::getMexMMHost()
+{
+	auto prodUrl = MM_HOST_PROD_EX;
+	auto devUrl = MM_HOST_DEV_EX;
+	return scm_slippi_semver_str.find("dev") == std::string::npos ? prodUrl : devUrl;
+}
+
+/**
+ * Resolves the effective MMHOST to user based on the
+ * MatchmakingMode being used
+ * For Mex-Type games, only Unranked and Ranked are used
+ * All other modes will fallback to Slippi's servers
+ * @return
+ */
+std::string SlippiMatchmaking::getMMHostForSearchMode()
+{
+	bool isMexMode = SlippiMatchmaking::IsMexMode(this->isMex, this->m_searchSettings.mode);
+	return isMexMode ? getMexMMHost() : getSlippiMMHost();
+}
+
+/**
+ * Static Helper to identify if a given MM Mode should go through
+ * Slippi Servers or not
+ * @param isCurrentGameMex that indicates if current game is Mex Type
+ * @param mode
+ * @return false if the mode should go through Slippi Servers
+ */
+bool SlippiMatchmaking::IsMexMode(bool isCurrentGameMex, OnlinePlayMode mode)
+{
+	if (!isCurrentGameMex)
+		return false;
+
+	switch (mode)
+	{
+	case OnlinePlayMode::UNRANKED:
+	case OnlinePlayMode::RANKED:
+		return true;
+	default:
+		return false;
+	}
 }
 
 void SlippiMatchmaking::FindMatch(MatchSearchSettings settings)
@@ -254,9 +306,10 @@ void SlippiMatchmaking::startMatchmaking()
 	}
 
 	ENetAddress addr;
-	//ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] HOST: %s", MM_HOST.c_str());
+	auto effectiveHost = getMMHostForSearchMode();
+	ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] HOST: %s", effectiveHost.c_str());
 
-	enet_address_set_host(&addr, MM_HOST.c_str());
+	enet_address_set_host(&addr, effectiveHost.c_str());
 	addr.port = MM_PORT;
 
 	m_server = enet_host_connect(m_client, &addr, 3, 0);
@@ -541,7 +594,7 @@ void SlippiMatchmaking::handleMatchmaking()
 			m_allowedStages.push_back(stageId);
 		}
 	}
-	
+
 	if (m_allowedStages.empty())
 	{
 		// Default case, shouldn't ever really be hit but it's here just in case

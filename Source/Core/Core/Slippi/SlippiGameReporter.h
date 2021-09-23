@@ -3,6 +3,8 @@
 #include "Common/CommonTypes.h"
 #include "Common/FifoQueue.h"
 #include "Core/Slippi/SlippiUser.h"
+#include "SlippiMatchmaking.h"
+
 #include <atomic>
 #include <condition_variable> // std::condition_variable
 #include <curl/curl.h>
@@ -24,11 +26,12 @@ class SlippiGameReporter
 	};
 	struct GameReport
 	{
+        SlippiMatchmaking::OnlinePlayMode mode = SlippiMatchmaking::OnlinePlayMode::UNRANKED;
 		u32 durationFrames = 0;
 		std::vector<PlayerReport> players;
 	};
 
-	SlippiGameReporter(SlippiUser *user, bool useSlippiUrl);
+	SlippiGameReporter(SlippiUser *user, bool isMex);
 	~SlippiGameReporter();
 
 	void StartReport(GameReport report);
@@ -39,6 +42,7 @@ class SlippiGameReporter
 	std::string reportUrl = SLIPPI_REPORT_URL;
 	CURL *m_curl = nullptr;
 	struct curl_slist *m_curlHeaderList = nullptr;
+    bool isMex = false;
 
 	u32 gameIndex = 1;
 	std::vector<std::string> playerUids;

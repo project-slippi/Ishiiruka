@@ -132,9 +132,9 @@ CEXISlippi::CEXISlippi()
 	m_slippiserver = SlippiSpectateServer::getInstance();
 	user = std::make_unique<SlippiUser>();
 	g_playbackStatus = std::make_unique<SlippiPlaybackStatus>();
-	matchmaking = std::make_unique<SlippiMatchmaking>(user.get(), !isMex);
+	matchmaking = std::make_unique<SlippiMatchmaking>(user.get(), isMex);
 	gameFileLoader = std::make_unique<SlippiGameFileLoader>();
-	gameReporter = std::make_unique<SlippiGameReporter>(user.get(), !isMex);
+	gameReporter = std::make_unique<SlippiGameReporter>(user.get(), isMex);
 	g_replayComm = std::make_unique<SlippiReplayComm>();
 	directCodes = std::make_unique<SlippiDirectCodes>("direct-codes.json");
 	teamsCodes = std::make_unique<SlippiDirectCodes>("teams-codes.json");
@@ -2868,7 +2868,7 @@ void CEXISlippi::handleConnectionCleanup()
 
 	// Reset matchmaking
     auto isMex = SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_MEX;
-	matchmaking = std::make_unique<SlippiMatchmaking>(user.get(), !isMex);
+	matchmaking = std::make_unique<SlippiMatchmaking>(user.get(), isMex);
 
 	// Disconnect netplay client
 	slippi_netplay = nullptr;
@@ -2906,6 +2906,7 @@ void CEXISlippi::handleReportGame(u8 *payload)
 #ifndef LOCAL_TESTING
 	SlippiGameReporter::GameReport r;
 	r.durationFrames = Common::swap32(&payload[0]);
+	r.mode = this->lastSearch.mode;
 
 	// ERROR_LOG(SLIPPI_ONLINE, "Frames: %d", r.durationFrames);
 

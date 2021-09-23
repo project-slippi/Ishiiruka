@@ -19,7 +19,7 @@ using json = nlohmann::json;
 class SlippiMatchmaking
 {
   public:
-	SlippiMatchmaking(SlippiUser *user, bool useSlippiUrl);
+	SlippiMatchmaking(SlippiUser *user, bool isMex);
 	~SlippiMatchmaking();
 
 	enum OnlinePlayMode
@@ -58,6 +58,7 @@ class SlippiMatchmaking
 	std::vector<u16> GetStages();
 	u8 RemotePlayerCount();
 	static bool IsFixedRulesMode(OnlinePlayMode mode);
+	static bool IsMexMode(bool isCurrentGameMex, OnlinePlayMode mode);
 
   protected:
 	const std::string MM_HOST_DEV_EX = "165.227.213.180";
@@ -67,6 +68,7 @@ class SlippiMatchmaking
 	const u16 MM_PORT = 43113;
 
 	std::string MM_HOST = "";
+	bool isMex = false;
 
 	ENetHost *m_client;
 	ENetPeer *m_server;
@@ -101,6 +103,10 @@ class SlippiMatchmaking
 	    {ProcessState::MATCHMAKING, true},
 	    {ProcessState::OPPONENT_CONNECTING, true},
 	};
+
+	std::string getSlippiMMHost();
+	std::string getMexMMHost();
+	std::string getMMHostForSearchMode();
 
 	void disconnectFromServer();
 	void terminateMmConnection();
