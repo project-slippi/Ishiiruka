@@ -91,15 +91,16 @@ void SlippiNetplayConfigPane::InitializeGUI()
 	ipTextValidator.SetIncludes(charsToFilter);
 	m_slippi_netplay_lan_ip_ctrl->SetValidator(ipTextValidator);
 
-    m_slippi_enable_custom_mm_checkbox = new wxCheckBox(this, wxID_ANY, _("Enable Custom Matchmaking Servers"));
-    m_slippi_enable_custom_mm_checkbox->SetToolTip(
-        _("Enable this to set a custom server for playing Unranked while using m-ex mods."));
+	m_slippi_enable_custom_mm_checkbox = new wxCheckBox(this, wxID_ANY, _("Enable Custom Matchmaking Servers"));
+	m_slippi_enable_custom_mm_checkbox->SetToolTip(
+	    _("Enable this to set a custom server for playing Unranked while using m-ex mods."));
 
-    m_slippi_custom_mm_host_txt = new wxStaticText(this, wxID_ANY, _("Custom Server URL:"));
-    m_slippi_custom_mm_host_input = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(120, -1));
+	m_slippi_custom_mm_host_txt = new wxStaticText(this, wxID_ANY, _("Custom Server URL:"));
+	m_slippi_custom_mm_host_input = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(120, -1));
 
-    m_slippi_custom_mm_reporting_host_txt = new wxStaticText(this, wxID_ANY, _("Custom Reporting URL:"));
-    m_slippi_custom_mm_reporting_host_input = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(120, -1));
+	m_slippi_custom_mm_reporting_host_txt = new wxStaticText(this, wxID_ANY, _("Custom Reporting URL:"));
+	m_slippi_custom_mm_reporting_host_input =
+	    new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(120, -1));
 
 	// Input settings
 	m_reduce_timing_dispersion_checkbox = new wxCheckBox(this, wxID_ANY, _("Reduce Timing Dispersion"));
@@ -142,18 +143,18 @@ void SlippiNetplayConfigPane::InitializeGUI()
 	sSlippiOnlineSettings->Add(m_slippi_netplay_lan_ip_ctrl, wxGBPosition(3, 1), wxDefaultSpan,
 	                           wxALIGN_LEFT | wxRESERVE_SPACE_EVEN_IF_HIDDEN);
 
-    sSlippiOnlineSettings->Add(m_slippi_enable_custom_mm_checkbox, wxGBPosition(4, 0), wxDefaultSpan,
-                               wxALIGN_CENTER_VERTICAL);
+	sSlippiOnlineSettings->Add(m_slippi_enable_custom_mm_checkbox, wxGBPosition(4, 0), wxDefaultSpan,
+	                           wxALIGN_CENTER_VERTICAL);
 
-    sSlippiOnlineSettings->Add(m_slippi_custom_mm_host_txt, wxGBPosition(5, 0), wxDefaultSpan,
-                               wxALIGN_CENTER_VERTICAL | wxRESERVE_SPACE_EVEN_IF_HIDDEN);
-    sSlippiOnlineSettings->Add(m_slippi_custom_mm_host_input, wxGBPosition(5, 1), wxDefaultSpan,
-                               wxALIGN_LEFT | wxRESERVE_SPACE_EVEN_IF_HIDDEN);
+	sSlippiOnlineSettings->Add(m_slippi_custom_mm_host_txt, wxGBPosition(5, 0), wxDefaultSpan,
+	                           wxALIGN_CENTER_VERTICAL | wxRESERVE_SPACE_EVEN_IF_HIDDEN);
+	sSlippiOnlineSettings->Add(m_slippi_custom_mm_host_input, wxGBPosition(5, 1), wxDefaultSpan,
+	                           wxALIGN_LEFT | wxRESERVE_SPACE_EVEN_IF_HIDDEN);
 
-    sSlippiOnlineSettings->Add(m_slippi_custom_mm_reporting_host_txt, wxGBPosition(6, 0), wxDefaultSpan,
-                               wxALIGN_CENTER_VERTICAL | wxRESERVE_SPACE_EVEN_IF_HIDDEN);
-    sSlippiOnlineSettings->Add(m_slippi_custom_mm_reporting_host_input, wxGBPosition(6, 1), wxDefaultSpan,
-                               wxALIGN_LEFT | wxRESERVE_SPACE_EVEN_IF_HIDDEN);
+	sSlippiOnlineSettings->Add(m_slippi_custom_mm_reporting_host_txt, wxGBPosition(6, 0), wxDefaultSpan,
+	                           wxALIGN_CENTER_VERTICAL | wxRESERVE_SPACE_EVEN_IF_HIDDEN);
+	sSlippiOnlineSettings->Add(m_slippi_custom_mm_reporting_host_input, wxGBPosition(6, 1), wxDefaultSpan,
+	                           wxALIGN_LEFT | wxRESERVE_SPACE_EVEN_IF_HIDDEN);
 
 	wxStaticBoxSizer *const sbSlippiOnlineSettings =
 	    new wxStaticBoxSizer(wxVERTICAL, this, _("Slippi Online Settings"));
