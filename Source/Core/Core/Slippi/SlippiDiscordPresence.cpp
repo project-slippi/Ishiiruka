@@ -53,11 +53,11 @@ void SlippiDiscordPresence::DiscordReady(const DiscordUser* user) {
 	DiscordRichPresence discordPresence;
 	memset(&discordPresence, 0, sizeof(discordPresence));
 	// discordPresence.state = "West of House";
-	discordPresence.details = "Gaming";
+	discordPresence.details = "Idle";
 	discordPresence.startTimestamp = time(0);
-	discordPresence.endTimestamp = time(0) + 5 * 60;
-	discordPresence.largeImageKey = "canary-large";
-	discordPresence.smallImageKey = "ptb-small";
+	// discordPresence.endTimestamp = time(0) + 5 * 60;
+	discordPresence.largeImageKey = "menu";
+	// discordPresence.smallImageKey = "ptb-small";
 	// discordPresence.partyId = "party1234";
 	// discordPresence.partySize = 1;
 	// discordPresence.partyMax = 6;
