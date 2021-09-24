@@ -4,27 +4,51 @@
 #include "Common/Logging/Log.h"
 #include <discord-rpc/include/discord_rpc.h>
 #include <time.h>
+#include <thread>
+#include <chrono>
 
 SlippiDiscordPresence::SlippiDiscordPresence() {
-
-	INFO_LOG(SLIPPI_ONLINE, "SlippiDiscordPresence()");
-
 	DiscordEventHandlers handlers;
 	memset(&handlers, 0, sizeof(handlers));
 	handlers.ready = SlippiDiscordPresence::DiscordReady;
-	// handlers.disconnected = handleDiscordDisconnected;
-	// handlers.errored = handleDiscordError;
+	// handlers.disconnected = handleDiscordDisconnect;
+	handlers.errored = SlippiDiscordPresence::DiscordError;
 	// handlers.joinGame = handleDiscordJoin;
 	// handlers.spectateGame = handleDiscordSpectate;
 	// handlers.joinRequest = handleDiscordJoinRequest;
 	Discord_Initialize(ApplicationID, &handlers, 1, NULL);
+
+	RunActionThread = true;
+	ActionThread = std::thread([&] (auto* obj) { obj->Action(); }, this);
 }
 
 SlippiDiscordPresence::~SlippiDiscordPresence() {
+	RunActionThread = false;
 	// disconnect from discord here
 }
 
-void SlippiDiscordPresence::DiscordReady(const DiscordUser*) {
+void SlippiDiscordPresence::Action() {
+	INFO_LOG(SLIPPI, "SlippiDiscordPresence::Action()");
+	while(RunActionThread) {
+		#ifdef DISCORD_DISABLE_IO_THREAD
+			Discord_UpdateConnection();
+		#endif
+		Discord_RunCallbacks();
+		std::this_thread::sleep_for(Interval);
+	}
+}
+
+void SlippiDiscordPresence::DiscordError(int errcode, const char* message)
+{
+    ERROR_LOG(SLIPPI, "Could not connected to discord: error (%d: %s)", errcode, message);
+}
+
+void SlippiDiscordPresence::DiscordReady(const DiscordUser* user) {
+	INFO_LOG(SLIPPI, "Discord: connected to user %s#%s - %s",
+		user->username,
+		user->discriminator,
+		user->userId);
+
 	// connect to discord here
 	DiscordRichPresence discordPresence;
 	memset(&discordPresence, 0, sizeof(discordPresence));
@@ -43,6 +67,8 @@ void SlippiDiscordPresence::DiscordReady(const DiscordUser*) {
 	// discordPresence.spectateSecret = "look";
 	discordPresence.instance = 0;
 	Discord_UpdatePresence(&discordPresence);
+
+	INFO_LOG(SLIPPI, "SlippiDiscordPresence::DiscordReady()");
 }
 
 // void SlippiDiscordPresence::ReportGame(SlippiGameReporter::GameReport report) {
