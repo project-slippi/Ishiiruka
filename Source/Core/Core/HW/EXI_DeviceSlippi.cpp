@@ -2455,6 +2455,9 @@ void CEXISlippi::prepareOnlineMatchState()
 		rightTeamPlayers.resize(4, 0);
 		leftTeamPlayers[3] = leftTeamSize;
 		rightTeamPlayers[3] = rightTeamSize;
+
+		INFO_LOG(SLIPPI_ONLINE, "Updating discordPresence");
+		discordPresence->UpdateGameInfo(slippi_netplay->GetMatchInfo());
 	}
 
 	// Add rng offset to output

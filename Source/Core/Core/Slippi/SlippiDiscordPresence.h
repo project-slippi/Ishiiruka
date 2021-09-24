@@ -1,6 +1,7 @@
 #ifdef HAVE_DISCORD_RPC
 
 #include "Core/Slippi/SlippiGameReporter.h"
+#include "Core/Slippi/SlippiNetplay.h"
 #include <discord-rpc/include/discord_rpc.h>
 #include <thread>
 #include <chrono>
@@ -11,7 +12,7 @@ class SlippiDiscordPresence {
 		SlippiDiscordPresence();
 		~SlippiDiscordPresence();
 		// void ReportGame(SlippiGameReporter::GameReport);
-		// void UpdateGameInfo(Slippi::GameSettings*);
+		void UpdateGameInfo(SlippiMatchInfo*);
 		static void DiscordError(int, const char*);
 		static void DiscordReady(const DiscordUser*);
 		void Action();

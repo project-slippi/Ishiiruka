@@ -76,9 +76,9 @@ void SlippiDiscordPresence::DiscordReady(const DiscordUser* user) {
 	//  report.players[0].stocksRemaining, report.players[0].stocksRemaining);
 // };
 
-// void SlippiDiscordPresence::UpdateGameInfo(Slippi::GameSettings* gameInfo) {
-	// INFO_LOG(SLIPPI_ONLINE, "Playing stage %d", gameInfo->stage);
-	// INFO_LOG(SLIPPI_ONLINE, "Playing character %d", gameInfo->players[0].characterId);
-// };
+void SlippiDiscordPresence::UpdateGameInfo(SlippiMatchInfo* gameInfo) {
+	INFO_LOG(SLIPPI_ONLINE, "Playing stage %d", gameInfo->localPlayerSelections.stageId);
+	INFO_LOG(SLIPPI_ONLINE, "Playing character %d", gameInfo->localPlayerSelections.characterId);
+};
 
 #endif
