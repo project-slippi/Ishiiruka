@@ -2313,8 +2313,8 @@ void CEXISlippi::prepareOnlineMatchState()
 			break;
 		}
 
-        auto isMex = SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_MEX;
-        auto isCustomMMEnabled = SConfig::GetInstance().m_slippiCustomMMEnabled;
+		auto isMex = SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_MEX;
+		auto isCustomMMEnabled = SConfig::GetInstance().m_slippiCustomMMEnabled;
 
 		if (SlippiMatchmaking::IsFixedRulesMode(lastSearch.mode))
 		{

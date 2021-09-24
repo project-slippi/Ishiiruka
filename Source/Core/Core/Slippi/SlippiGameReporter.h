@@ -41,7 +41,7 @@ class SlippiGameReporter
 	std::string reportUrl = SLIPPI_REPORT_URL;
 	CURL *m_curl = nullptr;
 	struct curl_slist *m_curlHeaderList = nullptr;
-    bool isMex = false;
+	bool isMex = false;
 
 	u32 gameIndex = 1;
 	std::vector<std::string> playerUids;

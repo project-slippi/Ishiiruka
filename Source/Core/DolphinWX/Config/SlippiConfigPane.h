@@ -37,9 +37,9 @@ class SlippiNetplayConfigPane final : public wxPanel
 	void OnNetplayPortChanged(wxCommandEvent &event);
 	void OnForceNetplayLanIpToggle(wxCommandEvent &event);
 	void OnNetplayLanIpChanged(wxCommandEvent &event);
-    void OnEnableCustomMMServersToggle(wxCommandEvent &event);
-    void OnCustomMMServerURLChanged(wxCommandEvent &event);
-    void OnCustomMMReportingURLChanged(wxCommandEvent &event);
+	void OnEnableCustomMMServersToggle(wxCommandEvent &event);
+	void OnCustomMMServerURLChanged(wxCommandEvent &event);
+	void OnCustomMMReportingURLChanged(wxCommandEvent &event);
 
 	void OnQuickChatChanged(wxCommandEvent &event);
 	void OnReduceTimingDispersionToggle(wxCommandEvent &event);
@@ -58,11 +58,11 @@ class SlippiNetplayConfigPane final : public wxPanel
 	wxTextCtrl *m_slippi_netplay_lan_ip_ctrl;
 	wxStaticText *m_slippi_enable_quick_chat_txt;
 	wxChoice *m_slippi_enable_quick_chat_choice;
-    wxCheckBox* m_slippi_enable_custom_mm_checkbox;
-    wxStaticText* m_slippi_custom_mm_host_txt;
-    wxTextCtrl* m_slippi_custom_mm_host_input;
-    wxStaticText* m_slippi_custom_mm_reporting_host_txt;
-    wxTextCtrl* m_slippi_custom_mm_reporting_host_input;
+	wxCheckBox *m_slippi_enable_custom_mm_checkbox;
+	wxStaticText *m_slippi_custom_mm_host_txt;
+	wxTextCtrl *m_slippi_custom_mm_host_input;
+	wxStaticText *m_slippi_custom_mm_reporting_host_txt;
+	wxTextCtrl *m_slippi_custom_mm_reporting_host_input;
 
 	wxCheckBox *m_reduce_timing_dispersion_checkbox;
 };

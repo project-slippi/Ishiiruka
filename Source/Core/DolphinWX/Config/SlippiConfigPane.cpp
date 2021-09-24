@@ -247,9 +247,9 @@ void SlippiNetplayConfigPane::BindEvents()
 	m_slippi_force_netplay_lan_ip_checkbox->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnForceNetplayLanIpToggle,
 	                                             this);
 	m_slippi_netplay_lan_ip_ctrl->Bind(wxEVT_TEXT, &SlippiNetplayConfigPane::OnNetplayLanIpChanged, this);
-    m_slippi_enable_custom_mm_checkbox->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnEnableCustomMMServersToggle,this);
-    m_slippi_custom_mm_host_input->Bind(wxEVT_TEXT, &SlippiNetplayConfigPane::OnCustomMMServerURLChanged,this);
-    m_slippi_custom_mm_reporting_host_input->Bind(wxEVT_TEXT, &SlippiNetplayConfigPane::OnCustomMMReportingURLChanged,this);
+	m_slippi_enable_custom_mm_checkbox->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnEnableCustomMMServersToggle,this);
+	m_slippi_custom_mm_host_input->Bind(wxEVT_TEXT, &SlippiNetplayConfigPane::OnCustomMMServerURLChanged, this);
+	m_slippi_custom_mm_reporting_host_input->Bind(wxEVT_TEXT, &SlippiNetplayConfigPane::OnCustomMMReportingURLChanged,this);
 
 	m_reduce_timing_dispersion_checkbox->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnReduceTimingDispersionToggle,
 	                                          this);
