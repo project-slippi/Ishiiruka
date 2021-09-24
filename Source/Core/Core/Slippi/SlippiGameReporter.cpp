@@ -30,7 +30,7 @@ static size_t receive(char *ptr, size_t size, size_t nmemb, void *rcvBuf)
 
 SlippiGameReporter::SlippiGameReporter(SlippiUser *user, bool isMex)
 {
-	this->isMex = isMex;
+	this->isMex = SConfig::GetInstance().m_slippiCustomMMEnabled && isMex;
 	this->reportUrl = SLIPPI_REPORT_URL;
 
 	CURL *curl = curl_easy_init();
@@ -126,7 +126,7 @@ void SlippiGameReporter::ReportThreadHandler()
 			auto requestString = request.dump();
 
 			bool isMexMode = SlippiMatchmaking::IsMexMode(this->isMex, report.mode);
-			std::string effectiveUrl = isMexMode ? EX_REPORT_URL : this->reportUrl;
+			std::string effectiveUrl = isMexMode ? SConfig::GetInstance().m_slippiCustomMMReportingURL : this->reportUrl;
 			// ERROR_LOG(SLIPPI_ONLINE, "[GameReport] REPORT_URL: %s", effectiveUrl.c_str());
 
 			// Send report

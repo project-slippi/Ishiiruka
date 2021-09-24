@@ -91,6 +91,16 @@ void SlippiNetplayConfigPane::InitializeGUI()
 	ipTextValidator.SetIncludes(charsToFilter);
 	m_slippi_netplay_lan_ip_ctrl->SetValidator(ipTextValidator);
 
+    m_slippi_enable_custom_mm_checkbox = new wxCheckBox(this, wxID_ANY, _("Enable Custom Matchmaking Servers"));
+    m_slippi_enable_custom_mm_checkbox->SetToolTip(
+        _("Enable this to set a custom server for playing Unranked while using m-ex mods."));
+
+    m_slippi_custom_mm_host_txt = new wxStaticText(this, wxID_ANY, _("Custom Server URL:"));
+    m_slippi_custom_mm_host_input = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(120, -1));
+
+    m_slippi_custom_mm_reporting_host_txt = new wxStaticText(this, wxID_ANY, _("Custom Reporting URL:"));
+    m_slippi_custom_mm_reporting_host_input = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(120, -1));
+
 	// Input settings
 	m_reduce_timing_dispersion_checkbox = new wxCheckBox(this, wxID_ANY, _("Reduce Timing Dispersion"));
 	m_reduce_timing_dispersion_checkbox->SetToolTip(
@@ -131,6 +141,19 @@ void SlippiNetplayConfigPane::InitializeGUI()
 	                           wxALIGN_CENTER_VERTICAL);
 	sSlippiOnlineSettings->Add(m_slippi_netplay_lan_ip_ctrl, wxGBPosition(3, 1), wxDefaultSpan,
 	                           wxALIGN_LEFT | wxRESERVE_SPACE_EVEN_IF_HIDDEN);
+
+    sSlippiOnlineSettings->Add(m_slippi_enable_custom_mm_checkbox, wxGBPosition(4, 0), wxDefaultSpan,
+                               wxALIGN_CENTER_VERTICAL);
+
+    sSlippiOnlineSettings->Add(m_slippi_custom_mm_host_txt, wxGBPosition(5, 0), wxDefaultSpan,
+                               wxALIGN_CENTER_VERTICAL | wxRESERVE_SPACE_EVEN_IF_HIDDEN);
+    sSlippiOnlineSettings->Add(m_slippi_custom_mm_host_input, wxGBPosition(5, 1), wxDefaultSpan,
+                               wxALIGN_LEFT | wxRESERVE_SPACE_EVEN_IF_HIDDEN);
+
+    sSlippiOnlineSettings->Add(m_slippi_custom_mm_reporting_host_txt, wxGBPosition(6, 0), wxDefaultSpan,
+                               wxALIGN_CENTER_VERTICAL | wxRESERVE_SPACE_EVEN_IF_HIDDEN);
+    sSlippiOnlineSettings->Add(m_slippi_custom_mm_reporting_host_input, wxGBPosition(6, 1), wxDefaultSpan,
+                               wxALIGN_LEFT | wxRESERVE_SPACE_EVEN_IF_HIDDEN);
 
 	wxStaticBoxSizer *const sbSlippiOnlineSettings =
 	    new wxStaticBoxSizer(wxVERTICAL, this, _("Slippi Online Settings"));
@@ -193,6 +216,17 @@ void SlippiNetplayConfigPane::LoadGUIValues()
 		m_slippi_netplay_lan_ip_ctrl->Hide();
 	}
 
+	m_slippi_enable_custom_mm_checkbox->SetValue(startup_params.m_slippiCustomMMEnabled);
+	m_slippi_custom_mm_host_input->SetValue(startup_params.m_slippiCustomMMServerURL);
+	m_slippi_custom_mm_reporting_host_input->SetValue(startup_params.m_slippiCustomMMReportingURL);
+	if (!startup_params.m_slippiCustomMMEnabled)
+	{
+		m_slippi_custom_mm_host_input->Hide();
+        m_slippi_custom_mm_host_txt->Hide();
+		m_slippi_custom_mm_reporting_host_input->Hide();
+        m_slippi_custom_mm_reporting_host_txt->Hide();
+	}
+
 	m_reduce_timing_dispersion_checkbox->SetValue(startup_params.bReduceTimingDispersion);
 }
 
@@ -213,6 +247,9 @@ void SlippiNetplayConfigPane::BindEvents()
 	m_slippi_force_netplay_lan_ip_checkbox->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnForceNetplayLanIpToggle,
 	                                             this);
 	m_slippi_netplay_lan_ip_ctrl->Bind(wxEVT_TEXT, &SlippiNetplayConfigPane::OnNetplayLanIpChanged, this);
+    m_slippi_enable_custom_mm_checkbox->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnEnableCustomMMServersToggle,this);
+    m_slippi_custom_mm_host_input->Bind(wxEVT_TEXT, &SlippiNetplayConfigPane::OnCustomMMServerURLChanged,this);
+    m_slippi_custom_mm_reporting_host_input->Bind(wxEVT_TEXT, &SlippiNetplayConfigPane::OnCustomMMReportingURLChanged,this);
 
 	m_reduce_timing_dispersion_checkbox->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnReduceTimingDispersionToggle,
 	                                          this);
@@ -302,6 +339,38 @@ void SlippiNetplayConfigPane::OnForceNetplayLanIpToggle(wxCommandEvent &event)
 void SlippiNetplayConfigPane::OnNetplayLanIpChanged(wxCommandEvent &event)
 {
 	SConfig::GetInstance().m_slippiLanIp = m_slippi_netplay_lan_ip_ctrl->GetValue().c_str();
+}
+
+void SlippiNetplayConfigPane::OnEnableCustomMMServersToggle(wxCommandEvent &event)
+{
+    bool enableCustomMMServers = m_slippi_enable_custom_mm_checkbox->IsChecked();
+
+    SConfig::GetInstance().m_slippiCustomMMEnabled = enableCustomMMServers;
+
+    if (enableCustomMMServers)
+    {
+        m_slippi_custom_mm_host_txt->Show();
+        m_slippi_custom_mm_host_input->Show();
+        m_slippi_custom_mm_reporting_host_txt->Show();
+        m_slippi_custom_mm_reporting_host_input->Show();
+	}
+    else
+    {
+        m_slippi_custom_mm_host_txt->Hide();
+        m_slippi_custom_mm_host_input->Hide();
+        m_slippi_custom_mm_reporting_host_txt->Hide();
+        m_slippi_custom_mm_reporting_host_input->Hide();
+	}
+}
+
+void SlippiNetplayConfigPane::OnCustomMMServerURLChanged(wxCommandEvent &event)
+{
+    SConfig::GetInstance().m_slippiCustomMMServerURL = m_slippi_custom_mm_host_input->GetValue().c_str();
+}
+
+void SlippiNetplayConfigPane::OnCustomMMReportingURLChanged(wxCommandEvent &event)
+{
+    SConfig::GetInstance().m_slippiCustomMMReportingURL = m_slippi_custom_mm_reporting_host_input->GetValue().c_str();
 }
 
 void SlippiNetplayConfigPane::OnReduceTimingDispersionToggle(wxCommandEvent &event)

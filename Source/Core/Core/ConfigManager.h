@@ -162,7 +162,10 @@ struct SConfig : NonCopyable
 	std::string m_strSlippiReplayDir;
 	bool m_slippiForceNetplayPort = false;
 	int m_slippiNetplayPort;
-	bool m_slippiForceLanIp = false;
+    bool m_slippiForceLanIp = false;
+    bool m_slippiCustomMMEnabled = false;
+    std::string m_slippiCustomMMServerURL = "165.227.213.180";
+    std::string m_slippiCustomMMReportingURL = "https://lylat.gg/reports";
 	std::string m_slippiLanIp = "";
 	bool m_meleeUserIniBootstrapped = false;
 	bool m_blockingPipes = false;

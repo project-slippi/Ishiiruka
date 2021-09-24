@@ -27,7 +27,7 @@ std::string MmMessageType::GET_TICKET_RESP = "get-ticket-resp";
 
 SlippiMatchmaking::SlippiMatchmaking(SlippiUser *user, bool isMex)
 {
-	this->isMex = isMex;
+	this->isMex = SConfig::GetInstance().m_slippiCustomMMEnabled && isMex;
 
 	m_user = user;
 	m_state = ProcessState::IDLE;
@@ -70,8 +70,8 @@ std::string SlippiMatchmaking::getSlippiMMHost()
  */
 std::string SlippiMatchmaking::getMexMMHost()
 {
-	auto prodUrl = MM_HOST_PROD_EX;
-	auto devUrl = MM_HOST_DEV_EX;
+	auto prodUrl = SConfig::GetInstance().m_slippiCustomMMServerURL;
+	auto devUrl = MM_HOST_DEV;
 	return scm_slippi_semver_str.find("dev") == std::string::npos ? prodUrl : devUrl;
 }
 
@@ -110,8 +110,12 @@ bool SlippiMatchmaking::IsMexMode(bool isCurrentGameMex, OnlinePlayMode mode)
 	}
 }
 
-void SlippiMatchmaking::FindMatch(MatchSearchSettings settings)
+void SlippiMatchmaking::FindMatch(MatchSearchSettings settings, bool isMex)
 {
+	// We do this here again because an instance could already be created and
+	// without this, executing FindMatch could drop custom mm players into
+	// slippi servers
+	this->isMex = SConfig::GetInstance().m_slippiCustomMMEnabled && isMex;
 	isMmConnected = false;
 
 	ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Starting matchmaking...");

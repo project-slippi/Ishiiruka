@@ -14,7 +14,6 @@
 #include <vector>
 
 #define SLIPPI_REPORT_URL "https://rankings-dot-slippi.uc.r.appspot.com/report"
-#define EX_REPORT_URL "https://lylat.gg/reports"
 
 class SlippiGameReporter
 {

@@ -1876,15 +1876,18 @@ void CEXISlippi::startFindMatch(u8 *payload)
 	// Store this search so we know what was queued for
 	lastSearch = search;
 
+	auto isMex = SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_MEX;
+	auto isCustomMMEnabled = SConfig::GetInstance().m_slippiCustomMMEnabled;
+
 	// While we do have another condition that checks characters after being connected, it's nice to give
 	// someone an early error before they even queue so that they wont enter the queue and make someone
 	// else get force removed from queue and have to requeue
 	if (SlippiMatchmaking::IsFixedRulesMode(search.mode))
 	{
 		// Character check
-		if (localSelections.characterId >= 26)
+		if (localSelections.characterId >= 26 && !(isMex && isCustomMMEnabled))
 		{
-			forcedError = "The character you selected is not allowed in this mode";
+			forcedError = ERROR_MSG_INVALID_CHAR;
 			return;
 		}
 
@@ -1892,17 +1895,16 @@ void CEXISlippi::startFindMatch(u8 *payload)
 		if (localSelections.isStageSelected &&
 		    std::find(allowedStages.begin(), allowedStages.end(), localSelections.stageId) == allowedStages.end())
 		{
-			forcedError = "The stage being requested is not allowed in this mode";
+			forcedError = ERROR_MSG_INVALID_STAGE;
 			return;
 		}
 	}
 	else if (search.mode == SlippiMatchmaking::OnlinePlayMode::TEAMS)
 	{
-		auto isMex = SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_MEX;
 		// Some special handling for teams since it is being heavily used for unranked
 		if (localSelections.characterId >= 26 && !isMex)
 		{
-			forcedError = "The character you selected is not allowed in this mode";
+			forcedError = ERROR_MSG_INVALID_CHAR;
 			return;
 		}
 	}
@@ -1918,7 +1920,7 @@ void CEXISlippi::startFindMatch(u8 *payload)
 		isEnetInitialized = true;
 	}
 
-	matchmaking->FindMatch(search);
+	matchmaking->FindMatch(search, isMex);
 #endif
 }
 
@@ -2311,19 +2313,22 @@ void CEXISlippi::prepareOnlineMatchState()
 			break;
 		}
 
+        auto isMex = SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_MEX;
+        auto isCustomMMEnabled = SConfig::GetInstance().m_slippiCustomMMEnabled;
+
 		if (SlippiMatchmaking::IsFixedRulesMode(lastSearch.mode))
 		{
 			// If we enter one of these conditions, someone is doing something bad, clear the lobby
 
-			if (!localCharOk)
+			if (!localCharOk && !(isMex && isCustomMMEnabled))
 			{
 				handleConnectionCleanup();
-				forcedError = "The character you selected is not allowed in this mode";
+				forcedError = ERROR_MSG_INVALID_CHAR;
 				prepareOnlineMatchState();
 				return;
 			}
 
-			if (!remoteCharOk)
+			if (!remoteCharOk && !(isMex && isCustomMMEnabled))
 			{
 				handleConnectionCleanup();
 				prepareOnlineMatchState();
@@ -2339,12 +2344,10 @@ void CEXISlippi::prepareOnlineMatchState()
 		}
 		else if (lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::TEAMS)
 		{
-			auto isMex = SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_MEX;
-
 			if (!localCharOk && !isMex)
 			{
 				handleConnectionCleanup();
-				forcedError = "The character you selected is not allowed in this mode";
+				forcedError = ERROR_MSG_INVALID_CHAR;
 				prepareOnlineMatchState();
 				return;
 			}
