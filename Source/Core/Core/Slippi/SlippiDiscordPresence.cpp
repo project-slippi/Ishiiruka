@@ -148,7 +148,6 @@ void SlippiDiscordPresence::GameEnd() {
 }
 
 void SlippiDiscordPresence::GameStart(SlippiMatchInfo* gameInfo, SlippiMatchmaking* matchmaking) {
-
 	std::vector<SlippiPlayerSelections> players(SLIPPI_REMOTE_PLAYER_MAX+1);
 	players[gameInfo->localPlayerSelections.playerIdx] = gameInfo->localPlayerSelections;
 	for(int i = 0; i < SLIPPI_REMOTE_PLAYER_MAX; i++) {
@@ -198,7 +197,7 @@ void SlippiDiscordPresence::GameStart(SlippiMatchInfo* gameInfo, SlippiMatchmaki
 	discordPresence.largeImageKey = largeImageKey;
 	discordPresence.largeImageText = largeImageText;
 	discordPresence.smallImageKey = smallImageKey;
-		discordPresence.smallImageText = smallImageText;
+	discordPresence.smallImageText = smallImageText;
 	discordPresence.instance = 0;
 	Discord_UpdatePresence(&discordPresence);
 };
