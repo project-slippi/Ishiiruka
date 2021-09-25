@@ -137,8 +137,8 @@ void SlippiDiscordPresence::UpdateGameInfo(SlippiMatchInfo* gameInfo, SlippiMatc
 
 	// INFO_LOG(SLIPPI_ONLINE, "Discord state: %s", state.str().c_str());
 
-	char state[13];
-	snprintf(state, 13, "Stocks: %d - %d", 4, 4);
+	char state[14];
+	snprintf(state, 14, "Stocks: %d - %d", 4, 4);
 
 	char largeImageKey[7] = "custom";
 	if(stageId != -1) {
