@@ -163,3 +163,4 @@ void SlippiDiscordPresence::UpdateGameInfo(SlippiMatchInfo* gameInfo, SlippiMatc
 	Discord_UpdatePresence(&discordPresence);
 };
 
+#endif
