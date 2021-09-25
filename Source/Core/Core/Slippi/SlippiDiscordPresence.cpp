@@ -2,11 +2,17 @@
 
 #include "Core/Slippi/SlippiDiscordPresence.h"
 #include "Common/Logging/Log.h"
+#include "Common/StringUtil.h"
 #include <discord-rpc/include/discord_rpc.h>
 #include <time.h>
 #include <thread>
 #include <chrono>
+#include <iostream>
+#include <sstream>
+#include <array>
 #include <stdio.h>
+
+#define MAX_NAME_LENGTH 15
 
 SlippiDiscordPresence::SlippiDiscordPresence() {
 	DiscordEventHandlers handlers;
@@ -107,26 +113,32 @@ const char* characters[] = {
   "Ganondorf",
 };
 
-void SlippiDiscordPresence::UpdateGameInfo(SlippiMatchInfo* gameInfo) {
-	int stageId = -1;
-	for(int i = 0; i < SLIPPI_REMOTE_PLAYER_MAX; i++) {
-		if(gameInfo->remotePlayerSelections[i].playerIdx == 0) {
-			INFO_LOG(SLIPPI_ONLINE, "remotePlayerSelections[%d].stageId: %d", i, gameInfo->localPlayerSelections.stageId);
-			stageId = gameInfo->remotePlayerSelections[i].stageId;
-			break;
-		}
-	}
+void SlippiDiscordPresence::UpdateGameInfo(SlippiMatchInfo* gameInfo, SlippiMatchmaking* matchmaking) {
 
+	std::vector<SlippiPlayerSelections> players(SLIPPI_REMOTE_PLAYER_MAX+1);
+	players[gameInfo->localPlayerSelections.playerIdx] = gameInfo->localPlayerSelections;
+	for(int i = 0; i < SLIPPI_REMOTE_PLAYER_MAX; i++) {
+		players[gameInfo->remotePlayerSelections[i].playerIdx] = gameInfo->remotePlayerSelections[i];
+	}
+	players.shrink_to_fit();
+
+	int stageId = players[0].stageId;
 	INFO_LOG(SLIPPI_ONLINE, "Playing stage %d", stageId);
 	INFO_LOG(SLIPPI_ONLINE, "Playing character %d", gameInfo->localPlayerSelections.characterId);
 
-	char state[256];
-	snprintf(state, 256, "%s (%s) vs. (%s) (%s)",
-	"Player 1", characters[gameInfo->remotePlayerSelections[0].characterId],
- 	"Player 2", characters[gameInfo->remotePlayerSelections[1].characterId]);
+	std::ostringstream details;
+	for(int i = 0; i < matchmaking->RemotePlayerCount()+1; i++) {
+		details << matchmaking->GetPlayerName(i) << " (" << characters[players[i].characterId] << ") ";
+		if(i < matchmaking->RemotePlayerCount()) {
+			details << "vs. ";
+		}
+	}
+	std::string details_str = details.str();
 
-	char details[256];
-	snprintf(details, 256, "Stocks: %d - %d", 4, 4);
+	// INFO_LOG(SLIPPI_ONLINE, "Discord state: %s", state.str().c_str());
+
+	char state[256];
+	snprintf(state, 256, "Stocks: %d - %d", 4, 4);
 
 	char largeImageKey[256] = "custom";
 	if(stageId != -1) {
@@ -134,7 +146,7 @@ void SlippiDiscordPresence::UpdateGameInfo(SlippiMatchInfo* gameInfo) {
 	}
 
 	char smallImageKey[256];
-	snprintf(smallImageKey, 3, "c_%d_%d", gameInfo->localPlayerSelections.characterId,
+	snprintf(smallImageKey, 7, "c_%d_%d", gameInfo->localPlayerSelections.characterId,
 																				gameInfo->localPlayerSelections.characterColor);
 
 	INFO_LOG(SLIPPI_ONLINE, "Displaying icon %s",  largeImageKey);
@@ -142,13 +154,12 @@ void SlippiDiscordPresence::UpdateGameInfo(SlippiMatchInfo* gameInfo) {
 	DiscordRichPresence discordPresence;
 	memset(&discordPresence, 0, sizeof(discordPresence));
 	discordPresence.state = state;
-	discordPresence.details = details;
+	discordPresence.details = details_str.c_str();
 	discordPresence.startTimestamp = time(0);
-	discordPresence.endTimestamp = time(0) + 7 * 60;
+	discordPresence.endTimestamp = time(0) + 8 * 60;
 	discordPresence.largeImageKey = largeImageKey;
 	discordPresence.smallImageKey = smallImageKey;
 	discordPresence.instance = 0;
 	Discord_UpdatePresence(&discordPresence);
 };
 
-#endif
