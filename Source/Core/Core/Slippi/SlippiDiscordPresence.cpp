@@ -109,15 +109,11 @@ const char* characters[] = {
 
 void SlippiDiscordPresence::UpdateGameInfo(SlippiMatchInfo* gameInfo) {
 	int stageId = -1;
-	INFO_LOG(SLIPPI_ONLINE, "localPlayerSelections.stageId: %d", gameInfo->localPlayerSelections.stageId);
-	if(gameInfo->localPlayerSelections.playerIdx == 0) stageId = gameInfo->localPlayerSelections.stageId;
-	else {
-		for(int i = 0; i < SLIPPI_REMOTE_PLAYER_MAX; i++) {
-			if(gameInfo->remotePlayerSelections[i].playerIdx == 0) {
-				INFO_LOG(SLIPPI_ONLINE, "remotePlayerSelections[%d].stageId: %d", i, gameInfo->localPlayerSelections.stageId);
-				stageId = gameInfo->remotePlayerSelections[i].stageId;
-				break;
-			}
+	for(int i = 0; i < SLIPPI_REMOTE_PLAYER_MAX; i++) {
+		if(gameInfo->remotePlayerSelections[i].playerIdx == 0) {
+			INFO_LOG(SLIPPI_ONLINE, "remotePlayerSelections[%d].stageId: %d", i, gameInfo->localPlayerSelections.stageId);
+			stageId = gameInfo->remotePlayerSelections[i].stageId;
+			break;
 		}
 	}
 
