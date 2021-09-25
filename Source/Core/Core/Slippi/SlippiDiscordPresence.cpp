@@ -113,6 +113,42 @@ const char* characters[] = {
   "Ganondorf",
 };
 
+const char* stages[] = {
+  "Unknown Stage",
+  "Unknown Stage",
+  "Fountains of Dreams",
+  "Pokemon Stadium",
+  "Princess Peach's Castle",
+  "Kongo Jungle",
+  "Brinstar",
+  "Corneria",
+  "Yoshi's Story",
+  "Onett",
+  "Mute City",
+  "Rainbow Cruise",
+  "Jungle Japes",
+  "Great Bay",
+  "Temple",
+  "Brinstar Depths",
+  "Yoshi's Island",
+  "Green Greens",
+  "Fourside",
+  "Mushroom Kingdom",
+  "Mushroom Kingdom II",
+  "Unknown Stage",
+  "Venom",
+  "Poke Floats",
+  "Big Blue",
+  "Icicle Mountain",
+  "Unknown Stage",
+  "Flat Zone",
+  "Dream Land 64",
+  "Yoshi's Island 64",
+  "Kongo Jungle 64",
+  "Battlefield",
+  "Final Destination"
+};
+
 void SlippiDiscordPresence::UpdateGameInfo(SlippiMatchInfo* gameInfo, SlippiMatchmaking* matchmaking) {
 
 	std::vector<SlippiPlayerSelections> players(SLIPPI_REMOTE_PLAYER_MAX+1);
@@ -141,13 +177,17 @@ void SlippiDiscordPresence::UpdateGameInfo(SlippiMatchInfo* gameInfo, SlippiMatc
 	snprintf(state, 14, "Stocks: %d - %d", 4, 4);
 
 	char largeImageKey[7] = "custom";
+	const char* largeImageText = "Unknown Stage";
 	if(stageId != -1) {
 		snprintf(largeImageKey, 7, "%d_map", stageId);
+		largeImageText = stages[stageId];
 	}
 
 	char smallImageKey[7];
+	const char* smallImageText;
 	snprintf(smallImageKey, 7, "c_%d_%d", gameInfo->localPlayerSelections.characterId,
 																				gameInfo->localPlayerSelections.characterColor);
+	smallImageText = characters[gameInfo->localPlayerSelections.characterId];
 
 	INFO_LOG(SLIPPI_ONLINE, "Displaying icon %s",  largeImageKey);
 
@@ -158,7 +198,9 @@ void SlippiDiscordPresence::UpdateGameInfo(SlippiMatchInfo* gameInfo, SlippiMatc
 	discordPresence.startTimestamp = time(0);
 	discordPresence.endTimestamp = time(0) + 8 * 60;
 	discordPresence.largeImageKey = largeImageKey;
+	discordPresence.largeImageText = largeImageText;
 	discordPresence.smallImageKey = smallImageKey;
+		discordPresence.smallImageText = smallImageText;
 	discordPresence.instance = 0;
 	Discord_UpdatePresence(&discordPresence);
 };
