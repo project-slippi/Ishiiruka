@@ -18,10 +18,9 @@ class SlippiDiscordPresence {
 		static void DiscordError(int, const char*);
 		static void DiscordReady(const DiscordUser*);
 		void Action();
-	protected:
-		static time_t StartTime;
 	private:
 		static void Idle();
+		inline static time_t StartTime;
 		const char* ApplicationID = "635924792893112320";
 		const std::chrono::duration<int> Interval = std::chrono::seconds(10);
 		std::atomic<bool> RunActionThread;

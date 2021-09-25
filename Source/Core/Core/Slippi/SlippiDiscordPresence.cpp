@@ -39,6 +39,11 @@ SlippiDiscordPresence::~SlippiDiscordPresence() {
 
 void SlippiDiscordPresence::Action() {
 	INFO_LOG(SLIPPI, "SlippiDiscordPresence::Action()");
+	#ifdef DISCORD_DISABLE_IO_THREAD
+		Discord_UpdateConnection();
+	#endif
+	Discord_RunCallbacks();
+
 	while(RunActionThread) {
 		#ifdef DISCORD_DISABLE_IO_THREAD
 			Discord_UpdateConnection();
@@ -172,13 +177,13 @@ void SlippiDiscordPresence::GameStart(SlippiMatchInfo* gameInfo, SlippiMatchmaki
 	char largeImageKey[7] = "custom";
 	const char* largeImageText = "Unknown Stage";
 	if(stageId != -1) {
-		snprintf(largeImageKey, 7, "%d_map", stageId);
+		snprintf(largeImageKey, 7, "%2d_map", stageId);
 		largeImageText = stages[stageId];
 	}
 
 	char smallImageKey[7];
 	const char* smallImageText;
-	snprintf(smallImageKey, 7, "c_%d_%d", gameInfo->localPlayerSelections.characterId,
+	snprintf(smallImageKey, 7, "c_%2d_%1d", gameInfo->localPlayerSelections.characterId,
 																				gameInfo->localPlayerSelections.characterColor);
 	smallImageText = characters[gameInfo->localPlayerSelections.characterId];
 
