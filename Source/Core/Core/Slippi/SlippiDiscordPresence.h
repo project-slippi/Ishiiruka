@@ -13,11 +13,15 @@ class SlippiDiscordPresence {
 		SlippiDiscordPresence();
 		~SlippiDiscordPresence();
 		// void ReportGame(SlippiGameReporter::GameReport);
-		void UpdateGameInfo(SlippiMatchInfo*, SlippiMatchmaking*);
+		void GameEnd();
+		void GameStart(SlippiMatchInfo*, SlippiMatchmaking*);
 		static void DiscordError(int, const char*);
 		static void DiscordReady(const DiscordUser*);
 		void Action();
+	protected:
+		static time_t StartTime;
 	private:
+		static void Idle();
 		const char* ApplicationID = "635924792893112320";
 		const std::chrono::duration<int> Interval = std::chrono::seconds(10);
 		std::atomic<bool> RunActionThread;

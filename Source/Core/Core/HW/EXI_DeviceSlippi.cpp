@@ -2457,7 +2457,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		rightTeamPlayers[3] = rightTeamSize;
 
 		INFO_LOG(SLIPPI_ONLINE, "Updating discordPresence");
-		discordPresence->UpdateGameInfo(slippi_netplay->GetMatchInfo(), matchmaking.get());
+		discordPresence->GameStart(slippi_netplay->GetMatchInfo(), matchmaking.get());
 	}
 
 	// Add rng offset to output
@@ -3001,6 +3001,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "close");
 			m_slippiserver->write(&memPtr[bufLoc], payloadLen + 1);
 			m_slippiserver->endGame();
+			discordPresence->GameEnd();
 			break;
 		case CMD_PREPARE_REPLAY:
 			// log.open("log.txt");

@@ -15,6 +15,8 @@
 #define MAX_NAME_LENGTH 15
 
 SlippiDiscordPresence::SlippiDiscordPresence() {
+	StartTime = time(0);
+
 	DiscordEventHandlers handlers;
 	memset(&handlers, 0, sizeof(handlers));
 	handlers.ready = SlippiDiscordPresence::DiscordReady;
@@ -57,32 +59,19 @@ void SlippiDiscordPresence::DiscordReady(const DiscordUser* user) {
 		user->discriminator,
 		user->userId);
 
+	Idle();
+}
+
+void SlippiDiscordPresence::Idle() {
 	// connect to discord here
 	DiscordRichPresence discordPresence;
 	memset(&discordPresence, 0, sizeof(discordPresence));
 	discordPresence.state = "Idle";
-	// discordPresence.details = "Idle";
-	discordPresence.startTimestamp = time(0);
-	// discordPresence.endTimestamp = time(0) + 5 * 60;
+	discordPresence.startTimestamp = StartTime;
 	discordPresence.largeImageKey = "menu";
-	// discordPresence.smallImageKey = "ptb-small";
-	// discordPresence.partyId = "party1234";
-	// discordPresence.partySize = 1;
-	// discordPresence.partyMax = 6;
-	// discordPresence.partyPrivacy = DISCORD_PARTY_PUBLIC;
-	// discordPresence.matchSecret = "xyzzy";
-	// discordPresence.joinSecret = "join";
-	// discordPresence.spectateSecret = "look";
 	discordPresence.instance = 0;
 	Discord_UpdatePresence(&discordPresence);
-
-	INFO_LOG(SLIPPI, "SlippiDiscordPresence::DiscordReady()");
 }
-
-// void SlippiDiscordPresence::ReportGame(SlippiGameReporter::GameReport report) {
-	// INFO_LOG(SLIPPI_ONLINE, "Got a game report: %d stocks and %d stocks",
-	//  report.players[0].stocksRemaining, report.players[0].stocksRemaining);
-// };
 
 const char* characters[] = {
   "Captain Falcon",
@@ -149,7 +138,11 @@ const char* stages[] = {
   "Final Destination"
 };
 
-void SlippiDiscordPresence::UpdateGameInfo(SlippiMatchInfo* gameInfo, SlippiMatchmaking* matchmaking) {
+void SlippiDiscordPresence::GameEnd() {
+	Idle();
+}
+
+void SlippiDiscordPresence::GameStart(SlippiMatchInfo* gameInfo, SlippiMatchmaking* matchmaking) {
 
 	std::vector<SlippiPlayerSelections> players(SLIPPI_REMOTE_PLAYER_MAX+1);
 	players[gameInfo->localPlayerSelections.playerIdx] = gameInfo->localPlayerSelections;
