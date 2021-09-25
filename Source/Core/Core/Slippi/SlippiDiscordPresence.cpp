@@ -134,7 +134,8 @@ void SlippiDiscordPresence::UpdateGameInfo(SlippiMatchInfo* gameInfo) {
 	}
 
 	char smallImageKey[256];
-	snprintf(smallImageKey, 3, "%d", gameInfo->localPlayerSelections.characterId);
+	snprintf(smallImageKey, 3, "c_%d_%d", gameInfo->localPlayerSelections.characterId,
+																				gameInfo->localPlayerSelections.characterColor);
 
 	INFO_LOG(SLIPPI_ONLINE, "Displaying icon %s",  largeImageKey);
 
