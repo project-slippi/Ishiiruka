@@ -2,6 +2,7 @@
 
 #include "Core/Slippi/SlippiDiscordPresence.h"
 #include "Common/Logging/Log.h"
+#include "Common/StringUtil.h"
 #include <discord-rpc/include/discord_rpc.h>
 #include <time.h>
 #include <thread>
@@ -10,6 +11,8 @@
 #include <sstream>
 #include <array>
 #include <stdio.h>
+
+#define MAX_NAME_LENGTH 15
 
 SlippiDiscordPresence::SlippiDiscordPresence() {
 	DiscordEventHandlers handlers;
@@ -110,12 +113,11 @@ const char* characters[] = {
   "Ganondorf",
 };
 
-void SlippiDiscordPresence::UpdateGameInfo(SlippiMatchInfo* gameInfo) {
+void SlippiDiscordPresence::UpdateGameInfo(SlippiMatchInfo* gameInfo, SlippiMatchmaking* matchmaking) {
 
 	std::vector<SlippiPlayerSelections> players(SLIPPI_REMOTE_PLAYER_MAX+1);
 	players[gameInfo->localPlayerSelections.playerIdx] = gameInfo->localPlayerSelections;
 	for(int i = 0; i < SLIPPI_REMOTE_PLAYER_MAX; i++) {
-		if(!gameInfo->remotePlayerSelections[i].isCharacterSelected) continue;
 		players[gameInfo->remotePlayerSelections[i].playerIdx] = gameInfo->remotePlayerSelections[i];
 	}
 	players.shrink_to_fit();
@@ -125,15 +127,13 @@ void SlippiDiscordPresence::UpdateGameInfo(SlippiMatchInfo* gameInfo) {
 	INFO_LOG(SLIPPI_ONLINE, "Playing character %d", gameInfo->localPlayerSelections.characterId);
 
 	std::ostringstream details;
-	int i = 1;
-	for(const auto &player : players) {
-		details << "Player " << i << " (" << characters[player.characterId] << ") ";
-		if(i < SLIPPI_REMOTE_PLAYER_MAX) {
+	for(int i = 0; i < matchmaking->RemotePlayerCount()+1; i++) {
+		details << matchmaking->GetPlayerName(i) << " (" << characters[players[i].characterId] << ") ";
+		if(i < matchmaking->RemotePlayerCount()) {
 			details << "vs. ";
 		}
-		i++;
 	}
-	std::string details_str = state.str();
+	std::string details_str = details.str();
 
 	// INFO_LOG(SLIPPI_ONLINE, "Discord state: %s", state.str().c_str());
 
