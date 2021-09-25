@@ -6,6 +6,7 @@
 #include <time.h>
 #include <thread>
 #include <chrono>
+#include <stdio.h>
 
 SlippiDiscordPresence::SlippiDiscordPresence() {
 	DiscordEventHandlers handlers;
@@ -19,6 +20,7 @@ SlippiDiscordPresence::SlippiDiscordPresence() {
 	Discord_Initialize(ApplicationID, &handlers, 1, NULL);
 
 	RunActionThread = true;
+	InGame = false;
 	ActionThread = std::thread([&] (auto* obj) { obj->Action(); }, this);
 }
 
@@ -52,8 +54,8 @@ void SlippiDiscordPresence::DiscordReady(const DiscordUser* user) {
 	// connect to discord here
 	DiscordRichPresence discordPresence;
 	memset(&discordPresence, 0, sizeof(discordPresence));
-	// discordPresence.state = "West of House";
-	discordPresence.details = "Idle";
+	discordPresence.state = "Idle";
+	// discordPresence.details = "Idle";
 	discordPresence.startTimestamp = time(0);
 	// discordPresence.endTimestamp = time(0) + 5 * 60;
 	discordPresence.largeImageKey = "menu";
@@ -76,9 +78,80 @@ void SlippiDiscordPresence::DiscordReady(const DiscordUser* user) {
 	//  report.players[0].stocksRemaining, report.players[0].stocksRemaining);
 // };
 
+const char* characters[] = {
+  "Captain Falcon",
+  "Donkey Kong",
+  "Fox",
+  "Game and Watch",
+  "Kirby",
+  "Bowser",
+  "Young Link",
+  "Luigi",
+  "Mario",
+  "Marth",
+  "Mewtwo",
+  "Ness",
+  "Peach",
+  "Pikachu",
+  "Ice Climbers",
+  "Jigglypuff",
+  "Samus",
+  "Yoshi",
+  "Zelda",
+  "Sheik",
+  "Falco",
+  "Link",
+  "Dr. Mario",
+  "Roy",
+  "Pichu",
+  "Ganondorf",
+};
+
 void SlippiDiscordPresence::UpdateGameInfo(SlippiMatchInfo* gameInfo) {
-	INFO_LOG(SLIPPI_ONLINE, "Playing stage %d", gameInfo->localPlayerSelections.stageId);
+	int stageId = -1;
+	INFO_LOG(SLIPPI_ONLINE, "localPlayerSelections.stageId: %d", gameInfo->localPlayerSelections.stageId);
+	if(gameInfo->localPlayerSelections.playerIdx == 0) stageId = gameInfo->localPlayerSelections.stageId;
+	else {
+		for(int i = 0; i < SLIPPI_REMOTE_PLAYER_MAX; i++) {
+			if(gameInfo->remotePlayerSelections[i].playerIdx == 0) {
+				INFO_LOG(SLIPPI_ONLINE, "remotePlayerSelections[%d].stageId: %d", i, gameInfo->localPlayerSelections.stageId);
+				stageId = gameInfo->remotePlayerSelections[i].stageId;
+				break;
+			}
+		}
+	}
+
+	INFO_LOG(SLIPPI_ONLINE, "Playing stage %d", stageId);
 	INFO_LOG(SLIPPI_ONLINE, "Playing character %d", gameInfo->localPlayerSelections.characterId);
+
+	char state[256];
+	snprintf(state, 256, "%s (%s) vs. (%s) (%s)",
+	"Player 1", characters[gameInfo->remotePlayerSelections[0].characterId],
+ 	"Player 2", characters[gameInfo->remotePlayerSelections[1].characterId]);
+
+	char details[256];
+	snprintf(details, 256, "Stocks: %d - %d", 4, 4);
+
+	char largeImageKey[256] = "custom";
+	if(stageId != -1) {
+		snprintf(largeImageKey, 256, "%d_map", stageId);
+	}
+
+	char smallImageKey[256];
+	snprintf(smallImageKey, 3, "%d", gameInfo->localPlayerSelections.characterId);
+
+	INFO_LOG(SLIPPI_ONLINE, "Displaying icon %s",  largeImageKey);
+
+	DiscordRichPresence discordPresence;
+	memset(&discordPresence, 0, sizeof(discordPresence));
+	discordPresence.state = state;
+	discordPresence.details = details;
+	discordPresence.startTimestamp = time(0);
+	discordPresence.endTimestamp = time(0) + 7 * 60;
+	discordPresence.largeImageKey = largeImageKey;
+	discordPresence.smallImageKey = smallImageKey;
+	discordPresence.instance = 0;
+	Discord_UpdatePresence(&discordPresence);
 };
 
 #endif
