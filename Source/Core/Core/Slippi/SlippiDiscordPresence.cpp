@@ -137,15 +137,15 @@ void SlippiDiscordPresence::UpdateGameInfo(SlippiMatchInfo* gameInfo, SlippiMatc
 
 	// INFO_LOG(SLIPPI_ONLINE, "Discord state: %s", state.str().c_str());
 
-	char state[256];
-	snprintf(state, 256, "Stocks: %d - %d", 4, 4);
+	char state[13];
+	snprintf(state, 13, "Stocks: %d - %d", 4, 4);
 
-	char largeImageKey[256] = "custom";
+	char largeImageKey[7] = "custom";
 	if(stageId != -1) {
-		snprintf(largeImageKey, 256, "%d_map", stageId);
+		snprintf(largeImageKey, 7, "%d_map", stageId);
 	}
 
-	char smallImageKey[256];
+	char smallImageKey[7];
 	snprintf(smallImageKey, 7, "c_%d_%d", gameInfo->localPlayerSelections.characterId,
 																				gameInfo->localPlayerSelections.characterColor);
 
