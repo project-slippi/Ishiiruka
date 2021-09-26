@@ -39,11 +39,6 @@ SlippiDiscordPresence::~SlippiDiscordPresence() {
 
 void SlippiDiscordPresence::Action() {
 	INFO_LOG(SLIPPI, "SlippiDiscordPresence::Action()");
-	#ifdef DISCORD_DISABLE_IO_THREAD
-		Discord_UpdateConnection();
-	#endif
-	Discord_RunCallbacks();
-
 	while(RunActionThread) {
 		#ifdef DISCORD_DISABLE_IO_THREAD
 			Discord_UpdateConnection();
@@ -69,7 +64,6 @@ void SlippiDiscordPresence::DiscordReady(const DiscordUser* user) {
 
 void SlippiDiscordPresence::Idle() {
 	// connect to discord here
-	DiscordRichPresence discordPresence;
 	memset(&discordPresence, 0, sizeof(discordPresence));
 	discordPresence.state = "Idle";
 	discordPresence.startTimestamp = StartTime;
@@ -148,21 +142,34 @@ void SlippiDiscordPresence::GameEnd() {
 }
 
 void SlippiDiscordPresence::GameStart(SlippiMatchInfo* gameInfo, SlippiMatchmaking* matchmaking) {
-	std::vector<SlippiPlayerSelections> players(SLIPPI_REMOTE_PLAYER_MAX+1);
+	std::vector<SlippiPlayerSelections> players(matchmaking->RemotePlayerCount()+1);
 	players[gameInfo->localPlayerSelections.playerIdx] = gameInfo->localPlayerSelections;
-	for(int i = 0; i < SLIPPI_REMOTE_PLAYER_MAX; i++) {
+	for(int i = 0; i < matchmaking->RemotePlayerCount()+1; i++) {
 		players[gameInfo->remotePlayerSelections[i].playerIdx] = gameInfo->remotePlayerSelections[i];
 	}
 	players.shrink_to_fit();
+
+	std::vector<std::vector<int>> playerTeams(players.size(), std::vector<int>(0));
+	for(int i = 0; i < players.size(); i++) {
+		playerTeams[players[i].teamId].push_back(i);
+	}
+	for(auto &team : playerTeams) team.shrink_to_fit();
+	playerTeams.shrink_to_fit();
 
 	int stageId = players[0].stageId;
 	INFO_LOG(SLIPPI_ONLINE, "Playing stage %d", stageId);
 	INFO_LOG(SLIPPI_ONLINE, "Playing character %d", gameInfo->localPlayerSelections.characterId);
 
 	std::ostringstream details;
-	for(int i = 0; i < matchmaking->RemotePlayerCount()+1; i++) {
-		details << matchmaking->GetPlayerName(i) << " (" << characters[players[i].characterId] << ") ";
-		if(i < matchmaking->RemotePlayerCount()) {
+	if(matchmaking->RemotePlayerCount()) {
+		details << matchmaking->GetPlayerName(0) << " (" << characters[players[0].characterId] << ") ";
+		details << "vs. ";
+		details << matchmaking->GetPlayerName(1) << " (" << characters[players[1].characterId] << ") ";
+	} else {
+		for(auto &team : playerTeams) {
+			for(int &i : team) {
+				details << matchmaking->GetPlayerName(i) << " (" << characters[players[i].characterId] << ") ";
+			}
 			details << "vs. ";
 		}
 	}
@@ -173,22 +180,21 @@ void SlippiDiscordPresence::GameStart(SlippiMatchInfo* gameInfo, SlippiMatchmaki
 	char state[14];
 	snprintf(state, 14, "Stocks: %d - %d", 4, 4);
 
-	char largeImageKey[7] = "custom";
+	char largeImageKey[10] = "custom";
 	const char* largeImageText = "Unknown Stage";
 	if(stageId != -1) {
-		snprintf(largeImageKey, 7, "%2d_map", stageId);
+		snprintf(largeImageKey, 10, "%d_map", stageId);
 		largeImageText = stages[stageId];
 	}
 
-	char smallImageKey[7];
+	char smallImageKey[10];
 	const char* smallImageText;
-	snprintf(smallImageKey, 7, "c_%2d_%1d", gameInfo->localPlayerSelections.characterId,
+	snprintf(smallImageKey, 10, "c_%d_%d", gameInfo->localPlayerSelections.characterId,
 																				gameInfo->localPlayerSelections.characterColor);
 	smallImageText = characters[gameInfo->localPlayerSelections.characterId];
 
 	INFO_LOG(SLIPPI_ONLINE, "Displaying icon %s",  largeImageKey);
 
-	DiscordRichPresence discordPresence;
 	memset(&discordPresence, 0, sizeof(discordPresence));
 	discordPresence.state = state;
 	discordPresence.details = details_str.c_str();
