@@ -149,11 +149,11 @@ void SlippiDiscordPresence::GameStart(SlippiMatchInfo* gameInfo, SlippiMatchmaki
 	}
 	players.shrink_to_fit();
 
-	std::vector<std::vector<int>> playerTeams(players.size(), std::vector<int>(0));
+	std::vector<std::vector<int>> playerTeams(players.size());
+	for(int i = 0; i < players.size(); i++) playerTeams[i] = std::vector<int>(0);
 	for(int i = 0; i < players.size(); i++) {
 		playerTeams[players[i].teamId].push_back(i);
 	}
-	for(auto &team : playerTeams) team.shrink_to_fit();
 	playerTeams.shrink_to_fit();
 
 	int stageId = players[0].stageId;
