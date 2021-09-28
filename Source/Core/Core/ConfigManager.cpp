@@ -26,6 +26,7 @@
 #include "Core/PowerPC/PowerPC.h"
 
 #include "DiscIO/Enums.h"
+#include "DiscIO/Filesystem.h"
 #include "DiscIO/NANDContentLoader.h"
 #include "DiscIO/Volume.h"
 #include "DiscIO/VolumeCreator.h"
@@ -271,7 +272,6 @@ void SConfig::SaveCoreSettings(IniFile &ini)
 	core->Set("BootDefaultISO", bBootDefaultISO);
 	core->Set("DVDRoot", m_strDVDRoot);
 	core->Set("Apploader", m_strApploader);
-	core->Set("EnableCheats", bEnableCheats);
 	core->Set("SelectedLanguage", SelectedLanguage);
 	core->Set("OverrideGCLang", bOverrideGCLanguage);
 	core->Set("DPL2Decoder", bDPL2Decoder);
@@ -297,7 +297,6 @@ void SConfig::SaveCoreSettings(IniFile &ini)
 	core->Set("AgpCartAPath", m_strGbaCartA);
 	core->Set("AgpCartBPath", m_strGbaCartB);
 	core->Set("SlotA", m_EXIDevice[0]);
-	core->Set("SlotB", m_EXIDevice[1]);
 	core->Set("SerialPort1", m_EXIDevice[2]);
 	core->Set("BBA_MAC", m_bba_mac);
 	for (int i = 0; i < MAX_SI_CHANNELS; ++i)
@@ -529,9 +528,13 @@ void SConfig::LoadDisplaySettings(IniFile &ini)
 {
 	IniFile::Section *display = ini.GetOrCreateSection("Display");
 
-	display->Get("Fullscreen", &bFullscreen, false);
-	display->Get("FullscreenResolution", &strFullscreenResolution, "Auto");
 #ifdef IS_PLAYBACK
+	display->Get("Fullscreen", &bFullscreen, false);
+#else
+	display->Get("Fullscreen", &bFullscreen, true);
+#endif
+	display->Get("FullscreenResolution", &strFullscreenResolution, "Auto");
+#if defined IS_PLAYBACK && (defined _WIN32 || defined __APPLE__)
 	display->Get("RenderToMain", &bRenderToMain, true);
 #else
 	display->Get("RenderToMain", &bRenderToMain, false);
@@ -610,7 +613,6 @@ void SConfig::LoadCoreSettings(IniFile &ini)
 	core->Get("BootDefaultISO", &bBootDefaultISO, false);
 	core->Get("DVDRoot", &m_strDVDRoot);
 	core->Get("Apploader", &m_strApploader);
-	core->Get("EnableCheats", &bEnableCheats, true);
 	core->Get("SelectedLanguage", &SelectedLanguage, 0);
 	core->Get("OverrideGCLang", &bOverrideGCLanguage, false);
 	core->Get("DPL2Decoder", &bDPL2Decoder, false);
@@ -622,7 +624,7 @@ void SConfig::LoadCoreSettings(IniFile &ini)
 	core->Get("SlippiSpectatorLocalPort", &m_spectator_local_port, 51441);
 	core->Get("SlippiOnlineDelay", &m_slippiOnlineDelay, 2);
 	core->Get("SlippiSaveReplays", &m_slippiSaveReplays, true);
-	core->Get("SlippiEnableQuickChat", &m_slippiEnableQuickChat, true);
+	core->Get("SlippiEnableQuickChat", &m_slippiEnableQuickChat, SLIPPI_CHAT_ON);
 	core->Get("SlippiForceNetplayPort", &m_slippiForceNetplayPort, false);
 	core->Get("SlippiNetplayPort", &m_slippiNetplayPort, 2626);
 	core->Get("SlippiForceLanIp", &m_slippiForceLanIp, false);
@@ -639,7 +641,6 @@ void SConfig::LoadCoreSettings(IniFile &ini)
 	core->Get("AgpCartAPath", &m_strGbaCartA);
 	core->Get("AgpCartBPath", &m_strGbaCartB);
 	core->Get("SlotA", (int *)&m_EXIDevice[0], EXIDEVICE_NONE);
-	core->Get("SlotB", (int *)&m_EXIDevice[1], EXIDEVICE_SLIPPI);
 	core->Get("SerialPort1", (int *)&m_EXIDevice[2], EXIDEVICE_NONE);
 	core->Get("BBA_MAC", &m_bba_mac);
 	core->Get("TimeProfiling", &bJITILTimeProfiling, false);
@@ -945,9 +946,16 @@ bool SConfig::AutoSetup(EBootBS2 _BootBS2)
 
 				if (pVolume->GetLongNames()[DiscIO::Language::LANGUAGE_ENGLISH].find("20XX") != std::string::npos)
 					m_gameType = GAMETYPE_MELEE_20XX;
-				else if (pVolume->GetLongNames()[DiscIO::Language::LANGUAGE_ENGLISH].find("Akaneia") !=
-				         std::string::npos)
-					m_gameType = GAMETYPE_MELEE_AKANEIA;
+				else
+				{
+					// check for m-ex based build
+					auto fileInfo = DiscIO::CreateFileSystem(pVolume.get())->GetFileList();
+					size_t current_index;
+					if (CheckDirectoryForFile(fileInfo, 1, fileInfo.at(0).m_FileSize, "MxDt.dat", current_index))
+					{
+						m_gameType = GAMETYPE_MELEE_MEX;
+					}
+				}
 			}
 			else if (m_strGameID == "GTME01")
 			{
@@ -1170,6 +1178,50 @@ DiscIO::Language SConfig::GetCurrentLanguage(bool wii) const
 	if (language > DiscIO::Language::LANGUAGE_UNKNOWN || language < DiscIO::Language::LANGUAGE_JAPANESE)
 		language = DiscIO::Language::LANGUAGE_UNKNOWN;
 	return language;
+}
+
+// Used to check for m-ex iso's (they contain MxDt.dat)
+bool SConfig::CheckDirectoryForFile(const std::vector<DiscIO::SFileInfo> &file_infos, const size_t first_index,
+                                    const size_t last_index, const std::string &filename, size_t &current_index) const
+{
+	current_index = first_index;
+
+	while (current_index < last_index)
+	{
+		const DiscIO::SFileInfo &file_info = file_infos[current_index];
+		std::string file_path = file_info.m_FullPath;
+
+		// Trim the trailing '/' if it exists.
+		if (file_path.back() == DIR_SEP_CHR)
+		{
+			file_path.pop_back();
+		}
+
+		// Cut off the path up to the actual filename or folder.
+		// Say we have "/music/stream/stream1.strm", the result will be "stream1.strm".
+		const size_t dir_sep_index = file_path.rfind(DIR_SEP_CHR);
+		if (dir_sep_index != std::string::npos)
+		{
+			file_path = file_path.substr(dir_sep_index + 1);
+		}
+
+		// check next directory
+		if (file_info.IsDirectory())
+		{
+			if (CheckDirectoryForFile(file_infos, current_index + 1, static_cast<size_t>(file_info.m_FileSize),
+			                          filename, current_index))
+				return 1;
+		}
+		else
+		{
+			if (strcmp(file_path.c_str(), filename.c_str()) == 0)
+				return 1;
+			else
+				current_index++;
+		}
+	}
+
+	return 0;
 }
 
 // Hack to deal with 20XX images

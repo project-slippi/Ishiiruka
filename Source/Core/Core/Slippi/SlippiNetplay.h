@@ -61,7 +61,8 @@ class SlippiPlayerSelections
 
 	u32 rngOffset = 0;
 
-	int messageId;
+	int messageId = 0;
+	bool error = false;
 
 	void Merge(SlippiPlayerSelections &s)
 	{
@@ -112,6 +113,7 @@ class SlippiMatchInfo
 	}
 };
 
+class OnlinePlayMode;
 class SlippiNetplayClient
 {
   public:
@@ -148,8 +150,8 @@ class SlippiNetplayClient
 	void DropOldRemoteInputs(int32_t minFrameRead);
 	SlippiMatchInfo *GetMatchInfo();
 	int32_t GetSlippiLatestRemoteFrame();
-	SlippiPlayerSelections GetSlippiRemoteChatMessage();
-	u8 GetSlippiRemoteSentChatMessage();
+	SlippiPlayerSelections GetSlippiRemoteChatMessage(bool isChatEnabled);
+	u8 GetSlippiRemoteSentChatMessage(bool isChatEnabled);
 	s32 CalcTimeOffsetUs();
 
 	void WriteChatMessageToPacket(sf::Packet &packet, int messageId, u8 playerIdx);
@@ -202,7 +204,7 @@ class SlippiNetplayClient
 	bool hasGameStarted = false;
 	u8 playerIdx = 0;
 
-	std::unordered_map<std::string, std::map<ENetPeer*, bool>> activeConnections;
+	std::unordered_map<std::string, std::map<ENetPeer *, bool>> activeConnections;
 
 	std::deque<std::unique_ptr<SlippiPad>> localPadQueue; // most recent inputs at start of deque
 	std::deque<std::unique_ptr<SlippiPad>>

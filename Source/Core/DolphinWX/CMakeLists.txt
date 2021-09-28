@@ -72,7 +72,6 @@ set(GUI_SRCS
 	MemcardManager.cpp
 	PatchAddEdit.cpp
 	PostProcessingConfigDiag.cpp
-    SlippiAuthWebView/SlippiAuthWebView.cpp
 	SoftwareVideoConfigDialog.cpp
 	TASInputDlg.cpp
 	VideoConfigDiag.cpp
@@ -109,7 +108,11 @@ if(APPLE)
             ${OPENGL_LIBRARY}
             ${WEBKIT_FRAMEWORK}
 			)
+
+		# Keep the WebView login portal around only on macOS, just a bit longer
+		set(GUI_SRCS ${GUI_SRCS} SlippiAuthWebView/SlippiAuthWebView.cpp)
 	endif()
+
 	# Add resource files to application bundle.
 	set(RESOURCES resources/Dolphin.icns)
 	list(APPEND SRCS ${RESOURCES})

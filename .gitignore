@@ -30,6 +30,8 @@ CMakeLists.txt.user
 # Ignore emacs temp files
 \#*\#
 .\#*
+# Ignore emacs etags code navigation
+TAGS
 # Ignore kdevelop files/dirs
 *.kdev4
 # Ignore IDEA/Clion files/dirs
@@ -73,10 +75,8 @@ semver.pdb
 semver.log
 
 AppDir/
-linuxdeploy
 linuxdeploy-update-plugin
 appimageupdatetool
-Tools/linuxdeploy
 Tools/linuxdeploy-update-plugin
 Tools/appimageupdatetool
 Tools/*.AppImage

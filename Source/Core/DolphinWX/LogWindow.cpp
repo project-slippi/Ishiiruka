@@ -218,7 +218,7 @@ wxTextCtrl* CLogWindow::CreateTextCtrl(wxPanel* parent, wxWindowID id, long Styl
 	wxTextCtrl* TC =
 		new wxTextCtrl(parent, id, wxEmptyString, wxDefaultPosition, wxDefaultSize, Style);
 #ifdef __APPLE__
-	TC->SetBackgroundColour(*wxLIGHT_GREY);
+	TC->SetBackgroundColour(*wxBLACK);
 #else
 	TC->SetBackgroundColour(*wxBLACK);
 #endif

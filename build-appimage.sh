@@ -17,8 +17,7 @@ UPDATETOOL_PATH="https://github.com/AppImage/AppImageUpdate/releases/download/co
 UPDATETOOL_FILE="appimageupdatetool-x86_64.AppImage"
 UPDATETOOL_URL="${UPDATETOOL_PATH}/${UPDATETOOL_FILE}"
 
-DESKTOP_APP_URL="https://github.com/project-slippi/slippi-desktop-app"
-DESKTOP_APP_SYS_PATH="./slippi-desktop-app/app/dolphin-dev/overwrite/Sys"
+PLAYBACK_CODES_PATH="./Data/PlaybackGeckoCodes/"
 
 APPDIR_BIN="./AppDir/usr/bin"
 APPDIR_HOOKS="./AppDir/apprun-hooks"
@@ -26,16 +25,17 @@ APPDIR_HOOKS="./AppDir/apprun-hooks"
 # Grab various appimage binaries from GitHub if we don't have them
 if [ ! -e ./Tools/linuxdeploy ]; then
 	wget ${LINUXDEPLOY_URL} -O ./Tools/linuxdeploy
-	chmod +x ./Tools/linuxdeploy
 fi
 if [ ! -e ./Tools/linuxdeploy-update-plugin ]; then
 	wget ${UPDATEPLUG_URL} -O ./Tools/linuxdeploy-update-plugin
-	chmod +x ./Tools/linuxdeploy-update-plugin
 fi
 if [ ! -e ./Tools/appimageupdatetool ]; then
 	wget ${UPDATETOOL_URL} -O ./Tools/appimageupdatetool
-	chmod +x ./Tools/appimageupdatetool
 fi
+
+chmod +x ./Tools/linuxdeploy
+chmod +x ./Tools/linuxdeploy-update-plugin
+chmod +x ./Tools/appimageupdatetool
 
 # Delete the AppDir folder to prevent build issues
 rm -rf ./AppDir/
@@ -62,18 +62,10 @@ if [ "$1" == "playback" ] # Playback
 
 		rm -f ${PLAYBACK_APPIMAGE_STRING}
 
-		if [ -d "slippi-desktop-app" ]
-			then
-				pushd slippi-desktop-app
-				git checkout master
-				git pull --ff-only
-				popd
-		else
-			git clone ${DESKTOP_APP_URL}
-		fi
 		# Update Sys dir with playback codes
-		rm -rf "${APPDIR_BIN}/GameSettings" # Delete netplay codes
-		cp -r ${DESKTOP_APP_SYS_PATH} ${APPDIR_BIN}
+		echo "Copying Playback gecko codes"
+		rm -rf "${APPDIR_BIN}/Sys/GameSettings" # Delete netplay codes
+		cp -r "${PLAYBACK_CODES_PATH}/." "${APPDIR_BIN}/Sys/GameSettings/"
 
 		OUTPUT="${PLAYBACK_APPIMAGE_STRING}" \
 		./Tools/linuxdeploy-update-plugin --appdir=./AppDir/

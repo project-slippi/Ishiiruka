@@ -57,13 +57,13 @@ class SlippiPremadeText
 	    {CHAT_MSG_L_PAD_RIGHT, "thanks"},
 	    {CHAT_MSG_L_PAD_DOWN, "too good"},
 
-	    {CHAT_MSG_R_PAD_UP, "oof"},
+	    {CHAT_MSG_R_PAD_UP, "sorry"},
 	    {CHAT_MSG_R_PAD_LEFT, "my b"},
 	    {CHAT_MSG_R_PAD_RIGHT, "lol"},
 	    {CHAT_MSG_R_PAD_DOWN, "wow"},
 
-	    {CHAT_MSG_D_PAD_UP, "okay"},
-	    {CHAT_MSG_D_PAD_LEFT, "thinking"},
+	    {CHAT_MSG_D_PAD_UP, "gotta go"},
+	    {CHAT_MSG_D_PAD_LEFT, "one sec"},
 	    {CHAT_MSG_D_PAD_RIGHT, "lets play again later"},
 	    {CHAT_MSG_D_PAD_DOWN, "bad connection"},
 
@@ -84,7 +84,7 @@ class SlippiPremadeText
 	unordered_map<string, string> unsupportedStringMap = {
 	    {"<", "\\"},
 	    {">", "`"},
-	    {",", "Ç"},
+	    {",", ""}, // DELETE U+007F
 	};
 
 	// TODO: use va_list to handle any no. or args
@@ -98,7 +98,7 @@ class SlippiPremadeText
 		va_start(args, textId);
 		vsprintf(str, format.c_str(), args);
 		va_end(args);
-		//		DEBUG_LOG(SLIPPI, "%s", str);
+		// DEBUG_LOG(SLIPPI, "%s", str);
 
 		vector<u8> data = {};
 		vector<u8> empty = {};
@@ -199,8 +199,8 @@ class SlippiPremadeText
 						// and we need to prevent "format injection" lol...
 						for (auto it = unsupportedStringMap.begin(); it != unsupportedStringMap.end(); it++)
 						{
-							if (it->second.find(chr) != std::string::npos || (chr == U'Ç' && it->first[0] == ','))
-							{ // Need to figure out how to find extended ascii chars (Ç)
+							if (it->second.find(chr) != std::string::npos || (chr == U'' && it->first[0] == ','))
+							{ // Need to figure out how to find extended ascii chars ()
 								chr = it->first[0];
 							}
 						}

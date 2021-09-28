@@ -54,7 +54,6 @@ void GeneralConfigPane::InitializeGUI()
 		m_cpu_engine_array_string.Add(cpu_core.name);
 
 	m_dual_core_checkbox = new wxCheckBox(this, wxID_ANY, _("Enable Dual Core (speedup)"));
-	m_cheats_checkbox = new wxCheckBox(this, wxID_ANY, _("Enable Cheats"));
 	m_boot_default_iso_checkbox = new wxCheckBox(this, wxID_ANY, _("Start Default ISO on Launch"));
 	m_force_ntscj_checkbox = new wxCheckBox(this, wxID_ANY, _("Force Console as NTSC-J"));
 #ifdef IS_PLAYBACK
@@ -68,7 +67,6 @@ void GeneralConfigPane::InitializeGUI()
 	m_dual_core_checkbox->SetToolTip(
 		_("Splits the CPU and GPU threads so they can be run on separate cores.\nProvides major "
 			"speed improvements on most modern PCs, but can cause occasional crashes/glitches."));
-	m_cheats_checkbox->SetToolTip(_("Enables the use of Action Replay and Gecko cheats."));
 	m_boot_default_iso_checkbox->SetToolTip(_("Boots the Default ISO when Dolphin launches. Right click a game in games list to set it as the default ISO."));
 	m_force_ntscj_checkbox->SetToolTip(
 		_("Forces NTSC-J mode for using the Japanese ROM font.\nIf left unchecked, Dolphin defaults "
@@ -93,8 +91,6 @@ void GeneralConfigPane::InitializeGUI()
 		new wxStaticBoxSizer(wxVERTICAL, this, _("Basic Settings"));
 	basic_settings_sizer->AddSpacer(space5);
 	basic_settings_sizer->Add(m_dual_core_checkbox, 0, wxLEFT | wxRIGHT, space5);
-	basic_settings_sizer->AddSpacer(space5);
-	basic_settings_sizer->Add(m_cheats_checkbox, 0, wxLEFT | wxRIGHT, space5);
 	basic_settings_sizer->AddSpacer(space5);
 	basic_settings_sizer->Add(m_boot_default_iso_checkbox, 0, wxLEFT | wxRIGHT, space5);
 	basic_settings_sizer->AddSpacer(space5);
@@ -123,7 +119,6 @@ void GeneralConfigPane::LoadGUIValues()
 	const SConfig& startup_params = SConfig::GetInstance();
 
 	m_dual_core_checkbox->SetValue(startup_params.bCPUThread);
-	m_cheats_checkbox->SetValue(startup_params.bEnableCheats);
 	m_boot_default_iso_checkbox->SetValue(startup_params.bBootDefaultISO);
 	m_force_ntscj_checkbox->SetValue(startup_params.bForceNTSCJ);
 #ifdef IS_PLAYBACK
@@ -143,9 +138,6 @@ void GeneralConfigPane::BindEvents()
 	m_dual_core_checkbox->Bind(wxEVT_CHECKBOX, &GeneralConfigPane::OnDualCoreCheckBoxChanged, this);
 	m_dual_core_checkbox->Bind(wxEVT_UPDATE_UI, &WxEventUtils::OnEnableIfCoreNotRunning);
 
-	m_cheats_checkbox->Bind(wxEVT_CHECKBOX, &GeneralConfigPane::OnCheatCheckBoxChanged, this);
-	m_cheats_checkbox->Bind(wxEVT_UPDATE_UI, &WxEventUtils::OnEnableIfCoreNotRunning);
-
 	m_boot_default_iso_checkbox->Bind(wxEVT_CHECKBOX, &GeneralConfigPane::OnBootDefaultCheckBoxChanged, this);
 
 	m_force_ntscj_checkbox->Bind(wxEVT_CHECKBOX, &GeneralConfigPane::OnForceNTSCJCheckBoxChanged,
@@ -164,11 +156,6 @@ void GeneralConfigPane::OnDualCoreCheckBoxChanged(wxCommandEvent& event)
 		return;
 
 	SConfig::GetInstance().bCPUThread = m_dual_core_checkbox->IsChecked();
-}
-
-void GeneralConfigPane::OnCheatCheckBoxChanged(wxCommandEvent& event)
-{
-	SConfig::GetInstance().bEnableCheats = m_cheats_checkbox->IsChecked();
 }
 
 void GeneralConfigPane::OnBootDefaultCheckBoxChanged(wxCommandEvent &event)

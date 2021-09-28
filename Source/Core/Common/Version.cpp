@@ -23,7 +23,11 @@
 //#else
 //" " BUILD_TYPE_STR " " SCM_DESC_STR;
 //#endif
-#define SLIPPI_REV_STR "2.4.0-dev.1"
+#ifndef IS_PLAYBACK
+#define SLIPPI_REV_STR "2.4.0-dev.1" // netplay version
+#else
+#define SLIPPI_REV_STR "2.3.6" // playback version
+#endif
 #ifdef IS_PLAYBACK
 const std::string scm_rev_str = "Faster Melee - Slippi (" SLIPPI_REV_STR ") - Playback";
 #else
