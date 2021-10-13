@@ -1047,6 +1047,8 @@ void CEXISlippi::prepareGeckoList()
 	    {0x80218D68, true}, // Binary/LagReduction/PD+VB.bin
 	    {0x8016E9AC, true}, // Binary/Force2PCenterHud.bin
 	    {0x80030E44, true}, // Binary/DisableScreenShake.bin
+	    {0x803761EC, true}, // Binary/NormalLagReduction.bin
+	    {0x80376238, true}, // Binary/NormalLagReduction.bin
 
 	    {0x800055f0, true}, // Common/EXITransferBuffer.asm
 	    {0x800055f8, true}, // Common/GetIsFollower.asm
