@@ -147,65 +147,55 @@ void SlippiDiscordPresence::GameStart(SlippiMatchInfo* gameInfo, SlippiMatchmaki
 	for(int i = 0; i < matchmaking->RemotePlayerCount()+1; i++) {
 		players[gameInfo->remotePlayerSelections[i].playerIdx] = gameInfo->remotePlayerSelections[i];
 	}
-	players.shrink_to_fit();
-
-	std::vector<std::vector<int>> playerTeams(players.size(), std::vector<int>(0));
-	for(int i = 0; i < players.size(); i++) {
-		playerTeams[players[i].teamId].push_back(i);
-	}
-	for(auto &team : playerTeams) team.shrink_to_fit();
-	playerTeams.shrink_to_fit();
 
 	int stageId = players[0].stageId;
 	INFO_LOG(SLIPPI_ONLINE, "Playing stage %d", stageId);
 	INFO_LOG(SLIPPI_ONLINE, "Playing character %d", gameInfo->localPlayerSelections.characterId);
 
 	std::ostringstream details;
-	if(matchmaking->RemotePlayerCount()) {
+	if(matchmaking->RemotePlayerCount() >= 1) {
 		details << matchmaking->GetPlayerName(0) << " (" << characters[players[0].characterId] << ") ";
 		details << "vs. ";
 		details << matchmaking->GetPlayerName(1) << " (" << characters[players[1].characterId] << ") ";
 	} else {
-		for(auto &team : playerTeams) {
-			for(int &i : team) {
-				details << matchmaking->GetPlayerName(i) << " (" << characters[players[i].characterId] << ") ";
-			}
-			details << "vs. ";
-		}
+		// for(auto &team : playerTeams) {
+		// 	for(int &i : team) {
+		// 		details << matchmaking->GetPlayerName(i) << " (" << characters[players[i].characterId] << ") ";
+		// 	}
+		// 	details << "vs. ";
+		// }
 	}
-	std::string details_str = details.str();
+	const std::string details_str = details.str();
+	const char* tmp = details_str.data();
 
-	// INFO_LOG(SLIPPI_ONLINE, "Discord state: %s", state.str().c_str());
+	INFO_LOG(SLIPPI_ONLINE, "Discord state: %s", tmp);
 
-	char state[14];
-	snprintf(state, 14, "Stocks: %d - %d", 4, 4);
+	// char state[14];
+	// snprintf(state, 14, "Stocks: %d - %d", 4, 4);
 
-	char largeImageKey[10] = "custom";
-	const char* largeImageText = "Unknown Stage";
+	std::string largeImageKey = "custom";
+	std::string largeImageText = "Unknown Stage";
 	if(stageId != -1) {
-		snprintf(largeImageKey, 10, "%d_map", stageId);
+		largeImageKey = std::to_string(stageId) + "_map";
 		largeImageText = stages[stageId];
 	}
 
-	char smallImageKey[10];
-	const char* smallImageText;
-	snprintf(smallImageKey, 10, "c_%d_%d", gameInfo->localPlayerSelections.characterId,
-																				gameInfo->localPlayerSelections.characterColor);
-	smallImageText = characters[gameInfo->localPlayerSelections.characterId];
+	std::string smallImageKey = 
+		"c_"+std::to_string(gameInfo->localPlayerSelections.characterId)+"_"+std::to_string(gameInfo->localPlayerSelections.characterColor);
+	std::string smallImageText = characters[gameInfo->localPlayerSelections.characterId];
 
-	INFO_LOG(SLIPPI_ONLINE, "Displaying icon %s",  largeImageKey);
-
-	memset(&discordPresence, 0, sizeof(discordPresence));
-	discordPresence.state = state;
-	discordPresence.details = details_str.c_str();
-	discordPresence.startTimestamp = time(0);
-	discordPresence.endTimestamp = time(0) + 8 * 60;
-	discordPresence.largeImageKey = largeImageKey;
-	discordPresence.largeImageText = largeImageText;
-	discordPresence.smallImageKey = smallImageKey;
-	discordPresence.smallImageText = smallImageText;
-	discordPresence.instance = 0;
-	Discord_UpdatePresence(&discordPresence);
+	std::cout << "\nDisplaying icon " << largeImageKey << "\n";
+	// memset(&discordPresence, 0, sizeof(discordPresence));
+	// discordPresence.state = "Stocks";
+	// discordPresence.details = details_str.data();
+	// discordPresence.startTimestamp = time(0);
+	// discordPresence.endTimestamp = time(0) + 8 * 60;
+	// discordPresence.largeImageKey = largeImageKey.data();
+	// discordPresence.largeImageText = largeImageText.data();
+	// discordPresence.smallImageKey = smallImageKey.data();
+	// discordPresence.smallImageText = smallImageText.data();
+	// discordPresence.instance = 0;
+	// Discord_UpdatePresence(&discordPresence);
 };
 
 #endif
