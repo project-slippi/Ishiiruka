@@ -1888,6 +1888,11 @@ void CEXISlippi::startFindMatch(u8 *payload)
 			forcedError = "The character you selected is not allowed in this mode";
 			return;
 		}
+		else if (localSelections.characterId == 7)
+		{
+			forcedError = "Luigi is not allowed in this mode";
+			return;
+		}
 
 		// Stage check
 		if (localSelections.isStageSelected &&
