@@ -55,6 +55,10 @@ class SlippiPlayerSelections
 
 	int messageId = 0;
 	bool error = false;
+	u32 stagesBlock = 0;
+	bool areCustomRulesAllowed = true;
+	bool isMatchConfigSet = false;
+	std::vector<u8> matchConfig;
 
 	void Merge(SlippiPlayerSelections &s)
 	{
@@ -72,6 +76,14 @@ class SlippiPlayerSelections
 			this->characterColor = s.characterColor;
 			this->teamId = s.teamId;
 			this->isCharacterSelected = true;
+			this->stagesBlock = s.stagesBlock;
+		}
+
+		if (s.isMatchConfigSet)
+		{
+			this->areCustomRulesAllowed = s.areCustomRulesAllowed;
+			this->isMatchConfigSet = true;
+			this->matchConfig = s.matchConfig;
 		}
 	}
 
@@ -86,6 +98,11 @@ class SlippiPlayerSelections
 		isStageSelected = false;
 
 		rngOffset = 0;
+
+		areCustomRulesAllowed = false;
+		stagesBlock = 0;
+		isMatchConfigSet = false;
+		matchConfig = std::vector<u8>();
 	}
 };
 

@@ -443,6 +443,23 @@ void SlippiNetplayClient::writeToPacket(sf::Packet &packet, SlippiPlayerSelectio
 	packet << s.stageId << s.isStageSelected;
 	packet << s.rngOffset;
 	packet << s.teamId;
+	packet << s.stagesBlock;
+	packet << s.areCustomRulesAllowed;
+	packet << s.isMatchConfigSet;
+	//DEBUG_LOG(SLIPPI_ONLINE, "stagesBlock: 0x%x", s.stagesBlock);
+	//DEBUG_LOG(SLIPPI_ONLINE, "areCustomRulesAllowed: 0x%x", s.areCustomRulesAllowed);
+	//DEBUG_LOG(SLIPPI_ONLINE, "isMatchConfigSet: 0x%x", s.isMatchConfigSet);
+
+	if (s.isMatchConfigSet)
+	{
+		u16 matchConfigSize = (u16)s.matchConfig.size();
+		packet << matchConfigSize;
+		for (int i = 0; i < matchConfigSize; i++)
+		{
+			packet << (u8)s.matchConfig[i];
+			//DEBUG_LOG(SLIPPI_ONLINE, "block: %i 0x%x", i, s.matchConfig[i]);
+		}
+	}
 }
 
 void SlippiNetplayClient::WriteChatMessageToPacket(sf::Packet &packet, int messageId, u8 playerIdx)
@@ -547,6 +564,46 @@ std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::readSelectionsFromP
 	{
 		ERROR_LOG(SLIPPI_ONLINE, "Received invalid player selection");
 		s->error = true;
+	}
+	if (!(packet >> s->stagesBlock))
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Received invalid player selection");
+		s->error = true;
+	}
+	if (!(packet >> s->areCustomRulesAllowed))
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Received invalid player selection");
+		s->error = true;
+	}
+	if (!(packet >> s->isMatchConfigSet))
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Received invalid player selection");
+		s->error = true;
+	}
+
+	//DEBUG_LOG(SLIPPI_ONLINE, "read stagesBlock: 0x%x", s->stagesBlock);
+	//DEBUG_LOG(SLIPPI_ONLINE, "read areCustomRulesAllowed: 0x%x", s->areCustomRulesAllowed);
+	//DEBUG_LOG(SLIPPI_ONLINE, "read isMatchConfigSet: 0x%x", s->isMatchConfigSet);
+
+	u16 matchConfigSize = 0;
+	if (s->isMatchConfigSet)
+	{
+		if (!(packet >> matchConfigSize))
+		{
+			ERROR_LOG(SLIPPI_ONLINE, "Received invalid player selection");
+			s->error = true;
+		}
+	
+		for (int i = 0; i < matchConfigSize; i++)
+		{
+			u8 data;
+			if (!(packet >> data))
+			{
+				ERROR_LOG(SLIPPI_ONLINE, "Received invalid player selection");
+				s->error = true;
+			}
+			s->matchConfig.push_back(data);
+		}
 	}
 	return std::move(s);
 }
