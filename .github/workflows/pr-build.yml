@@ -238,7 +238,7 @@ jobs:
           echo "HOMEBREW_NO_AUTO_UPDATE=1" >> $GITHUB_ENV
           brew upgrade cmake
           brew install \
-          ffmpeg \
+          ffmpeg@4.4.1 \
           libpng \
           libav \
           pkgconfig \
