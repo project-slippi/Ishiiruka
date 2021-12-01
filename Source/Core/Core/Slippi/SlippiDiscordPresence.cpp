@@ -34,6 +34,7 @@ SlippiDiscordPresence::SlippiDiscordPresence() {
 
 SlippiDiscordPresence::~SlippiDiscordPresence() {
 	RunActionThread = false;
+	Discord_Shutdown();
 	// disconnect from discord here
 }
 
@@ -142,60 +143,77 @@ void SlippiDiscordPresence::GameEnd() {
 }
 
 void SlippiDiscordPresence::GameStart(SlippiMatchInfo* gameInfo, SlippiMatchmaking* matchmaking) {
-	std::vector<SlippiPlayerSelections> players(matchmaking->RemotePlayerCount()+1);
+	std::vector<SlippiPlayerSelections> players(SLIPPI_REMOTE_PLAYER_MAX+1);
 	players[gameInfo->localPlayerSelections.playerIdx] = gameInfo->localPlayerSelections;
-	for(int i = 0; i < matchmaking->RemotePlayerCount()+1; i++) {
+	for(int i = 0; i < SLIPPI_REMOTE_PLAYER_MAX; i++) {
 		players[gameInfo->remotePlayerSelections[i].playerIdx] = gameInfo->remotePlayerSelections[i];
 	}
+	players.shrink_to_fit();
 
 	int stageId = players[0].stageId;
 	INFO_LOG(SLIPPI_ONLINE, "Playing stage %d", stageId);
 	INFO_LOG(SLIPPI_ONLINE, "Playing character %d", gameInfo->localPlayerSelections.characterId);
 
 	std::ostringstream details;
-	if(matchmaking->RemotePlayerCount() >= 1) {
-		details << matchmaking->GetPlayerName(0) << " (" << characters[players[0].characterId] << ") ";
-		details << "vs. ";
-		details << matchmaking->GetPlayerName(1) << " (" << characters[players[1].characterId] << ") ";
-	} else {
-		// for(auto &team : playerTeams) {
-		// 	for(int &i : team) {
-		// 		details << matchmaking->GetPlayerName(i) << " (" << characters[players[i].characterId] << ") ";
-		// 	}
-		// 	details << "vs. ";
-		// }
+	if (matchmaking->RemotePlayerCount()==1) {
+		for(int i = 0; i < matchmaking->RemotePlayerCount()+1; i++) {
+			details << matchmaking->GetPlayerName(i) << " (" << characters[players[i].characterId] << ") ";
+			if(i < matchmaking->RemotePlayerCount()) {
+				details << "vs. ";
+			}
+		}
 	}
-	const std::string details_str = details.str();
-	const char* tmp = details_str.data();
+	else {
+		std::vector<std::vector<int>> playerTeams(players.size(), std::vector<int>(0));
+		for(int i = 0; i < players.size(); i++) {
+			playerTeams[players[i].teamId].push_back(i);
+		}
+		for(auto &team : playerTeams) team.shrink_to_fit();
+		playerTeams.shrink_to_fit();
 
-	INFO_LOG(SLIPPI_ONLINE, "Discord state: %s", tmp);
+		for(auto &team : playerTeams) {
+			for(int &i : team) {
+				details << matchmaking->GetPlayerName(i) << " (" << characters[players[i].characterId] << ") ";
+			}
+			details << "vs. ";
+		}
+	}
 
-	// char state[14];
-	// snprintf(state, 14, "Stocks: %d - %d", 4, 4);
 
-	std::string largeImageKey = "custom";
-	std::string largeImageText = "Unknown Stage";
+	std::string details_str = details.str();
+
+	// INFO_LOG(SLIPPI_ONLINE, "Discord state: %s", state.str().c_str());
+
+	char state[14];
+	snprintf(state, 14, "Stocks: %d - %d", 4, 4);
+
+	char largeImageKey[7] = "custom";
+	const char* largeImageText = "Unknown Stage";
 	if(stageId != -1) {
-		largeImageKey = std::to_string(stageId) + "_map";
+		snprintf(largeImageKey, 7, "%d_map", stageId);
 		largeImageText = stages[stageId];
 	}
 
-	std::string smallImageKey = 
-		"c_"+std::to_string(gameInfo->localPlayerSelections.characterId)+"_"+std::to_string(gameInfo->localPlayerSelections.characterColor);
-	std::string smallImageText = characters[gameInfo->localPlayerSelections.characterId];
+	char smallImageKey[7];
+	const char* smallImageText;
+	snprintf(smallImageKey, 7, "c_%d_%d", gameInfo->localPlayerSelections.characterId,
+																				gameInfo->localPlayerSelections.characterColor);
+	smallImageText = characters[gameInfo->localPlayerSelections.characterId];
 
-	std::cout << "\nDisplaying icon " << largeImageKey << "\n";
-	// memset(&discordPresence, 0, sizeof(discordPresence));
-	// discordPresence.state = "Stocks";
-	// discordPresence.details = details_str.data();
-	// discordPresence.startTimestamp = time(0);
-	// discordPresence.endTimestamp = time(0) + 8 * 60;
-	// discordPresence.largeImageKey = largeImageKey.data();
-	// discordPresence.largeImageText = largeImageText.data();
-	// discordPresence.smallImageKey = smallImageKey.data();
-	// discordPresence.smallImageText = smallImageText.data();
-	// discordPresence.instance = 0;
-	// Discord_UpdatePresence(&discordPresence);
+	INFO_LOG(SLIPPI_ONLINE, "Displaying icon %s",  largeImageKey);
+
+	DiscordRichPresence discordPresence;
+	memset(&discordPresence, 0, sizeof(discordPresence));
+	discordPresence.state = 0;
+	discordPresence.details = details_str.c_str();
+	discordPresence.startTimestamp = time(0);
+	discordPresence.endTimestamp = time(0) + 8 * 60;
+	discordPresence.largeImageKey = largeImageKey;
+	discordPresence.largeImageText = largeImageText;
+	discordPresence.smallImageKey = smallImageKey;
+	discordPresence.smallImageText = smallImageText;
+	discordPresence.instance = 0;
+	Discord_UpdatePresence(&discordPresence);
 };
 
 #endif
