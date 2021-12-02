@@ -157,7 +157,7 @@ void SlippiDiscordPresence::GameStart(SlippiMatchInfo* gameInfo, SlippiMatchmaki
 	}
 	players.shrink_to_fit();
 
-	int stageId = players[0].stageId;
+	int stageId = players[0].stageId ? players[0].stageId : players[1].stageId;
 	INFO_LOG(SLIPPI_ONLINE, "Playing stage %d", stageId);
 	INFO_LOG(SLIPPI_ONLINE, "Playing character %d", gameInfo->localPlayerSelections.characterId);
 
@@ -191,7 +191,7 @@ void SlippiDiscordPresence::GameStart(SlippiMatchInfo* gameInfo, SlippiMatchmaki
 
 	// INFO_LOG(SLIPPI_ONLINE, "Discord state: %s", state.str().c_str());
 
-	char largeImageKey[5] = "";
+	char largeImageKey[5];
 	const char* largeImageText = "Unknown Stage";
 	if(stageId > -1 && stageId <= 32) {
 		snprintf(largeImageKey, 5, "m_%d", stageId);
@@ -200,7 +200,7 @@ void SlippiDiscordPresence::GameStart(SlippiMatchInfo* gameInfo, SlippiMatchmaki
 
 	int characterId = gameInfo->localPlayerSelections.characterId;
 	char smallImageKey[7];
-	const char* smallImageText;
+	const char* smallImageText = "Unknown Character";
 	if(characterId > -1 && characterId <= 25) {
 		snprintf(smallImageKey, 7, "c_%d_%d", characterId, gameInfo->localPlayerSelections.characterColor);
 		smallImageText = characters[characterId];
