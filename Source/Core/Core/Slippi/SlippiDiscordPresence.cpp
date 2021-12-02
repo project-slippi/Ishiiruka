@@ -174,7 +174,7 @@ void SlippiDiscordPresence::GameStart(SlippiMatchInfo* gameInfo, SlippiMatchmaki
 		std::vector<std::vector<int>> playerTeams;
 		for(int i = 0; i < players.size(); i++) {
 			if(playerTeams.size() < players[i].teamId) {
-				playerTeams[players[i].teamId] = std::vector<int();
+				playerTeams[players[i].teamId] = std::vector<int>();
 			}
 
 			playerTeams[players[i].teamId].push_back(i);
