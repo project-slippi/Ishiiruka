@@ -15,6 +15,8 @@
 #define MAX_NAME_LENGTH 15
 
 SlippiDiscordPresence::SlippiDiscordPresence() {
+	if(!SConfig::GetInstance().m_DiscordPresence) return;
+
 	StartTime = time(0);
 
 	DiscordEventHandlers handlers;
@@ -32,6 +34,8 @@ SlippiDiscordPresence::SlippiDiscordPresence() {
 }
 
 SlippiDiscordPresence::~SlippiDiscordPresence() {
+	if(!SConfig::GetInstance().m_DiscordPresence) return;
+
 	ActionThreadCV.notify_all();
 	Discord_Shutdown();
 	ActionThread.join();
@@ -140,10 +144,12 @@ const char* stages[] = {
 };
 
 void SlippiDiscordPresence::GameEnd() {
+	if(!SConfig::GetInstance().m_DiscordPresence) return;
 	Idle();
 }
 
 void SlippiDiscordPresence::GameStart(SlippiMatchInfo* gameInfo, SlippiMatchmaking* matchmaking) {
+	if(!SConfig::GetInstance().m_DiscordPresence) return;
 	std::vector<SlippiPlayerSelections> players(SLIPPI_REMOTE_PLAYER_MAX+1);
 	players[gameInfo->localPlayerSelections.playerIdx] = gameInfo->localPlayerSelections;
 	for(int i = 0; i < SLIPPI_REMOTE_PLAYER_MAX; i++) {

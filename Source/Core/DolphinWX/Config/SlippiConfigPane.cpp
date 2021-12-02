@@ -91,6 +91,11 @@ void SlippiNetplayConfigPane::InitializeGUI()
 	ipTextValidator.SetIncludes(charsToFilter);
 	m_slippi_netplay_lan_ip_ctrl->SetValidator(ipTextValidator);
 
+#ifdef HAVE_DISCORD_RPC
+	m_slippi_discord_presence_checkbox = new wxCheckBox(this, wxID_ANY, _("Broadcast game status to Discord"));
+	m_slippi_discord_presence_checkbox->SetToolTip(
+			_("Shows when you are in a match, and when you are idle"));
+#endif
 	// Input settings
 	m_reduce_timing_dispersion_checkbox = new wxCheckBox(this, wxID_ANY, _("Reduce Timing Dispersion"));
 	m_reduce_timing_dispersion_checkbox->SetToolTip(
@@ -131,6 +136,10 @@ void SlippiNetplayConfigPane::InitializeGUI()
 	                           wxALIGN_CENTER_VERTICAL);
 	sSlippiOnlineSettings->Add(m_slippi_netplay_lan_ip_ctrl, wxGBPosition(3, 1), wxDefaultSpan,
 	                           wxALIGN_LEFT | wxRESERVE_SPACE_EVEN_IF_HIDDEN);
+#ifdef HAVE_DISCORD_RPC
+	sSlippiOnlineSettings->Add(m_slippi_discord_presence_checkbox, wxGBPosition(4, 0), wxDefaultSpan,
+				   wxALIGN_LEFT | wxRESERVE_SPACE_EVEN_IF_HIDDEN);
+#endif
 
 	wxStaticBoxSizer *const sbSlippiOnlineSettings =
 	    new wxStaticBoxSizer(wxVERTICAL, this, _("Slippi Online Settings"));
@@ -194,6 +203,9 @@ void SlippiNetplayConfigPane::LoadGUIValues()
 	}
 
 	m_reduce_timing_dispersion_checkbox->SetValue(startup_params.bReduceTimingDispersion);
+#ifdef HAVE_DISCORD_RPC
+	m_slippi_discord_presence_checkbox->SetValue(startup_params.m_DiscordPresence);
+#endif
 }
 
 void SlippiNetplayConfigPane::BindEvents()
@@ -216,7 +228,16 @@ void SlippiNetplayConfigPane::BindEvents()
 
 	m_reduce_timing_dispersion_checkbox->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnReduceTimingDispersionToggle,
 	                                          this);
+#ifdef HAVE_DISCORD_RPC
+	m_slippi_discord_presence_checkbox->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnDiscordPresenceChanged, this);
+#endif
 }
+
+#ifdef HAVE_DISCORD_RPC
+void SlippiNetplayConfigPane::OnDiscordPresenceChanged(wxCommandEvent &event) {
+	SConfig::GetInstance().m_DiscordPresence = m_slippi_discord_presence_checkbox->IsChecked();
+}
+#endif
 
 void SlippiNetplayConfigPane::OnQuickChatChanged(wxCommandEvent &event)
 {

@@ -161,6 +161,10 @@ void SConfig::SaveGeneralSettings(IniFile &ini)
 	general->Set("WirelessMac", m_WirelessMac);
 	general->Set("WiiSDCardPath", m_strWiiSDCardPath);
 
+#ifdef HAVE_DISCORD_RPC
+	general->Set("UseDiscordPresence", m_DiscordPresence);
+#endif
+
 #ifdef USE_GDBSTUB
 #ifndef _WIN32
 	general->Set("GDBSocket", gdb_socket);

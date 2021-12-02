@@ -40,7 +40,10 @@ class SlippiNetplayConfigPane final : public wxPanel
 	void OnQuickChatChanged(wxCommandEvent &event);
 	void OnReduceTimingDispersionToggle(wxCommandEvent &event);
 	void PopulateEnableChatChoiceBox();
-
+#ifdef HAVE_DISCORD_RPC
+	void OnDiscordPresenceChanged(wxCommandEvent &event);
+#endif
+	
 	wxArrayString m_slippi_enable_quick_chat_strings;
 
 	wxCheckBox *m_replay_enable_checkbox;
@@ -55,6 +58,9 @@ class SlippiNetplayConfigPane final : public wxPanel
 	wxStaticText *m_slippi_enable_quick_chat_txt;
 	wxChoice *m_slippi_enable_quick_chat_choice;
 
+#ifdef HAVE_DISCORD_RPC
+	wxCheckBox *m_slippi_discord_presence_checkbox;
+#endif
 	wxCheckBox *m_reduce_timing_dispersion_checkbox;
 };
 
