@@ -214,7 +214,7 @@ void SlippiDiscordPresence::GameStart(SlippiMatchInfo* gameInfo, SlippiMatchmaki
 	discordPresence.state = 0;
 	discordPresence.details = details_str.c_str();
 	discordPresence.startTimestamp = time(0);
-	discordPresence.endTimestamp = time(0) + 8 * 60;
+	discordPresence.endTimestamp = time(0) + 8 * 60 + 3; // there is a 3 second countdown before a match starts
 	discordPresence.largeImageKey = largeImageKey;
 	discordPresence.largeImageText = largeImageText;
 	discordPresence.smallImageKey = smallImageKey;
