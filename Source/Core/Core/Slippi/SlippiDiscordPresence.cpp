@@ -171,20 +171,20 @@ void SlippiDiscordPresence::GameStart(SlippiMatchInfo* gameInfo, SlippiMatchmaki
 		}
 	}
 	else {
-		std::vector<std::vector<int>> playerTeams;
+		std::vector<std::vector<int>> playerTeams(players.size());
+		int maxTeam = 0;
 		for(int i = 0; i < players.size(); i++) {
-			if(playerTeams.size() < players[i].teamId) {
-				playerTeams[players[i].teamId] = std::vector<int>();
-			}
-
-			playerTeams[players[i].teamId].push_back(i);
+			playerTeams[players[i].teamId].push_back(players[i].playerIdx);
+			maxTeam = maxTeam > players[i].teamId ? maxTeam : players[i].teamId;
 		}
+		playerTeams.resize(maxTeam+1);
 
 		for(auto &team : playerTeams) {
 			for(int &i : team) {
 				details << matchmaking->GetPlayerName(i) << " (" << characters[players[i].characterId] << ") ";
+				if(&i != &team.back()) details << "and ";
 			}
-			details << "vs. ";
+			if(&team != &playerTeams.back()) details << "vs. ";
 		}
 	}
 
