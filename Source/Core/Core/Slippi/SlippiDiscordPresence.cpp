@@ -27,26 +27,27 @@ SlippiDiscordPresence::SlippiDiscordPresence() {
 	// handlers.joinRequest = handleDiscordJoinRequest;
 	Discord_Initialize(ApplicationID, &handlers, 1, NULL);
 
-	RunActionThread = true;
 	InGame = false;
 	ActionThread = std::thread([&] (auto* obj) { obj->Action(); }, this);
 }
 
 SlippiDiscordPresence::~SlippiDiscordPresence() {
-	RunActionThread = false;
+	ActionThreadCV.notify_all();
 	Discord_Shutdown();
+	ActionThread.join();
 	// disconnect from discord here
 }
 
 void SlippiDiscordPresence::Action() {
 	INFO_LOG(SLIPPI, "SlippiDiscordPresence::Action()");
-	while(RunActionThread) {
+	std::mutex mtx;
+	std::unique_lock<std::mutex> lk(mtx);
+	do {
 		#ifdef DISCORD_DISABLE_IO_THREAD
 			Discord_UpdateConnection();
 		#endif
 		Discord_RunCallbacks();
-		std::this_thread::sleep_for(Interval);
-	}
+	} while(ActionThreadCV.wait_for(lk, Interval) == std::cv_status::timeout);
 }
 
 void SlippiDiscordPresence::DiscordError(int errcode, const char* message)

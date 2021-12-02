@@ -23,8 +23,8 @@ class SlippiDiscordPresence {
 		inline static time_t StartTime;
 		inline static DiscordRichPresence discordPresence; 
 		const char* ApplicationID = "635924792893112320";
-		const std::chrono::duration<int> Interval = std::chrono::seconds(10);
-		std::atomic<bool> RunActionThread;
+		const std::chrono::milliseconds Interval = std::chrono::milliseconds(10'000);
+		std::condition_variable ActionThreadCV;
 		std::atomic<bool> InGame;
 		std::thread ActionThread;
 };
