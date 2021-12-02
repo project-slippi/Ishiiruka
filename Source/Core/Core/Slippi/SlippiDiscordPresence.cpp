@@ -191,19 +191,20 @@ void SlippiDiscordPresence::GameStart(SlippiMatchInfo* gameInfo, SlippiMatchmaki
 
 	// INFO_LOG(SLIPPI_ONLINE, "Discord state: %s", state.str().c_str());
 
-	char largeImageKey[5] = "m_c";
+	char largeImageKey[5] = "";
 	const char* largeImageText = "Unknown Stage";
-	if(stageId != -1) {
+	if(stageId > -1 && stageId <= 32) {
 		snprintf(largeImageKey, 5, "m_%d", stageId);
 		largeImageText = stages[stageId];
 	}
 
+	int characterId = gameInfo->localPlayerSelections.characterId;
 	char smallImageKey[7];
 	const char* smallImageText;
-	snprintf(smallImageKey, 7, "c_%d_%d", gameInfo->localPlayerSelections.characterId,
-																				gameInfo->localPlayerSelections.characterColor);
-	smallImageText = characters[gameInfo->localPlayerSelections.characterId];
-
+	if(characterId > -1 && characterId <= 25) {
+		snprintf(smallImageKey, 7, "c_%d_%d", characterId, gameInfo->localPlayerSelections.characterColor);
+		smallImageText = characters[characterId];
+	}
 	INFO_LOG(SLIPPI_ONLINE, "Displaying icon %s",  largeImageKey);
 
 	DiscordRichPresence discordPresence;
