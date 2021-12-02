@@ -185,13 +185,10 @@ void SlippiDiscordPresence::GameStart(SlippiMatchInfo* gameInfo, SlippiMatchmaki
 
 	// INFO_LOG(SLIPPI_ONLINE, "Discord state: %s", state.str().c_str());
 
-	char state[14];
-	snprintf(state, 14, "Stocks: %d - %d", 4, 4);
-
-	char largeImageKey[7] = "custom";
+	char largeImageKey[5] = "m_c";
 	const char* largeImageText = "Unknown Stage";
 	if(stageId != -1) {
-		snprintf(largeImageKey, 7, "%d_map", stageId);
+		snprintf(largeImageKey, 5, "m_%d", stageId);
 		largeImageText = stages[stageId];
 	}
 
