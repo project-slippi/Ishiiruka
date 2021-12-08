@@ -27,6 +27,7 @@
 #include "wx/osx/private.h"
 
 wxBEGIN_EVENT_TABLE(wxSearchCtrl, wxSearchCtrlBase)
+EVT_KEY_UP(wxTextCtrl::OnKeyDown)
 wxEND_EVENT_TABLE()
 
 wxIMPLEMENT_DYNAMIC_CLASS(wxSearchCtrl, wxSearchCtrlBase);
