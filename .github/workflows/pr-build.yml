@@ -112,8 +112,8 @@ jobs:
           path: "./artifact/"
   
   linux:
-    needs: skip_concurrent
-    if: ${{ needs.skip_concurrent.outputs.should_skip != 'true' }}
+    needs: skip_duplicates
+    if: ${{ needs.skip_duplicates.outputs.should_skip != 'true' }}
     strategy:
       fail-fast: false
       matrix:
@@ -213,8 +213,8 @@ jobs:
           path: "./artifact/"
   
   macOS:
-    needs: skip_concurrent
-    if: ${{ needs.skip_concurrent.outputs.should_skip != 'true' }}
+    needs: skip_duplicates
+    if: ${{ needs.skip_duplicates.outputs.should_skip != 'true' }}
     strategy:
       fail-fast: false
       matrix:
