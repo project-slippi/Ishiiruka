@@ -37,6 +37,8 @@
 #include "DolphinWX/Frame.h"
 #include "DolphinWX/Main.h"
 
+#include "InputCommon/GCAdapter.h"
+
 #define FRAME_INTERVAL 900
 #define SLEEP_TIME_MS 8
 #define WRITE_FILE_SLEEP_TIME_MS 85
@@ -3000,6 +3002,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "close");
 			m_slippiserver->write(&memPtr[bufLoc], payloadLen + 1);
 			m_slippiserver->endGame();
+			GCAdapter::ResetRumble();
 			break;
 		case CMD_PREPARE_REPLAY:
 			// log.open("log.txt");
