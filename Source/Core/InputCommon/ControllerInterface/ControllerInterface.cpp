@@ -33,6 +33,10 @@
 #include "InputCommon/ControllerInterface/Pipes/Pipes.h"
 #endif
 
+#include "InputCommon/InputConfig.h"
+#include "InputCommon/ControllerEmu.h"
+#include "Core/HW/GCPad.h"
+
 using namespace ciface::ExpressionParser;
 
 namespace
@@ -235,6 +239,40 @@ void ControllerInterface::InvokeHotplugCallbacks() const
 {
 	for (const auto& callback : m_hotplug_callbacks)
 		callback();
+}
+
+std::map<int, SlippiPad> ControllerInterface::GetSlippiPads()
+{
+	std::map<int, SlippiPad> pads;
+	// Loop through all input devices
+	{
+		std::lock_guard<std::mutex> lk(m_devices_mutex);
+
+		for (u32 i = 0; i < m_devices.size(); i++)
+		{
+			std::shared_ptr<ciface::Core::Device> d = m_devices[i];
+			if (d->GetSource() == "Pipe")
+			{
+				ciface::Pipes::PipeDevice* x = (ciface::Pipes::PipeDevice*)d.get();
+
+				// Find which controller this device is attached to
+				for(int j = 0; j < 4; j++)
+				{
+					const auto device_type = SConfig::GetInstance().m_SIDevice[j];
+					if (device_type == 6) //TODO
+					{
+						ciface::Core::DeviceQualifier device = Pad::GetConfig()->GetController(j)->default_device;
+						if (device.name == d->GetName())
+						{
+							pads[j] = (x)->GetSlippiPad();
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return pads;
 }
 
 //
