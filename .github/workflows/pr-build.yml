@@ -13,7 +13,21 @@ on:
       - "**.md"
 
 jobs:
+  skip_duplicates:
+    name: Skip Duplicate Runs
+    runs-on: ubuntu-latest
+    outputs:
+      should_skip: ${{ steps.skip_check.outputs.should_skip }}
+    steps:
+      - id: skip_check
+        uses: fkirc/skip-duplicate-actions@master
+        with:
+          concurrent_skipping: "same_content"
+          do_not_skip: '["pull_request", "workflow_dispatch", "schedule"]'
+
   windows:
+    needs: skip_duplicates
+    if: ${{ needs.skip_duplicates.outputs.should_skip != 'true' }}
     strategy:
       fail-fast: false
       matrix:
@@ -32,6 +46,9 @@ jobs:
     steps:
       - name: "Checkout"
         uses: actions/checkout@v2
+      - name: "Setup Go"
+        uses: actions/setup-go@v2
+        if: matrix.build_type == 'Netplay'
       - name: "Remove Redistributable"
         shell: cmd
         run: |
@@ -68,6 +85,17 @@ jobs:
         shell: cmd
         run: |
           msbuild /p:Configuration=${{ matrix.build_config }} /p:Platform=x64 ${{ github.workspace }}\Source\Dolphin.sln
+      - name: "Build Netplay Updater"
+        working-directory: ${{ github.workspace }}
+        shell: cmd
+        if: matrix.build_type == 'Netplay'
+        run: |
+          cd %GOPATH%
+          git clone https://github.com/project-slippi/dolphin-slippi-tools
+          cd dolphin-slippi-tools
+          go get github.com/gonutz/w32 github.com/machinebox/graphql golang.org/x/sys/windows/registry
+          go build
+          copy /b /v /y dolphin-slippi-tools.exe ${{ github.workspace }}\Binary\x64\
       - name: "Prepare Artifact"
         working-directory: ${{ github.workspace }}
         run: |
@@ -96,7 +124,10 @@ jobs:
         with:
           name: ${{ matrix.artifact_name }}
           path: "./artifact/"
+  
   linux:
+    needs: skip_duplicates
+    if: ${{ needs.skip_duplicates.outputs.should_skip != 'true' }}
     strategy:
       fail-fast: false
       matrix:
@@ -194,7 +225,10 @@ jobs:
         with:
           name: ${{ matrix.artifact_name }}
           path: "./artifact/"
+  
   macOS:
+    needs: skip_duplicates
+    if: ${{ needs.skip_duplicates.outputs.should_skip != 'true' }}
     strategy:
       fail-fast: false
       matrix:
