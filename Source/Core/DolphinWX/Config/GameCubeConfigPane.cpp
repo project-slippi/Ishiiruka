@@ -83,20 +83,17 @@ void GameCubeConfigPane::InitializeGUI()
 
 	// Device settings
 	// EXI Devices
-	wxStaticText* GCEXIDeviceText[3] = {
-		new wxStaticText(this, wxID_ANY, _("Slot A")), new wxStaticText(this, wxID_ANY, _("Slot B")),
+	wxStaticText* GCEXIDeviceText[2] = {
+		new wxStaticText(this, wxID_ANY, _("Slot A")),
 		new wxStaticText(this, wxID_ANY, "SP1"),
 	};
 
 	m_exi_devices[0] = new wxChoice(this, wxID_ANY);
 	m_exi_devices[1] = new wxChoice(this, wxID_ANY);
-	m_exi_devices[2] = new wxChoice(this, wxID_ANY);
-	m_exi_devices[2]->SetToolTip(
+	m_exi_devices[1]->SetToolTip(
 		_("Serial Port 1 - This is the port which devices such as the net adapter use."));
 
 	m_memcard_path[0] =
-		new wxButton(this, wxID_ANY, "...", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
-	m_memcard_path[1] =
 		new wxButton(this, wxID_ANY, "...", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
 
 	const int space5 = FromDIP(5);
@@ -121,20 +118,19 @@ void GameCubeConfigPane::InitializeGUI()
 		new wxStaticBoxSizer(wxVERTICAL, this, _("Device Settings"));
 	wxGridBagSizer* const gamecube_EXIDev_sizer = new wxGridBagSizer(space10, space10);
 
-	for (int i = 0; i < 3; ++i)
+	for (int i = 0; i < 2; ++i)
 	{
 		gamecube_EXIDev_sizer->Add(GCEXIDeviceText[i], wxGBPosition(i, 0), wxDefaultSpan,
 			wxALIGN_CENTER_VERTICAL);
 		gamecube_EXIDev_sizer->Add(m_exi_devices[i], wxGBPosition(i, 1), wxGBSpan(1, (i < 2) ? 1 : 2),
 			wxALIGN_CENTER_VERTICAL);
 
-		if (i < 2)
+		if (i == 0)
 			gamecube_EXIDev_sizer->Add(m_memcard_path[i], wxGBPosition(i, 2), wxDefaultSpan,
 				wxALIGN_CENTER_VERTICAL);
 	}
 	sbGamecubeDeviceSettings->AddSpacer(space5);
 	sbGamecubeDeviceSettings->Add(gamecube_EXIDev_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
-	sbGamecubeDeviceSettings->AddSpacer(space5);
 
 	wxBoxSizer* const main_sizer = new wxBoxSizer(wxVERTICAL);
 	main_sizer->AddSpacer(space5);
@@ -171,13 +167,13 @@ void GameCubeConfigPane::LoadGUIValues()
 	sp1_devices.Add(_(DEV_DUMMY_STR));
 	sp1_devices.Add(_(EXIDEV_BBA_STR));
 
-	for (int i = 0; i < 3; ++i)
+	for (int i = 0; i < 2; ++i)
 	{
 		bool isMemcard = false;
 		bool isMic = false;
 
 		// Add strings to the wxChoice list, the third wxChoice is the SP1 slot
-		if (i == 2)
+		if (i == 1)
 			m_exi_devices[i]->Append(sp1_devices);
 		else
 			m_exi_devices[i]->Append(slot_devices);
@@ -214,7 +210,7 @@ void GameCubeConfigPane::LoadGUIValues()
 			break;
 		}
 
-		if (!isMemcard && !isMic && i < 2)
+		if (!isMemcard && !isMic && i == 0)
 			m_memcard_path[i]->Disable();
 	}
 
@@ -234,13 +230,10 @@ void GameCubeConfigPane::BindEvents()
 
 	m_exi_devices[0]->Bind(wxEVT_CHOICE, &GameCubeConfigPane::OnSlotAChanged, this);
 	m_exi_devices[0]->Bind(wxEVT_UPDATE_UI, &WxEventUtils::OnEnableIfNetplayNotRunning);
-	m_exi_devices[1]->Bind(wxEVT_CHOICE, &GameCubeConfigPane::OnSlotBChanged, this);
+	m_exi_devices[1]->Bind(wxEVT_CHOICE, &GameCubeConfigPane::OnSP1Changed, this);
 	m_exi_devices[1]->Bind(wxEVT_UPDATE_UI, &WxEventUtils::OnEnableIfNetplayNotRunning);
-	m_exi_devices[2]->Bind(wxEVT_CHOICE, &GameCubeConfigPane::OnSP1Changed, this);
-	m_exi_devices[2]->Bind(wxEVT_UPDATE_UI, &WxEventUtils::OnEnableIfNetplayNotRunning);
 
 	m_memcard_path[0]->Bind(wxEVT_BUTTON, &GameCubeConfigPane::OnSlotAButtonClick, this);
-	m_memcard_path[1]->Bind(wxEVT_BUTTON, &GameCubeConfigPane::OnSlotBButtonClick, this);
 
 }
 
@@ -297,11 +290,6 @@ void GameCubeConfigPane::HandleEXISlotChange(int slot, const wxString& title)
 void GameCubeConfigPane::OnSlotAButtonClick(wxCommandEvent& event)
 {
 	HandleEXISlotChange(0, wxString(_("GameCube Microphone Slot A")));
-}
-
-void GameCubeConfigPane::OnSlotBButtonClick(wxCommandEvent& event)
-{
-	HandleEXISlotChange(1, wxString(_("GameCube Microphone Slot B")));
 }
 
 void GameCubeConfigPane::ChooseEXIDevice(const wxString& deviceName, int deviceNum)

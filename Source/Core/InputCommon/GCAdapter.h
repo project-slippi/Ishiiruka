@@ -19,6 +19,7 @@ enum ControllerTypes
 	CONTROLLER_WIRELESS = 2
 };
 
+void ResetAdapterIfNecessary();
 bool IsReadingAtReducedRate();
 double ReadRate();
 

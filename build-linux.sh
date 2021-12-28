@@ -3,8 +3,7 @@
 
 CMAKE_FLAGS='-DLINUX_LOCAL_DEV=true'
 
-DESKTOP_APP_URL="https://github.com/project-slippi/slippi-desktop-app"
-DESKTOP_APP_SYS_PATH="./slippi-desktop-app/app/dolphin-dev/overwrite/Sys"
+PLAYBACK_CODES_PATH="./Data/PlaybackGeckoCodes/"
 
 DATA_SYS_PATH="./Data/Sys/"
 BINARY_PATH="./build/Binaries/"
@@ -33,16 +32,8 @@ touch ./build/Binaries/portable.txt
 # Copy playback specific codes if needed
 if [ "$1" == "playback" ]
     then
-        if [ -d "slippi-desktop-app" ]
-			then
-				pushd slippi-desktop-app
-				git checkout master
-				git pull --ff-only
-				popd
-		else
-			git clone ${DESKTOP_APP_URL}
-		fi
-        
-        rm -rf "${BINARY_PATH}/Sys/GameSettings"
-        cp -r ${DESKTOP_APP_SYS_PATH} ${BINARY_PATH}
+        # Update Sys dir with playback codes
+        echo "Copying Playback gecko codes"
+		rm -rf "${BINARY_PATH}/Sys/GameSettings" # Delete netplay codes
+		cp -r "${PLAYBACK_CODES_PATH}/." "${BINARY_PATH}/Sys/GameSettings/"
 fi

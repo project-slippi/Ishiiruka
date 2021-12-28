@@ -22,6 +22,9 @@ void MarkBootstrapCodes(const IniFile& globalIni, std::vector<GeckoCode>& gcodes
 // For each enabled code in 'someIni', enable the matching code in 'gcodes'.
 void MarkEnabledCodes(const IniFile& globalIni, const IniFile& localIni, std::vector<GeckoCode>& gcodes);
 
+// Handle enabling
+void SetEnabledCodes(const std::vector<std::string> lines, std::vector<GeckoCode> &gcodes, bool enable, bool is_default=false);
+
 // Parse an 'ini', producing a set 'gcodes'.
 void ParseCodes(const IniFile& ini, std::vector<GeckoCode>& gcodes, bool is_user_ini);
 
@@ -29,6 +32,6 @@ void ParseCodes(const IniFile& ini, std::vector<GeckoCode>& gcodes, bool is_user
 void MergeCodes(const IniFile& globalIni, const IniFile& localIni, std::vector<GeckoCode>& gcodes);
 
 // Fill the contents of 'iniFile' with 'gcodes' (this does not flush to disk).
-void FillIni(IniFile& inifile, const std::vector<GeckoCode>& gcodes);
+void SaveCodes(IniFile& inifile, const std::vector<GeckoCode>& gcodes);
 
 }

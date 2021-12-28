@@ -76,6 +76,13 @@
     </ClCompile>
     <ClCompile Include="InputConfig.cpp" />
     <ClCompile Include="InputStabilizer.cpp" />
+    <ClCompile Include="LibusbUtils.cpp">
+      <!--
+      Disable "nonstandard extension used : zero-sized array in struct/union" warning,
+      which is hit in libusb.h.
+      -->
+      <DisableSpecificWarnings>4200;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ControllerEmu.h" />
@@ -94,6 +101,7 @@
     <ClInclude Include="GCPadStatus.h" />
     <ClInclude Include="InputConfig.h" />
     <ClInclude Include="InputStabilizer.h" />
+    <ClInclude Include="LibusbUtils.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="CMakeLists.txt" />

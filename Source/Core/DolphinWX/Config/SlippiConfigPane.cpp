@@ -66,8 +66,11 @@ void SlippiNetplayConfigPane::InitializeGUI()
 	      "Increasing this can cause unplayable input delay, and lowering it can cause visual artifacts/lag."));
 	m_slippi_delay_frames_ctrl->SetRange(1, 9);
 
-	m_slippi_enable_quick_chat = new wxCheckBox(this, wxID_ANY, _("Enable Quick Chat"));
-	m_slippi_enable_quick_chat->SetToolTip(_("Enable this to send and receive Quick Chat Messages when online."));
+	m_slippi_enable_quick_chat_txt = new wxStaticText(this, wxID_ANY, _("Quick Chat:"));
+	m_slippi_enable_quick_chat_choice =
+	    new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, m_slippi_enable_quick_chat_strings);
+	m_slippi_enable_quick_chat_choice->SetToolTip(
+	    _("Enable this to send and receive Quick Chat Messages when online."));
 
 	m_slippi_force_netplay_port_checkbox = new wxCheckBox(this, wxID_ANY, _("Force Netplay Port"));
 	m_slippi_force_netplay_port_checkbox->SetToolTip(
@@ -115,7 +118,11 @@ void SlippiNetplayConfigPane::InitializeGUI()
 	wxGridBagSizer *const sSlippiOnlineSettings = new wxGridBagSizer(space10, space5);
 	sSlippiOnlineSettings->Add(m_slippi_delay_frames_txt, wxGBPosition(0, 0), wxDefaultSpan, wxALIGN_CENTER_VERTICAL);
 	sSlippiOnlineSettings->Add(m_slippi_delay_frames_ctrl, wxGBPosition(0, 1), wxDefaultSpan, wxALIGN_LEFT);
-	sSlippiOnlineSettings->Add(m_slippi_enable_quick_chat, wxGBPosition(1, 0), wxDefaultSpan, wxALIGN_LEFT);
+
+	sSlippiOnlineSettings->Add(m_slippi_enable_quick_chat_txt, wxGBPosition(1, 0), wxDefaultSpan,
+	                           wxALIGN_CENTER_VERTICAL);
+	sSlippiOnlineSettings->Add(m_slippi_enable_quick_chat_choice, wxGBPosition(1, 1), wxDefaultSpan, wxALIGN_LEFT);
+
 	sSlippiOnlineSettings->Add(m_slippi_force_netplay_port_checkbox, wxGBPosition(2, 0), wxDefaultSpan,
 	                           wxALIGN_CENTER_VERTICAL);
 	sSlippiOnlineSettings->Add(m_slippi_force_netplay_port_ctrl, wxGBPosition(2, 1), wxDefaultSpan,
@@ -170,7 +177,7 @@ void SlippiNetplayConfigPane::LoadGUIValues()
 	}
 
 	m_slippi_delay_frames_ctrl->SetValue(startup_params.m_slippiOnlineDelay);
-	m_slippi_enable_quick_chat->SetValue(startup_params.m_slippiEnableQuickChat);
+	PopulateEnableChatChoiceBox();
 
 	m_slippi_force_netplay_port_checkbox->SetValue(startup_params.m_slippiForceNetplayPort);
 	m_slippi_force_netplay_port_ctrl->SetValue(startup_params.m_slippiNetplayPort);
@@ -198,7 +205,7 @@ void SlippiNetplayConfigPane::BindEvents()
 	m_replay_directory_picker->Bind(wxEVT_DIRPICKER_CHANGED, &SlippiNetplayConfigPane::OnReplayDirChanged, this);
 
 	m_slippi_delay_frames_ctrl->Bind(wxEVT_SPINCTRL, &SlippiNetplayConfigPane::OnDelayFramesChanged, this);
-	m_slippi_enable_quick_chat->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnQuickChatToggle, this);
+	m_slippi_enable_quick_chat_choice->Bind(wxEVT_CHOICE, &SlippiNetplayConfigPane::OnQuickChatChanged, this);
 	m_slippi_force_netplay_port_checkbox->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnForceNetplayPortToggle,
 	                                           this);
 	m_slippi_force_netplay_port_ctrl->Bind(wxEVT_SPINCTRL, &SlippiNetplayConfigPane::OnNetplayPortChanged, this);
@@ -211,10 +218,22 @@ void SlippiNetplayConfigPane::BindEvents()
 	                                          this);
 }
 
-void SlippiNetplayConfigPane::OnQuickChatToggle(wxCommandEvent &event)
+void SlippiNetplayConfigPane::OnQuickChatChanged(wxCommandEvent &event)
 {
-	bool enableQuickChat = m_slippi_enable_quick_chat->IsChecked();
-	SConfig::GetInstance().m_slippiEnableQuickChat = enableQuickChat;
+	auto selectedStr = m_slippi_enable_quick_chat_choice->GetSelection() != wxNOT_FOUND
+	                       ? WxStrToStr(m_slippi_enable_quick_chat_choice->GetStringSelection())
+	                       : quickChatOptions[SLIPPI_CHAT_ON];
+
+	int selectedChoice = SLIPPI_CHAT_ON; // default is enabled
+
+	for (auto it = quickChatOptions.begin(); it != quickChatOptions.end(); it++)
+		if (strcmp(it->second.c_str(), selectedStr.c_str()) == 0)
+		{
+			selectedChoice = it->first;
+			break;
+		}
+
+	SConfig::GetInstance().m_slippiEnableQuickChat = selectedChoice;
 }
 
 void SlippiNetplayConfigPane::OnReplaySavingToggle(wxCommandEvent &event)
@@ -290,6 +309,20 @@ void SlippiNetplayConfigPane::OnReduceTimingDispersionToggle(wxCommandEvent &eve
 	SConfig::GetInstance().bReduceTimingDispersion = m_reduce_timing_dispersion_checkbox->GetValue();
 }
 
+void SlippiNetplayConfigPane::PopulateEnableChatChoiceBox()
+{
+
+	for (auto it = quickChatOptions.begin(); it != quickChatOptions.end(); it++)
+	{
+		m_slippi_enable_quick_chat_choice->Append(StrToWxStr(it->second));
+	}
+
+	auto currentChoice = SConfig::GetInstance().m_slippiEnableQuickChat;
+	auto currentChoiceStr = quickChatOptions[currentChoice];
+	int num = m_slippi_enable_quick_chat_choice->FindString(StrToWxStr(currentChoiceStr));
+	m_slippi_enable_quick_chat_choice->SetSelection(num);
+}
+
 SlippiPlaybackConfigPane::SlippiPlaybackConfigPane(wxWindow *parent, wxWindowID id)
     : wxPanel(parent, id)
 {
@@ -301,8 +334,9 @@ SlippiPlaybackConfigPane::SlippiPlaybackConfigPane(wxWindow *parent, wxWindowID 
 void SlippiPlaybackConfigPane::InitializeGUI()
 {
 	// Slippi Replay settings
-	m_display_frame_index = new wxCheckBox(this, wxID_ANY, _("Display Frame index"));
-	m_display_frame_index->SetToolTip(_("Enable this to display the Frame Index when viewing replays."));
+	m_display_frame_index = new wxCheckBox(this, wxID_ANY, _("Display Frame Index"));
+	m_display_frame_index->SetToolTip(
+	    _("Displays the Frame Index when viewing replays. On-Screen Display Messages must also be enabled"));
 
 	const int space5 = FromDIP(5);
 
