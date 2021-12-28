@@ -34,14 +34,14 @@
 namespace Common
 {
 
-#if !defined(_WIN32) && defined(_M_X86_64) && !defined(MAP_32BIT)
+//#if !defined(_WIN32) && defined(_M_X86_64) && !defined(MAP_32BIT)
 #include <unistd.h>
 static uintptr_t RoundPage(uintptr_t addr)
 {
 	uintptr_t mask = getpagesize() - 1;
 	return (addr + mask) & ~mask;
 }
-#endif
+//#endif
 
 // This is purposely not a full wrapper for virtualalloc/mmap, but it
 // provides exactly the primitive operations that Dolphin needs.
@@ -82,60 +82,67 @@ void* AllocateExecutableMemory(size_t size, bool low)
 		map_flags |= MAP_JIT;
 	}
 
-	static char* map_hint = nullptr;
-    
-	// Due to when this was implemented (and free of an entitlement gate), we need to do a runtime
-	// check. :(
-	bool supports_map32_bit = false;
-	if (__builtin_available(macOS 10.15.4, *))
-	{
-		supports_map32_bit = true;
+	static uintptr_t map_hint = 0x10000;
 
-		// The flag value used here is pulled from the Darwin kernel source:
-		// (MAP32BIT = 0x800)
-		// https://github.com/apple/darwin-xnu/blob/2ff845c2e033bd0ff64b5b6aa6063a1f8f65aa32/bsd/sys/mman.h#L155
-		if (low)
-			map_flags |= 0x800;
-	} else {
-		// For older versions of macOS where MAP_32BIT is not available, we'll try the older
-		// route of hinting at a low address to get an allocation below the 4GB boundary.
- 		//
- 		// This is noted elsewhere in this file, but MAP_FIXED is not appropriate here due to
- 		// the side effect of discarding already mapped pages that happen to be in the requested
- 		// virtual memory range (e.g emulated RAM).
-		if (low && (!map_hint))
-			map_hint = (char*)RoundPage(512 * 1024 * 1024); /* 0.5 GB rounded up to the next page */
-	}
-    
-	void* ptr = mmap(
-		map_hint,
-		size,
-		PROT_READ | PROT_WRITE | PROT_EXEC,
-		map_flags,
- 		-1,
-		0
-	);
-
-	if (ptr == MAP_FAILED)
-	{
-		ptr = nullptr;
-		PanicAlert("Failed to allocate executable memory.");
-	}
-	else
-	{
-        	if (low && !supports_map32_bit)
+	if (low) {
+        	// Due to when this was implemented (and free of an entitlement gate), we need to do a runtime
+        	// check. :(
+        	if (__builtin_available(macOS 10.15.4, *))
         	{
-			map_hint += size;
-			map_hint = (char*)RoundPage((uintptr_t)map_hint); /* round up to the next page */
+            		// The flag value used here is pulled from the Darwin kernel source:
+ 			// (MAP32BIT = 0x800)
+            		// https://github.com/apple/darwin-xnu/blob/2ff845c2e033bd0ff64b5b6aa6063a1f8f65aa32/bsd/sys/mman.h#L155
+            		map_flags |= 0x800;
+        	}
+
+        	// Walk memory increments and see if we can find a page to use.
+        	// This is similar to a technique that LuaJIT would use before they had true 64-bit support.
+        	//
+        	// Yes, it feels absurd to be doing this.
+        	int olderr = errno;
+        	int retry = 0;
+
+        	for (;;) {
+            		void *p = mmap((void *)map_hint, size, PROT_READ | PROT_WRITE | PROT_EXEC, map_flags, -1, 0);
+
+			if ((uintptr_t)p >= 0x10000 && (uintptr_t)p + size < 0x80000000)
+			{
+                		map_hint = (uintptr_t)p + size;
+                		errno = olderr;
+                		//PanicAlert("macOS: Found Memory Base! %p", map_hint);
+                		return p;
+            		}
+
+           		 // If mmap didn't fail, and is not within our low window, unmap whatever it mapped.
+            		if (p != MAP_FAILED)
+                		munmap(p, size);
+
+            		// This is an arbitary number.
+            		if (retry == 50) {
+                		PanicAlert("Failed to allocate below the 2GB boundary. %p", map_hint);
+                		break;
+            		}
+
+            		retry += 1;
+            		map_hint += 0x10000;
         	}
     	}
+    
+    	void* ptr = mmap(
+        	nullptr,
+        	size,
+        	PROT_READ | PROT_WRITE | PROT_EXEC,
+        	map_flags,
+        	-1,
+        	0
+    	);
+    
+    	if (ptr == MAP_FAILED) {
+        	ptr = nullptr;
+        	PanicAlert("Failed to allocate executable memory.");
+    	}
 
-	if ((u64)ptr >= 0x80000000 && low == true)
-	{
-		PanicAlert("Executable memory ended up above 2GB!");
-	}
-
-	return ptr;
+    	return ptr;
 }
 #else
 void* AllocateExecutableMemory(size_t size, bool low)
