@@ -1047,6 +1047,8 @@ void CEXISlippi::prepareGeckoList()
 	    {0x80218D68, true}, // Binary/LagReduction/PD+VB.bin
 	    {0x8016E9AC, true}, // Binary/Force2PCenterHud.bin
 	    {0x80030E44, true}, // Binary/DisableScreenShake.bin
+	    {0x803761EC, true}, // Binary/NormalLagReduction.bin
+	    {0x80376238, true}, // Binary/NormalLagReduction.bin
 
 	    {0x800055f0, true}, // Common/EXITransferBuffer.asm
 	    {0x800055f8, true}, // Common/GetIsFollower.asm
@@ -1113,6 +1115,7 @@ void CEXISlippi::prepareGeckoList()
 
 	    {0x802f6690, true}, // HUD Transparency v1.1 (https://smashboards.com/threads/transparent-hud-v1-1.508509/)
 	    {0x802F71E0, true}, // Smaller "Ready, GO!" (https://smashboards.com/threads/smaller-ready-go.509740/)
+		{0x80071960, true}, // Yellow During IASA (https://smashboards.com/threads/color-overlays-for-iasa-frames.401474/post-19120928)
 	};
 
 	std::unordered_map<u32, bool> blacklist;
