@@ -34,14 +34,18 @@
 namespace Common
 {
 
-//#if !defined(_WIN32) && defined(_M_X86_64) && !defined(MAP_32BIT)
+#if !defined(_WIN32) 
 #include <unistd.h>
+// This is only used on *nix systems, and previously checked for both x86_64 and MAP_32BIT
+// support. We can't check MAP_32BIT due to how Apple now has it on some of the supported OS
+// versions that Slippi needs, and this project only runs on x86_64 anyway.
+//&& defined(_M_X86_64) && !defined(MAP_32BIT)
 static uintptr_t RoundPage(uintptr_t addr)
 {
 	uintptr_t mask = getpagesize() - 1;
 	return (addr + mask) & ~mask;
 }
-//#endif
+#endif
 
 // This is purposely not a full wrapper for virtualalloc/mmap, but it
 // provides exactly the primitive operations that Dolphin needs.
