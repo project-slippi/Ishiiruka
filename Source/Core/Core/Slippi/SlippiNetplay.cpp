@@ -288,10 +288,11 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 			//         frame);
 
 			int32_t headFrame = remotePadQueue[pIdx].empty() ? 0 : remotePadQueue[pIdx].front()->frame;
-			int inputsToCopy = frame - headFrame;
+			// Expand int size up to 64 bits to avoid overflowing
+			int64_t inputsToCopy = (int64_t)frame - (int64_t)headFrame;
 
 			// Check that the packet actually contains the data it claims to
-			if ((6 + inputsToCopy * SLIPPI_PAD_DATA_SIZE) > (int)packet.getDataSize())
+			if ((6 + inputsToCopy * SLIPPI_PAD_DATA_SIZE) > (int64_t)packet.getDataSize())
 			{
 				ERROR_LOG(SLIPPI_ONLINE,
 				          "Netplay packet too small to read pad buffer. Size: %d, Inputs: %d, MinSize: %d",
@@ -299,9 +300,18 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 				break;
 			}
 
-			for (int i = inputsToCopy - 1; i >= 0; i--)
+			// In practice, the 7 frames is the maximum. But 14 is just a basic sanity check to make sure
+			//	it doesn't go haywire and blow up to INT_MAX or something.
+			if (inputsToCopy > 14) {
+				ERROR_LOG(SLIPPI_ONLINE,
+				          "Netplay packet contained too many frames: %d",
+				          inputsToCopy);
+				break;
+			}
+
+			for (int64_t i = inputsToCopy - 1; i >= 0; i--)
 			{
-				auto pad = std::make_unique<SlippiPad>(frame - i, pIdx, &packetData[6 + i * SLIPPI_PAD_DATA_SIZE]);
+				auto pad = std::make_unique<SlippiPad>((int32_t)(frame - (int32_t)i), pIdx, &packetData[6 + i * SLIPPI_PAD_DATA_SIZE]);
 				// INFO_LOG(SLIPPI_ONLINE, "Rcv [%d] -> %02X %02X %02X %02X %02X %02X %02X %02X", pad->frame,
 				//         pad->padBuf[0], pad->padBuf[1], pad->padBuf[2], pad->padBuf[3], pad->padBuf[4],
 				//         pad->padBuf[5], pad->padBuf[6], pad->padBuf[7]);
