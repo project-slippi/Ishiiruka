@@ -78,6 +78,9 @@ else
 		# Package up the update tool within the AppImage
 		cp ./Tools/appimageupdatetool ./AppDir/usr/bin/
 
+		# remomve libs that will cause conflicts
+		rm ./AppDir/usr/lib/libgmodule*
+
 		# Bake an AppImage with the update metadata
 		UPDATE_INFORMATION="${ZSYNC_STRING}" \
 			./Tools/linuxdeploy-update-plugin --appdir=./AppDir/
