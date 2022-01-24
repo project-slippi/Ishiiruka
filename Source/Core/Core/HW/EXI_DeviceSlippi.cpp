@@ -1686,13 +1686,28 @@ bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame)
 	if (isTimeSyncFrame)
 	{
 		auto offsetUs = slippi_netplay->CalcTimeOffsetUs();
-		INFO_LOG(SLIPPI_ONLINE, "[Frame %d] Offset for advance is: %d us", frame, offsetUs);
+
+		// Dynamically adjust emulation speed in order to fine-tune time sync to reduce one sided rollbacks even more
+		auto maxSpeedDeviation = 0.005f;
+		auto deviation = (offsetUs / 33366.0f) * maxSpeedDeviation;
+		if (deviation > maxSpeedDeviation)
+			deviation = maxSpeedDeviation;
+		else if (deviation < -maxSpeedDeviation)
+			deviation = -maxSpeedDeviation;
+
+		// If we are behind (negative offset) we want to go above 100% run speed, so we need to subtract the deviation
+		// value
+		auto dynamicEmulationSpeed = 1.0f - deviation;
+		SConfig::GetInstance().m_EmulationSpeed = dynamicEmulationSpeed;
+
+		INFO_LOG(SLIPPI_ONLINE, "[Frame %d] Offset for advance is: %d us. New speed: %.2f%%", frame, offsetUs,
+		         dynamicEmulationSpeed * 100.0f);
 
 		// Count the number of times we're below a threshold we should easily be able to clear. This is checked twice
 		// per second.
 		fallBehindCounter += offsetUs < -10000 ? 1 : 0;
 		fallFarBehindCounter += offsetUs < -25000 ? 1 : 0;
-		if ((offsetUs < -10000 && fallBehindCounter > 100) || (offsetUs < -25000 && fallFarBehindCounter > 20))
+		if ((offsetUs < -10000 && fallBehindCounter > 50) || (offsetUs < -25000 && fallFarBehindCounter > 15))
 		{
 			OSD::AddTypedMessage(OSD::MessageType::PerformanceWarning,
 			                     "Your computer is running slow and is impacting the performance of the match.", 10000,
