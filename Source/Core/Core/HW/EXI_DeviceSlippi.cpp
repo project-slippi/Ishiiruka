@@ -1567,10 +1567,15 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 		isConnectionStalled = false;
 		stallFrameCount = 0;
 
+		// Reset skip variables
+		framesToSkip = 0;
+		isCurrentlySkipping = false;
+
 		// Reset advance stuff
 		framesToAdvance = 0;
 		isCurrentlyAdvancing = false;
 		fallBehindCounter = 0;
+		fallFarBehindCounter = 0;
 
 		// Reset character selections as they are no longer needed
 		localSelections.Reset();
@@ -1631,6 +1636,44 @@ bool CEXISlippi::shouldSkipOnlineFrame(s32 frame)
 
 	stallFrameCount = 0;
 
+	// Return true if we are over 60% of a frame ahead of our opponent. Currently limiting how
+	// often this happens because I'm worried about jittery data causing a lot of unneccesary delays.
+	// Only skip once for a given frame because our time detection method doesn't take into consideration
+	// waiting for a frame. Also it's less jarring and it happens often enough that it will smoothly
+	// get to the right place
+	auto isTimeSyncFrame = frame % SLIPPI_ONLINE_LOCKSTEP_INTERVAL; // Only time sync every 30 frames
+	if (isTimeSyncFrame == 0 && !isCurrentlySkipping)
+	{
+		auto offsetUs = slippi_netplay->CalcTimeOffsetUs();
+		INFO_LOG(SLIPPI_ONLINE, "[Frame %d] Offset for skip is: %d us", frame, offsetUs);
+
+		// The decision to skip a frame only happens when we are already pretty far off ahead. The hope is
+		// that this won't really be used much because the frame advance of the slow client will pick up the
+		// difference most of the time. But at some point it's probably better to slow down...
+		if (offsetUs > 26000)
+		{
+			isCurrentlySkipping = true;
+
+			int maxSkipFrames = frame <= 120 ? 5 : 1; // On early frames, support skipping more frames
+			framesToSkip = ((offsetUs - 10000) / 16683) + 1;
+			framesToSkip = framesToSkip > maxSkipFrames ? maxSkipFrames : framesToSkip; // Only skip 5 frames max
+
+			WARN_LOG(SLIPPI_ONLINE, "Halting on frame %d due to time sync. Offset: %d us. Frames: %d...", frame,
+			         offsetUs, framesToSkip);
+		}
+	}
+
+	// Handle the skipped frames
+	if (framesToSkip > 0)
+	{
+		// If ahead by 60% of a frame, stall. I opted to use 60% instead of half a frame
+		// because I was worried about two systems continuously stalling for each other
+		framesToSkip = framesToSkip - 1;
+		return true;
+	}
+
+	isCurrentlySkipping = false;
+
 	return false;
 }
 
@@ -1639,34 +1682,31 @@ bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame)
 	// Return true if we are over 60% of a frame behind our opponent. We limit how often this happens
 	// to get a reliable average to act on. We will allow advancing up to 5 frames (spread out) over
 	// the 30 frame period. This makes the game feel relatively smooth still
-	auto isTimeSyncFrame = frame % SLIPPI_ONLINE_LOCKSTEP_INTERVAL; // Only time sync every 30 frames
-	if (isTimeSyncFrame == 0 && !isCurrentlyAdvancing)
+	auto isTimeSyncFrame = (frame % SLIPPI_ONLINE_LOCKSTEP_INTERVAL) == 0; // Only time sync every 30 frames
+	if (isTimeSyncFrame)
 	{
 		auto offsetUs = slippi_netplay->CalcTimeOffsetUs();
-		INFO_LOG(SLIPPI_ONLINE, "[Frame %d] Offset is: %d us", frame, offsetUs);
+		INFO_LOG(SLIPPI_ONLINE, "[Frame %d] Offset for advance is: %d us", frame, offsetUs);
 
 		// Count the number of times we're below a threshold we should easily be able to clear. This is checked twice
-		// per frame.
-		if (offsetUs < -25000)
+		// per second.
+		fallBehindCounter += offsetUs < -10000 ? 1 : 0;
+		fallFarBehindCounter += offsetUs < -25000 ? 1 : 0;
+		if ((offsetUs < -10000 && fallBehindCounter > 100) || (offsetUs < -25000 && fallFarBehindCounter > 20))
 		{
-			fallBehindCounter++;
-
-			// Checking if we are consistently behind. The quickest this can happen is after 10 seconds
-			if (fallBehindCounter > 20)
-			{
-				OSD::AddTypedMessage(OSD::MessageType::PerformanceWarning,
-				                     "Your computer is running slow and is impacting the performance of the match.",
-				                     10000, OSD::Color::RED);
-			}
+			OSD::AddTypedMessage(OSD::MessageType::PerformanceWarning,
+			                     "Your computer is running slow and is impacting the performance of the match.", 10000,
+			                     OSD::Color::RED);
 		}
 
-		if (offsetUs < -10000)
+		if (offsetUs < -10000 && !isCurrentlyAdvancing)
 		{
 			isCurrentlyAdvancing = true;
 
-			int maxAdvanceFrames = 5;
+			// On early frames, don't advance any frames. Let the stalling logic handle the initial sync
+			int maxAdvFrames = frame > 120 ? 5 : 0;
 			framesToAdvance = ((-offsetUs - 10000) / 16683) + 1;
-			framesToAdvance = framesToAdvance > maxAdvanceFrames ? maxAdvanceFrames : framesToAdvance; // Only advance 5 frames max
+			framesToAdvance = framesToAdvance > maxAdvFrames ? maxAdvFrames : framesToAdvance;
 
 			WARN_LOG(SLIPPI_ONLINE, "Advancing on frame %d due to time sync. Offset: %d us. Frames: %d...", frame,
 			         offsetUs, framesToAdvance);
