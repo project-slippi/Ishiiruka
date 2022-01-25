@@ -1699,7 +1699,7 @@ bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame)
 		// value
 		auto dynamicEmulationSpeed = 1.0f - deviation;
 		SConfig::GetInstance().m_EmulationSpeed = dynamicEmulationSpeed;
-		//SConfig::GetInstance().m_EmulationSpeed = 0.97f; // used for testing
+		// SConfig::GetInstance().m_EmulationSpeed = 0.97f; // used for testing
 
 		INFO_LOG(SLIPPI_ONLINE, "[Frame %d] Offset for advance is: %d us. New speed: %.2f%%", frame, offsetUs,
 		         dynamicEmulationSpeed * 100.0f);
@@ -1708,8 +1708,12 @@ bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame)
 		// per second.
 		fallBehindCounter += offsetUs < -10000 ? 1 : 0;
 		fallFarBehindCounter += offsetUs < -25000 ? 1 : 0;
-		if ((offsetUs < -10000 && fallBehindCounter > 50) || (offsetUs < -25000 && fallFarBehindCounter > 15))
+
+		bool isSlow = (offsetUs < -10000 && fallBehindCounter > 50) || (offsetUs < -25000 && fallFarBehindCounter > 15);
+		if (isSlow && lastSearch.mode != SlippiMatchmaking::OnlinePlayMode::TEAMS)
 		{
+			// We don't show this message for teams because it seems to false positive a lot there, maybe because the min
+			// offset is always selected? Idk I feel like doubles has some perf issues I don't understand atm.
 			OSD::AddTypedMessage(OSD::MessageType::PerformanceWarning,
 			                     "Your computer is running slow and is impacting the performance of the match.", 10000,
 			                     OSD::Color::RED);
