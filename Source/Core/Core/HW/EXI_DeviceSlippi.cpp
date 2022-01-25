@@ -1699,6 +1699,7 @@ bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame)
 		// value
 		auto dynamicEmulationSpeed = 1.0f - deviation;
 		SConfig::GetInstance().m_EmulationSpeed = dynamicEmulationSpeed;
+		//SConfig::GetInstance().m_EmulationSpeed = 0.97f; // used for testing
 
 		INFO_LOG(SLIPPI_ONLINE, "[Frame %d] Offset for advance is: %d us. New speed: %.2f%%", frame, offsetUs,
 		         dynamicEmulationSpeed * 100.0f);
