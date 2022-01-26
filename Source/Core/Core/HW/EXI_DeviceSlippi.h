@@ -188,6 +188,7 @@ class CEXISlippi : public IEXIDevice
 	void prepareOnlineMatchState();
 	void setMatchSelections(u8 *payload);
 	bool shouldSkipOnlineFrame(s32 frame);
+	bool shouldAdvanceOnlineFrame(s32 frame);
 	void handleLogInRequest();
 	void handleLogOutRequest();
 	void handleUpdateAppRequest();
@@ -252,6 +253,12 @@ class CEXISlippi : public IEXIDevice
 	// Frame skipping variables
 	int framesToSkip = 0;
 	bool isCurrentlySkipping = false;
+
+	// Frame advancing variables
+	int framesToAdvance = 0;
+	bool isCurrentlyAdvancing = false;
+	int fallBehindCounter = 0;
+	int fallFarBehindCounter = 0;
 
 	std::string forcedError = "";
 
