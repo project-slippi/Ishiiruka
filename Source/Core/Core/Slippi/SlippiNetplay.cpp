@@ -272,9 +272,9 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 
 		// Add this offset to circular buffer for use later
 		if (frameOffsetData[pIdx].buf.size() < SLIPPI_ONLINE_LOCKSTEP_INTERVAL)
-			frameOffsetData[pIdx].buf.push_back((s32)timeOffsetUs);
+			frameOffsetData[pIdx].buf.push_back(static_cast<s32>(timeOffsetUs));
 		else
-			frameOffsetData[pIdx].buf[frameOffsetData[pIdx].idx] = (s32)timeOffsetUs;
+			frameOffsetData[pIdx].buf[frameOffsetData[pIdx].idx] = static_cast<s32>(timeOffsetUs);
 
 		frameOffsetData[pIdx].idx = (frameOffsetData[pIdx].idx + 1) % SLIPPI_ONLINE_LOCKSTEP_INTERVAL;
 
@@ -287,12 +287,13 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 			// pIdx,
 			//         frame);
 
-			int32_t headFrame = remotePadQueue[pIdx].empty() ? 0 : remotePadQueue[pIdx].front()->frame;
+			s64 frame64 = static_cast<s64>(frame);
+			s32 headFrame = remotePadQueue[pIdx].empty() ? 0 : remotePadQueue[pIdx].front()->frame;
 			// Expand int size up to 64 bits to avoid overflowing
-			int64_t inputsToCopy = (int64_t)frame - (int64_t)headFrame;
+			s64 inputsToCopy = frame64 - static_cast<s64>(headFrame);
 
 			// Check that the packet actually contains the data it claims to
-			if ((6 + inputsToCopy * SLIPPI_PAD_DATA_SIZE) > (int64_t)packet.getDataSize())
+			if ((6 + inputsToCopy * SLIPPI_PAD_DATA_SIZE) > static_cast<s64>(packet.getDataSize()))
 			{
 				ERROR_LOG(SLIPPI_ONLINE,
 				          "Netplay packet too small to read pad buffer. Size: %d, Inputs: %d, MinSize: %d",
@@ -309,9 +310,10 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 				break;
 			}
 
-			for (int64_t i = inputsToCopy - 1; i >= 0; i--)
+			for (s64 i = inputsToCopy - 1; i >= 0; i--)
 			{
-				auto pad = std::make_unique<SlippiPad>((int32_t)(frame - (int32_t)i), pIdx, &packetData[6 + i * SLIPPI_PAD_DATA_SIZE]);
+				auto pad = std::make_unique<SlippiPad>(static_cast<s32>(frame64 - i), pIdx,
+				                                       &packetData[6 + i * SLIPPI_PAD_DATA_SIZE]);
 				// INFO_LOG(SLIPPI_ONLINE, "Rcv [%d] -> %02X %02X %02X %02X %02X %02X %02X %02X", pad->frame,
 				//         pad->padBuf[0], pad->padBuf[1], pad->padBuf[2], pad->padBuf[3], pad->padBuf[4],
 				//         pad->padBuf[5], pad->padBuf[6], pad->padBuf[7]);
