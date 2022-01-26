@@ -14,7 +14,10 @@
 #include "VideoCommon/VideoConfig.h"
 #include <algorithm>
 #include <fstream>
+#include <math.h>
+#include <mbedtls/md5.h>
 #include <memory>
+#include <numeric>
 #include <thread>
 
 //#include "Common/MD5.h"
@@ -254,6 +257,14 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 		// before we initialized
 		// We can compare this to when we sent a pad for last frame to figure out how far/behind we
 		// are with respect to the opponent
+
+		// 120 frames to let the game settle before measuring network quality
+		if (frame > 120)
+		{
+			std::lock_guard<std::mutex> lkq(packetTimestampsMutex);
+			packetTimestamps[pIdx].push_back(curTime);
+		}
+
 		auto timing = lastFrameTiming[pIdx];
 		if (!hasGameStarted)
 		{
@@ -306,7 +317,18 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 				//         pad->padBuf[0], pad->padBuf[1], pad->padBuf[2], pad->padBuf[3], pad->padBuf[4],
 				//         pad->padBuf[5], pad->padBuf[6], pad->padBuf[7]);
 
+				// Gather analog stick data for later reporting
+				{
+					std::tuple<u8, u8> mainStick (pad->padBuf[2]+128, pad->padBuf[3]+128);
+					std::tuple<u8, u8> cStick (pad->padBuf[4]+128, pad->padBuf[5]+128);
+
+					std::lock_guard<std::mutex> lk(analogStickInputsMutex);
+					mainStickInputs[pIdx].push_back(mainStick);
+					cStickInputs[pIdx].push_back(cStick);
+				}
+
 				remotePadQueue[pIdx].push_front(std::move(pad));
+
 			}
 		}
 
@@ -368,6 +390,11 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 		ackTimers[pIdx].Pop();
 
 		pingUs[pIdx] = Common::Timer::GetTimeUs() - sendTime;
+		// Record ping for later reporting
+		{
+			std::lock_guard<std::mutex> lkq(pingsMutex);
+			pings[pIdx].push_back(pingUs[pIdx]);
+		}
 		if (g_ActiveConfig.bShowNetPlayPing && frame % SLIPPI_PING_DISPLAY_INTERVAL == 0 && pIdx == 0)
 		{
 			std::stringstream pingDisplay;
@@ -979,6 +1006,14 @@ void SlippiNetplayClient::StartSlippiGame()
 
 		// Reset ack timers
 		ackTimers[i].Clear();
+		{
+			std::lock_guard<std::mutex> lkq(packetTimestampsMutex);
+			packetTimestamps[i].clear();
+		}
+		{
+			std::lock_guard<std::mutex> lkq(pingsMutex);
+			pings[i].clear();
+		}
 	}
 
 	// Reset match info for next game
@@ -1012,6 +1047,16 @@ void SlippiNetplayClient::SendSlippiPad(std::unique_ptr<SlippiPad> pad)
 
 	if (pad)
 	{
+		// Gather analog stick data for later reporting
+		{
+			std::tuple<u8, u8> mainStick (pad->padBuf[2]+128, pad->padBuf[3]+128);
+			std::tuple<u8, u8> cStick (pad->padBuf[4]+128, pad->padBuf[5]+128);
+
+			std::lock_guard<std::mutex> lk(analogStickInputsMutex);
+			mainStickInputs[m_remotePlayerCount].push_back(mainStick);
+			cStickInputs[m_remotePlayerCount].push_back(cStick);
+		}
+
 		// Add latest local pad report to queue
 		localPadQueue.push_front(std::move(pad));
 	}
@@ -1244,9 +1289,9 @@ s32 SlippiNetplayClient::CalcTimeOffsetUs()
 		int end = bufSize - offset;
 
 		int sum = 0;
-		for (int i = offset; i < end; i++)
+		for (int j = offset; j < end; j++)
 		{
-			sum += buf[i];
+			sum += buf[j];
 		}
 
 		int count = end - offset;
@@ -1260,7 +1305,7 @@ s32 SlippiNetplayClient::CalcTimeOffsetUs()
 	}
 
 	s32 maxOffset = offsets.front();
-	for (int i = 1; i < offsets.size(); i++)
+	for (u32 i = 1; i < offsets.size(); i++)
 	{
 		if (offsets[i] > maxOffset)
 			maxOffset = offsets[i];
@@ -1268,4 +1313,161 @@ s32 SlippiNetplayClient::CalcTimeOffsetUs()
 
 	// INFO_LOG(SLIPPI_ONLINE, "Time offsets, [0]: %d, [1]: %d, [2]: %d", offsets[0], offsets[1], offsets[2]);
 	return maxOffset;
+}
+
+// C++ seriously doesn't have a variance built-in. So we have to make our own
+float SlippiNetplayClient::ComputeSampleVariance(float mean, std::vector<u64>& numbers)
+{
+	if (numbers.size() <= 1)
+	  return 0;
+
+	float total = 0;
+	for(u64 i : numbers) {
+		total += pow(((float)i - mean), (float)2.0);
+	}
+
+	return total / (numbers.size() - 1);
+}
+
+void SlippiNetplayClient::GetNetworkingStats(SlippiGameReporter::GameReport *report)
+{
+	for (int i = 0; i < m_remotePlayerCount; i++)
+	{
+		// Don't try to write to a player slot that doesn't exist
+		if (i >= report->players.size()){
+			return;
+		}
+
+		std::vector<u64> differences;
+		{
+			std::lock_guard<std::mutex> lkq(packetTimestampsMutex);
+			if (packetTimestamps[i].empty()){
+				continue;
+			}
+			differences.resize(packetTimestamps[i].size());
+			std::adjacent_difference(packetTimestamps[i].begin(), packetTimestamps[i].end(), differences.begin());
+			// For absolutely no reason that I can gather, adjacent_difference puts an exta element at the front of the result vector. Remove it
+			differences.erase(differences.begin());
+		}
+		float jitterSum = 0;
+		for (u64 j : differences) {
+			jitterSum += j;
+		}
+
+		// Account for the indexing missing ourselves
+		int playerIndex = i;
+		if (playerIdx <= i) {
+			playerIndex++;
+		}
+
+		if (differences.size() > 1) {
+			report->players[playerIndex].jitterMean = jitterSum / (float)differences.size();
+			report->players[playerIndex].jitterMax = (float)*std::max_element(differences.begin(), differences.end());
+			report->players[playerIndex].jitterVariance = ComputeSampleVariance(report->players[playerIndex].jitterMean, differences);
+		}
+		else {
+			report->players[playerIndex].jitterMean = 0;
+			report->players[playerIndex].jitterMax = 0;
+			report->players[playerIndex].jitterVariance = 0;
+			report->players[playerIndex].pingMean = 0;
+			continue;
+		}
+
+		{
+			std::lock_guard<std::mutex> lkq(pingsMutex);
+			float pingSum = 0;
+			for (u64 j : pings[i]) {
+				pingSum += j;
+			}
+			if (pings[i].size() > 0) {
+				report->players[playerIndex].pingMean = pingSum / (float)pings[i].size();
+			}
+			else {
+				report->players[playerIndex].pingMean = 0;
+			}
+
+		}
+	}
+}
+
+// There's 9 regions. Dead zone (center) and 8 cardinals
+int SlippiNetplayClient::GetJoystickRegion(u8 x, u8 y)
+{
+  if (x >= 163 && y >= 163) {
+    return 1;
+  } else if (x >= 163 && y <= 91) {
+    return 2;
+  } else if (x <= 91 && y <= 91) {
+    return 3;
+  } else if (x <= 91 && y >= 163) {
+    return 4;
+  } else if (y >= 163) {
+    return 5;
+  } else if (x >= 163) {
+    return 6;
+  } else if (y <= 91) {
+    return 7;
+  } else if (x <= 91) {
+    return 8;
+  }
+  return 0;
+}
+
+void SlippiNetplayClient::GetControllerStats(SlippiGameReporter::GameReport *report)
+{
+	for (int i = 0; i < m_remotePlayerCount+1; i++)
+	{
+		// Don't try to write to a player slot that doesn't exist
+		if (i >= report->players.size()){
+			return;
+		}
+
+		{
+			std::lock_guard<std::mutex> lk(analogStickInputsMutex);
+			std::set<std::tuple<u8, u8>> uniqueStickInputs;
+			for (std::tuple<u8, u8> input : mainStickInputs[i])
+			{
+				uniqueStickInputs.insert(input);
+			}
+			for (std::tuple<u8, u8> input : cStickInputs[i])
+			{
+				uniqueStickInputs.insert(input);
+			}
+
+			// Calculate main stick burst IPM
+			int burstInput = 0;
+			for (int j = 0; j < mainStickInputs[i].size(); j++)
+			{
+				int inputsSoFar = 0;
+				int lastRegion = 0;
+				for (int k = 0; k < 60; k++)
+				{
+					if (j+k < mainStickInputs[i].size())
+					{
+						std::tuple<u8, u8> input = mainStickInputs[i][j+k];
+						int region = GetJoystickRegion(std::get<0>(input), std::get<1>(input));
+						if (region != lastRegion)
+						{
+							inputsSoFar++;
+						}
+						lastRegion = region;
+					}
+				}
+				burstInput = std::max(burstInput, inputsSoFar);
+			}
+
+			// Account for the indexing missing ourselves
+			int playerIndex = i;
+			if (playerIdx <= i) {
+				playerIndex++;
+			}
+			// The last slot we know is ours
+			if (i == m_remotePlayerCount) {
+				playerIndex = playerIdx;
+			}
+
+			report->players[playerIndex].analogMaxBurstInput = burstInput;
+			report->players[playerIndex].analogStickInputCount = (u32)uniqueStickInputs.size();
+		}
+	}
 }

@@ -2905,8 +2905,8 @@ void CEXISlippi::prepareNewSeed()
 void CEXISlippi::handleReportGame(u8 *payload)
 {
 #ifndef LOCAL_TESTING
-	SlippiGameReporter::GameReport r;
-	r.durationFrames = Common::swap32(&payload[0]);
+	SlippiGameReporter::GameReport report;
+	report.durationFrames = Common::swap32(&payload[0]);
 
 	// ERROR_LOG(SLIPPI_ONLINE, "Frames: %d", r.durationFrames);
 
@@ -2921,10 +2921,15 @@ void CEXISlippi::handleReportGame(u8 *payload)
 
 		// ERROR_LOG(SLIPPI_ONLINE, "Stocks: %d, DamageDone: %f", p.stocksRemaining, p.damageDone);
 
-		r.players.push_back(p);
+		report.players.push_back(p);
+	}
+	// Add network quality information to game report
+	if (slippi_netplay){
+		slippi_netplay->GetNetworkingStats(&report);
+		slippi_netplay->GetControllerStats(&report);
 	}
 
-	gameReporter->StartReport(r);
+	gameReporter->StartReport(report);
 #endif
 }
 

@@ -11,6 +11,7 @@
 #include "Common/TraversalClient.h"
 #include "Core/NetPlayProto.h"
 #include "Core/Slippi/SlippiPad.h"
+#include "Core/Slippi/SlippiGameReporter.h"
 #include "InputCommon/GCPadStatus.h"
 #include <SFML/Network/Packet.hpp>
 #include <array>
@@ -18,8 +19,10 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <set>
 #include <string>
 #include <thread>
+#include <tuple>
 #include <unordered_map>
 #include <vector>
 #ifdef _WIN32
@@ -143,6 +146,8 @@ class SlippiNetplayClient
 	SlippiPlayerSelections GetSlippiRemoteChatMessage(bool isChatEnabled);
 	u8 GetSlippiRemoteSentChatMessage(bool isChatEnabled);
 	s32 CalcTimeOffsetUs();
+	void GetNetworkingStats(SlippiGameReporter::GameReport *outReport);
+	void GetControllerStats(SlippiGameReporter::GameReport *outReport);
 
 	void WriteChatMessageToPacket(sf::Packet &packet, int messageId, u8 playerIdx);
 	std::unique_ptr<SlippiPlayerSelections> ReadChatMessageFromPacket(sf::Packet &packet);
@@ -189,6 +194,8 @@ class SlippiNetplayClient
 		std::vector<s32> buf;
 	};
 
+	typedef std::vector<std::tuple<u8, u8>> InputPairs;
+
 	bool isConnectionSelected = false;
 	bool isDecider = false;
 	bool hasGameStarted = false;
@@ -201,6 +208,17 @@ class SlippiNetplayClient
 	    remotePadQueue[SLIPPI_REMOTE_PLAYER_MAX]; // most recent inputs at start of deque
 
 	u64 pingUs[SLIPPI_REMOTE_PLAYER_MAX];
+	std::vector<u64> packetTimestamps[SLIPPI_REMOTE_PLAYER_MAX];
+	std::mutex packetTimestampsMutex;
+	std::vector<u64> pings[SLIPPI_REMOTE_PLAYER_MAX];
+	std::mutex pingsMutex;
+	// For these two vectors, the order goes:
+	//	0-N -> opponent's inputs, in port order.
+	//	N+1 -> our inputs
+	InputPairs mainStickInputs[SLIPPI_REMOTE_PLAYER_MAX+1];
+	InputPairs cStickInputs[SLIPPI_REMOTE_PLAYER_MAX+1];
+	std::mutex analogStickInputsMutex;
+
 	int32_t lastFrameAcked[SLIPPI_REMOTE_PLAYER_MAX];
 	FrameOffsetData frameOffsetData[SLIPPI_REMOTE_PLAYER_MAX];
 	FrameTiming lastFrameTiming[SLIPPI_REMOTE_PLAYER_MAX];
@@ -220,6 +238,8 @@ class SlippiNetplayClient
 	unsigned int OnData(sf::Packet &packet, ENetPeer *peer);
 	void Send(sf::Packet &packet);
 	void Disconnect();
+	float ComputeSampleVariance(float mean, std::vector<u64>& numbers);
+	int GetJoystickRegion(u8 x, u8 y);
 
 	bool m_is_connected = false;
 
