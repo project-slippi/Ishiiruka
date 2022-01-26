@@ -500,7 +500,9 @@ void Renderer::DrawDebugText()
 			"This indicates a potential hardware issue.\n"
 			"\n"
 			"Go to the Dolphin -> Controllers page, click 'Configure' next to your controller's port, the check what your pollrate is."
+			"\n"
 			"If it is considerably lower than 125 hz, keep trying different USB ports until it is around 125 hz."
+			"\n"
 			"For more help, please ask in the official Slippi Discord server.";
 	}
 	
