@@ -1636,8 +1636,10 @@ bool CEXISlippi::shouldSkipOnlineFrame(s32 frame)
 
 	stallFrameCount = 0;
 
-	// Return true if we are over 60% of a frame ahead of our opponent. Currently limiting how
-	// often this happens because I'm worried about jittery data causing a lot of unneccesary delays.
+	s32 frameTime = 16683;
+	s32 t1 = 10000;
+	s32 t2 = (2 * frameTime) + t1;
+
 	// Only skip once for a given frame because our time detection method doesn't take into consideration
 	// waiting for a frame. Also it's less jarring and it happens often enough that it will smoothly
 	// get to the right place
@@ -1647,15 +1649,19 @@ bool CEXISlippi::shouldSkipOnlineFrame(s32 frame)
 		auto offsetUs = slippi_netplay->CalcTimeOffsetUs();
 		INFO_LOG(SLIPPI_ONLINE, "[Frame %d] Offset for skip is: %d us", frame, offsetUs);
 
+		// At the start of the game, let's make sure to sync perfectly, but after that let the slow instance
+		// try to do more work before we stall
+	
 		// The decision to skip a frame only happens when we are already pretty far off ahead. The hope is
-		// that this won't really be used much because the frame advance of the slow client will pick up the
-		// difference most of the time. But at some point it's probably better to slow down...
-		if (offsetUs > 26000)
+		// that this won't really be used much because the frame advance of the slow client along with
+		// dynamic emulation speed will pick up the difference most of the time. But at some point it's
+		// probably better to slow down...
+		if (offsetUs > (frame <= 120 ? t1 : t2))
 		{
 			isCurrentlySkipping = true;
 
 			int maxSkipFrames = frame <= 120 ? 5 : 1; // On early frames, support skipping more frames
-			framesToSkip = ((offsetUs - 10000) / 16683) + 1;
+			framesToSkip = ((offsetUs - t1) / frameTime) + 1;
 			framesToSkip = framesToSkip > maxSkipFrames ? maxSkipFrames : framesToSkip; // Only skip 5 frames max
 
 			WARN_LOG(SLIPPI_ONLINE, "Halting on frame %d due to time sync. Offset: %d us. Frames: %d...", frame,
@@ -1688,28 +1694,46 @@ bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame)
 		auto offsetUs = slippi_netplay->CalcTimeOffsetUs();
 
 		// Dynamically adjust emulation speed in order to fine-tune time sync to reduce one sided rollbacks even more
-		auto maxSpeedDeviation = 0.005f;
-		auto deviation = (offsetUs / 33366.0f) * maxSpeedDeviation;
-		if (deviation > maxSpeedDeviation)
-			deviation = maxSpeedDeviation;
-		else if (deviation < -maxSpeedDeviation)
-			deviation = -maxSpeedDeviation;
+		// Modify emulation speed up to a max of 1% at 3 frames offset or more. Don't slow down the front instance as
+		// much because we want to prioritize performance for the fast PC
+		float deviation = 0;
+		float maxSlowDownAmount = 0.005f;
+		float maxSpeedUpAmount = 0.01f;
+		int frameWindow = 3;
+		if (offsetUs > -250 && offsetUs < 8000)
+		{
+			// Do nothing, leave deviation at 0 for 100% emulation speed when ahead by 8 ms or less
+		}
+		else if (offsetUs < 0)
+		{
+			// Here we are behind, so let's speed up our instance
+			float frameWindowMultiplier = std::min(-offsetUs / (frameWindow * 16683.0f), 1.0f);
+			deviation = frameWindowMultiplier * maxSpeedUpAmount;
+		}
+		else
+		{
+			// Here we are ahead, so let's slow down our instance
+			float frameWindowMultiplier = std::min(offsetUs / (frameWindow * 16683.0f), 1.0f);
+			deviation = frameWindowMultiplier * -maxSlowDownAmount;
+		}
 
-		// If we are behind (negative offset) we want to go above 100% run speed, so we need to subtract the deviation
-		// value
-		auto dynamicEmulationSpeed = 1.0f - deviation;
+		auto dynamicEmulationSpeed = 1.0f + deviation;
 		SConfig::GetInstance().m_EmulationSpeed = dynamicEmulationSpeed;
 		// SConfig::GetInstance().m_EmulationSpeed = 0.97f; // used for testing
 
 		INFO_LOG(SLIPPI_ONLINE, "[Frame %d] Offset for advance is: %d us. New speed: %.2f%%", frame, offsetUs,
 		         dynamicEmulationSpeed * 100.0f);
 
+		s32 frameTime = 16683;
+		s32 t1 = 10000;
+		s32 t2 = frameTime + t1;
+
 		// Count the number of times we're below a threshold we should easily be able to clear. This is checked twice
 		// per second.
-		fallBehindCounter += offsetUs < -10000 ? 1 : 0;
-		fallFarBehindCounter += offsetUs < -25000 ? 1 : 0;
+		fallBehindCounter += offsetUs < -t1 ? 1 : 0;
+		fallFarBehindCounter += offsetUs < -t2 ? 1 : 0;
 
-		bool isSlow = (offsetUs < -10000 && fallBehindCounter > 50) || (offsetUs < -25000 && fallFarBehindCounter > 15);
+		bool isSlow = (offsetUs < -t1 && fallBehindCounter > 50) || (offsetUs < -t2 && fallFarBehindCounter > 15);
 		if (isSlow && lastSearch.mode != SlippiMatchmaking::OnlinePlayMode::TEAMS)
 		{
 			// We don't show this message for teams because it seems to false positive a lot there, maybe because the min
@@ -1719,13 +1743,13 @@ bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame)
 			                     OSD::Color::RED);
 		}
 
-		if (offsetUs < -10000 && !isCurrentlyAdvancing)
+		if (offsetUs < -t2 && !isCurrentlyAdvancing)
 		{
 			isCurrentlyAdvancing = true;
 
 			// On early frames, don't advance any frames. Let the stalling logic handle the initial sync
-			int maxAdvFrames = frame > 120 ? 5 : 0;
-			framesToAdvance = ((-offsetUs - 10000) / 16683) + 1;
+			int maxAdvFrames = frame > 120 ? 3 : 0;
+			framesToAdvance = ((-offsetUs - t1) / frameTime) + 1;
 			framesToAdvance = framesToAdvance > maxAdvFrames ? maxAdvFrames : framesToAdvance;
 
 			WARN_LOG(SLIPPI_ONLINE, "Advancing on frame %d due to time sync. Offset: %d us. Frames: %d...", frame,
