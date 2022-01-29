@@ -1810,6 +1810,7 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 	for (int i = 0; i < remotePlayerCount; i++)
 	{
 		results[i] = slippi_netplay->GetSlippiRemotePad(i, ROLLBACK_MAX_FRAMES);
+		//results[i] = slippi_netplay->GetFakePadOutput(frame);
 
 		// determine offset from which to copy data
 		offset[i] = (results[i]->latestFrame - frame) * SLIPPI_PAD_FULL_SIZE;
