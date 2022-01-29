@@ -1143,6 +1143,36 @@ u8 SlippiNetplayClient::GetSlippiRemoteSentChatMessage(bool isChatEnabled)
 	return copiedMessageId;
 }
 
+std::unique_ptr<SlippiRemotePadOutput> SlippiNetplayClient::GetFakePadOutput(int frame) {
+	// Used for testing purposes, will ignore the opponent's actual inputs and provide fake
+	// ones to trigger rollback scenarios
+	std::unique_ptr<SlippiRemotePadOutput> padOutput = std::make_unique<SlippiRemotePadOutput>();
+
+	// Triggers rollback where the first few inputs were correctly predicted
+	if (frame % 60 < 5)
+	{
+		// Return old inputs for a bit
+		padOutput->latestFrame = frame - (frame % 60);
+		padOutput->data.insert(padOutput->data.begin(), SLIPPI_PAD_FULL_SIZE, 0);
+	}
+	else if (frame % 60 == 5)
+	{
+		padOutput->latestFrame = frame;
+		// Add 5 frames of 0'd inputs
+		padOutput->data.insert(padOutput->data.begin(), 5*SLIPPI_PAD_FULL_SIZE, 0);
+
+		// Press A button for 2 inputs prior to this frame causing a rollback
+		padOutput->data[2*SLIPPI_PAD_FULL_SIZE] = 1;
+	}
+	else
+	{
+		padOutput->latestFrame = frame;
+		padOutput->data.insert(padOutput->data.begin(), SLIPPI_PAD_FULL_SIZE, 0);
+	}
+
+	return std::move(padOutput);
+}
+
 std::unique_ptr<SlippiRemotePadOutput> SlippiNetplayClient::GetSlippiRemotePad(int index, int maxFrameCount)
 {
 	std::lock_guard<std::mutex> lk(pad_mutex); // TODO: Is this the correct lock?
