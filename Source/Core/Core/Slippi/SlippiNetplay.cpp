@@ -1143,7 +1143,7 @@ u8 SlippiNetplayClient::GetSlippiRemoteSentChatMessage(bool isChatEnabled)
 	return copiedMessageId;
 }
 
-std::unique_ptr<SlippiRemotePadOutput> SlippiNetplayClient::GetSlippiRemotePad(int32_t curFrame, int index)
+std::unique_ptr<SlippiRemotePadOutput> SlippiNetplayClient::GetSlippiRemotePad(int index, int maxFrameCount)
 {
 	std::lock_guard<std::mutex> lk(pad_mutex); // TODO: Is this the correct lock?
 
@@ -1161,21 +1161,37 @@ std::unique_ptr<SlippiRemotePadOutput> SlippiNetplayClient::GetSlippiRemotePad(i
 		return std::move(padOutput);
 	}
 
+	int inputCount = 0;
+
 	padOutput->latestFrame = 0;
-	// Copy the entire remaining remote buffer
-	for (auto it = remotePadQueue[index].begin(); it != remotePadQueue[index].end(); ++it)
+
+	// Copy inputs from the remote pad queue to the output. We iterate backwards because
+	// we want to get the oldest frames possible (will have been cleared to contain the last
+	// finalized frame at the back). I think it's very unlikely but I think before we
+	// iterated from the front and it's possible the 7 frame limit left out an input the
+	// game actually needed.
+	for (auto it = remotePadQueue[index].rbegin(); it != remotePadQueue[index].rend(); ++it)
 	{
 		if ((*it)->frame > padOutput->latestFrame)
 			padOutput->latestFrame = (*it)->frame;
 
+		//NOTICE_LOG(SLIPPI_ONLINE, "[%d] (Remote) P%d %08X %08X %08X", (*it)->frame,
+		//						index >= playerIdx ? index + 1 : index, Common::swap32(&(*it)->padBuf[0]),
+		//						Common::swap32(&(*it)->padBuf[4]), Common::swap32(&(*it)->padBuf[8]));
+
 		auto padIt = std::begin((*it)->padBuf);
-		padOutput->data.insert(padOutput->data.end(), padIt, padIt + SLIPPI_PAD_FULL_SIZE);
+		padOutput->data.insert(padOutput->data.begin(), padIt, padIt + SLIPPI_PAD_FULL_SIZE);
+
+		// Limit max amount of inputs to send
+		inputCount++;
+		if (inputCount >= maxFrameCount)
+			break;
 	}
 
 	return std::move(padOutput);
 }
 
-void SlippiNetplayClient::DropOldRemoteInputs(int32_t minFrameRead)
+void SlippiNetplayClient::DropOldRemoteInputs(int32_t finalizedFrame)
 {
 	std::lock_guard<std::mutex> lk(pad_mutex);
 
@@ -1185,7 +1201,7 @@ void SlippiNetplayClient::DropOldRemoteInputs(int32_t minFrameRead)
 	for (int i = 0; i < m_remotePlayerCount; i++)
 	{
 		// INFO_LOG(SLIPPI_ONLINE, "remotePadQueue[%d] size: %d", i, remotePadQueue[i].size());
-		while (remotePadQueue[i].size() > 1 && remotePadQueue[i].back()->frame < minFrameRead)
+		while (remotePadQueue[i].size() > 1 && remotePadQueue[i].back()->frame < finalizedFrame)
 		{
 			// INFO_LOG(SLIPPI_ONLINE, "Popping inputs for frame %d from back of player %d queue",
 			//         remotePadQueue[i].back()->frame, i);
