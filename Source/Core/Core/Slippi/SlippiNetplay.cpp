@@ -1245,20 +1245,14 @@ SlippiMatchInfo *SlippiNetplayClient::GetMatchInfo()
 	return &matchInfo;
 }
 
-int32_t SlippiNetplayClient::GetSlippiLatestRemoteFrame()
+int32_t SlippiNetplayClient::GetSlippiLatestRemoteFrame(int maxFrameCount)
 {
-	std::lock_guard<std::mutex> lk(pad_mutex); // TODO: Is this the correct lock?
-
 	// Return the lowest frame among remote queues
 	int lowestFrame = 0;
 	for (int i = 0; i < m_remotePlayerCount; i++)
 	{
-		if (remotePadQueue[i].empty())
-		{
-			return 0;
-		}
-
-		int f = remotePadQueue[i].front()->frame;
+		auto rp = GetSlippiRemotePad(i, maxFrameCount);
+		int f = rp->latestFrame;
 		if (f < lowestFrame || lowestFrame == 0)
 		{
 			lowestFrame = f;
