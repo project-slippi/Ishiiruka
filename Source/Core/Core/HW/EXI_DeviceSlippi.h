@@ -182,12 +182,11 @@ class CEXISlippi : public IEXIDevice
 	void handleSendInputs(u8 *payload);
 	void handleCaptureSavestate(u8 *payload);
 	void handleLoadSavestate(u8 *payload);
-	void handleNameEntryAutoComplete(u8 *payload);
 	void handleNameEntryLoad(u8 *payload);
 	void startFindMatch(u8 *payload);
 	void prepareOnlineMatchState();
 	void setMatchSelections(u8 *payload);
-	bool shouldSkipOnlineFrame(s32 frame);
+	bool shouldSkipOnlineFrame(s32 frame, s32 finalizedFrame);
 	bool shouldAdvanceOnlineFrame(s32 frame);
 	void handleLogInRequest();
 	void handleLogOutRequest();

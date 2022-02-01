@@ -1550,7 +1550,8 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 {
 	m_read_queue.clear();
 
-	int32_t frame = Common::swap32(&payload[0]);
+	s32 frame = Common::swap32(&payload[0]);
+	s32 finalizedFrame = Common::swap32(&payload[4]);
 
 	if (frame == 1)
 	{
@@ -1589,7 +1590,10 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 		return;
 	}
 
-	if (shouldSkipOnlineFrame(frame))
+	// Drop inputs that we no longer need (inputs older than the finalized frame passed in)
+	slippi_netplay->DropOldRemoteInputs(finalizedFrame);
+
+	if (shouldSkipOnlineFrame(frame, finalizedFrame))
 	{
 		// Send inputs that have not yet been acked
 		slippi_netplay->SendSlippiPad(nullptr);
@@ -1601,7 +1605,7 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 	prepareOpponentInputs(payload);
 }
 
-bool CEXISlippi::shouldSkipOnlineFrame(s32 frame)
+bool CEXISlippi::shouldSkipOnlineFrame(s32 frame, s32 finalizedFrame)
 {
 	auto status = slippi_netplay->GetSlippiConnectStatus();
 	bool connectionFailed = status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_FAILED;
@@ -1619,8 +1623,14 @@ bool CEXISlippi::shouldSkipOnlineFrame(s32 frame)
 
 	// Return true if we are too far ahead for rollback. ROLLBACK_MAX_FRAMES is the number of frames
 	// we can receive for the opponent at one time and is our "look-ahead" limit
-	int32_t latestRemoteFrame = slippi_netplay->GetSlippiLatestRemoteFrame();
-	if (frame - latestRemoteFrame >= ROLLBACK_MAX_FRAMES)
+	// Example: finalizedFrame = 100 means the last savestate we need is 101. We can then store
+	// states 101 to 107 before running out of savestates. So 107 - 100 = 7. We need to make sure
+	// we have enough inputs to finalize to not overflow the available states, so if our latest frame
+	// is 101, we can't let frame 109 be created. 101 - 100 >= 109 - 100 - 7 : 1 >= 2 (false).
+	// It has to work this way because we only have room to move our states forward by one for frame 108
+	s32 latestRemoteFrame = slippi_netplay->GetSlippiLatestRemoteFrame(ROLLBACK_MAX_FRAMES);
+	auto hasEnoughNewInputs = latestRemoteFrame - finalizedFrame >= (frame - finalizedFrame - ROLLBACK_MAX_FRAMES);
+	if (!hasEnoughNewInputs)
 	{
 		stallFrameCount++;
 		if (stallFrameCount > 60 * 7)
@@ -1629,8 +1639,10 @@ bool CEXISlippi::shouldSkipOnlineFrame(s32 frame)
 			isConnectionStalled = true;
 		}
 
-		WARN_LOG(SLIPPI_ONLINE, "Halting for one frame due to rollback limit (frame: %d | latest: %d)...", frame,
-		         latestRemoteFrame);
+		WARN_LOG(SLIPPI_ONLINE,
+		         "Halting for one frame due to rollback limit (frame: %d | latest: %d | finalized: %d)...", frame,
+		         latestRemoteFrame, finalizedFrame);
+
 		return true;
 	}
 
@@ -1719,7 +1731,7 @@ bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame)
 
 		auto dynamicEmulationSpeed = 1.0f + deviation;
 		SConfig::GetInstance().m_EmulationSpeed = dynamicEmulationSpeed;
-		// SConfig::GetInstance().m_EmulationSpeed = 0.97f; // used for testing
+		//SConfig::GetInstance().m_EmulationSpeed = 0.97f; // used for testing
 
 		INFO_LOG(SLIPPI_ONLINE, "[Frame %d] Offset for advance is: %d us. New speed: %.2f%%", frame, offsetUs,
 		         dynamicEmulationSpeed * 100.0f);
@@ -1802,10 +1814,6 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 	m_read_queue.clear();
 
 	s32 frame = Common::swap32(&payload[0]);
-	s32 finalizedFrame = Common::swap32(&payload[4]);
-
-	// Drop inputs that we no longer need (inputs older than the finalized frame passed in)
-	slippi_netplay->DropOldRemoteInputs(finalizedFrame);
 
 	u8 frameResult = 1; // Indicates to continue frame
 
