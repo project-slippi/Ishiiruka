@@ -108,14 +108,26 @@ private:
 
 		~ElementPtr()
 		{
+			// Converted this function from being a recursive function to letting the first deleting node
+			// delete them all. This destructor would often cause a stack overflow error when closing
+			// dolphin
+			if (isDeleting)
+				return;
+
 			ElementPtr* next_ptr = next.load();
 
-			if (next_ptr)
+			while (next_ptr)
+			{
+				next_ptr->isDeleting = true;
+				ElementPtr* temp = next_ptr->next.load();
 				delete next_ptr;
+				next_ptr = temp;
+			}
 		}
 
 		T current;
 		std::atomic<ElementPtr*> next;
+		bool isDeleting = false;
 	};
 
 	ElementPtr* m_write_ptr;
