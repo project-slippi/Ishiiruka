@@ -301,9 +301,8 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 				break;
 			}
 
-			// In practice, the 7 frames is the maximum. But 14 is just a basic sanity check to make sure
-			//	it doesn't go haywire and blow up to INT_MAX or something.
-			if (inputsToCopy > 14) {
+			// Not sure what the max is here. If we never ack frames it could get big...
+			if (inputsToCopy > 128) {
 				ERROR_LOG(SLIPPI_ONLINE,
 				          "Netplay packet contained too many frames: %d",
 				          inputsToCopy);
