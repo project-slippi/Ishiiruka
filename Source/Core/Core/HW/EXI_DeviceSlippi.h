@@ -178,7 +178,7 @@ class CEXISlippi : public IEXIDevice
 	bool isDisconnected();
 	bool isSlippiChatEnabled();
 	void handleOnlineInputs(u8 *payload);
-	void prepareOpponentInputs(u8 *payload);
+	void prepareOpponentInputs(s32 frame, bool shouldSkip);
 	void handleSendInputs(u8 *payload);
 	void handleCaptureSavestate(u8 *payload);
 	void handleLoadSavestate(u8 *payload);
