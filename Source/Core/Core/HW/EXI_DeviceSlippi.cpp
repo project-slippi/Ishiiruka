@@ -1593,16 +1593,19 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 	// Drop inputs that we no longer need (inputs older than the finalized frame passed in)
 	slippi_netplay->DropOldRemoteInputs(finalizedFrame);
 
-	if (shouldSkipOnlineFrame(frame, finalizedFrame))
+	bool shouldSkip = shouldSkipOnlineFrame(frame, finalizedFrame);
+	if (shouldSkip)
 	{
 		// Send inputs that have not yet been acked
 		slippi_netplay->SendSlippiPad(nullptr);
-		m_read_queue.push_back(2);
-		return;
+	}
+	else
+	{
+		// Send the input for this frame along with everything that has yet to be acked
+		handleSendInputs(payload);
 	}
 
-	handleSendInputs(payload);
-	prepareOpponentInputs(payload);
+	prepareOpponentInputs(frame, shouldSkip);
 }
 
 bool CEXISlippi::shouldSkipOnlineFrame(s32 frame, s32 finalizedFrame)
@@ -1809,16 +1812,21 @@ void CEXISlippi::handleSendInputs(u8 *payload)
 	slippi_netplay->SendSlippiPad(std::move(pad));
 }
 
-void CEXISlippi::prepareOpponentInputs(u8 *payload)
+void CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)
 {
 	m_read_queue.clear();
-
-	s32 frame = Common::swap32(&payload[0]);
 
 	u8 frameResult = 1; // Indicates to continue frame
 
 	auto state = slippi_netplay->GetSlippiConnectStatus();
-	if (state != SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED || isConnectionStalled)
+	if (shouldSkip)
+	{
+		// Event though we are skipping an input, we still want to prepare the opponent inputs because
+		// in the case where we get a stall on an advance frame, we need to keep the RXB inputs populated
+		// for when the frame inputs are requested on a rollback
+		frameResult = 2;
+	}
+	else if (state != SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED || isConnectionStalled)
 	{
 		frameResult = 3; // Indicates we have disconnected
 	}
@@ -1827,7 +1835,7 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 		frameResult = 4;
 	}
 
-	m_read_queue.push_back(frameResult); // Indicate a continue frame
+	m_read_queue.push_back(frameResult); // Write out the control message value
 
 	u8 remotePlayerCount = matchmaking->RemotePlayerCount();
 	m_read_queue.push_back(remotePlayerCount); // Indicate the number of remote players
