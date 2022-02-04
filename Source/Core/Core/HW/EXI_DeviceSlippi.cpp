@@ -1700,6 +1700,17 @@ bool CEXISlippi::shouldSkipOnlineFrame(s32 frame, s32 finalizedFrame)
 
 bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame)
 {
+	// Logic below is used to test frame advance by forcing it more often
+	//SConfig::GetInstance().m_EmulationSpeed = 0.5f;
+	// if (frame > 120 && frame % 10 < 3)
+	//{
+	//	Common::SleepCurrentThread(1); // Sleep to try to let inputs come in to make late rollbacks more likely
+	//	return true;
+	//}
+
+	// return false;
+	//return frame % 2 == 0;
+
 	// Return true if we are over 60% of a frame behind our opponent. We limit how often this happens
 	// to get a reliable average to act on. We will allow advancing up to 5 frames (spread out) over
 	// the 30 frame period. This makes the game feel relatively smooth still
@@ -1861,15 +1872,18 @@ void CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)
 		if (latestFrame > frame)
 			latestFrame = frame;
 		latestFrameRead[i] = latestFrame;
-		appendWordToBuffer(&m_read_queue, *(u32 *)&latestFrame);
+		appendWordToBuffer(&m_read_queue, static_cast<u32>(latestFrame));
 		// INFO_LOG(SLIPPI_ONLINE, "Sending frame num %d for pIdx %d (offset: %d)", latestFrame, i, offset[i]);
 	}
 	// Send the current frame for any unused player slots.
 	for (int i = remotePlayerCount; i < SLIPPI_REMOTE_PLAYER_MAX; i++)
 	{
 		latestFrameRead[i] = frame;
-		appendWordToBuffer(&m_read_queue, *(u32 *)&frame);
+		appendWordToBuffer(&m_read_queue, static_cast<u32>(frame));
 	}
+
+	s32 *val = std::min_element(std::begin(latestFrameRead), std::end(latestFrameRead));
+	appendWordToBuffer(&m_read_queue, static_cast<u32>(*val));
 
 	// copy pad data over
 	for (int i = 0; i < SLIPPI_REMOTE_PLAYER_MAX; i++)
