@@ -1248,13 +1248,15 @@ int32_t SlippiNetplayClient::GetSlippiLatestRemoteFrame(int maxFrameCount)
 {
 	// Return the lowest frame among remote queues
 	int lowestFrame = 0;
+	bool isFrameSet = false;
 	for (int i = 0; i < m_remotePlayerCount; i++)
 	{
 		auto rp = GetSlippiRemotePad(i, maxFrameCount);
 		int f = rp->latestFrame;
-		if (f < lowestFrame || lowestFrame == 0)
+		if (f < lowestFrame || !isFrameSet)
 		{
 			lowestFrame = f;
+			isFrameSet = true;
 		}
 	}
 
