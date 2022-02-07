@@ -136,10 +136,11 @@ class SlippiNetplayClient
 	void SendConnectionSelected();
 	void SendSlippiPad(std::unique_ptr<SlippiPad> pad);
 	void SetMatchSelections(SlippiPlayerSelections &s);
-	std::unique_ptr<SlippiRemotePadOutput> GetSlippiRemotePad(int32_t curFrame, int index);
-	void DropOldRemoteInputs(int32_t minFrameRead);
+	std::unique_ptr<SlippiRemotePadOutput> GetFakePadOutput(int frame);
+	std::unique_ptr<SlippiRemotePadOutput> GetSlippiRemotePad(int index, int maxFrameCount);
+	void DropOldRemoteInputs(int32_t finalizedFrame);
 	SlippiMatchInfo *GetMatchInfo();
-	int32_t GetSlippiLatestRemoteFrame();
+	int32_t GetSlippiLatestRemoteFrame(int maxFrameCount);
 	SlippiPlayerSelections GetSlippiRemoteChatMessage(bool isChatEnabled);
 	u8 GetSlippiRemoteSentChatMessage(bool isChatEnabled);
 	s32 CalcTimeOffsetUs();
