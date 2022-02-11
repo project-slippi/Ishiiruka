@@ -357,7 +357,10 @@ void SlippiMatchmaking::startMatchmaking()
 	// Send message to server to create ticket
 	json request;
 	request["type"] = MmMessageType::CREATE_TICKET;
-	request["user"] = {{"uid", userInfo.uid}, {"playKey", userInfo.playKey}};
+	request["user"] = {{"uid", userInfo.uid},
+	                   {"playKey", userInfo.playKey},
+	                   {"connectCode", userInfo.connectCode},
+	                   {"displayName", userInfo.displayName}};
 	request["search"] = {{"mode", m_searchSettings.mode}, {"connectCode", connectCodeBuf}};
 	request["appVersion"] = scm_slippi_semver_str;
 	request["ipAddressLan"] = lanAddr;
