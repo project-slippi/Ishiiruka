@@ -458,8 +458,8 @@ set(SRCS_GTK
 	"src/gtk/treeentry_gtk.c"
 	"src/gtk/utilsgtk.cpp"
 	#"src/gtk/webview_webkit.cpp"
-    "src/gtk/webview_webkit2.cpp"
-    "src/gtk/webview_webkit2_extension.cpp"
+    #"src/gtk/webview_webkit2.cpp"
+    #"src/gtk/webview_webkit2_extension.cpp"
 	"src/gtk/win_gtk.cpp"
 	"src/gtk/window.cpp")
 
@@ -892,11 +892,6 @@ elseif(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
     include_directories(${GIO_INCLUDE_DIR})
     ADD_DEFINITIONS(${GIO_DEFINITIONS})
 
-    include(modules/FindWebkit2.cmake)
-    include_directories(${WEBKIT2_INCLUDE_DIR})
-
-    include(modules/FindJavaScriptCore.cmake)
-
     INCLUDE_DIRECTORIES(${GTK3_INCLUDE_DIRS})
     ADD_DEFINITIONS(${GTK3_CFLAGS_OTHER})
 
@@ -918,8 +913,6 @@ elseif(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
         ${GIO_LIBRARIES}
         ${LIBSOUP_LIBRARIES}
 		${Backtrace_LIBRARY}
-        ${WEBKIT2_LIBRARIES}
-        ${JAVASCRIPTCORE_LIBRARIES}
         ${FONTCONFIG_LIBRARIES}
 		${X11_X11_LIB}
 		${X11_Xxf86vm_LIB}
