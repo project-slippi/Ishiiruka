@@ -1,9 +1,12 @@
 #!/bin/bash -e
 # build-appimage.sh
 
-ZSYNC_STRING="gh-releases-zsync|project-slippi|Ishiiruka|latest|Slippi_Online-x86_64.AppImage.zsync"
+NETPLAY_ZSYNC_STRING="gh-releases-zsync|project-slippi|Ishiiruka|latest|Slippi_Online-x86_64.AppImage.zsync"
+PLAYBACK_ZSYNC_STRING="gh-releases-zsync|project-slippi|Ishiiruka-Playback|latest|Slippi_Playback-x86_64.AppImage.zsync"
 NETPLAY_APPIMAGE_STRING="Slippi_Online-x86_64.AppImage"
 PLAYBACK_APPIMAGE_STRING="Slippi_Playback-x86_64.AppImage"
+OUTPUT="${NETPLAY_APPIMAGE_STRING}"
+UPDATE_INFORMATION=""
 
 LINUXDEPLOY_PATH="https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous"
 LINUXDEPLOY_FILE="linuxdeploy-x86_64.AppImage"
@@ -59,6 +62,8 @@ cp -r Data/Sys ${APPDIR_BIN}
 if [ "$1" == "playback" ] # Playback
     then
         echo "Using Playback build config"
+		OUTPUT="${PLAYBACK_APPIMAGE_STRING}"
+		UPDATE_INFORMATION="${PLAYBACK_ZSYNC_STRING}" # this is just to make linuxdeploy-update-plugin not complain
 
 		rm -f ${PLAYBACK_APPIMAGE_STRING}
 
@@ -66,9 +71,6 @@ if [ "$1" == "playback" ] # Playback
 		echo "Copying Playback gecko codes"
 		rm -rf "${APPDIR_BIN}/Sys/GameSettings" # Delete netplay codes
 		cp -r "${PLAYBACK_CODES_PATH}/." "${APPDIR_BIN}/Sys/GameSettings/"
-
-		OUTPUT="${PLAYBACK_APPIMAGE_STRING}" \
-		./Tools/linuxdeploy-update-plugin --appdir=./AppDir/
 else
 		echo "Using Netplay build config"
 
@@ -78,7 +80,12 @@ else
 		# Package up the update tool within the AppImage
 		cp ./Tools/appimageupdatetool ./AppDir/usr/bin/
 
-		# Bake an AppImage with the update metadata
-		UPDATE_INFORMATION="${ZSYNC_STRING}" \
-			./Tools/linuxdeploy-update-plugin --appdir=./AppDir/
+		# Set update metadata
+		UPDATE_INFORMATION="${NETPLAY_ZSYNC_STRING}"
 fi
+
+# remomve libs that will cause conflicts
+rm ./AppDir/usr/lib/libgmodule*
+
+# Bake appimage
+UPDATE_INFORMATION="${UPDATE_INFORMATION}" OUTPUT="${OUTPUT}" ./Tools/linuxdeploy-update-plugin --appdir=./AppDir/

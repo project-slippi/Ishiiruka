@@ -21,6 +21,8 @@
 #include "Common/Thread.h"
 #include "Core/HW/Memmap.h"
 
+#include "VideoCommon/OnScreenDisplay.h"
+
 #include "Core/Core.h"
 #include "Core/CoreTiming.h"
 #include "Core/NetPlayClient.h"
@@ -1548,7 +1550,8 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 {
 	m_read_queue.clear();
 
-	int32_t frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
+	s32 frame = Common::swap32(&payload[0]);
+	s32 finalizedFrame = Common::swap32(&payload[4]);
 
 	if (frame == 1)
 	{
@@ -1565,6 +1568,16 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 		isConnectionStalled = false;
 		stallFrameCount = 0;
 
+		// Reset skip variables
+		framesToSkip = 0;
+		isCurrentlySkipping = false;
+
+		// Reset advance stuff
+		framesToAdvance = 0;
+		isCurrentlyAdvancing = false;
+		fallBehindCounter = 0;
+		fallFarBehindCounter = 0;
+
 		// Reset character selections as they are no longer needed
 		localSelections.Reset();
 		if (slippi_netplay)
@@ -1577,19 +1590,25 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 		return;
 	}
 
-	if (shouldSkipOnlineFrame(frame))
+	// Drop inputs that we no longer need (inputs older than the finalized frame passed in)
+	slippi_netplay->DropOldRemoteInputs(finalizedFrame);
+
+	bool shouldSkip = shouldSkipOnlineFrame(frame, finalizedFrame);
+	if (shouldSkip)
 	{
 		// Send inputs that have not yet been acked
 		slippi_netplay->SendSlippiPad(nullptr);
-		m_read_queue.push_back(2);
-		return;
+	}
+	else
+	{
+		// Send the input for this frame along with everything that has yet to be acked
+		handleSendInputs(payload);
 	}
 
-	handleSendInputs(payload);
-	prepareOpponentInputs(payload);
+	prepareOpponentInputs(frame, shouldSkip);
 }
 
-bool CEXISlippi::shouldSkipOnlineFrame(s32 frame)
+bool CEXISlippi::shouldSkipOnlineFrame(s32 frame, s32 finalizedFrame)
 {
 	auto status = slippi_netplay->GetSlippiConnectStatus();
 	bool connectionFailed = status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_FAILED;
@@ -1607,8 +1626,14 @@ bool CEXISlippi::shouldSkipOnlineFrame(s32 frame)
 
 	// Return true if we are too far ahead for rollback. ROLLBACK_MAX_FRAMES is the number of frames
 	// we can receive for the opponent at one time and is our "look-ahead" limit
-	int32_t latestRemoteFrame = slippi_netplay->GetSlippiLatestRemoteFrame();
-	if (frame - latestRemoteFrame >= ROLLBACK_MAX_FRAMES)
+	// Example: finalizedFrame = 100 means the last savestate we need is 101. We can then store
+	// states 101 to 107 before running out of savestates. So 107 - 100 = 7. We need to make sure
+	// we have enough inputs to finalize to not overflow the available states, so if our latest frame
+	// is 101, we can't let frame 109 be created. 101 - 100 >= 109 - 100 - 7 : 1 >= 2 (false).
+	// It has to work this way because we only have room to move our states forward by one for frame 108
+	s32 latestRemoteFrame = slippi_netplay->GetSlippiLatestRemoteFrame(ROLLBACK_MAX_FRAMES);
+	auto hasEnoughNewInputs = latestRemoteFrame - finalizedFrame >= (frame - finalizedFrame - ROLLBACK_MAX_FRAMES);
+	if (!hasEnoughNewInputs)
 	{
 		stallFrameCount++;
 		if (stallFrameCount > 60 * 7)
@@ -1617,15 +1642,19 @@ bool CEXISlippi::shouldSkipOnlineFrame(s32 frame)
 			isConnectionStalled = true;
 		}
 
-		WARN_LOG(SLIPPI_ONLINE, "Halting for one frame due to rollback limit (frame: %d | latest: %d)...", frame,
-		         latestRemoteFrame);
+		WARN_LOG(SLIPPI_ONLINE,
+		         "Halting for one frame due to rollback limit (frame: %d | latest: %d | finalized: %d)...", frame,
+		         latestRemoteFrame, finalizedFrame);
+
 		return true;
 	}
 
 	stallFrameCount = 0;
 
-	// Return true if we are over 60% of a frame ahead of our opponent. Currently limiting how
-	// often this happens because I'm worried about jittery data causing a lot of unneccesary delays.
+	s32 frameTime = 16683;
+	s32 t1 = 10000;
+	s32 t2 = (2 * frameTime) + t1;
+
 	// Only skip once for a given frame because our time detection method doesn't take into consideration
 	// waiting for a frame. Also it's less jarring and it happens often enough that it will smoothly
 	// get to the right place
@@ -1633,15 +1662,21 @@ bool CEXISlippi::shouldSkipOnlineFrame(s32 frame)
 	if (isTimeSyncFrame == 0 && !isCurrentlySkipping)
 	{
 		auto offsetUs = slippi_netplay->CalcTimeOffsetUs();
-		// INFO_LOG(SLIPPI_ONLINE, "[Frame %d] Offset is: %d us", frame, offsetUs);
+		INFO_LOG(SLIPPI_ONLINE, "[Frame %d] Offset for skip is: %d us", frame, offsetUs);
 
-		// TODO: figure out a better solution here for doubles?
-		if (offsetUs > 10000)
+		// At the start of the game, let's make sure to sync perfectly, but after that let the slow instance
+		// try to do more work before we stall
+	
+		// The decision to skip a frame only happens when we are already pretty far off ahead. The hope is
+		// that this won't really be used much because the frame advance of the slow client along with
+		// dynamic emulation speed will pick up the difference most of the time. But at some point it's
+		// probably better to slow down...
+		if (offsetUs > (frame <= 120 ? t1 : t2))
 		{
 			isCurrentlySkipping = true;
 
 			int maxSkipFrames = frame <= 120 ? 5 : 1; // On early frames, support skipping more frames
-			framesToSkip = ((offsetUs - 10000) / 16683) + 1;
+			framesToSkip = ((offsetUs - t1) / frameTime) + 1;
 			framesToSkip = framesToSkip > maxSkipFrames ? maxSkipFrames : framesToSkip; // Only skip 5 frames max
 
 			WARN_LOG(SLIPPI_ONLINE, "Halting on frame %d due to time sync. Offset: %d us. Frames: %d...", frame,
@@ -1663,13 +1698,114 @@ bool CEXISlippi::shouldSkipOnlineFrame(s32 frame)
 	return false;
 }
 
+bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame)
+{
+	// Logic below is used to test frame advance by forcing it more often
+	//SConfig::GetInstance().m_EmulationSpeed = 0.5f;
+	// if (frame > 120 && frame % 10 < 3)
+	//{
+	//	Common::SleepCurrentThread(1); // Sleep to try to let inputs come in to make late rollbacks more likely
+	//	return true;
+	//}
+
+	// return false;
+	//return frame % 2 == 0;
+
+	// Return true if we are over 60% of a frame behind our opponent. We limit how often this happens
+	// to get a reliable average to act on. We will allow advancing up to 5 frames (spread out) over
+	// the 30 frame period. This makes the game feel relatively smooth still
+	auto isTimeSyncFrame = (frame % SLIPPI_ONLINE_LOCKSTEP_INTERVAL) == 0; // Only time sync every 30 frames
+	if (isTimeSyncFrame)
+	{
+		auto offsetUs = slippi_netplay->CalcTimeOffsetUs();
+
+		// Dynamically adjust emulation speed in order to fine-tune time sync to reduce one sided rollbacks even more
+		// Modify emulation speed up to a max of 1% at 3 frames offset or more. Don't slow down the front instance as
+		// much because we want to prioritize performance for the fast PC
+		float deviation = 0;
+		float maxSlowDownAmount = 0.005f;
+		float maxSpeedUpAmount = 0.01f;
+		int frameWindow = 3;
+		if (offsetUs > -250 && offsetUs < 8000)
+		{
+			// Do nothing, leave deviation at 0 for 100% emulation speed when ahead by 8 ms or less
+		}
+		else if (offsetUs < 0)
+		{
+			// Here we are behind, so let's speed up our instance
+			float frameWindowMultiplier = std::min(-offsetUs / (frameWindow * 16683.0f), 1.0f);
+			deviation = frameWindowMultiplier * maxSpeedUpAmount;
+		}
+		else
+		{
+			// Here we are ahead, so let's slow down our instance
+			float frameWindowMultiplier = std::min(offsetUs / (frameWindow * 16683.0f), 1.0f);
+			deviation = frameWindowMultiplier * -maxSlowDownAmount;
+		}
+
+		auto dynamicEmulationSpeed = 1.0f + deviation;
+		SConfig::GetInstance().m_EmulationSpeed = dynamicEmulationSpeed;
+		//SConfig::GetInstance().m_EmulationSpeed = 0.97f; // used for testing
+
+		INFO_LOG(SLIPPI_ONLINE, "[Frame %d] Offset for advance is: %d us. New speed: %.2f%%", frame, offsetUs,
+		         dynamicEmulationSpeed * 100.0f);
+
+		s32 frameTime = 16683;
+		s32 t1 = 10000;
+		s32 t2 = frameTime + t1;
+
+		// Count the number of times we're below a threshold we should easily be able to clear. This is checked twice
+		// per second.
+		fallBehindCounter += offsetUs < -t1 ? 1 : 0;
+		fallFarBehindCounter += offsetUs < -t2 ? 1 : 0;
+
+		bool isSlow = (offsetUs < -t1 && fallBehindCounter > 50) || (offsetUs < -t2 && fallFarBehindCounter > 15);
+		if (isSlow && lastSearch.mode != SlippiMatchmaking::OnlinePlayMode::TEAMS)
+		{
+			// We don't show this message for teams because it seems to false positive a lot there, maybe because the min
+			// offset is always selected? Idk I feel like doubles has some perf issues I don't understand atm.
+			OSD::AddTypedMessage(OSD::MessageType::PerformanceWarning,
+			                     "Your computer is running slow and is impacting the performance of the match.", 10000,
+			                     OSD::Color::RED);
+		}
+
+		if (offsetUs < -t2 && !isCurrentlyAdvancing)
+		{
+			isCurrentlyAdvancing = true;
+
+			// On early frames, don't advance any frames. Let the stalling logic handle the initial sync
+			int maxAdvFrames = frame > 120 ? 3 : 0;
+			framesToAdvance = ((-offsetUs - t1) / frameTime) + 1;
+			framesToAdvance = framesToAdvance > maxAdvFrames ? maxAdvFrames : framesToAdvance;
+
+			WARN_LOG(SLIPPI_ONLINE, "Advancing on frame %d due to time sync. Offset: %d us. Frames: %d...", frame,
+			         offsetUs, framesToAdvance);
+		}
+	}
+
+	// Handle the skipped frames
+	if (framesToAdvance > 0)
+	{
+		// Only advance once every 5 frames in an attempt to make the speed up feel smoother
+		if (frame % 5 != 0) {
+			return false;
+		}
+
+		framesToAdvance = framesToAdvance - 1;
+		return true;
+	}
+
+	isCurrentlyAdvancing = false;
+	return false;
+}
+
 void CEXISlippi::handleSendInputs(u8 *payload)
 {
 	if (isConnectionStalled)
 		return;
 
-	int32_t frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
-	u8 delay = payload[4];
+	s32 frame = Common::swap32(&payload[0]);
+	u8 delay = payload[8];
 
 	// On the first frame sent, we need to queue up empty dummy pads for as many
 	//	frames as we have delay
@@ -1682,29 +1818,38 @@ void CEXISlippi::handleSendInputs(u8 *payload)
 		}
 	}
 
-	auto pad = std::make_unique<SlippiPad>(frame + delay, &payload[5]);
+	auto pad = std::make_unique<SlippiPad>(frame + delay, &payload[9]);
 
 	slippi_netplay->SendSlippiPad(std::move(pad));
 }
 
-void CEXISlippi::prepareOpponentInputs(u8 *payload)
+void CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)
 {
 	m_read_queue.clear();
 
 	u8 frameResult = 1; // Indicates to continue frame
 
 	auto state = slippi_netplay->GetSlippiConnectStatus();
-	if (state != SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED || isConnectionStalled)
+	if (shouldSkip)
+	{
+		// Event though we are skipping an input, we still want to prepare the opponent inputs because
+		// in the case where we get a stall on an advance frame, we need to keep the RXB inputs populated
+		// for when the frame inputs are requested on a rollback
+		frameResult = 2;
+	}
+	else if (state != SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED || isConnectionStalled)
 	{
 		frameResult = 3; // Indicates we have disconnected
 	}
+	else if (shouldAdvanceOnlineFrame(frame))
+	{
+		frameResult = 4;
+	}
 
-	m_read_queue.push_back(frameResult); // Indicate a continue frame
+	m_read_queue.push_back(frameResult); // Write out the control message value
 
 	u8 remotePlayerCount = matchmaking->RemotePlayerCount();
 	m_read_queue.push_back(remotePlayerCount); // Indicate the number of remote players
-
-	int32_t frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
 
 	std::unique_ptr<SlippiRemotePadOutput> results[SLIPPI_REMOTE_PLAYER_MAX];
 	int offset[SLIPPI_REMOTE_PLAYER_MAX];
@@ -1715,7 +1860,8 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 	// Get pad data for each remote player and write each of their latest frame nums to the buf
 	for (int i = 0; i < remotePlayerCount; i++)
 	{
-		results[i] = slippi_netplay->GetSlippiRemotePad(frame, i);
+		results[i] = slippi_netplay->GetSlippiRemotePad(i, ROLLBACK_MAX_FRAMES);
+		//results[i] = slippi_netplay->GetFakePadOutput(frame);
 
 		// determine offset from which to copy data
 		offset[i] = (results[i]->latestFrame - frame) * SLIPPI_PAD_FULL_SIZE;
@@ -1726,15 +1872,18 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 		if (latestFrame > frame)
 			latestFrame = frame;
 		latestFrameRead[i] = latestFrame;
-		appendWordToBuffer(&m_read_queue, *(u32 *)&latestFrame);
+		appendWordToBuffer(&m_read_queue, static_cast<u32>(latestFrame));
 		// INFO_LOG(SLIPPI_ONLINE, "Sending frame num %d for pIdx %d (offset: %d)", latestFrame, i, offset[i]);
 	}
 	// Send the current frame for any unused player slots.
 	for (int i = remotePlayerCount; i < SLIPPI_REMOTE_PLAYER_MAX; i++)
 	{
 		latestFrameRead[i] = frame;
-		appendWordToBuffer(&m_read_queue, *(u32 *)&frame);
+		appendWordToBuffer(&m_read_queue, static_cast<u32>(frame));
 	}
+
+	s32 *val = std::min_element(std::begin(latestFrameRead), std::end(latestFrameRead));
+	appendWordToBuffer(&m_read_queue, static_cast<u32>(*val));
 
 	// copy pad data over
 	for (int i = 0; i < SLIPPI_REMOTE_PLAYER_MAX; i++)
@@ -1753,13 +1902,6 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 
 		m_read_queue.insert(m_read_queue.end(), tx.begin(), tx.end());
 	}
-
-	// the latest read frame instead of the current frame must be passed to avoid nuking inputs
-	// that are > latest read frame < current frame and arrived during this function
-	int32_t minFrameRead = *std::min_element(latestFrameRead, latestFrameRead + SLIPPI_REMOTE_PLAYER_MAX);
-	slippi_netplay->DropOldRemoteInputs(minFrameRead);
-
-	appendWordToBuffer(&m_read_queue, *(u32 *)&minFrameRead);
 
 	// ERROR_LOG(SLIPPI_ONLINE, "EXI: [%d] %X %X %X %X %X %X %X %X", latestFrame, m_read_queue[5], m_read_queue[6],
 	// m_read_queue[7], m_read_queue[8], m_read_queue[9], m_read_queue[10], m_read_queue[11], m_read_queue[12]);
@@ -2529,6 +2671,20 @@ void CEXISlippi::prepareOnlineMatchState()
 #endif
 		connectCode = ConvertConnectCodeForGame(connectCode);
 		m_read_queue.insert(m_read_queue.end(), connectCode.begin(), connectCode.end());
+	}
+
+#ifdef LOCAL_TESTING
+	std::string defaultUids[] = {"l6dqv4dp38a5ho6z1sue2wx2adlp", "jpvducykgbawuehrjlfbu2qud1nv", "k0336d0tg3mgcdtaukpkf9jtf2k8", "v8tpb6uj9xil6e33od6mlot4fvdt"};
+#endif
+
+	for (int i = 0; i < 4; i++)
+	{
+		std::string uid = i < playerInfo.size() ? playerInfo[i].uid : ""; // UIDs are 28 characters + 1 null terminator
+#ifdef LOCAL_TESTING
+		uid = defaultUids[i];
+#endif
+		uid.resize(29); // ensure a null terminator at the end
+		m_read_queue.insert(m_read_queue.end(), uid.begin(), uid.end());
 	}
 
 	// Add error message if there is one
