@@ -488,7 +488,7 @@ void CEXISlippi::writeToFile(std::unique_ptr<WriteMessage> msg)
 		return;
 	}
 
-	u8 *payload = &msg->data[0];
+	u8 *payload = msg->data.data();
 	u32 length = (u32)msg->data.size();
 	std::string fileOption = msg->operation;
 
