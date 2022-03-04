@@ -127,7 +127,7 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_GET_ONLINE_STATUS, 0},
 	    {CMD_CLEANUP_CONNECTION, 0},
 	    {CMD_GET_NEW_SEED, 0},
-	    {CMD_REPORT_GAME, 16},
+	    {CMD_REPORT_GAME, (u32)sizeof(SlippiExiTypes::ReportGameQuery) - 1},
 	    {CMD_FETCH_CODE_SUGGESTION, 31},
 	    {CMD_OVERWRITE_SELECTIONS, (u32)sizeof(SlippiExiTypes::OverwriteSelectionsQuery) - 1},
 	    {CMD_GP_COMPLETE_STEP, (u32)sizeof(SlippiExiTypes::GpCompleteStepQuery) - 1},

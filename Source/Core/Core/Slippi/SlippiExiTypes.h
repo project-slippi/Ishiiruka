@@ -9,6 +9,23 @@ class SlippiExiTypes
 // https://www.geeksforgeeks.org/how-to-avoid-structure-padding-in-c/
 #pragma pack(1)
 
+	struct ReportGameQueryPlayer
+	{
+		u8 slotType;
+		u8 stocksRemaining;
+		float damageDone;
+	};
+
+	struct ReportGameQuery
+	{
+		u8 command;
+		u8 onlineMode;
+		u32 frameLength;
+		u32 gameIndex;
+		u32 tiebreakIndex;
+		ReportGameQueryPlayer players[4];
+	};
+
 	struct GpCompleteStepQuery
 	{
 		u8 command;

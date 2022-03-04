@@ -2304,16 +2304,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		// Here we are connected, check to see if we should init play session
 		if (!isPlaySessionActive)
 		{
-			std::vector<std::string> uids;
-
-			auto mmPlayers = matchmaking->GetPlayerInfo();
-			for (auto mmp : mmPlayers)
-			{
-				uids.push_back(mmp.uid);
-			}
-
-			gameReporter->StartNewSession(uids);
-
+			gameReporter->StartNewSession();
 			isPlaySessionActive = true;
 		}
 	}
@@ -3074,22 +3065,32 @@ void CEXISlippi::handleReportGame(u8 *payload)
 {
 #ifndef LOCAL_TESTING
 	SlippiGameReporter::GameReport r;
-	r.durationFrames = Common::swap32(&payload[0]);
+	r.onlineMode = static_cast<SlippiMatchmaking::OnlinePlayMode>(payload[0]);
+	r.durationFrames = Common::swap32(&payload[1]);
+	r.gameIndex = Common::swap32(&payload[5]);
+	r.tiebreakIndex = Common::swap32(&payload[9]);
 
-	// ERROR_LOG(SLIPPI_ONLINE, "Frames: %d", r.durationFrames);
+	ERROR_LOG(SLIPPI_ONLINE, "Mode: %d, Frames: %d, GameIdx: %d, TiebreakIdx: %d", r.onlineMode, r.durationFrames,
+	          r.gameIndex, r.tiebreakIndex);
 
-	for (auto i = 0; i < 2; ++i)
+	auto mmPlayers = matchmaking->GetPlayerInfo();
+
+	int playerOffset = 13;
+	for (auto i = 0; i < 4; ++i)
 	{
 		SlippiGameReporter::PlayerReport p;
-		auto offset = i * 6;
-		p.stocksRemaining = payload[5 + offset];
+		p.uid = mmPlayers.size() > i ? mmPlayers[i].uid : "";
+		p.slotType = payload[playerOffset + 0];
+		p.stocksRemaining = payload[playerOffset + 1];
 
-		auto swappedDamageDone = Common::swap32(&payload[6 + offset]);
+		auto swappedDamageDone = Common::swap32(&payload[playerOffset + 2]);
 		p.damageDone = *(float *)&swappedDamageDone;
 
-		// ERROR_LOG(SLIPPI_ONLINE, "Stocks: %d, DamageDone: %f", p.stocksRemaining, p.damageDone);
+		ERROR_LOG(SLIPPI_ONLINE, "UID: %s, Port Type: %d, Stocks: %d, DamageDone: %f", p.uid.c_str(), p.slotType,
+		          p.stocksRemaining, p.damageDone);
 
 		r.players.push_back(p);
+		playerOffset += 6;
 	}
 
 	gameReporter->StartReport(r);
@@ -3224,6 +3225,8 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 	         _uAddr, _uSize, memPtr[bufLoc], memPtr[bufLoc + 1], memPtr[bufLoc + 2], memPtr[bufLoc + 3],
 	         memPtr[bufLoc + 4]);
 
+	u8 prevCommandByte = 0;
+
 	while (bufLoc < _uSize)
 	{
 		byte = memPtr[bufLoc];
@@ -3231,7 +3234,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		if (!payloadSizes.count(byte))
 		{
 			// This should never happen. Do something else if it does?
-			ERROR_LOG(SLIPPI, "EXI SLIPPI: Invalid command byte: 0x%x", byte);
+			ERROR_LOG(SLIPPI, "EXI SLIPPI: Invalid command byte: 0x%X. Prev command: 0x%X", byte, prevCommandByte);
 			return;
 		}
 
@@ -3349,6 +3352,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		}
 
+		prevCommandByte = byte;
 		bufLoc += payloadLen + 1;
 	}
 }

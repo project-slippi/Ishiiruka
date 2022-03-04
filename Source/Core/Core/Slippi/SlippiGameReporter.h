@@ -3,6 +3,7 @@
 #include "Common/CommonTypes.h"
 #include "Common/FifoQueue.h"
 #include "Core/Slippi/SlippiUser.h"
+#include "Core/Slippi/SlippiMatchmaking.h"
 #include <atomic>
 #include <condition_variable> // std::condition_variable
 #include <curl/curl.h>
@@ -16,12 +17,17 @@ class SlippiGameReporter
   public:
 	struct PlayerReport
 	{
+		std::string uid;
+		u8 slotType;
 		float damageDone;
 		u8 stocksRemaining;
 	};
 	struct GameReport
 	{
+		SlippiMatchmaking::OnlinePlayMode onlineMode;
 		u32 durationFrames = 0;
+		u32 gameIndex = 0;
+		u32 tiebreakIndex = 0;
 		std::vector<PlayerReport> players;
 	};
 
@@ -29,7 +35,7 @@ class SlippiGameReporter
 	~SlippiGameReporter();
 
 	void StartReport(GameReport report);
-	void StartNewSession(std::vector<std::string> playerUids);
+	void StartNewSession();
 	void ReportThreadHandler();
 
   protected:

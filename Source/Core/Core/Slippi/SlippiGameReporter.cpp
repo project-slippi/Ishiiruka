@@ -74,9 +74,8 @@ void SlippiGameReporter::StartReport(GameReport report)
 	cv.notify_one();
 }
 
-void SlippiGameReporter::StartNewSession(std::vector<std::string> playerUids)
+void SlippiGameReporter::StartNewSession()
 {
-	this->playerUids = playerUids;
 	gameIndex = 1;
 }
 
@@ -95,6 +94,13 @@ void SlippiGameReporter::ReportThreadHandler()
 			auto report = gameReportQueue.Front();
 			gameReportQueue.Pop();
 
+			bool shouldReport = report.onlineMode == SlippiMatchmaking::OnlinePlayMode::RANKED ||
+			                    report.onlineMode == SlippiMatchmaking::OnlinePlayMode::UNRANKED;
+			if (!shouldReport)
+			{
+				break;
+			}
+
 			auto userInfo = m_user->GetUserInfo();
 
 			WARN_LOG(SLIPPI_ONLINE, "Checking game report for game %d. Length: %d...", gameIndex,
@@ -104,6 +110,7 @@ void SlippiGameReporter::ReportThreadHandler()
 			json request;
 			request["uid"] = userInfo.uid;
 			request["playKey"] = userInfo.playKey;
+			request["mode"] = report.onlineMode;
 			request["gameIndex"] = gameIndex;
 			request["gameDurationFrames"] = report.durationFrames;
 
@@ -111,7 +118,7 @@ void SlippiGameReporter::ReportThreadHandler()
 			for (int i = 0; i < report.players.size(); i++)
 			{
 				json p;
-				p["uid"] = playerUids[i];
+				p["uid"] = report.players[i].uid;
 				p["damageDone"] = report.players[i].damageDone;
 				p["stocksRemaining"] = report.players[i].stocksRemaining;
 
