@@ -278,6 +278,7 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 
 		frameOffsetData[pIdx].idx = (frameOffsetData[pIdx].idx + 1) % SLIPPI_ONLINE_LOCKSTEP_INTERVAL;
 
+		s64 inputsToCopy;
 		{
 			std::lock_guard<std::mutex> lk(pad_mutex); // TODO: Is this the correct lock?
 
@@ -290,7 +291,7 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 			s64 frame64 = static_cast<s64>(frame);
 			s32 headFrame = remotePadQueue[pIdx].empty() ? 0 : remotePadQueue[pIdx].front()->frame;
 			// Expand int size up to 64 bits to avoid overflowing
-			s64 inputsToCopy = frame64 - static_cast<s64>(headFrame);
+			inputsToCopy = frame64 - static_cast<s64>(headFrame);
 
 			// Check that the packet actually contains the data it claims to
 			if ((6 + inputsToCopy * SLIPPI_PAD_DATA_SIZE) > static_cast<s64>(packet.getDataSize()))
@@ -321,17 +322,24 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 			}
 		}
 
-		// Send Ack
-		sf::Packet spac;
-		spac << (MessageId)NP_MSG_SLIPPI_PAD_ACK;
-		spac << frame;
-		spac << playerIdx;
-		// INFO_LOG(SLIPPI_ONLINE, "Sending ack packet for frame %d (player %d) to peer at %d:%d", frame,
-		// packetPlayerPort,
-		//         peer->address.host, peer->address.port);
+		// Only ack if inputsToCopy is greater than 0. Otherwise we are receiving an old input and
+		// we should have already acked something in the future. This can also happen in the case
+		// where a new game starts quickly before the remote queue is reset and if we ack the early
+		// inputs we will never receive them
+		if (inputsToCopy > 0)
+		{
+			// Send Ack
+			sf::Packet spac;
+			spac << (MessageId)NP_MSG_SLIPPI_PAD_ACK;
+			spac << frame;
+			spac << playerIdx;
+			// INFO_LOG(SLIPPI_ONLINE, "Sending ack packet for frame %d (player %d) to peer at %d:%d", frame,
+			// packetPlayerPort,
+			//         peer->address.host, peer->address.port);
 
-		ENetPacket *epac = enet_packet_create(spac.getData(), spac.getDataSize(), ENET_PACKET_FLAG_UNSEQUENCED);
-		int sendResult = enet_peer_send(peer, 2, epac);
+			ENetPacket *epac = enet_packet_create(spac.getData(), spac.getDataSize(), ENET_PACKET_FLAG_UNSEQUENCED);
+			int sendResult = enet_peer_send(peer, 2, epac);
+		}
 	}
 	break;
 
@@ -1162,16 +1170,18 @@ SlippiPlayerSelections SlippiNetplayClient::GetSlippiRemoteChatMessage(bool isCh
 		copiedSelection.messageId = 0;
 		copiedSelection.playerIdx = 0;
 
-        // if chat is not enabled, automatically send back a message saying so.
-        if(remoteChatMessageSelection != nullptr && !isChatEnabled &&
-		    (remoteChatMessageSelection->messageId > 0 && remoteChatMessageSelection->messageId != SlippiPremadeText::CHAT_MSG_CHAT_DISABLED)){
-            auto packet = std::make_unique<sf::Packet>();
-            remoteSentChatMessageId = SlippiPremadeText::CHAT_MSG_CHAT_DISABLED;
-            WriteChatMessageToPacket(*packet, remoteSentChatMessageId, LocalPlayerPort());
-            SendAsync(std::move(packet));
-            remoteSentChatMessageId = 0;
+		// if chat is not enabled, automatically send back a message saying so.
+		if (remoteChatMessageSelection != nullptr && !isChatEnabled &&
+		    (remoteChatMessageSelection->messageId > 0 &&
+		     remoteChatMessageSelection->messageId != SlippiPremadeText::CHAT_MSG_CHAT_DISABLED))
+		{
+			auto packet = std::make_unique<sf::Packet>();
+			remoteSentChatMessageId = SlippiPremadeText::CHAT_MSG_CHAT_DISABLED;
+			WriteChatMessageToPacket(*packet, remoteSentChatMessageId, LocalPlayerPort());
+			SendAsync(std::move(packet));
+			remoteSentChatMessageId = 0;
 			remoteChatMessageSelection = nullptr;
-        }
+		}
 	}
 
 	return copiedSelection;
