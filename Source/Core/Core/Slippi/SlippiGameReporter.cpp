@@ -94,8 +94,9 @@ void SlippiGameReporter::ReportThreadHandler()
 			auto report = gameReportQueue.Front();
 			gameReportQueue.Pop();
 
-			bool shouldReport = report.onlineMode == SlippiMatchmaking::OnlinePlayMode::RANKED ||
-			                    report.onlineMode == SlippiMatchmaking::OnlinePlayMode::UNRANKED;
+			auto ranked = SlippiMatchmaking::OnlinePlayMode::RANKED;
+			auto unranked = SlippiMatchmaking::OnlinePlayMode::UNRANKED;
+			bool shouldReport = report.onlineMode == ranked || report.onlineMode == unranked;
 			if (!shouldReport)
 			{
 				break;
@@ -111,7 +112,8 @@ void SlippiGameReporter::ReportThreadHandler()
 			request["uid"] = userInfo.uid;
 			request["playKey"] = userInfo.playKey;
 			request["mode"] = report.onlineMode;
-			request["gameIndex"] = gameIndex;
+			request["gameIndex"] = report.onlineMode == ranked ? report.gameIndex : gameIndex;
+			request["tiebreakIndex"] = report.onlineMode == ranked ? report.tiebreakIndex : 0;
 			request["gameDurationFrames"] = report.durationFrames;
 
 			json players = json::array();
@@ -119,6 +121,7 @@ void SlippiGameReporter::ReportThreadHandler()
 			{
 				json p;
 				p["uid"] = report.players[i].uid;
+				p["slotType"] = report.players[i].slotType;
 				p["damageDone"] = report.players[i].damageDone;
 				p["stocksRemaining"] = report.players[i].stocksRemaining;
 
