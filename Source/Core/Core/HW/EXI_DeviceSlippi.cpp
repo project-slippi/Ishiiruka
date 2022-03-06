@@ -43,7 +43,7 @@
 #define SLEEP_TIME_MS 8
 #define WRITE_FILE_SLEEP_TIME_MS 85
 
-#define LOCAL_TESTING
+//#define LOCAL_TESTING
 //#define CREATE_DIFF_FILES
 
 static std::unordered_map<u8, std::string> slippi_names;
@@ -1891,7 +1891,7 @@ void CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)
 		std::vector<u8> tx;
 
 		// Get pad data if this remote player exists
-		if (i < remotePlayerCount)
+		if (i < remotePlayerCount && offset[i] < results[i]->data.size())
 		{
 			auto txStart = results[i]->data.begin() + offset[i];
 			auto txEnd = results[i]->data.end();
@@ -2278,7 +2278,6 @@ void CEXISlippi::prepareOnlineMatchState()
 			{
 				if (!matchInfo->remotePlayerSelections[i].isCharacterSelected)
 				{
-					// NOTICE_LOG(SLIPPI_ONLINE, "[%d] Not ready", i);
 					remotePlayersReady = 0;
 				}
 			}
@@ -2427,11 +2426,11 @@ void CEXISlippi::prepareOnlineMatchState()
 
 		// TODO: This is annoying, ideally remotePlayerSelections would just include everyone including the local player
 		// TODO: Would also simplify some logic in the Netplay class
-		std::vector<SlippiPlayerSelections> orderedSelections(4);
-		orderedSelections[lps.playerIdx] = lps;
+		std::vector<SlippiPlayerSelections *> orderedSelections(remotePlayerCount + 1);
+		orderedSelections[lps.playerIdx] = &lps;
 		for (int i = 0; i < remotePlayerCount; i++)
 		{
-			orderedSelections[rps[i].playerIdx] = rps[i];
+			orderedSelections[rps[i].playerIdx] = &rps[i];
 		}
 
 		// Overwrite selections
@@ -2439,20 +2438,20 @@ void CEXISlippi::prepareOnlineMatchState()
 		{
 			const auto &ow = overwrite_selections[i];
 			
-			orderedSelections[i].characterId = ow.characterId;
-			orderedSelections[i].characterColor = ow.characterColor;
-			orderedSelections[i].stageId = ow.stageId;
+			orderedSelections[i]->characterId = ow.characterId;
+			orderedSelections[i]->characterColor = ow.characterColor;
+			orderedSelections[i]->stageId = ow.stageId;
 		}
 
 		// Overwrite stage information. Make sure everyone loads the same stage
 		u16 stageId = 0x1F; // Default to battlefield if there was no selection
 		for (const auto &selections : orderedSelections)
 		{
-			if (!selections.isStageSelected)
+			if (!selections->isStageSelected)
 				continue;
 
 			// Stage selected by this player, use that selection
-			stageId = selections.stageId;
+			stageId = selections->stageId;
 			break;
 		}
 
@@ -2507,11 +2506,11 @@ void CEXISlippi::prepareOnlineMatchState()
 		INFO_LOG(SLIPPI_ONLINE, "Rng Offset: 0x%x", rngOffset);
 
 		// Check if everyone is the same color
-		auto color = orderedSelections[0].teamId;
+		auto color = orderedSelections[0]->teamId;
 		bool areAllSameTeam = true;
 		for (const auto &s : orderedSelections)
 		{
-			if (s.teamId != color)
+			if (s->teamId != color)
 			{
 				areAllSameTeam = false;
 			}
@@ -2529,7 +2528,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		// Overwrite player character choices
 		for (auto &s : orderedSelections)
 		{
-			if (!s.isCharacterSelected)
+			if (!s->isCharacterSelected)
 			{
 				continue;
 			}
@@ -2537,16 +2536,16 @@ void CEXISlippi::prepareOnlineMatchState()
 			if (areAllSameTeam)
 			{
 				// Overwrite teamId. Color is overwritten by ASM
-				s.teamId = teamAssignments[s.playerIdx];
+				s->teamId = teamAssignments[s->playerIdx];
 			}
 
 			// ERROR_LOG(SLIPPI_ONLINE, "idx: %d, char: %d", s.playerIdx, s.characterId);
 
 			// Overwrite player character
-			onlineMatchBlock[0x60 + (s.playerIdx) * 0x24] = s.characterId;
-			onlineMatchBlock[0x63 + (s.playerIdx) * 0x24] = s.characterColor;
-			onlineMatchBlock[0x67 + (s.playerIdx) * 0x24] = 0;
-			onlineMatchBlock[0x69 + (s.playerIdx) * 0x24] = s.teamId;
+			onlineMatchBlock[0x60 + (s->playerIdx) * 0x24] = s->characterId;
+			onlineMatchBlock[0x63 + (s->playerIdx) * 0x24] = s->characterColor;
+			onlineMatchBlock[0x67 + (s->playerIdx) * 0x24] = 0;
+			onlineMatchBlock[0x69 + (s->playerIdx) * 0x24] = s->teamId;
 		}
 
 		// Handle Singles/Teams specific logic
@@ -3070,8 +3069,8 @@ void CEXISlippi::handleReportGame(u8 *payload)
 	r.gameIndex = Common::swap32(&payload[5]);
 	r.tiebreakIndex = Common::swap32(&payload[9]);
 
-	ERROR_LOG(SLIPPI_ONLINE, "Mode: %d, Frames: %d, GameIdx: %d, TiebreakIdx: %d", r.onlineMode, r.durationFrames,
-	          r.gameIndex, r.tiebreakIndex);
+	ERROR_LOG(SLIPPI_ONLINE, "Mode: %d / %d, Frames: %d, GameIdx: %d, TiebreakIdx: %d", r.onlineMode, payload[0],
+	          r.durationFrames, r.gameIndex, r.tiebreakIndex);
 
 	auto mmPlayers = matchmaking->GetPlayerInfo();
 
@@ -3121,6 +3120,10 @@ void CEXISlippi::handleOverwriteSelections(SlippiExiTypes::OverwriteSelectionsQu
 
 	for (int i = 0; i < 4; i++)
 	{
+		// TODO: I'm pretty sure this contine would cause bugs if we tried to overwrite only player 1
+		// TODO: and not player 0. Right now though GamePrep always overwrites both p0 and p1 so it's fine
+		// TODO: The bug would likely happen in the prepareOnlineMatchState, it would overwrite the
+		// TODO: wrong players I think
 		if (!query->chars[i].is_set)
 			continue;
 		
