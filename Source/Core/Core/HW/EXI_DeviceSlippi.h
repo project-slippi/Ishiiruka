@@ -105,8 +105,8 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_RECEIVE_COMMANDS, 1},
 
 	    // The following are all commands used to play back a replay and
-	    // have fixed sizes
-	    {CMD_PREPARE_REPLAY, 0},
+	    // have fixed sizes unless otherwise specified
+	    {CMD_PREPARE_REPLAY, 0xFFFF}, // Variable size... will only work if by itself
 	    {CMD_READ_FRAME, 4},
 	    {CMD_IS_STOCK_STEAL, 5},
 	    {CMD_GET_LOCATION, 6},
