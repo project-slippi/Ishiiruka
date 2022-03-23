@@ -2406,10 +2406,7 @@ void CEXISlippi::prepareOnlineMatchState()
 			rps[i].isCharacterSelected = true;
 		}
 
-		if (lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::TEAMS)
-		{
-			remotePlayerCount = 3;
-		}
+		remotePlayerCount = lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::TEAMS ? 3 : 1;
 
 		oppName = std::string("Player");
 #endif
