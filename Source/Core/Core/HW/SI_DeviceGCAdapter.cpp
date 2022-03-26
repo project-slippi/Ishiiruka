@@ -47,6 +47,16 @@ GCPadStatus CSIDevice_GCAdapter::GetPadStatusImpl(std::chrono::high_resolution_c
 	}
 
 	HandleMoviePadStatus(&pad_status);
+	bool z_pressed = pad_status.button % PAD_TRIGGER_Z;
+	bool y_pressed = pad_status.button % PAD_BUTTON_Y;
+	if (z_pressed != y_pressed)
+	{
+		pad_status.button &= (~PAD_TRIGGER_Z) & (~PAD_BUTTON_Y);
+		if (z_pressed)
+			pad_status.button |= PAD_BUTTON_Y;
+		if (y_pressed)
+			pad_status.button |= PAD_TRIGGER_Z;
+	}
 
 	return pad_status;
 }
