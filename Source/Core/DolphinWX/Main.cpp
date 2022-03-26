@@ -53,6 +53,8 @@
 #include "DolphinWX/VideoConfigDiag.h"
 #include "DolphinWX/WxUtils.h"
 
+#include "InputCommon/ControllerInterface/DInput/DInputKeyboardMouse.h"
+
 #include "UICommon/UICommon.h"
 
 #include "VideoCommon/OnScreenDisplay.h"
@@ -409,6 +411,8 @@ void DolphinApp::AfterInit()
 {
 	// always raise the frame so that it is in the foreground on launch
 	main_frame->Raise();
+
+	::ciface::DInput::Pass_Main_Frame_to_Keyboard_and_Mouse(this->GetCFrame());
 
 	if (!m_batch_mode)
 		main_frame->UpdateGameList();

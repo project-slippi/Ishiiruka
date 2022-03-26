@@ -4,8 +4,46 @@
 
 #include "DolphinWX/Input/GCPadInputConfigDiag.h"
 
+#include <Windows.h>
+#include <wx/sizer.h>
+#include <wx/spinctrl.h>
+#include <wx/button.h>
+#include <wx/string.h>
+
+#include "Core/ConfigManager.h"
 #include "Core/HW/GCPad.h"
 #include "Core/HW/GCPadEmu.h"
+#include "InputCommon/ControllerInterface/DInput/DInputKeyboardMouse.h"
+
+void Sensitivity_Spin_Control_Callback(wxSpinDoubleEvent &_event)
+{
+	ciface::DInput::cursor_sensitivity = _event.GetValue();
+	ciface::DInput::Save_Keyboard_and_Mouse_Settings();
+}
+
+void Center_Mouse_Key_Button_Callback(wxCommandEvent &_event)
+{
+	static_cast<wxButton*>(_event.GetEventObject())->SetLabel("[ waiting ]");
+	static constexpr unsigned char highest_virtual_key_hex = 0xFE;
+	bool listening = true;
+	while (listening)
+	{
+		for (unsigned char i = 0; i < highest_virtual_key_hex; i++) 
+		{
+			if (GetAsyncKeyState(i) & 0x8000) 
+			{
+				ciface::DInput::center_mouse_key = i;
+				listening = false;
+				break;
+				
+			}
+			
+		}
+		
+	}
+	static_cast<wxButton *>(_event.GetEventObject())->SetLabel(wxGetTranslation((char)ciface::DInput::center_mouse_key));
+	ciface::DInput::Save_Keyboard_and_Mouse_Settings();
+}
 
 GCPadInputConfigDialog::GCPadInputConfigDialog(wxWindow* const parent, InputConfig& config,
 	const wxString& name, const int port_num)
@@ -31,6 +69,24 @@ GCPadInputConfigDialog::GCPadInputConfigDialog(wxWindow* const parent, InputConf
 		new ControlGroupBox(Pad::GetGroup(port_num, PadGroup::Rumble), this, this);
 	auto* const group_box_options =
 		new ControlGroupBox(Pad::GetGroup(port_num, PadGroup::Options), this, this);
+
+	// Keyboard and Mouse Settings
+	ciface::DInput::Load_Keyboard_and_Mouse_Settings();
+	auto*sensitivity_sizer = new wxBoxSizer(wxVERTICAL);
+	auto* sensitivity_static_box = new wxStaticBoxSizer{wxHORIZONTAL, this, "Keyboard and Mouse"};
+	sensitivity_static_box->Add(new wxStaticText(this, wxID_ANY, wxGetTranslation("Sensitivity")), 0, wxALIGN_CENTER_VERTICAL);
+	sensitivity_static_box->AddSpacer(space5);
+	auto* senstivity_spinctrl = new wxSpinCtrlDouble{this, -1,"Sensitivity",wxDefaultPosition,wxDefaultSize,16384L,0,100.00,ciface::DInput::cursor_sensitivity,1.0,"Sensitivity"};
+	senstivity_spinctrl->Bind(wxEVT_SPINCTRLDOUBLE, &Sensitivity_Spin_Control_Callback);
+	sensitivity_static_box->Add(senstivity_spinctrl);
+	sensitivity_static_box->AddSpacer(space5);
+	sensitivity_static_box->Add(new wxStaticText(this, wxID_ANY, wxGetTranslation("Center Mouse")), 0, wxALIGN_CENTER_VERTICAL);
+	auto* center_mouse_key_button = new wxButton{this, wxID_ANY, wxGetTranslation(std::string{(char)ciface::DInput::center_mouse_key})};
+	center_mouse_key_button->SetToolTip(wxGetTranslation("Left-click to detect input."));
+	center_mouse_key_button->Bind(wxEVT_BUTTON, &Center_Mouse_Key_Button_Callback);
+	sensitivity_static_box->Add(center_mouse_key_button);
+	sensitivity_sizer->Add(sensitivity_static_box);
+	// End Keyboard and Mouse Settings
 
 	auto* const triggers_rumble_sizer = new wxBoxSizer(wxVERTICAL);
 	triggers_rumble_sizer->Add(group_box_triggers, 0, wxEXPAND);
@@ -69,6 +125,8 @@ GCPadInputConfigDialog::GCPadInputConfigDialog(wxWindow* const parent, InputConf
 	szr_main->Add(dio);
 	szr_main->AddSpacer(space5);
 	szr_main->Add(controls_sizer, 1, wxEXPAND | wxLEFT | wxRIGHT, space5);
+	szr_main->AddSpacer(space5);
+	szr_main->Add(sensitivity_sizer, 0, wxALIGN_CENTER_HORIZONTAL);
 	szr_main->AddSpacer(space5);
 	szr_main->Add(CreateButtonSizer(wxCLOSE | wxNO_DEFAULT), 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	szr_main->AddSpacer(space5);
