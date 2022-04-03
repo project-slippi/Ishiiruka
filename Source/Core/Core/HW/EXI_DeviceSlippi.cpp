@@ -1060,6 +1060,9 @@ void CEXISlippi::prepareGeckoList()
 	    {0x8016e9b0, true}, // Common/UseInGameDelay/InitializeInGameDelay.asm
 	    {0x8000561c, true}, // Common/GetCommonMinorID/GetCommonMinorID.asm
 	    {0x802f666c, true}, // Common/UseInGameDelay/InitializeInGameDelay.asm v2
+	    {0x8000569c, true}, // Common/CompatibilityHooks/GetFighterNum.asm
+	    {0x800056a0, true}, // Common/CompatibilityHooks/GetSSMIndex.asm
+	    {0x800056a8, true}, // Common/CompatibilityHooks/RequestSSMLoad.asm
 
 	    {0x801a5b14, true}, // External/Salty Runback/Salty Runback.asm
 	    {0x801a4570, true}, // External/LagReduction/ForceHD/480pDeflickerOff.asm
