@@ -826,9 +826,9 @@ GCPadStatus Input(int chan, std::chrono::high_resolution_clock::time_point *tp)
 			if (b1 & (1 << 1))
 				pad.button |= PAD_BUTTON_B;
 			if (b1 & (1 << 2))
-				pad.button |= PAD_BUTTON_X;
-			if (b1 & (1 << 3))
 				pad.button |= PAD_TRIGGER_Z;
+			if (b1 & (1 << 3))
+				pad.button |= PAD_BUTTON_Y;
 
 			if (b1 & (1 << 4))
 				pad.button |= PAD_BUTTON_LEFT;
@@ -842,7 +842,7 @@ GCPadStatus Input(int chan, std::chrono::high_resolution_clock::time_point *tp)
 			if (b2 & (1 << 0))
 				pad.button |= PAD_BUTTON_START;
 			if (b2 & (1 << 1))
-				pad.button |= PAD_BUTTON_Y;
+				pad.button |= PAD_BUTTON_X;
 			if (b2 & (1 << 2))
 				pad.button |= PAD_TRIGGER_R;
 			if (b2 & (1 << 3))

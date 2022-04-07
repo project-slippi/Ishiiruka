@@ -22,13 +22,13 @@ GCAdapterConfigDiag::GCAdapterConfigDiag(wxWindow* const parent, const wxString&
 	GCAdapter::ResetAdapterIfNecessary();
 
 	wxCheckBox* const gamecube_rumble = new wxCheckBox(this, wxID_ANY, _("Rumble"));
-	wxCheckBox *const swap_x_and_z = new wxCheckBox(this, wxID_ANY, _("Swap X and Z"));
+	/*wxCheckBox *const swap_x_and_z = new wxCheckBox(this, wxID_ANY, _("Swap X and Z"));
 	gamecube_rumble->SetValue(SConfig::GetInstance().m_AdapterRumble[m_pad_id]);
 	gamecube_rumble->Bind(wxEVT_CHECKBOX, &GCAdapterConfigDiag::OnAdapterRumble, this);
 
 	swap_x_and_z->SetValue(false);
-	// swap_x_and_z->Bind(wxEVT_CHECKBOX, &GCAdapter)
-
+	swap_x_and_z->Bind(wxEVT_CHECKBOX, &GCAdapter)
+	*/
 	m_adapter_status = new wxStaticText(this, wxID_ANY, _("Adapter Not Detected"));
 
 	if (!GCAdapter::IsDetected())

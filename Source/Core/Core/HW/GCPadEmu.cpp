@@ -115,13 +115,13 @@ GCPadStatus GCPad::GetInput() const
 	// buttons
 	m_buttons->GetState(&pad.button, button_bitmasks);
 	bool z_pressed = pad.button % PAD_TRIGGER_Z;
-	bool y_pressed = pad.button % PAD_BUTTON_Y;
-	if (z_pressed != y_pressed)
+	bool x_pressed = pad.button % PAD_BUTTON_Y;
+	if (z_pressed != x_pressed)
 	{
-		pad.button &= (~PAD_TRIGGER_Z) & (~PAD_BUTTON_Y);
+		pad.button &= (~PAD_TRIGGER_Z) & (~PAD_BUTTON_X);
 		if (z_pressed)
-			pad.button |= PAD_BUTTON_Y;
-		if (y_pressed)
+			pad.button |= PAD_BUTTON_X;
+		if (x_pressed)
 			pad.button |= PAD_TRIGGER_Z;
 	}
 
