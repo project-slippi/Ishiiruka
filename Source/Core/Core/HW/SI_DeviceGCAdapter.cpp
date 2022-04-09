@@ -47,6 +47,7 @@ GCPadStatus CSIDevice_GCAdapter::GetPadStatusImpl(std::chrono::high_resolution_c
 	}
 
 	HandleMoviePadStatus(&pad_status);
+
 	return pad_status;
 }
 
