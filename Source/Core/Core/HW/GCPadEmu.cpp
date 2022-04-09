@@ -114,16 +114,6 @@ GCPadStatus GCPad::GetInput() const
 
 	// buttons
 	m_buttons->GetState(&pad.button, button_bitmasks);
-	bool z_pressed = pad.button % PAD_TRIGGER_Z;
-	bool x_pressed = pad.button % PAD_BUTTON_X;
-	if (z_pressed != x_pressed)
-	{
-		pad.button &= (~PAD_TRIGGER_Z) & (~PAD_BUTTON_X);
-		if (z_pressed)
-			pad.button |= PAD_BUTTON_X;
-		if (x_pressed)
-			pad.button |= PAD_TRIGGER_Z;
-	}
 
 	// set analog A/B analog to full or w/e, prolly not needed
 	if (pad.button & PAD_BUTTON_A)
