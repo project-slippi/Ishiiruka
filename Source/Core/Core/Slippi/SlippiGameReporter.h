@@ -25,9 +25,11 @@ class SlippiGameReporter
 	struct GameReport
 	{
 		SlippiMatchmaking::OnlinePlayMode onlineMode;
+		std::string matchId;
 		u32 durationFrames = 0;
 		u32 gameIndex = 0;
 		u32 tiebreakIndex = 0;
+		s8 winnerIdx = 0;
 		std::vector<PlayerReport> players;
 	};
 

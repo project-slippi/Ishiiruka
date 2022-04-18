@@ -2,11 +2,15 @@
 
 #include "Common/CommonTypes.h"
 
+#define REPORT_PLAYER_COUNT 4
+
 class SlippiExiTypes
 {
   public:
 // Using pragma pack here will remove any structure padding which is what EXI comms expect
 // https://www.geeksforgeeks.org/how-to-avoid-structure-padding-in-c/
+// Note that none of these classes should be used outside of the handler function, pragma pack
+// is supposedly not very efficient?
 #pragma pack(1)
 
 	struct ReportGameQueryPlayer
@@ -23,7 +27,8 @@ class SlippiExiTypes
 		u32 frameLength;
 		u32 gameIndex;
 		u32 tiebreakIndex;
-		ReportGameQueryPlayer players[4];
+		s8 winnerIdx;
+		ReportGameQueryPlayer players[REPORT_PLAYER_COUNT];
 	};
 
 	struct GpCompleteStepQuery
@@ -65,4 +70,19 @@ class SlippiExiTypes
 
 // Not sure if resetting is strictly needed, might be contained to the file
 #pragma pack()
+
+	template <typename T> static T Convert(u8 *payload) { return *reinterpret_cast<T *>(payload); }
+	template <> static ReportGameQuery Convert(u8 *payload) 
+	{
+		auto q = *reinterpret_cast<ReportGameQuery *>(payload);
+		q.frameLength = Common::FromBigEndian(q.frameLength);
+		q.gameIndex = Common::FromBigEndian(q.gameIndex);
+		q.tiebreakIndex = Common::FromBigEndian(q.tiebreakIndex);
+		for (int i = 0; i < REPORT_PLAYER_COUNT; i++)
+		{
+			auto *p = &q.players[i];
+			p->damageDone = Common::FromBigEndian(p->damageDone);
+		}
+		return q;
+	}
 };

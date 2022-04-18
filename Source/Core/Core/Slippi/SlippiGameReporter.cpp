@@ -109,12 +109,14 @@ void SlippiGameReporter::ReportThreadHandler()
 
 			// Prepare report
 			json request;
+			request["matchId"] = report.matchId;
 			request["uid"] = userInfo.uid;
 			request["playKey"] = userInfo.playKey;
 			request["mode"] = report.onlineMode;
 			request["gameIndex"] = report.onlineMode == ranked ? report.gameIndex : gameIndex;
 			request["tiebreakIndex"] = report.onlineMode == ranked ? report.tiebreakIndex : 0;
 			request["gameDurationFrames"] = report.durationFrames;
+			request["winnerIdx"] = report.winnerIdx;
 
 			json players = json::array();
 			for (int i = 0; i < report.players.size(); i++)

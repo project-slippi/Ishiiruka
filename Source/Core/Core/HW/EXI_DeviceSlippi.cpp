@@ -2241,10 +2241,15 @@ void CEXISlippi::prepareOnlineMatchState()
 			slippi_netplay = matchmaking->GetNetplayClient();
 #endif
 
-			// This happens on the initial connection to a player. Let's now grab the allowed stages
-			// returned to us from the matchmaking service and pick a new random stage before sending
+			// This happens on the initial connection to a player. The matchmaking object is ephemeral, it
+			// gets re-created when a connection is terminated, that said, it can still be useful to know
+			// who we were connected to after they disconnect from us, for example in the case of reporting
+			// a match. So let's copy the results.
+			recentMmResult = matchmaking->GetMatchmakeResult();
+
+			// Use allowed stages from the matchmaking service and pick a new random stage before sending
 			// the selections to the opponent
-			allowedStages = matchmaking->GetStages();
+			allowedStages = recentMmResult.stages;
 			if (allowedStages.empty())
 			{
 				allowedStages = {
@@ -3057,36 +3062,34 @@ void CEXISlippi::prepareNewSeed()
 	appendWordToBuffer(&m_read_queue, newSeed);
 }
 
-void CEXISlippi::handleReportGame(u8 *payload)
+void CEXISlippi::handleReportGame(SlippiExiTypes::ReportGameQuery &query)
 {
 #ifndef LOCAL_TESTING
 	SlippiGameReporter::GameReport r;
-	r.onlineMode = static_cast<SlippiMatchmaking::OnlinePlayMode>(payload[0]);
-	r.durationFrames = Common::swap32(&payload[1]);
-	r.gameIndex = Common::swap32(&payload[5]);
-	r.tiebreakIndex = Common::swap32(&payload[9]);
+	r.matchId = recentMmResult.id;
+	r.onlineMode = static_cast<SlippiMatchmaking::OnlinePlayMode>(query.onlineMode);
+	r.durationFrames = query.frameLength;
+	r.gameIndex = query.gameIndex;
+	r.tiebreakIndex = query.tiebreakIndex;
+	r.winnerIdx = query.winnerIdx;
 
-	ERROR_LOG(SLIPPI_ONLINE, "Mode: %d / %d, Frames: %d, GameIdx: %d, TiebreakIdx: %d", r.onlineMode, payload[0],
-	          r.durationFrames, r.gameIndex, r.tiebreakIndex);
+	ERROR_LOG(SLIPPI_ONLINE, "Mode: %d / %d, Frames: %d, GameIdx: %d, TiebreakIdx: %d, WinnerIdx: %d", r.onlineMode, query.onlineMode,
+	          r.durationFrames, r.gameIndex, r.tiebreakIndex, r.winnerIdx);
 
-	auto mmPlayers = matchmaking->GetPlayerInfo();
+	auto mmPlayers = recentMmResult.players;
 
-	int playerOffset = 13;
 	for (auto i = 0; i < 4; ++i)
 	{
 		SlippiGameReporter::PlayerReport p;
 		p.uid = mmPlayers.size() > i ? mmPlayers[i].uid : "";
-		p.slotType = payload[playerOffset + 0];
-		p.stocksRemaining = payload[playerOffset + 1];
-
-		auto swappedDamageDone = Common::swap32(&payload[playerOffset + 2]);
-		p.damageDone = *(float *)&swappedDamageDone;
+		p.slotType = query.players[i].slotType;
+		p.stocksRemaining = query.players[i].stocksRemaining;
+		p.damageDone = query.players[i].damageDone;
 
 		ERROR_LOG(SLIPPI_ONLINE, "UID: %s, Port Type: %d, Stocks: %d, DamageDone: %f", p.uid.c_str(), p.slotType,
 		          p.stocksRemaining, p.damageDone);
 
 		r.players.push_back(p);
-		playerOffset += 6;
 	}
 
 	gameReporter->StartReport(r);
@@ -3109,9 +3112,9 @@ void CEXISlippi::prepareDelayResponse()
 	}
 }
 
-void CEXISlippi::handleOverwriteSelections(SlippiExiTypes::OverwriteSelectionsQuery *query)
+void CEXISlippi::handleOverwriteSelections(SlippiExiTypes::OverwriteSelectionsQuery &query)
 {
-	auto stageId = Common::FromBigEndian(query->stage_id);
+	auto stageId = Common::FromBigEndian(query.stage_id);
 
 	overwrite_selections.clear();
 
@@ -3121,13 +3124,13 @@ void CEXISlippi::handleOverwriteSelections(SlippiExiTypes::OverwriteSelectionsQu
 		// TODO: and not player 0. Right now though GamePrep always overwrites both p0 and p1 so it's fine
 		// TODO: The bug would likely happen in the prepareOnlineMatchState, it would overwrite the
 		// TODO: wrong players I think
-		if (!query->chars[i].is_set)
+		if (!query.chars[i].is_set)
 			continue;
 		
 		SlippiPlayerSelections s;
 		s.isCharacterSelected = true;
-		s.characterId = query->chars[i].char_id;
-		s.characterColor = query->chars[i].char_color_id;
+		s.characterId = query.chars[i].char_id;
+		s.characterColor = query.chars[i].char_color_id;
 		s.isStageSelected = true;
 		s.stageId = stageId;
 		s.playerIdx = i;
@@ -3136,21 +3139,21 @@ void CEXISlippi::handleOverwriteSelections(SlippiExiTypes::OverwriteSelectionsQu
 	}
 }
 
-void CEXISlippi::handleGamePrepStepComplete(SlippiExiTypes::GpCompleteStepQuery* query)
+void CEXISlippi::handleGamePrepStepComplete(SlippiExiTypes::GpCompleteStepQuery &query)
 {
 	if (!slippi_netplay)
 		return;
 
 	SlippiGamePrepStepResults res;
-	res.step_idx = query->step_idx;
-	res.char_selection = query->char_selection;
-	res.char_color_selection = query->char_color_selection;
-	memcpy(res.stage_selections, query->stage_selections, 2);
+	res.step_idx = query.step_idx;
+	res.char_selection = query.char_selection;
+	res.char_color_selection = query.char_color_selection;
+	memcpy(res.stage_selections, query.stage_selections, 2);
 	
 	slippi_netplay->SendGamePrepStep(res);
 }
 
-void CEXISlippi::prepareGamePrepOppStep(SlippiExiTypes::GpFetchStepQuery *query)
+void CEXISlippi::prepareGamePrepOppStep(SlippiExiTypes::GpFetchStepQuery &query)
 {
 	SlippiExiTypes::GpFetchStepResponse resp;
 
@@ -3172,7 +3175,7 @@ void CEXISlippi::prepareGamePrepOppStep(SlippiExiTypes::GpFetchStepQuery *query)
 	}
 #else
 	SlippiGamePrepStepResults res;
-	if (slippi_netplay && slippi_netplay->GetGamePrepResults(query->step_idx, res))
+	if (slippi_netplay && slippi_netplay->GetGamePrepResults(query.step_idx, res))
 	{
 		// If we have received a response from the opponent, prepare the values for response
 		resp.is_found = true;
@@ -3326,7 +3329,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			prepareNewSeed();
 			break;
 		case CMD_REPORT_GAME:
-			handleReportGame(&memPtr[bufLoc + 1]);
+			handleReportGame(SlippiExiTypes::Convert<SlippiExiTypes::ReportGameQuery>(&memPtr[bufLoc]));
 			break;
 		case CMD_GCT_LENGTH:
 			prepareGctLength();
@@ -3338,13 +3341,13 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			prepareDelayResponse();
 			break;
 		case CMD_OVERWRITE_SELECTIONS:
-			handleOverwriteSelections((SlippiExiTypes::OverwriteSelectionsQuery*)&memPtr[bufLoc]);
+			handleOverwriteSelections(SlippiExiTypes::Convert<SlippiExiTypes::OverwriteSelectionsQuery>(&memPtr[bufLoc]));
 			break;
 		case CMD_GP_FETCH_STEP:
-			prepareGamePrepOppStep((SlippiExiTypes::GpFetchStepQuery*)&memPtr[bufLoc]);
+			prepareGamePrepOppStep(SlippiExiTypes::Convert<SlippiExiTypes::GpFetchStepQuery>(&memPtr[bufLoc]));
 			break;
 		case CMD_GP_COMPLETE_STEP:
-			handleGamePrepStepComplete((SlippiExiTypes::GpCompleteStepQuery *)&memPtr[bufLoc]);
+			handleGamePrepStepComplete(SlippiExiTypes::Convert<SlippiExiTypes::GpCompleteStepQuery>(&memPtr[bufLoc]));
 			break;
 		default:
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "");

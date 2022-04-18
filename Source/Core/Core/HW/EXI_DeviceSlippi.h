@@ -199,10 +199,10 @@ class CEXISlippi : public IEXIDevice
 	void prepareOnlineStatus();
 	void handleConnectionCleanup();
 	void prepareNewSeed();
-	void handleReportGame(u8 *payload);
-	void handleOverwriteSelections(SlippiExiTypes::OverwriteSelectionsQuery *query);
-	void handleGamePrepStepComplete(SlippiExiTypes::GpCompleteStepQuery* query);
-	void prepareGamePrepOppStep(SlippiExiTypes::GpFetchStepQuery* query);
+	void handleReportGame(SlippiExiTypes::ReportGameQuery &query);
+	void handleOverwriteSelections(SlippiExiTypes::OverwriteSelectionsQuery &query);
+	void handleGamePrepStepComplete(SlippiExiTypes::GpCompleteStepQuery &query);
+	void prepareGamePrepOppStep(SlippiExiTypes::GpFetchStepQuery &query);
 
 	// replay playback stuff
 	void prepareGameInfo(u8 *payload);
@@ -248,6 +248,7 @@ class CEXISlippi : public IEXIDevice
 	std::unique_ptr<Slippi::SlippiGame> m_current_game = nullptr;
 	SlippiSpectateServer *m_slippiserver = nullptr;
 	SlippiMatchmaking::MatchSearchSettings lastSearch;
+	SlippiMatchmaking::MatchmakeResult recentMmResult;
 
 	std::vector<u16> stagePool;
 

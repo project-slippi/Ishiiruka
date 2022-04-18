@@ -46,6 +46,13 @@ class SlippiMatchmaking
 		std::string connectCode = "";
 	};
 
+	struct MatchmakeResult
+	{
+		std::string id = "";
+		std::vector<SlippiUser::UserInfo> players;
+		std::vector<u16> stages;
+	};
+
 	void FindMatch(MatchSearchSettings settings);
 	void MatchmakeThread();
 	ProcessState GetMatchmakeState();
@@ -57,6 +64,7 @@ class SlippiMatchmaking
 	std::string GetPlayerName(u8 port);
 	std::vector<u16> GetStages();
 	u8 RemotePlayerCount();
+	MatchmakeResult GetMatchmakeResult();
 	static bool IsFixedRulesMode(OnlinePlayMode mode);
 
   protected:
@@ -72,6 +80,7 @@ class SlippiMatchmaking
 	std::default_random_engine generator;
 
 	bool isMmConnected = false;
+	bool isMmTerminated = false;
 
 	std::thread m_matchmakeThread;
 
@@ -87,6 +96,7 @@ class SlippiMatchmaking
 	int m_hostPort;
 	int m_localPlayerIndex;
 	std::vector<std::string> m_remoteIps;
+	MatchmakeResult m_mmResult;
 	std::vector<SlippiUser::UserInfo> m_playerInfo;
 	std::vector<u16> m_allowedStages;
 	bool m_joinedLobby;
