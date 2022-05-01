@@ -1768,7 +1768,7 @@ bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame)
 			// We don't show this message for teams because it seems to false positive a lot there, maybe because the min
 			// offset is always selected? Idk I feel like doubles has some perf issues I don't understand atm.
 			OSD::AddTypedMessage(OSD::MessageType::PerformanceWarning,
-			                     "Your computer is running slow and is impacting the performance of the match.", 10000,
+			                     "Your computer is running slowly and is impacting the performance of the match.", 10000,
 			                     OSD::Color::RED);
 		}
 
