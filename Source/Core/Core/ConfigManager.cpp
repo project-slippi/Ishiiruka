@@ -660,7 +660,7 @@ void SConfig::LoadCoreSettings(IniFile &ini)
 	{
 		core->Get(StringFromFormat("SIDevice%i", i), (u32 *)&m_SIDevice[i], SIDEVICE_WIIU_ADAPTER);
 #ifndef IS_PLAYBACK
-		core->Get(StringFromFormat("AdapterRumble%i", i), &m_AdapterRumble[i], true); 
+		core->Get(StringFromFormat("AdapterRumble%i", i), &m_AdapterRumble[i], true);
 #else
 		core->Get(StringFromFormat("AdapterRumble%i", i), &m_AdapterRumble[i], false);
 #endif
