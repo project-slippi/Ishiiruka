@@ -303,6 +303,7 @@ void SConfig::SaveCoreSettings(IniFile &ini)
 	{
 		core->Set(StringFromFormat("SIDevice%i", i), m_SIDevice[i]);
 		core->Set(StringFromFormat("AdapterRumble%i", i), m_AdapterRumble[i]);
+		core->Set(StringFromFormat("AdapterZXSwap%i", i), m_AdapterZXSwap[i]);
 		core->Set(StringFromFormat("SimulateKonga%i", i), m_AdapterKonga[i]);
 	}
 	core->Set("WiiSDCard", m_WiiSDCard);
@@ -649,6 +650,7 @@ void SConfig::LoadCoreSettings(IniFile &ini)
 	{
 		core->Get(StringFromFormat("SIDevice%i", i), (u32 *)&m_SIDevice[i], SIDEVICE_WIIU_ADAPTER);
 		core->Get(StringFromFormat("AdapterRumble%i", i), &m_AdapterRumble[i], true);
+		core->Get(StringFromFormat("AdapterZXSwap%i", i), &m_AdapterZXSwap[i], true);
 		core->Get(StringFromFormat("SimulateKonga%i", i), &m_AdapterKonga[i], false);
 	}
 	core->Get("WiiSDCard", &m_WiiSDCard, false);

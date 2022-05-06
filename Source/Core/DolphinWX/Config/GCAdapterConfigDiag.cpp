@@ -21,14 +21,14 @@ GCAdapterConfigDiag::GCAdapterConfigDiag(wxWindow* const parent, const wxString&
 {
 	GCAdapter::ResetAdapterIfNecessary();
 
-	wxCheckBox* const gamecube_rumble = new wxCheckBox(this, wxID_ANY, _("Rumble"));
+	wxCheckBox *const gamecube_rumble = new wxCheckBox(this, wxID_ANY, _("Rumble"));
+	wxCheckBox *const swap_x_and_z = new wxCheckBox(this, wxID_ANY, _("Swap Y and Z"));
 	gamecube_rumble->SetValue(SConfig::GetInstance().m_AdapterRumble[m_pad_id]);
 	gamecube_rumble->Bind(wxEVT_CHECKBOX, &GCAdapterConfigDiag::OnAdapterRumble, this);
 
-	/*wxCheckBox *const swap_x_and_z = new wxCheckBox(this, wxID_ANY, _("Swap X and Z"));
-	swap_x_and_z->SetValue(false);
-	swap_x_and_z->Bind(wxEVT_CHECKBOX, &GCAdapter)
-	*/
+
+	swap_x_and_z->SetValue(SConfig::GetInstance().m_AdapterZXSwap[m_pad_id]);
+	swap_x_and_z->Bind(wxEVT_CHECKBOX, &GCAdapterConfigDiag::OnZXSwap, this);
 	m_adapter_status = new wxStaticText(this, wxID_ANY, _("Adapter Not Detected"));
 
 	if (!GCAdapter::IsDetected())
@@ -37,6 +37,7 @@ GCAdapterConfigDiag::GCAdapterConfigDiag(wxWindow* const parent, const wxString&
 		{
 			m_adapter_status->SetLabelText(_("Driver Not Detected"));
 			gamecube_rumble->Disable();
+			swap_x_and_z->Disable();
 		}
 	}
 	else
@@ -51,6 +52,8 @@ GCAdapterConfigDiag::GCAdapterConfigDiag(wxWindow* const parent, const wxString&
 	szr->Add(m_adapter_status, 0, wxEXPAND);
 	szr->AddSpacer(space5);
 	szr->Add(gamecube_rumble, 0, wxEXPAND);
+	szr->AddSpacer(space5);
+	szr->Add(swap_x_and_z, 0, wxEXPAND);
 	szr->AddSpacer(space5);
 	szr->Add(CreateButtonSizer(wxCLOSE | wxNO_DEFAULT), 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	szr->AddSpacer(space5);
@@ -91,6 +94,11 @@ void GCAdapterConfigDiag::OnUpdateAdapter(wxCommandEvent& WXUNUSED(event))
 void GCAdapterConfigDiag::OnAdapterRumble(wxCommandEvent& event)
 {
 	SConfig::GetInstance().m_AdapterRumble[m_pad_id] = event.IsChecked();
+}
+
+void GCAdapterConfigDiag::OnZXSwap(wxCommandEvent &event)
+{
+	SConfig::GetInstance().m_AdapterZXSwap[m_pad_id] = event.IsChecked();
 }
 
 void GCAdapterConfigDiag::OnUpdateRate(wxTimerEvent& ev) 

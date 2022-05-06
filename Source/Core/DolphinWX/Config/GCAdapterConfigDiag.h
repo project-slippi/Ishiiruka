@@ -24,6 +24,7 @@ private:
 	
 	int m_pad_id;
 
-	void OnAdapterRumble(wxCommandEvent& event);
+	void OnAdapterRumble(wxCommandEvent &event);
+	void OnZXSwap(wxCommandEvent &event);
 	void OnUpdateRate(wxTimerEvent& ev);
 };
