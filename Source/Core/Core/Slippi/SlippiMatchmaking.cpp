@@ -85,8 +85,7 @@ std::unique_ptr<SlippiNetplayClient> SlippiMatchmaking::GetNetplayClient()
 
 bool SlippiMatchmaking::IsFixedRulesMode(SlippiMatchmaking::OnlinePlayMode mode)
 {
-	return mode == SlippiMatchmaking::OnlinePlayMode::UNRANKED ||
-		mode == SlippiMatchmaking::OnlinePlayMode::RANKED;
+	return mode == SlippiMatchmaking::OnlinePlayMode::UNRANKED || mode == SlippiMatchmaking::OnlinePlayMode::RANKED;
 }
 
 void SlippiMatchmaking::sendMessage(json msg)
@@ -357,7 +356,10 @@ void SlippiMatchmaking::startMatchmaking()
 	// Send message to server to create ticket
 	json request;
 	request["type"] = MmMessageType::CREATE_TICKET;
-	request["user"] = {{"uid", userInfo.uid}, {"playKey", userInfo.playKey}};
+	request["user"] = {{"uid", userInfo.uid},
+	                   {"playKey", userInfo.playKey},
+	                   {"connectCode", userInfo.connectCode},
+	                   {"displayName", userInfo.displayName}};
 	request["search"] = {{"mode", m_searchSettings.mode}, {"connectCode", connectCodeBuf}};
 	request["appVersion"] = scm_slippi_semver_str;
 	request["ipAddressLan"] = lanAddr;
@@ -522,12 +524,12 @@ void SlippiMatchmaking::handleMatchmaking()
 			m_allowedStages.push_back(stageId);
 		}
 	}
-	
+
 	if (m_allowedStages.empty())
 	{
 		// Default case, shouldn't ever really be hit but it's here just in case
-		m_allowedStages.push_back(0x3); // Pokemon
-		m_allowedStages.push_back(0x8); // Yoshi's Story
+		m_allowedStages.push_back(0x3);  // Pokemon
+		m_allowedStages.push_back(0x8);  // Yoshi's Story
 		m_allowedStages.push_back(0x1C); // Dream Land
 		m_allowedStages.push_back(0x1F); // Battlefield
 		m_allowedStages.push_back(0x20); // Final Destination

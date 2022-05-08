@@ -497,16 +497,13 @@ void Renderer::DrawDebugText()
 			"\n"
 			"Your GameCube Controller Adapter is reading inputs at a reduced rate.\n"
 			"You can still play normally but you will experience higher input lag.\n"
-			"This indicates a potential hardware or driver issue.\n"
-			"\n"
-			"The recommended driver on Windows is WinUSB. If you're using another driver in Zadig try switching to WinUSB.\n"
+			"This indicates a potential hardware issue.\n"
 			"\n"
 			"Go to the Dolphin -> Controllers page, click 'Configure' next to your controller's port, the check what your pollrate is."
-			"If it is considerably lower than 125 hz, try a different USB port and check again until it is around 125 hz."
-			"For more help, please ask in the official Slippi Discord server"
 			"\n"
-			"You can turn this message off by going to \"Config\" and then \"Advanced\".\n"
-			"Under \"Troubleshooting\", uncheck \"Show a message when inputs are being read at a reduced rate\".";
+			"If it is considerably lower than 125 hz, keep trying different USB ports until it is around 125 hz."
+			"\n"
+			"For more help, please ask in the official Slippi Discord server.";
 	}
 	
 	// and then the text

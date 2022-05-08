@@ -226,9 +226,8 @@ bool SlippiUser::UpdateApp()
 	std::string command = mount_path + "/usr/bin/appimageupdatetool " + path;
 	WARN_LOG(SLIPPI, "Executing app update command: %s", command.c_str());
 	RunSystemCommand(command);
-	CriticalAlertT("Restart Dolphin to finish the update. If there was an issue, please head over to the Slippi "
-	               "Discord for support.");
-	return true;
+	CriticalAlertT("Dolphin failed to update, please head over to the Slippi Discord for support.");
+	return false;
 #endif
 }
 

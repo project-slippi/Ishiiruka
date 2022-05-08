@@ -263,16 +263,7 @@ void SlippiNetplayConfigPane::OnReplaySavingToggle(wxCommandEvent &event)
 
 	SConfig::GetInstance().m_slippiSaveReplays = enableReplays;
 
-	if (enableReplays)
-	{
-		m_replay_month_folders_checkbox->Show();
-	}
-	else
-	{
-		m_replay_month_folders_checkbox->SetValue(false);
-		m_replay_month_folders_checkbox->Hide();
-		SConfig::GetInstance().m_slippiReplayMonthFolders = false;
-	}
+	enableReplays ? m_replay_month_folders_checkbox->Show() : m_replay_month_folders_checkbox->Hide();
 }
 
 void SlippiNetplayConfigPane::OnReplayMonthFoldersToggle(wxCommandEvent &event)
