@@ -659,7 +659,11 @@ void SConfig::LoadCoreSettings(IniFile &ini)
 	for (int i = 0; i < MAX_SI_CHANNELS; ++i)
 	{
 		core->Get(StringFromFormat("SIDevice%i", i), (u32 *)&m_SIDevice[i], SIDEVICE_WIIU_ADAPTER);
-		core->Get(StringFromFormat("AdapterRumble%i", i), &m_AdapterRumble[i], true);
+#ifndef IS_PLAYBACK
+		core->Get(StringFromFormat("AdapterRumble%i", i), &m_AdapterRumble[i], true); 
+#else
+		core->Get(StringFromFormat("AdapterRumble%i", i), &m_AdapterRumble[i], false);
+#endif
 		core->Get(StringFromFormat("AChoice%i", i), (int *)&m_AChoice[i], (int)PAD_BUTTON_A);
 		core->Get(StringFromFormat("BChoice%i", i), (int *)&m_BChoice[i], (int)PAD_BUTTON_B);
 		core->Get(StringFromFormat("XChoice%i", i), (int *)&m_XChoice[i], (int)PAD_BUTTON_X);

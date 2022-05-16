@@ -147,7 +147,6 @@ int SlippiDirectCodes::length()
 	return (int)directCodeInfos.size();
 }
 
-
 void SlippiDirectCodes::WriteFile()
 {
 	std::string directCodesFilePath = getCodesFilePath();
@@ -178,11 +177,8 @@ std::string SlippiDirectCodes::getCodesFilePath()
 	// TODO: Move to User dir
 #if defined(__APPLE__)
 	std::string directCodesPath = File::GetApplicationSupportDirectory() + "/Slippi/" + m_fileName;
-#elif defined(_WIN32)
-	std::string directCodesPath = File::GetExeDirectory() + "/User/Slippi/" + m_fileName;
 #else
 	std::string directCodesPath = File::GetUserPath(D_SLIPPI_IDX) + m_fileName;
-//	directCodesPath.pop_back();
 #endif
 	return directCodesPath;
 }
