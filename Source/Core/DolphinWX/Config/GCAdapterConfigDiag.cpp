@@ -72,7 +72,11 @@ GCAdapterConfigDiag::GCAdapterConfigDiag(wxWindow* const parent, const wxString&
 	szr->AddSpacer(space5);
 	szr->Add(gamecube_rumble, 0, wxEXPAND);
 	szr->AddSpacer(space5);
-	szr->Add(swap_x_and_z, 0, wxEXPAND);
+	wxBoxSizer *const a_box = new wxBoxSizer(wxHORIZONTAL);
+	a_box->Add(new wxStaticText(this, wxID_ANY, _("A: ")));
+	a_box->AddSpacer(space5);
+	a_box->Add(a_choice, 0, wxEXPAND);
+	szr->Add(a_box);
 	szr->AddSpacer(space5);
 	szr->Add(CreateButtonSizer(wxCLOSE | wxNO_DEFAULT), 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	szr->AddSpacer(space5);

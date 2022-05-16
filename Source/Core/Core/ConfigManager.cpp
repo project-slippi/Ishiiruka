@@ -650,7 +650,7 @@ void SConfig::LoadCoreSettings(IniFile &ini)
 	{
 		core->Get(StringFromFormat("SIDevice%i", i), (u32 *)&m_SIDevice[i], SIDEVICE_WIIU_ADAPTER);
 		core->Get(StringFromFormat("AdapterRumble%i", i), &m_AdapterRumble[i], true);
-		core->Get(StringFromFormat("AdapterZXSwap%i", i), &m_AdapterZXSwap[i], true);
+		core->Get(StringFromFormat("AChoice%i", i), (int*)&m_AChoice[i], (int)PAD_BUTTON_A);
 		core->Get(StringFromFormat("SimulateKonga%i", i), &m_AdapterKonga[i], false);
 	}
 	core->Get("WiiSDCard", &m_WiiSDCard, false);
