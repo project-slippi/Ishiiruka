@@ -402,7 +402,39 @@ struct SConfig : NonCopyable
 	bool m_BackgroundInput;
 	bool m_AdapterRumble[4];
 	bool m_AdapterKonga[4];
-	bool m_AdapterZXSwap[4];
+	PadButton m_AChoice[4] = {
+		PAD_BUTTON_A,
+		PAD_BUTTON_A,
+		PAD_BUTTON_A,
+		PAD_BUTTON_A};    
+	PadButton m_BChoice[4] = {
+	    PAD_BUTTON_B,
+	    PAD_BUTTON_B,
+	    PAD_BUTTON_B,
+	    PAD_BUTTON_B};
+	PadButton m_XChoice[4] = {
+	    PAD_BUTTON_X,
+	    PAD_BUTTON_X,
+	    PAD_BUTTON_X,
+	    PAD_BUTTON_X};
+	PadButton m_YChoice[4] = {
+	    PAD_BUTTON_Y,
+	    PAD_BUTTON_Y,
+	    PAD_BUTTON_Y,
+	    PAD_BUTTON_Y
+	};
+	PadButton m_ZChoice[4] = {
+	    PAD_TRIGGER_Z,
+	    PAD_TRIGGER_Z,
+	    PAD_TRIGGER_Z,
+	    PAD_TRIGGER_Z
+	};
+	PadButton m_LChoice[4] = {PAD_TRIGGER_L, PAD_TRIGGER_L, PAD_TRIGGER_L, PAD_TRIGGER_L};
+	PadButton m_RChoice[4] = {PAD_TRIGGER_R, PAD_TRIGGER_R, PAD_TRIGGER_R, PAD_TRIGGER_R};
+	PadButton m_UpChoice[4] = {PAD_BUTTON_UP, PAD_BUTTON_UP, PAD_BUTTON_UP, PAD_BUTTON_UP};
+	PadButton m_RightChoice[4] = {PAD_BUTTON_RIGHT, PAD_BUTTON_RIGHT, PAD_BUTTON_RIGHT, PAD_BUTTON_RIGHT};
+	PadButton m_DownChoice[4] = {PAD_BUTTON_DOWN, PAD_BUTTON_DOWN, PAD_BUTTON_DOWN, PAD_BUTTON_DOWN};
+	PadButton m_LeftChoice[4] = {PAD_BUTTON_LEFT, PAD_BUTTON_LEFT, PAD_BUTTON_LEFT, PAD_BUTTON_LEFT};
 
 	// Network settings
 	bool m_SSLDumpRead;

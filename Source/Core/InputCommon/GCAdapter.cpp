@@ -824,47 +824,29 @@ GCPadStatus Input(int chan, std::chrono::high_resolution_clock::time_point *tp)
 			if (b1 & (1 << 0))
 				pad.button |= PAD_BUTTON_A;
 			if (b1 & (1 << 1))
-				pad.button |= PAD_BUTTON_B;
+				pad.button |= SConfig::GetInstance().m_BChoice[chan];
 			if (b1 & (1 << 2))
-			{
-				if (!SConfig::GetInstance().m_AdapterZXSwap[chan])
-				{
-					pad.button |= PAD_BUTTON_X;
-				}
-				else
-				{
-					pad.button |= PAD_TRIGGER_Z;
-				}
-			}
+				pad.button |= SConfig::GetInstance().m_XChoice[chan];
 			if (b1 & (1 << 3))
-				pad.button |= PAD_BUTTON_Y;
+				pad.button |= SConfig::GetInstance().m_YChoice[chan];
 
 			if (b1 & (1 << 4))
-				pad.button |= PAD_BUTTON_LEFT;
+				pad.button |= SConfig::GetInstance().m_LeftChoice[chan];
 			if (b1 & (1 << 5))
-				pad.button |= PAD_BUTTON_RIGHT;
+				pad.button |= SConfig::GetInstance().m_RightChoice[chan];
 			if (b1 & (1 << 6))
-				pad.button |= PAD_BUTTON_DOWN;
+				pad.button |= SConfig::GetInstance().m_DownChoice[chan];
 			if (b1 & (1 << 7))
-				pad.button |= PAD_BUTTON_UP;
+				pad.button |= SConfig::GetInstance().m_UpChoice[chan];
 
 			if (b2 & (1 << 0))
 				pad.button |= PAD_BUTTON_START;
 			if (b2 & (1 << 1))
-			{
-				if (!SConfig::GetInstance().m_AdapterZXSwap[chan])
-				{
-					pad.button |= PAD_TRIGGER_Z;
-				}
-				else
-				{
-					pad.button |= PAD_BUTTON_X;
-				}
-			}
+				pad.button |= SConfig::GetInstance().m_ZChoice[chan];
 			if (b2 & (1 << 2))
-				pad.button |= PAD_TRIGGER_R;
+				pad.button |= SConfig::GetInstance().m_RChoice[chan];
 			if (b2 & (1 << 3))
-				pad.button |= PAD_TRIGGER_L;
+				pad.button |= SConfig::GetInstance().m_LChoice[chan];
 
 			if (get_origin)
 				pad.button |= PAD_GET_ORIGIN;
