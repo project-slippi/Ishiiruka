@@ -110,6 +110,8 @@ GCAdapterConfigDiag::GCAdapterConfigDiag(wxWindow* const parent, const wxString&
 	szr->AddSpacer(space5);
 	szr->Add(gamecube_rumble, 0, wxEXPAND);
 	szr->AddSpacer(space5);
+	szr->Add(new wxStaticText(this, wxID_ANY, _("Button remapping: ")));
+	szr->AddSpacer(space5);
 
 	wxBoxSizer *const a_box = new wxBoxSizer(wxHORIZONTAL);
 	a_box->Add(new wxStaticText(this, wxID_ANY, _("A: ")));
