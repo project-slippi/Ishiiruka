@@ -17,6 +17,8 @@
 
 #include "DiscIO/Filesystem.h"
 
+#include "DiscIO/Filesystem.h"
+
 namespace DiscIO
 {
 enum class Language;

@@ -20,32 +20,32 @@ GCAdapterConfigDiag::GCAdapterConfigDiag(wxWindow* const parent, const wxString&
 	: wxDialog(parent, wxID_ANY, name), m_pad_id(tab_num)
 {
 	GCAdapter::ResetAdapterIfNecessary();
-    wxArrayString remap_array_string;
+  wxArrayString remap_array_string;
 
-    remap_array_string.Add(_("A"));
-    remap_array_string.Add(_("B"));
-    remap_array_string.Add(_("X"));
-    remap_array_string.Add(_("Y"));
-    remap_array_string.Add(_("Z"));
-    remap_array_string.Add(_("L"));
-    remap_array_string.Add(_("R"));
-    remap_array_string.Add(_("D-pad up"));
-    remap_array_string.Add(_("D-pad right"));
-    remap_array_string.Add(_("D-pad down"));
-    remap_array_string.Add(_("D-pad left"));
+  remap_array_string.Add(_("A"));
+  remap_array_string.Add(_("B"));
+  remap_array_string.Add(_("X"));
+  remap_array_string.Add(_("Y"));
+  remap_array_string.Add(_("Z"));
+  remap_array_string.Add(_("L"));
+  remap_array_string.Add(_("R"));
+  remap_array_string.Add(_("D-pad up"));
+  remap_array_string.Add(_("D-pad right"));
+  remap_array_string.Add(_("D-pad down"));
+  remap_array_string.Add(_("D-pad left"));
 
 	wxCheckBox* const gamecube_rumble = new wxCheckBox(this, wxID_ANY, _("Rumble"));
-    wxChoice* const a_choice = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, remap_array_string);
-    wxChoice* const b_choice = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, remap_array_string);
-    wxChoice* const x_choice = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, remap_array_string);
+  wxChoice* const a_choice = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, remap_array_string);
+  wxChoice* const b_choice = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, remap_array_string);
+  wxChoice* const x_choice = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, remap_array_string);
 	wxChoice *const y_choice = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, remap_array_string);
-    wxChoice* const z_choice = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, remap_array_string);
-    wxChoice* const l_choice = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, remap_array_string);
-    wxChoice* const r_choice = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, remap_array_string);
-    wxChoice* const up_choice = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, remap_array_string);
-    wxChoice* const right_choice = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, remap_array_string);
-    wxChoice* const down_choice = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, remap_array_string);
-    wxChoice* const left_choice = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, remap_array_string);
+  wxChoice* const z_choice = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, remap_array_string);
+  wxChoice* const l_choice = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, remap_array_string);
+  wxChoice* const r_choice = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, remap_array_string);
+  wxChoice* const up_choice = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, remap_array_string);
+  wxChoice* const right_choice = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, remap_array_string);
+  wxChoice* const down_choice = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, remap_array_string);
+  wxChoice* const left_choice = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, remap_array_string);
 	gamecube_rumble->SetValue(SConfig::GetInstance().m_AdapterRumble[m_pad_id]);
 	gamecube_rumble->Bind(wxEVT_CHECKBOX, &GCAdapterConfigDiag::OnAdapterRumble, this);
 
