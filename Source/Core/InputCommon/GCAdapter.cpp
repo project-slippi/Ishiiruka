@@ -822,7 +822,7 @@ GCPadStatus Input(int chan, std::chrono::high_resolution_clock::time_point *tp)
 			u8 b2 = controller_payload_copy[1 + (9 * chan) + 2];
 
 			if (b1 & (1 << 0))
-				pad.button |= PAD_BUTTON_A;
+				pad.button |= SConfig::GetInstance().m_AChoice[chan];
 			if (b1 & (1 << 1))
 				pad.button |= SConfig::GetInstance().m_BChoice[chan];
 			if (b1 & (1 << 2))
