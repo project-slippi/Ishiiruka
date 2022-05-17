@@ -6,6 +6,8 @@
 
 #include <wx/dialog.h>
 #include <wx/timer.h>
+#include <wx/choice.h>
+#include "InputCommon/GCPadStatus.h"
 
 class wxStaticText;
 

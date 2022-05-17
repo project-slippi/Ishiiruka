@@ -13,6 +13,7 @@
 #include "Common/NonCopyable.h"
 #include "Core/HW/EXI_Device.h"
 #include "Core/HW/SI_Device.h"
+#include "InputCommon/GCPadStatus.h"
 
 #include "DiscIO/Filesystem.h"
 
