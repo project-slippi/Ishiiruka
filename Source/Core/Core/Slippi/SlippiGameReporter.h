@@ -21,6 +21,10 @@ class SlippiGameReporter
 		u8 slotType;
 		float damageDone;
 		u8 stocksRemaining;
+		u8 charId;
+		u8 colorId;
+		int startingStocks;
+		int startingPercent;
 	};
 	struct GameReport
 	{
@@ -30,6 +34,7 @@ class SlippiGameReporter
 		u32 gameIndex = 0;
 		u32 tiebreakIndex = 0;
 		s8 winnerIdx = 0;
+		int stageId;
 		std::vector<PlayerReport> players;
 	};
 

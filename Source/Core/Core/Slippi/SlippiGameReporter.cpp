@@ -117,6 +117,7 @@ void SlippiGameReporter::ReportThreadHandler()
 			request["tiebreakIndex"] = report.onlineMode == ranked ? report.tiebreakIndex : 0;
 			request["gameDurationFrames"] = report.durationFrames;
 			request["winnerIdx"] = report.winnerIdx;
+			request["stageId"] = report.stageId;
 
 			json players = json::array();
 			for (int i = 0; i < report.players.size(); i++)
@@ -126,6 +127,10 @@ void SlippiGameReporter::ReportThreadHandler()
 				p["slotType"] = report.players[i].slotType;
 				p["damageDone"] = report.players[i].damageDone;
 				p["stocksRemaining"] = report.players[i].stocksRemaining;
+				p["characterId"] = report.players[i].charId;
+				p["colorId"] = report.players[i].colorId;
+				p["startingStocks"] = report.players[i].startingStocks;
+				p["startingPercent"] = report.players[i].startingPercent;
 
 				players[i] = p;
 			}

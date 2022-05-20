@@ -29,6 +29,7 @@ class SlippiExiTypes
 		u32 tiebreakIndex;
 		s8 winnerIdx;
 		ReportGameQueryPlayer players[REPORT_PLAYER_COUNT];
+		u8 gameInfoBlock[312];
 	};
 
 	struct GpCompleteStepQuery

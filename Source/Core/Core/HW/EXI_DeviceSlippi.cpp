@@ -3064,7 +3064,6 @@ void CEXISlippi::prepareNewSeed()
 
 void CEXISlippi::handleReportGame(SlippiExiTypes::ReportGameQuery &query)
 {
-#ifndef LOCAL_TESTING
 	SlippiGameReporter::GameReport r;
 	r.matchId = recentMmResult.id;
 	r.onlineMode = static_cast<SlippiMatchmaking::OnlinePlayMode>(query.onlineMode);
@@ -3072,9 +3071,10 @@ void CEXISlippi::handleReportGame(SlippiExiTypes::ReportGameQuery &query)
 	r.gameIndex = query.gameIndex;
 	r.tiebreakIndex = query.tiebreakIndex;
 	r.winnerIdx = query.winnerIdx;
+	r.stageId = Common::FromBigEndian(*(u16 *)&query.gameInfoBlock[0xE]);
 
-	ERROR_LOG(SLIPPI_ONLINE, "Mode: %d / %d, Frames: %d, GameIdx: %d, TiebreakIdx: %d, WinnerIdx: %d", r.onlineMode, query.onlineMode,
-	          r.durationFrames, r.gameIndex, r.tiebreakIndex, r.winnerIdx);
+	ERROR_LOG(SLIPPI_ONLINE, "Mode: %d / %d, Frames: %d, GameIdx: %d, TiebreakIdx: %d, WinnerIdx: %d, StageId: %d",
+	          r.onlineMode, query.onlineMode, r.durationFrames, r.gameIndex, r.tiebreakIndex, r.winnerIdx, r.stageId);
 
 	auto mmPlayers = recentMmResult.players;
 
@@ -3085,13 +3085,21 @@ void CEXISlippi::handleReportGame(SlippiExiTypes::ReportGameQuery &query)
 		p.slotType = query.players[i].slotType;
 		p.stocksRemaining = query.players[i].stocksRemaining;
 		p.damageDone = query.players[i].damageDone;
+		p.charId = query.gameInfoBlock[0x60 + 0x24 * i];
+		p.colorId = query.gameInfoBlock[0x63 + 0x24 * i];
+		p.startingStocks = query.gameInfoBlock[0x62 + 0x24 * i];
+		p.startingPercent = Common::FromBigEndian(*(u16 *)&query.gameInfoBlock[0x70 + 0x24 * i]);
 
-		ERROR_LOG(SLIPPI_ONLINE, "UID: %s, Port Type: %d, Stocks: %d, DamageDone: %f", p.uid.c_str(), p.slotType,
-		          p.stocksRemaining, p.damageDone);
+		ERROR_LOG(SLIPPI_ONLINE,
+		          "UID: %s, Port Type: %d, Stocks: %d, DamageDone: %f, CharId: %d, ColorId: %d, StartStocks: %d, "
+		          "StartPercent: %d",
+		          p.uid.c_str(), p.slotType, p.stocksRemaining, p.damageDone, p.charId, p.colorId, p.startingStocks,
+		          p.startingPercent);
 
 		r.players.push_back(p);
 	}
 
+#ifndef LOCAL_TESTING
 	gameReporter->StartReport(r);
 #endif
 }
