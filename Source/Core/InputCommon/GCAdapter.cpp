@@ -855,8 +855,22 @@ GCPadStatus Input(int chan, std::chrono::high_resolution_clock::time_point *tp)
 			pad.stickY = controller_payload_copy[1 + (9 * chan) + 4];
 			pad.substickX = controller_payload_copy[1 + (9 * chan) + 5];
 			pad.substickY = controller_payload_copy[1 + (9 * chan) + 6];
-			pad.triggerLeft = controller_payload_copy[1 + (9 * chan) + 7];
-			pad.triggerRight = controller_payload_copy[1 + (9 * chan) + 8];
+			if (SConfig::GetInstance().m_LChoice[chan] == PAD_TRIGGER_L)
+			{
+				pad.triggerLeft = controller_payload_copy[1 + (9 * chan) + 7];
+			}
+			else
+			{
+				pad.triggerLeft = 0;
+			}
+			if (SConfig::GetInstance().m_RChoice[chan] == PAD_TRIGGER_R)
+			{
+				pad.triggerRight = controller_payload_copy[1 + (9 * chan) + 8];
+			}
+			else
+			{
+				pad.triggerRight = 0;
+			}
 		}
 		else
 		{
