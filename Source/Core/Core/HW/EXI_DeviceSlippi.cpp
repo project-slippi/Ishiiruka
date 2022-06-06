@@ -697,8 +697,6 @@ void CEXISlippi::prepareGameInfo(u8 *payload)
 	if (!g_playbackStatus->isHardFFW)
 		g_playbackStatus->isHardFFW = replayCommSettings.mode == "mirror";
 
-	if (g_replayComm->getSettings().gameStation != "")
-		wxGetApp().GetCFrame()->SetTitle(scm_rev_str + " - " + g_replayComm->getSettings().gameStation);
 
 	g_playbackStatus->lastFFWFrame = INT_MIN;
 

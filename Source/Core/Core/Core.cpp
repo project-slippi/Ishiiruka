@@ -65,6 +65,8 @@
 #include "Core/PowerPC/PowerPC.h"
 #include "Core/State.h"
 #include "Core/Slippi/SlippiNetplay.h"
+#include "Core/Slippi/SlippiReplayComm.h"
+#include "Core/Slippi/SlippiPlayback.h"
 
 #ifdef USE_GDBSTUB
 #include "Core/PowerPC/GDBStub.h"
@@ -85,6 +87,9 @@
 #define ThreadLocalStorage thread_local
 #endif
 
+#ifdef IS_PLAYBACK
+extern std::unique_ptr<SlippiReplayComm> g_replayComm;
+#endif
 
 namespace Core
 {
@@ -966,6 +971,12 @@ void UpdateTitle()
 	}
 	// This is our final "frame counter" string
 	std::string SMessage = StringFromFormat("%s | %s", SSettings.c_str(), SFPS.c_str());
+
+#ifdef IS_PLAYBACK
+	if (g_replayComm->getSettings().gameStation != "")
+		SMessage = StringFromFormat("%s | %s", SMessage.c_str(), g_replayComm->getSettings().gameStation.c_str());
+#endif
+
 	Host_UpdateTitle(SMessage);
 }
 
