@@ -932,6 +932,16 @@ void UpdateTitle()
 		"%s %s | %s | %s", PowerPC::GetCPUName(), _CoreParameter.bCPUThread ? "DC" : "SC",
 		g_video_backend->GetDisplayName().c_str(), _CoreParameter.bDSPHLE ? "HLE" : "LLE");
 
+#ifdef IS_PLAYBACK
+	// we will skip FPS in the title to ensure a static string if gameStation is set
+	// this ensures that OBS can capture a specific instance reliably.
+	if (g_replayComm->getSettings().gameStation != "") {
+		std::string window_title = StringFromFormat("%s | %s", SSettings.c_str(), g_replayComm->getSettings().gameStation.c_str());
+		Host_UpdateTitle(window_title);
+		return;
+	}
+#endif
+
 	std::string SFPS;
 
 	if (Movie::IsPlayingInput())
@@ -971,11 +981,6 @@ void UpdateTitle()
 	}
 	// This is our final "frame counter" string
 	std::string SMessage = StringFromFormat("%s | %s", SSettings.c_str(), SFPS.c_str());
-
-#ifdef IS_PLAYBACK
-	if (g_replayComm->getSettings().gameStation != "")
-		SMessage = StringFromFormat("%s | %s", SMessage.c_str(), g_replayComm->getSettings().gameStation.c_str());
-#endif
 
 	Host_UpdateTitle(SMessage);
 }
