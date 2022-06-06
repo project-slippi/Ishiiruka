@@ -697,7 +697,6 @@ void CEXISlippi::prepareGameInfo(u8 *payload)
 	if (!g_playbackStatus->isHardFFW)
 		g_playbackStatus->isHardFFW = replayCommSettings.mode == "mirror";
 
-
 	g_playbackStatus->lastFFWFrame = INT_MIN;
 
 	// Build a word containing the stage and the presence of the characters
@@ -1770,9 +1769,11 @@ bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame)
 		{
 			// We don't show this message for teams because it seems to false positive a lot there, maybe because the
 			// min offset is always selected? Idk I feel like doubles has some perf issues I don't understand atm.
-			OSD::AddTypedMessage(OSD::MessageType::PerformanceWarning,
-			                     "\nPossible poor match performance detected.\nIf this message appears with most opponents, your computer or network is likely impacting match performance for the other players.",
-			                     10000, OSD::Color::RED);
+			OSD::AddTypedMessage(
+			    OSD::MessageType::PerformanceWarning,
+			    "\nPossible poor match performance detected.\nIf this message appears with most opponents, your "
+			    "computer or network is likely impacting match performance for the other players.",
+			    10000, OSD::Color::RED);
 		}
 
 		if (offsetUs < -t2 && !isCurrentlyAdvancing)
