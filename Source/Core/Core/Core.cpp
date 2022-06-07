@@ -63,8 +63,11 @@
 #include "Core/PatchEngine.h"
 #include "Core/PowerPC/JitInterface.h"
 #include "Core/PowerPC/PowerPC.h"
-#include "Core/State.h"
 #include "Core/Slippi/SlippiNetplay.h"
+#include "Core/Slippi/SlippiPlayback.h"
+#include "Core/Slippi/SlippiReplayComm.h"
+#include "Core/State.h"
+
 
 #ifdef USE_GDBSTUB
 #include "Core/PowerPC/GDBStub.h"
@@ -81,10 +84,13 @@
 // Android and OSX haven't implemented the keyword yet.
 #if defined __ANDROID__ || defined __APPLE__
 #include <pthread.h>
-#else  // Everything besides OSX and Android
+#else // Everything besides OSX and Android
 #define ThreadLocalStorage thread_local
 #endif
 
+#ifdef IS_PLAYBACK
+extern std::unique_ptr<SlippiReplayComm> g_replayComm;
+#endif
 
 namespace Core
 {
@@ -99,7 +105,7 @@ static std::atomic<u32> s_drawn_frame;
 static std::atomic<u32> s_drawn_video;
 
 // Function forwarding
-void Callback_WiimoteInterruptChannel(int _number, u16 _channelID, const void* _pData, u32 _Size);
+void Callback_WiimoteInterruptChannel(int _number, u16 _channelID, const void *_pData, u32 _Size);
 
 // Function declarations
 void EmuThread();
@@ -108,7 +114,7 @@ static bool s_is_stopping = false;
 static bool s_hardware_initialized = false;
 static bool s_is_started = false;
 static Common::Flag s_is_booting;
-static void* s_window_handle = nullptr;
+static void *s_window_handle = nullptr;
 static std::string s_state_filename;
 static std::thread s_emu_thread;
 static StoppedCallbackFunc s_on_stopped_callback = nullptr;
@@ -151,7 +157,7 @@ std::string GetStateFileName()
 {
 	return s_state_filename;
 }
-void SetStateFileName(const std::string& val)
+void SetStateFileName(const std::string &val)
 {
 	s_state_filename = val;
 }
@@ -165,19 +171,19 @@ void FrameUpdateOnCPUThread()
 // Display messages and return values
 
 // Formatted stop message
-std::string StopMessage(bool main_thread, const std::string& message)
+std::string StopMessage(bool main_thread, const std::string &message)
 {
 	return StringFromFormat("Stop [%s %i]\t%s\t%s", main_thread ? "Main Thread" : "Video Thread",
-		Common::CurrentThreadId(), Common::MemUsage().c_str(), message.c_str());
+	                        Common::CurrentThreadId(), Common::MemUsage().c_str(), message.c_str());
 }
 
-void DisplayMessage(const std::string& message, int time_in_ms)
+void DisplayMessage(const std::string &message, int time_in_ms)
 {
 	if (!IsRunning())
 		return;
 
 	// Actually displaying non-ASCII could cause things to go pear-shaped
-	for (const char& c : message)
+	for (const char &c : message)
 	{
 		if (!std::isprint(c))
 			return;
@@ -217,7 +223,7 @@ bool IsCPUThread()
 
 bool IsGPUThread()
 {
-	const SConfig& _CoreParameter = SConfig::GetInstance();
+	const SConfig &_CoreParameter = SConfig::GetInstance();
 	if (_CoreParameter.bCPUThread)
 	{
 		return (s_emu_thread.joinable() && (s_emu_thread.get_id() == std::this_thread::get_id()));
@@ -232,7 +238,7 @@ bool IsGPUThread()
 // BootManager.cpp
 bool Init()
 {
-	const SConfig& _CoreParameter = SConfig::GetInstance();
+	const SConfig &_CoreParameter = SConfig::GetInstance();
 
 	if (s_emu_thread.joinable())
 	{
@@ -254,14 +260,14 @@ bool Init()
 	INFO_LOG(OSREPORT, "Starting core = %s mode", _CoreParameter.bWii ? "Wii" : "GameCube");
 	INFO_LOG(OSREPORT, "CPU Thread separate = %s", _CoreParameter.bCPUThread ? "Yes" : "No");
 
-	Host_UpdateMainFrame();  // Disable any menus or buttons at boot
+	Host_UpdateMainFrame(); // Disable any menus or buttons at boot
 
 	g_aspect_wide = _CoreParameter.bWii;
 	if (g_aspect_wide)
 	{
 		IniFile gameIni = _CoreParameter.LoadGameIni();
 		gameIni.GetOrCreateSection("Wii")->Get("Widescreen", &g_aspect_wide,
-			!!SConfig::GetInstance().m_wii_aspect_ratio);
+		                                       !!SConfig::GetInstance().m_wii_aspect_ratio);
 	}
 
 	s_window_handle = Host_GetRenderHandle();
@@ -278,12 +284,12 @@ bool Init()
 }
 
 // Called from GUI thread
-void Stop()  // - Hammertime!
+void Stop() // - Hammertime!
 {
 	if (GetState() == CORE_STOPPING)
 		return;
 
-	const SConfig& _CoreParameter = SConfig::GetInstance();
+	const SConfig &_CoreParameter = SConfig::GetInstance();
 
 	s_is_stopping = true;
 
@@ -324,7 +330,7 @@ void DeclareAsCPUThread()
 	// Use pthread implementation for Android and Mac
 	// Make sure that s_tls_is_cpu_key is initialized
 	pthread_once(&s_cpu_key_is_init, InitIsCPUKey);
-	pthread_setspecific(s_tls_is_cpu_key, (void*)true);
+	pthread_setspecific(s_tls_is_cpu_key, (void *)true);
 #endif
 }
 
@@ -336,7 +342,7 @@ void UndeclareAsCPUThread()
 	// Use pthread implementation for Android and Mac
 	// Make sure that s_tls_is_cpu_key is initialized
 	pthread_once(&s_cpu_key_is_init, InitIsCPUKey);
-	pthread_setspecific(s_tls_is_cpu_key, (void*)false);
+	pthread_setspecific(s_tls_is_cpu_key, (void *)false);
 #endif
 }
 
@@ -354,9 +360,9 @@ static void CpuThread()
 {
 	DeclareAsCPUThread();
 
-	const SConfig& _CoreParameter = SConfig::GetInstance();
+	const SConfig &_CoreParameter = SConfig::GetInstance();
 
-	VideoBackendBase* video_backend = g_video_backend;
+	VideoBackendBase *video_backend = g_video_backend;
 	if (_CoreParameter.bCPUThread)
 	{
 		Common::SetCurrentThreadName("CPU thread");
@@ -371,7 +377,7 @@ static void CpuThread()
 	DolphinAnalytics::Instance()->ReportGameStart();
 
 	if (_CoreParameter.bFastmem)
-		EMM::InstallExceptionHandler();  // Let's run under memory watch
+		EMM::InstallExceptionHandler(); // Let's run under memory watch
 
 	if (!s_state_filename.empty())
 	{
@@ -397,12 +403,12 @@ static void CpuThread()
 	}
 	else
 #endif
-		if (_CoreParameter.iGDBPort > 0)
-		{
-			gdb_init(_CoreParameter.iGDBPort);
-			// break at next instruction (the first instruction)
-			gdb_break();
-		}
+	    if (_CoreParameter.iGDBPort > 0)
+	{
+		gdb_init(_CoreParameter.iGDBPort);
+		// break at next instruction (the first instruction)
+		gdb_break();
+	}
 #endif
 
 #ifdef USE_MEMORYWATCHER
@@ -426,8 +432,8 @@ static void CpuThread()
 static void FifoPlayerThread()
 {
 	DeclareAsCPUThread();
-	const SConfig& _CoreParameter = SConfig::GetInstance();
-	VideoBackendBase* video_backend = g_video_backend;
+	const SConfig &_CoreParameter = SConfig::GetInstance();
+	VideoBackendBase *video_backend = g_video_backend;
 	if (_CoreParameter.bCPUThread)
 	{
 		Common::SetCurrentThreadName("FIFO player thread");
@@ -481,11 +487,11 @@ static void FifoPlayerThread()
 // See the BootManager.cpp file description for a complete call schedule.
 void EmuThread()
 {
-	const SConfig& core_parameter = SConfig::GetInstance();
+	const SConfig &core_parameter = SConfig::GetInstance();
 	s_is_booting.Set();
 
 	Common::SetCurrentThreadName("Emuthread - Starting");
-	VideoBackendBase* video_backend = g_video_backend;
+	VideoBackendBase *video_backend = g_video_backend;
 	if (SConfig::GetInstance().m_OCEnable)
 		DisplayMessage("WARNING: running at non-native CPU clock! Game may not be stable.", 8000);
 	DisplayMessage(cpu_info.brand_string, 8000);
@@ -543,9 +549,8 @@ void EmuThread()
 	if (core_parameter.bWii && !SConfig::GetInstance().m_bt_passthrough_enabled)
 	{
 		if (init_controllers)
-			Wiimote::Initialize(!s_state_filename.empty() ?
-				Wiimote::InitializeMode::DO_WAIT_FOR_WIIMOTES :
-				Wiimote::InitializeMode::DO_NOT_WAIT_FOR_WIIMOTES);
+			Wiimote::Initialize(!s_state_filename.empty() ? Wiimote::InitializeMode::DO_WAIT_FOR_WIIMOTES
+			                                              : Wiimote::InitializeMode::DO_NOT_WAIT_FOR_WIIMOTES);
 		else
 			Wiimote::LoadConfig();
 
@@ -577,7 +582,7 @@ void EmuThread()
 
 	// Setup our core, but can't use dynarec if we are compare server
 	if (core_parameter.iCPUCore != PowerPC::CORE_INTERPRETER &&
-		(!core_parameter.bRunCompareServer || core_parameter.bRunCompareClient))
+	    (!core_parameter.bRunCompareServer || core_parameter.bRunCompareClient))
 	{
 		PowerPC::SetMode(PowerPC::MODE_JIT);
 	}
@@ -591,7 +596,7 @@ void EmuThread()
 	Host_UpdateMainFrame();
 
 	// Determine the CPU thread function
-	void(*cpuThreadFunc)(void);
+	void (*cpuThreadFunc)(void);
 	if (core_parameter.m_BootType == SConfig::BOOT_DFF)
 		cpuThreadFunc = FifoPlayerThread;
 	else
@@ -615,7 +620,7 @@ void EmuThread()
 		// We have now exited the Video Loop
 		INFO_LOG(CONSOLE, "%s", StopMessage(false, "Video Loop Ended").c_str());
 	}
-	else  // SingleCore mode
+	else // SingleCore mode
 	{
 		// The spawned CPU Thread also does the graphics.
 		// The EmuThread is thus an idle thread, which sleeps while
@@ -702,15 +707,15 @@ void SetState(EState state)
 		return;
 
 	// Do not allow any kind of cpu pause/resum if we are connected to someone on slippi
-    if(IsOnline())
-        return;
+	if (IsOnline())
+		return;
 
-    switch (state)
+	switch (state)
 	{
 	case CORE_PAUSE:
 		// NOTE: GetState() will return CORE_PAUSE immediately, even before anything has
 		//   stopped (including the CPU).
-		CPU::EnableStepping(true);  // Break
+		CPU::EnableStepping(true); // Break
 		Wiimote::Pause();
 #if defined(__LIBUSB__)
 		GCAdapter::ResetRumble();
@@ -744,7 +749,7 @@ EState GetState()
 
 static std::string GenerateScreenshotFolderPath()
 {
-	const std::string& gameId = SConfig::GetInstance().GetGameID();
+	const std::string &gameId = SConfig::GetInstance().GetGameID();
 	std::string path = File::GetUserPath(D_SCREENSHOTS_IDX) + gameId + DIR_SEP_CHR;
 
 	if (!File::CreateFullPath(path))
@@ -787,7 +792,7 @@ void SaveScreenShot()
 		SetState(CORE_RUN);
 }
 
-void SaveScreenShot(const std::string& name)
+void SaveScreenShot(const std::string &name)
 {
 	const bool bPaused = (GetState() == CORE_PAUSE);
 
@@ -912,31 +917,42 @@ void UpdateTitle()
 {
 	u32 ElapseTime = (u32)s_timer.GetTimeDifference();
 	s_request_refresh_info = false;
-	SConfig& _CoreParameter = SConfig::GetInstance();
+	SConfig &_CoreParameter = SConfig::GetInstance();
 
 	if (ElapseTime == 0)
 		ElapseTime = 1;
 
 	float FPS = (float)(s_drawn_frame.load() * 1000.0 / ElapseTime);
 	float VPS = (float)(s_drawn_video.load() * 1000.0 / ElapseTime);
-	float Speed = (float)(s_drawn_video.load() * (100 * 1000.0) /
-		(VideoInterface::GetTargetRefreshRate() * ElapseTime));
+	float Speed =
+	    (float)(s_drawn_video.load() * (100 * 1000.0) / (VideoInterface::GetTargetRefreshRate() * ElapseTime));
 
 	// Settings are shown the same for both extended and summary info
-	std::string SSettings = StringFromFormat(
-		"%s %s | %s | %s", PowerPC::GetCPUName(), _CoreParameter.bCPUThread ? "DC" : "SC",
-		g_video_backend->GetDisplayName().c_str(), _CoreParameter.bDSPHLE ? "HLE" : "LLE");
+	std::string SSettings =
+	    StringFromFormat("%s %s | %s | %s", PowerPC::GetCPUName(), _CoreParameter.bCPUThread ? "DC" : "SC",
+	                     g_video_backend->GetDisplayName().c_str(), _CoreParameter.bDSPHLE ? "HLE" : "LLE");
+
+#ifdef IS_PLAYBACK
+	// we will skip FPS in the title to ensure a static string if gameStation is set
+	// this ensures that OBS can capture a specific instance reliably.
+	if (g_replayComm->getSettings().gameStation != "")
+	{
+		std::string window_title =
+		    StringFromFormat("%s | %s", SSettings.c_str(), g_replayComm->getSettings().gameStation.c_str());
+		Host_UpdateTitle(window_title);
+		return;
+	}
+#endif
 
 	std::string SFPS;
 
 	if (Movie::IsPlayingInput())
 		SFPS = StringFromFormat("Input: %u/%u - VI: %u - FPS: %.0f - VPS: %.0f - %.0f%%",
-		(u32)Movie::GetCurrentInputCount(), (u32)Movie::GetTotalInputCount(),
-			(u32)Movie::GetCurrentFrame(), FPS, VPS, Speed);
+		                        (u32)Movie::GetCurrentInputCount(), (u32)Movie::GetTotalInputCount(),
+		                        (u32)Movie::GetCurrentFrame(), FPS, VPS, Speed);
 	else if (Movie::IsRecordingInput())
 		SFPS = StringFromFormat("Input: %u - VI: %u - FPS: %.0f - VPS: %.0f - %.0f%%",
-		(u32)Movie::GetCurrentInputCount(), (u32)Movie::GetCurrentFrame(), FPS,
-			VPS, Speed);
+		                        (u32)Movie::GetCurrentInputCount(), (u32)Movie::GetCurrentFrame(), FPS, VPS, Speed);
 	else
 	{
 		SFPS = StringFromFormat("FPS: %.0f - VPS: %.0f - %.0f%%", FPS, VPS, Speed);
@@ -956,16 +972,16 @@ void UpdateTitle()
 			ticks = newTicks;
 			idleTicks = newIdleTicks;
 
-			float TicksPercentage =
-				(float)diff / (float)(SystemTimers::GetTicksPerSecond() / 1000000) * 100;
+			float TicksPercentage = (float)diff / (float)(SystemTimers::GetTicksPerSecond() / 1000000) * 100;
 
-			SFPS += StringFromFormat(" | CPU: ~%i MHz [Real: %i + IdleSkip: %i] / %i MHz (~%3.0f%%)",
-				(int)(diff), (int)(diff - idleDiff), (int)(idleDiff),
-				SystemTimers::GetTicksPerSecond() / 1000000, TicksPercentage);
+			SFPS += StringFromFormat(" | CPU: ~%i MHz [Real: %i + IdleSkip: %i] / %i MHz (~%3.0f%%)", (int)(diff),
+			                         (int)(diff - idleDiff), (int)(idleDiff),
+			                         SystemTimers::GetTicksPerSecond() / 1000000, TicksPercentage);
 		}
 	}
 	// This is our final "frame counter" string
 	std::string SMessage = StringFromFormat("%s | %s", SSettings.c_str(), SFPS.c_str());
+
 	Host_UpdateTitle(SMessage);
 }
 
@@ -1022,7 +1038,7 @@ void QueueHostJob(std::function<void()> job, bool run_during_stop)
 	{
 		std::lock_guard<std::mutex> guard(s_host_jobs_lock);
 		send_message = s_host_jobs_queue.empty();
-		s_host_jobs_queue.emplace(HostJob{ std::move(job), run_during_stop });
+		s_host_jobs_queue.emplace(HostJob{std::move(job), run_during_stop});
 	}
 	// If the the queue was empty then kick the Host to come and get this job.
 	if (send_message)
@@ -1054,4 +1070,4 @@ void HostDispatchJobs()
 	}
 }
 
-}  // Core
+} // namespace Core
