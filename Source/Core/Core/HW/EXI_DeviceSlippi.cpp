@@ -1120,7 +1120,8 @@ void CEXISlippi::prepareGeckoList()
 
 	    {0x802f6690, true}, // HUD Transparency v1.1 (https://smashboards.com/threads/transparent-hud-v1-1.508509/)
 	    {0x802F71E0, true}, // Smaller "Ready, GO!" (https://smashboards.com/threads/smaller-ready-go.509740/)
-		{0x80071960, true}, // Yellow During IASA (https://smashboards.com/threads/color-overlays-for-iasa-frames.401474/post-19120928)
+	    {0x80071960, true}, // Yellow During IASA
+	                        // (https://smashboards.com/threads/color-overlays-for-iasa-frames.401474/post-19120928)
 	};
 
 	std::unordered_map<u32, bool> blacklist;
@@ -1669,7 +1670,7 @@ bool CEXISlippi::shouldSkipOnlineFrame(s32 frame, s32 finalizedFrame)
 
 		// At the start of the game, let's make sure to sync perfectly, but after that let the slow instance
 		// try to do more work before we stall
-	
+
 		// The decision to skip a frame only happens when we are already pretty far off ahead. The hope is
 		// that this won't really be used much because the frame advance of the slow client along with
 		// dynamic emulation speed will pick up the difference most of the time. But at some point it's
@@ -1704,7 +1705,7 @@ bool CEXISlippi::shouldSkipOnlineFrame(s32 frame, s32 finalizedFrame)
 bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame)
 {
 	// Logic below is used to test frame advance by forcing it more often
-	//SConfig::GetInstance().m_EmulationSpeed = 0.5f;
+	// SConfig::GetInstance().m_EmulationSpeed = 0.5f;
 	// if (frame > 120 && frame % 10 < 3)
 	//{
 	//	Common::SleepCurrentThread(1); // Sleep to try to let inputs come in to make late rollbacks more likely
@@ -1712,7 +1713,7 @@ bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame)
 	//}
 
 	// return false;
-	//return frame % 2 == 0;
+	// return frame % 2 == 0;
 
 	// Return true if we are over 60% of a frame behind our opponent. We limit how often this happens
 	// to get a reliable average to act on. We will allow advancing up to 5 frames (spread out) over
@@ -1748,7 +1749,7 @@ bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame)
 
 		auto dynamicEmulationSpeed = 1.0f + deviation;
 		SConfig::GetInstance().m_EmulationSpeed = dynamicEmulationSpeed;
-		//SConfig::GetInstance().m_EmulationSpeed = 0.97f; // used for testing
+		// SConfig::GetInstance().m_EmulationSpeed = 0.97f; // used for testing
 
 		INFO_LOG(SLIPPI_ONLINE, "[Frame %d] Offset for advance is: %d us. New speed: %.2f%%", frame, offsetUs,
 		         dynamicEmulationSpeed * 100.0f);
@@ -1765,11 +1766,11 @@ bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame)
 		bool isSlow = (offsetUs < -t1 && fallBehindCounter > 50) || (offsetUs < -t2 && fallFarBehindCounter > 15);
 		if (isSlow && lastSearch.mode != SlippiMatchmaking::OnlinePlayMode::TEAMS)
 		{
-			// We don't show this message for teams because it seems to false positive a lot there, maybe because the min
-			// offset is always selected? Idk I feel like doubles has some perf issues I don't understand atm.
+			// We don't show this message for teams because it seems to false positive a lot there, maybe because the
+			// min offset is always selected? Idk I feel like doubles has some perf issues I don't understand atm.
 			OSD::AddTypedMessage(OSD::MessageType::PerformanceWarning,
-			                     "Your computer is running slow and is impacting the performance of the match.", 10000,
-			                     OSD::Color::RED);
+			                     "\nPossible poor match performance detected.\nIf this message appears with most opponents, your computer or network is likely impacting match performance for the other players.",
+			                     10000, OSD::Color::RED);
 		}
 
 		if (offsetUs < -t2 && !isCurrentlyAdvancing)
@@ -1790,7 +1791,8 @@ bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame)
 	if (framesToAdvance > 0)
 	{
 		// Only advance once every 5 frames in an attempt to make the speed up feel smoother
-		if (frame % 5 != 0) {
+		if (frame % 5 != 0)
+		{
 			return false;
 		}
 
@@ -1864,7 +1866,7 @@ void CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)
 	for (int i = 0; i < remotePlayerCount; i++)
 	{
 		results[i] = slippi_netplay->GetSlippiRemotePad(i, ROLLBACK_MAX_FRAMES);
-		//results[i] = slippi_netplay->GetFakePadOutput(frame);
+		// results[i] = slippi_netplay->GetFakePadOutput(frame);
 
 		// determine offset from which to copy data
 		offset[i] = (results[i]->latestFrame - frame) * SLIPPI_PAD_FULL_SIZE;
@@ -2677,7 +2679,8 @@ void CEXISlippi::prepareOnlineMatchState()
 	}
 
 #ifdef LOCAL_TESTING
-	std::string defaultUids[] = {"l6dqv4dp38a5ho6z1sue2wx2adlp", "jpvducykgbawuehrjlfbu2qud1nv", "k0336d0tg3mgcdtaukpkf9jtf2k8", "v8tpb6uj9xil6e33od6mlot4fvdt"};
+	std::string defaultUids[] = {"l6dqv4dp38a5ho6z1sue2wx2adlp", "jpvducykgbawuehrjlfbu2qud1nv",
+	                             "k0336d0tg3mgcdtaukpkf9jtf2k8", "v8tpb6uj9xil6e33od6mlot4fvdt"};
 #endif
 
 	for (int i = 0; i < 4; i++)
