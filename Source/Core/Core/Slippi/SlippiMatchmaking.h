@@ -69,7 +69,7 @@ class SlippiMatchmaking
 	ENetHost *m_client;
 	ENetPeer *m_server;
 
-	std::default_random_engine generator;
+	std::default_random_engine rng;
 
 	bool isMmConnected = false;
 

@@ -157,16 +157,15 @@ class CEXISlippi : public IEXIDevice
 	s32 lastFrame;
 	std::unordered_map<u8, std::unordered_map<u8, u32>> characterUsage;
 
-	void updateMetadataFields(u8 *payload, u32 length);
-	void configureCommands(u8 *payload, u8 length);
-	void writeToFileAsync(u8 *payload, u32 length, std::string fileOption);
-	void writeToFile(std::unique_ptr<WriteMessage> msg);
-	std::vector<u8> generateMetadata();
+	void updateMetadataFields(const u8 *payload, const u32 length);
+	void configureCommands(const u8 *payload, const u8 length);
+	void writeToFileAsync(const u8 *payload, const u32 length, const std::string &fileOption);
+	void writeToFile(const std::unique_ptr<WriteMessage> msg);
+	std::vector<u8> generateMetadata() const;
 	void createNewFile();
 	void closeFile();
-	std::string generateFileName();
-	bool checkFrameFullyFetched(s32 frameIndex);
-	bool shouldFFWFrame(s32 frameIndex);
+	std::string generateFileName() const;
+	bool checkFrameFullyFetched(const s32 frameIndex) const;
 
 	// std::ofstream log;
 
@@ -175,52 +174,50 @@ class CEXISlippi : public IEXIDevice
 
 	// online play stuff
 	u16 getRandomStage();
-	bool isDisconnected();
-	bool isSlippiChatEnabled();
-	void handleOnlineInputs(u8 *payload);
-	void prepareOpponentInputs(s32 frame, bool shouldSkip);
-	void handleSendInputs(u8 *payload);
-	void handleCaptureSavestate(u8 *payload);
-	void handleLoadSavestate(u8 *payload);
-	void handleNameEntryLoad(u8 *payload);
-	void startFindMatch(u8 *payload);
+	bool isDisconnected() const;
+	bool isSlippiChatEnabled() const;
+	void handleOnlineInputs(const u8 *payload);
+	void prepareOpponentInputs(const s32 frame, const bool shouldSkip);
+	void handleSendInputs(const u8 *payload) const;
+	void handleCaptureSavestate(const u8 *payload);
+	void handleLoadSavestate(const u8 *payload);
+	void handleNameEntryLoad(const u8 *payload);
+	void startFindMatch(const u8 *payload);
 	void prepareOnlineMatchState();
-	void setMatchSelections(u8 *payload);
-	bool shouldSkipOnlineFrame(s32 frame, s32 finalizedFrame);
-	bool shouldAdvanceOnlineFrame(s32 frame);
-	void handleLogInRequest();
-	void handleLogOutRequest();
-	void handleUpdateAppRequest();
+	void setMatchSelections(const u8 *payload);
+	bool shouldSkipOnlineFrame(const s32 frame, const s32 finalizedFrame);
+	bool shouldAdvanceOnlineFrame(const s32 frame);
+	void handleLogInRequest() const;
+	void handleLogOutRequest() const;
+	void handleUpdateAppRequest() const;
 	void prepareOnlineStatus();
 	void handleConnectionCleanup();
 	void prepareNewSeed();
-	void handleReportGame(u8 *payload);
+	void handleReportGame(const u8 *payload);
 
 	// replay playback stuff
-	void prepareGameInfo(u8 *payload);
+	void prepareGameInfo(const u8 *payload);
 	void prepareGeckoList();
-	void prepareCharacterFrameData(Slippi::FrameData *frame, u8 port, u8 isFollower);
-	void prepareFrameData(u8 *payload);
-	void prepareIsStockSteal(u8 *payload);
+	void prepareCharacterFrameData(const Slippi::FrameData *frame, const u8 port, const u8 isFollower);
+	void prepareFrameData(const u8 *payload);
+	void prepareIsStockSteal(const u8 *payload);
 	void prepareIsFileReady();
 
 	// misc stuff
-	void handleChatMessage(u8 *payload);
-	void logMessageFromGame(u8 *payload);
-	void prepareFileLength(u8 *payload);
-	void prepareFileLoad(u8 *payload);
+	void handleChatMessage(const u8 *payload);
+	void logMessageFromGame(const u8 *payload) const;
+	void prepareFileLength(const u8 *payload);
+	void prepareFileLoad(const u8 *payload);
 	void prepareGctLength();
-	void prepareGctLoad(u8 *payload);
+	void prepareGctLoad(const u8 *payload);
 	void prepareDelayResponse();
-	void preparePremadeTextLength(u8 *payload);
-	void preparePremadeTextLoad(u8 *payload);
+	void preparePremadeTextLength(const u8 *payload);
+	void preparePremadeTextLoad(const u8 *payload);
 
 	// helper functions
-	bool doesTagMatchInput(u8 *input, u8 inputLen, std::string tag);
+	bool doesTagMatchInput(const u8 *input, const u8 inputLen, const std::string &tag) const;
 
-	std::vector<u8> loadPremadeText(u8 *payload);
-
-	int getCharColor(u8 charId, u8 teamId);
+	std::vector<u8> loadPremadeText(const u8 *payload);
 
 	void FileWriteThread(void);
 
@@ -228,7 +225,7 @@ class CEXISlippi : public IEXIDevice
 	bool writeThreadRunning = false;
 	std::thread m_fileWriteThread;
 
-	std::unordered_map<u8, std::string> getNetplayNames();
+	std::unordered_map<u8, std::string> getNetplayNames() const;
 
 	std::vector<u8> playbackSavestatePayload;
 	std::vector<u8> geckoList;
@@ -247,7 +244,7 @@ class CEXISlippi : public IEXIDevice
 
 	bool isEnetInitialized = false;
 
-	std::default_random_engine generator;
+	std::default_random_engine rng;
 
 	// Frame skipping variables
 	int framesToSkip = 0;

@@ -22,7 +22,7 @@ class SlippiGameReporter
 	struct GameReport
 	{
 		u32 durationFrames = 0;
-		std::vector<PlayerReport> players;
+		std::vector<PlayerReport> players{};
 	};
 
 	SlippiGameReporter(SlippiUser *user);

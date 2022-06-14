@@ -4,6 +4,7 @@
 
 #include "Core/Debugger/Debugger_SymbolMap.h"
 
+#include "Core/Slippi/LargeConstants.h"
 #include "Core/Slippi/SlippiPlayback.h"
 #include "Core/Slippi/SlippiPremadeText.h"
 #include "Core/Slippi/SlippiReplayComm.h"
@@ -61,12 +62,12 @@ int localChatMessageId = 0;
 //  Is set to true between frames
 bool g_needInputForFrame = false;
 
-template <typename T> bool isFutureReady(std::future<T> &t)
+template <typename T> bool isFutureReady(std::future<T> &_future)
 {
-	return t.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
+	return _future.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
 }
 
-std::vector<u8> uint16ToVector(u16 num)
+std::vector<u8> uint16ToVector(const u16 num)
 {
 	u8 byte0 = num >> 8;
 	u8 byte1 = num & 0xFF;
@@ -74,7 +75,7 @@ std::vector<u8> uint16ToVector(u16 num)
 	return std::vector<u8>({byte0, byte1});
 }
 
-std::vector<u8> uint32ToVector(u32 num)
+std::vector<u8> uint32ToVector(const u32 num)
 {
 	u8 byte0 = num >> 24;
 	u8 byte1 = (num & 0xFF0000) >> 16;
@@ -84,7 +85,7 @@ std::vector<u8> uint32ToVector(u32 num)
 	return std::vector<u8>({byte0, byte1, byte2, byte3});
 }
 
-std::vector<u8> int32ToVector(int32_t num)
+std::vector<u8> int32ToVector(const int32_t num)
 {
 	u8 byte0 = num >> 24;
 	u8 byte1 = (num & 0xFF0000) >> 16;
@@ -94,19 +95,19 @@ std::vector<u8> int32ToVector(int32_t num)
 	return std::vector<u8>({byte0, byte1, byte2, byte3});
 }
 
-void appendWordToBuffer(std::vector<u8> *buf, u32 word)
+void appendWordToBuffer(std::vector<u8> *buf, const u32 word)
 {
 	auto wordVector = uint32ToVector(word);
 	buf->insert(buf->end(), wordVector.begin(), wordVector.end());
 }
 
-void appendHalfToBuffer(std::vector<u8> *buf, u16 word)
+void appendHalfToBuffer(std::vector<u8> *buf, const u16 word)
 {
 	auto halfVector = uint16ToVector(word);
 	buf->insert(buf->end(), halfVector.begin(), halfVector.end());
 }
 
-std::string processDiff2(std::vector<u8> iState, std::vector<u8> cState)
+std::string processDiff2(const std::vector<u8> iState, const std::vector<u8> cState)
 {
 	INFO_LOG(SLIPPI, "Processing diff");
 	std::string diff = std::string();
@@ -119,7 +120,8 @@ std::string processDiff2(std::vector<u8> iState, std::vector<u8> cState)
 
 std::string ConvertConnectCodeForGame(const std::string &input)
 {
-	char fullWidthShiftJisHashtag[] = {(char)0x81, (char)0x94, (char)0x00};
+	const char fullWidthShiftJisHashtag[] = {static_cast<const char>(0x81), static_cast<const char>(0x94),
+	                                         static_cast<const char>(0x00)};
 	std::string connectCode(input);
 	connectCode = ReplaceAll(connectCode, "#", fullWidthShiftJisHashtag);
 	connectCode.resize(CONNECT_CODE_LENGTH + 2); // fixed length + full width (two byte) hashtag +1, null terminator +1
@@ -140,7 +142,7 @@ CEXISlippi::CEXISlippi()
 	directCodes = std::make_unique<SlippiDirectCodes>("direct-codes.json");
 	teamsCodes = std::make_unique<SlippiDirectCodes>("teams-codes.json");
 
-	generator = std::default_random_engine(Common::Timer::GetTimeMs());
+	rng = std::default_random_engine(Common::Timer::GetTimeMs());
 
 	shouldOutput = SConfig::GetInstance().m_coutEnabled && g_replayComm->getSettings().mode != "mirror";
 
@@ -289,18 +291,18 @@ CEXISlippi::~CEXISlippi()
 		enet_deinitialize();
 }
 
-void CEXISlippi::configureCommands(u8 *payload, u8 length)
+void CEXISlippi::configureCommands(const u8 *payload, const u8 length)
 {
 	for (int i = 1; i < length; i += 3)
 	{
 		// Go through the receive commands payload and set up other commands
-		u8 commandByte = payload[i];
-		u32 commandPayloadSize = payload[i + 1] << 8 | payload[i + 2];
+		const u8 commandByte = payload[i];
+		const u32 commandPayloadSize = payload[i + 1] << 8 | payload[i + 2];
 		payloadSizes[commandByte] = commandPayloadSize;
 	}
 }
 
-void CEXISlippi::updateMetadataFields(u8 *payload, u32 length)
+void CEXISlippi::updateMetadataFields(const u8 *payload, const u32 length)
 {
 	if (length <= 0 || payload[0] != CMD_RECEIVE_POST_FRAME_UPDATE)
 	{
@@ -312,8 +314,8 @@ void CEXISlippi::updateMetadataFields(u8 *payload, u32 length)
 	lastFrame = payload[1] << 24 | payload[2] << 16 | payload[3] << 8 | payload[4];
 
 	// Keep track of character usage
-	u8 playerIndex = payload[5];
-	u8 internalCharacterId = payload[7];
+	const u8 playerIndex = payload[5];
+	const u8 internalCharacterId = payload[7];
 	if (!characterUsage.count(playerIndex) || !characterUsage[playerIndex].count(internalCharacterId))
 	{
 		characterUsage[playerIndex][internalCharacterId] = 0;
@@ -321,7 +323,7 @@ void CEXISlippi::updateMetadataFields(u8 *payload, u32 length)
 	characterUsage[playerIndex][internalCharacterId] += 1;
 }
 
-std::unordered_map<u8, std::string> CEXISlippi::getNetplayNames()
+std::unordered_map<u8, std::string> CEXISlippi::getNetplayNames() const
 {
 	std::unordered_map<u8, std::string> names;
 
@@ -329,34 +331,33 @@ std::unordered_map<u8, std::string> CEXISlippi::getNetplayNames()
 	{
 		names = slippi_names;
 	}
-
 	else if (netplay_client && netplay_client->IsConnected())
 	{
-		auto netplayPlayers = netplay_client->GetPlayers();
+		const auto netplayPlayers = netplay_client->GetPlayers();
 		for (auto it = netplayPlayers.begin(); it != netplayPlayers.end(); ++it)
 		{
-			auto player = *it;
+			const auto player = *it;
 			u8 portIndex = netplay_client->FindPlayerPad(player);
 			if (portIndex < 0)
 			{
 				continue;
 			}
 
-			names[portIndex] = player->name;
+			names.at(portIndex) = player->name;
 		}
 	}
 
 	return names;
 }
 
-std::vector<u8> CEXISlippi::generateMetadata()
+std::vector<u8> CEXISlippi::generateMetadata() const
 {
 	std::vector<u8> metadata({'U', 8, 'm', 'e', 't', 'a', 'd', 'a', 't', 'a', '{'});
 
 	// TODO: Abstract out UBJSON functions to make this cleaner
 
 	// Add game start time
-	u8 dateTimeStrLength = sizeof "2011-10-08T07:07:09Z";
+	const u8 dateTimeStrLength = sizeof "2011-10-08T07:07:09Z";
 	std::vector<char> dateTimeBuf(dateTimeStrLength);
 	strftime(&dateTimeBuf[0], dateTimeStrLength, "%FT%TZ", gmtime(&gameStartTime));
 	dateTimeBuf.pop_back(); // Removes the \0 from the back of string
@@ -364,22 +365,22 @@ std::vector<u8> CEXISlippi::generateMetadata()
 	metadata.insert(metadata.end(), dateTimeBuf.begin(), dateTimeBuf.end());
 
 	// Add game duration
-	std::vector<u8> lastFrameToWrite = int32ToVector(lastFrame);
+	const std::vector<u8> lastFrameToWrite = int32ToVector(lastFrame);
 	metadata.insert(metadata.end(), {'U', 9, 'l', 'a', 's', 't', 'F', 'r', 'a', 'm', 'e', 'l'});
 	metadata.insert(metadata.end(), lastFrameToWrite.begin(), lastFrameToWrite.end());
 
 	// Add players elements to metadata, one per player index
 	metadata.insert(metadata.end(), {'U', 7, 'p', 'l', 'a', 'y', 'e', 'r', 's', '{'});
 
-	auto playerNames = getNetplayNames();
+	const auto playerNames = getNetplayNames();
 
 	for (auto it = characterUsage.begin(); it != characterUsage.end(); ++it)
 	{
-		auto playerIndex = it->first;
-		auto playerCharacterUsage = it->second;
+		const auto playerIndex = it->first;
+		const auto playerCharacterUsage = it->second;
 
 		metadata.push_back('U');
-		std::string playerIndexStr = std::to_string(playerIndex);
+		const std::string playerIndexStr = std::to_string(playerIndex);
 		metadata.push_back((u8)playerIndexStr.length());
 		metadata.insert(metadata.end(), playerIndexStr.begin(), playerIndexStr.end());
 		metadata.push_back('{');
@@ -389,7 +390,7 @@ std::vector<u8> CEXISlippi::generateMetadata()
 
 		if (playerNames.count(playerIndex))
 		{
-			auto playerName = playerNames[playerIndex];
+			const auto playerName = playerNames.at(playerIndex);
 			// Add netplay element for this player name
 			metadata.insert(metadata.end(), {'U', 7, 'n', 'e', 't', 'p', 'l', 'a', 'y', 'S', 'U'});
 			metadata.push_back((u8)playerName.length());
@@ -398,7 +399,7 @@ std::vector<u8> CEXISlippi::generateMetadata()
 
 		if (slippi_connect_codes.count(playerIndex))
 		{
-			auto connectCode = slippi_connect_codes[playerIndex];
+			const auto connectCode = slippi_connect_codes.at(playerIndex);
 			// Add connection code element for this player name
 			metadata.insert(metadata.end(), {'U', 4, 'c', 'o', 'd', 'e', 'S', 'U'});
 			metadata.push_back((u8)connectCode.length());
@@ -412,12 +413,12 @@ std::vector<u8> CEXISlippi::generateMetadata()
 		for (auto it2 = playerCharacterUsage.begin(); it2 != playerCharacterUsage.end(); ++it2)
 		{
 			metadata.push_back('U');
-			std::string internalCharIdStr = std::to_string(it2->first);
+			const std::string internalCharIdStr = std::to_string(it2->first);
 			metadata.push_back((u8)internalCharIdStr.length());
 			metadata.insert(metadata.end(), internalCharIdStr.begin(), internalCharIdStr.end());
 
 			metadata.push_back('l');
-			std::vector<u8> frameCount = uint32ToVector(it2->second);
+			const std::vector<u8> frameCount = uint32ToVector(it2->second);
 			metadata.insert(metadata.end(), frameCount.begin(), frameCount.end());
 		}
 		metadata.push_back('}'); // close characters
@@ -434,7 +435,7 @@ std::vector<u8> CEXISlippi::generateMetadata()
 	return metadata;
 }
 
-void CEXISlippi::writeToFileAsync(u8 *payload, u32 length, std::string fileOption)
+void CEXISlippi::writeToFileAsync(const u8 *payload, const u32 length, const std::string &fileOption)
 {
 	if (!SConfig::GetInstance().m_slippiSaveReplays)
 	{
@@ -480,7 +481,7 @@ void CEXISlippi::FileWriteThread(void)
 	}
 }
 
-void CEXISlippi::writeToFile(std::unique_ptr<WriteMessage> msg)
+void CEXISlippi::writeToFile(const std::unique_ptr<WriteMessage> msg)
 {
 	if (!msg)
 	{
@@ -488,9 +489,9 @@ void CEXISlippi::writeToFile(std::unique_ptr<WriteMessage> msg)
 		return;
 	}
 
-	u8 *payload = &msg->data[0];
-	u32 length = (u32)msg->data.size();
-	std::string fileOption = msg->operation;
+	const u8 *payload = &msg->data[0];
+	const u32 length = (u32)msg->data.size();
+	const std::string fileOption = msg->operation;
 
 	std::vector<u8> dataToWrite;
 	if (fileOption == "create")
@@ -501,7 +502,7 @@ void CEXISlippi::writeToFile(std::unique_ptr<WriteMessage> msg)
 		// Start ubjson file and prepare the "raw" element that game
 		// data output will be dumped into. The size of the raw output will
 		// be initialized to 0 until all of the data has been received
-		std::vector<u8> headerBytes({'{', 'U', 3, 'r', 'a', 'w', '[', '$', 'U', '#', 'l', 0, 0, 0, 0});
+		const std::vector<u8> headerBytes({'{', 'U', 3, 'r', 'a', 'w', '[', '$', 'U', '#', 'l', 0, 0, 0, 0});
 		dataToWrite.insert(dataToWrite.end(), headerBytes.begin(), headerBytes.end());
 
 		// Used to keep track of how many bytes have been written to the file
@@ -516,7 +517,7 @@ void CEXISlippi::writeToFile(std::unique_ptr<WriteMessage> msg)
 		// Get display names and connection codes from slippi netplay client
 		if (slippi_netplay)
 		{
-			auto playerInfo = matchmaking->GetPlayerInfo();
+			const auto playerInfo = matchmaking->GetPlayerInfo();
 
 			for (int i = 0; i < playerInfo.size(); i++)
 			{
@@ -553,7 +554,7 @@ void CEXISlippi::writeToFile(std::unique_ptr<WriteMessage> msg)
 	}
 
 	// Write data to file
-	bool result = m_file.WriteBytes(&dataToWrite[0], dataToWrite.size());
+	const bool result = m_file.WriteBytes(&dataToWrite[0], dataToWrite.size());
 	if (!result)
 	{
 		ERROR_LOG(EXPANSIONINTERFACE, "Failed to write data to file.");
@@ -563,7 +564,7 @@ void CEXISlippi::writeToFile(std::unique_ptr<WriteMessage> msg)
 	if (fileOption == "close")
 	{
 		// Write the number of bytes for the raw output
-		std::vector<u8> sizeBytes = uint32ToVector(writtenByteCount);
+		const std::vector<u8> sizeBytes = uint32ToVector(writtenByteCount);
 		m_file.Seek(11, 0);
 		m_file.WriteBytes(&sizeBytes[0], sizeBytes.size());
 
@@ -589,7 +590,7 @@ void CEXISlippi::createNewFile()
 	}
 
 	// Remove a trailing / or \\ if the user managed to have that in their config
-	char dirpathEnd = dirpath.back();
+	const char dirpathEnd = dirpath.back();
 	if (dirpathEnd == '/' || dirpathEnd == '\\')
 	{
 		dirpath.pop_back();
@@ -605,7 +606,7 @@ void CEXISlippi::createNewFile()
 		dirpath.push_back('/');
 
 		// Append YYYY-MM to the directory path
-		uint8_t yearMonthStrLength = sizeof "2020-06";
+		const uint8_t yearMonthStrLength = sizeof "2020-06";
 		std::vector<char> yearMonthBuf(yearMonthStrLength);
 		strftime(&yearMonthBuf[0], yearMonthStrLength, "%Y-%m", localtime(&gameStartTime));
 
@@ -616,7 +617,7 @@ void CEXISlippi::createNewFile()
 		File::CreateDir(dirpath);
 	}
 
-	std::string filepath = dirpath + DIR_SEP + generateFileName();
+	const std::string filepath = dirpath + DIR_SEP + generateFileName();
 	INFO_LOG(SLIPPI, "EXI_DeviceSlippi.cpp: Creating new replay file %s", filepath.c_str());
 
 #ifdef _WIN32
@@ -636,14 +637,14 @@ void CEXISlippi::createNewFile()
 	}
 }
 
-std::string CEXISlippi::generateFileName()
+std::string CEXISlippi::generateFileName() const
 {
 	// Add game start time
-	u8 dateTimeStrLength = sizeof "20171015T095717";
+	const u8 dateTimeStrLength = sizeof "20171015T095717";
 	std::vector<char> dateTimeBuf(dateTimeStrLength);
 	strftime(&dateTimeBuf[0], dateTimeStrLength, "%Y%m%dT%H%M%S", localtime(&gameStartTime));
 
-	std::string str(&dateTimeBuf[0]);
+	const std::string str(&dateTimeBuf[0]);
 	return StringFromFormat("Game_%s.slp", str.c_str());
 }
 
@@ -660,7 +661,7 @@ void CEXISlippi::closeFile()
 	m_file = nullptr;
 }
 
-void CEXISlippi::prepareGameInfo(u8 *payload)
+void CEXISlippi::prepareGameInfo(const u8 *payload)
 {
 	// Since we are prepping new data, clear any existing data
 	m_read_queue.clear();
@@ -684,48 +685,46 @@ void CEXISlippi::prepareGameInfo(u8 *payload)
 	playbackSavestatePayload.clear();
 	appendWordToBuffer(&playbackSavestatePayload, 0); // This space will be used to set frame index
 	int bkpPos = 0;
-	while ((*(u32 *)(&payload[bkpPos * 8])) != 0)
+	while (static_cast<u32>(payload[bkpPos * 8]) != 0)
 	{
 		bkpPos += 1;
 	}
 	playbackSavestatePayload.insert(playbackSavestatePayload.end(), payload, payload + (bkpPos * 8 + 4));
 
-	Slippi::GameSettings *settings = m_current_game->GetSettings();
+	const Slippi::GameSettings *settings = m_current_game->GetSettings();
 
 	// Start in Fast Forward if this is mirrored
-	auto replayCommSettings = g_replayComm->getSettings();
+	const SlippiReplayComm::CommSettings replayCommSettings = g_replayComm->getSettings();
 	if (!g_playbackStatus->isHardFFW)
 		g_playbackStatus->isHardFFW = replayCommSettings.mode == "mirror";
 
 	g_playbackStatus->lastFFWFrame = INT_MIN;
 
 	// Build a word containing the stage and the presence of the characters
-	u32 randomSeed = settings->randomSeed;
-	appendWordToBuffer(&m_read_queue, randomSeed);
+	appendWordToBuffer(&m_read_queue, settings->randomSeed);
 
 	// This is kinda dumb but we need to handle the case where a player transforms
 	// into sheik/zelda immediately. This info is not stored in the game info header
 	// and so let's overwrite those values
-	int player1Pos = 24; // This is the index of the first players character info
+	constexpr int player1Pos = 24; // This is the index of the first players character info
 	std::array<u32, Slippi::GAME_INFO_HEADER_SIZE> gameInfoHeader = settings->header;
 	for (int i = 0; i < 4; i++)
 	{
 		// check if this player is actually in the game
-		bool playerExists = m_current_game->DoesPlayerExist(i);
-		if (!playerExists)
+		if (!m_current_game->DoesPlayerExist(i))
 		{
 			continue;
 		}
 
 		// check if the player is playing sheik or zelda
-		u8 externalCharId = settings->players[i].characterId;
+		const u8 externalCharId = settings->players.at(i).characterId;
 		if (externalCharId != 0x12 && externalCharId != 0x13)
 		{
 			continue;
 		}
 
 		// this is the position in the array that this player's character info is stored
-		int pos = player1Pos + (9 * i);
+		const int pos = player1Pos + (9 * i);
 
 		// here we have determined the player is playing sheik or zelda...
 		// at this point let's overwrite the player's character with the one
@@ -741,16 +740,15 @@ void CEXISlippi::prepareGameInfo(u8 *payload)
 	}
 
 	// Write UCF toggles
-	std::array<u32, Slippi::UCF_TOGGLE_SIZE> ucfToggles = settings->ucfToggles;
 	for (int i = 0; i < Slippi::UCF_TOGGLE_SIZE; i++)
 	{
-		appendWordToBuffer(&m_read_queue, ucfToggles[i]);
+		appendWordToBuffer(&m_read_queue, settings->ucfToggles[i]);
 	}
 
 	// Write nametags
 	for (int i = 0; i < 4; i++)
 	{
-		auto player = settings->players[i];
+		const auto player = settings->players.at(i);
 		for (int j = 0; j < Slippi::NAMETAG_SIZE; j++)
 		{
 			appendHalfToBuffer(&m_read_queue, player.nametag[j]);
@@ -761,12 +759,12 @@ void CEXISlippi::prepareGameInfo(u8 *payload)
 	m_read_queue.push_back(settings->isPAL);
 
 	// Get replay version numbers
-	auto replayVersion = m_current_game->GetVersion();
-	auto majorVersion = replayVersion[0];
-	auto minorVersion = replayVersion[1];
+	const auto replayVersion = m_current_game->GetVersion();
+	const auto majorVersion = replayVersion[0];
+	const auto minorVersion = replayVersion[1];
 
 	// Write PS pre-load byte
-	auto shouldPreloadPs = majorVersion > 1 || (majorVersion == 1 && minorVersion > 2);
+	const auto shouldPreloadPs = majorVersion > 1 || (majorVersion == 1 && minorVersion > 2);
 	m_read_queue.push_back(shouldPreloadPs);
 
 	// Write PS Frozen byte
@@ -778,7 +776,7 @@ void CEXISlippi::prepareGameInfo(u8 *payload)
 	// Write display names
 	for (int i = 0; i < 4; i++)
 	{
-		auto displayName = settings->players[i].displayName;
+		const auto displayName = settings->players.at(i).displayName;
 		m_read_queue.insert(m_read_queue.end(), displayName.begin(), displayName.end());
 	}
 
@@ -824,312 +822,9 @@ void CEXISlippi::prepareGameInfo(u8 *payload)
 
 void CEXISlippi::prepareGeckoList()
 {
-	// TODO: How do I move this somewhere else?
-	// This contains all of the codes required to play legacy replays (UCF, PAL, Frz Stadium)
-	static std::vector<u8> defaultCodeList = {
-	    0xC2, 0x0C, 0x9A, 0x44, 0x00, 0x00, 0x00, 0x2F, // #External/UCF + Arduino Toggle UI/UCF/UCF 0.74
-	                                                    // Dashback - Check for Toggle.asm
-	    0xD0, 0x1F, 0x00, 0x2C, 0x88, 0x9F, 0x06, 0x18, 0x38, 0x62, 0xF2, 0x28, 0x7C, 0x63, 0x20, 0xAE, 0x2C, 0x03,
-	    0x00, 0x01, 0x41, 0x82, 0x00, 0x14, 0x38, 0x62, 0xF2, 0x2C, 0x7C, 0x63, 0x20, 0xAE, 0x2C, 0x03, 0x00, 0x01,
-	    0x40, 0x82, 0x01, 0x50, 0x7C, 0x08, 0x02, 0xA6, 0x90, 0x01, 0x00, 0x04, 0x94, 0x21, 0xFF, 0x50, 0xBE, 0x81,
-	    0x00, 0x08, 0x48, 0x00, 0x01, 0x21, 0x7F, 0xC8, 0x02, 0xA6, 0xC0, 0x3F, 0x08, 0x94, 0xC0, 0x5E, 0x00, 0x00,
-	    0xFC, 0x01, 0x10, 0x40, 0x40, 0x82, 0x01, 0x18, 0x80, 0x8D, 0xAE, 0xB4, 0xC0, 0x3F, 0x06, 0x20, 0xFC, 0x20,
-	    0x0A, 0x10, 0xC0, 0x44, 0x00, 0x3C, 0xFC, 0x01, 0x10, 0x40, 0x41, 0x80, 0x01, 0x00, 0x88, 0x7F, 0x06, 0x70,
-	    0x2C, 0x03, 0x00, 0x02, 0x40, 0x80, 0x00, 0xF4, 0x88, 0x7F, 0x22, 0x1F, 0x54, 0x60, 0x07, 0x39, 0x40, 0x82,
-	    0x00, 0xE8, 0x3C, 0x60, 0x80, 0x4C, 0x60, 0x63, 0x1F, 0x78, 0x8B, 0xA3, 0x00, 0x01, 0x38, 0x7D, 0xFF, 0xFE,
-	    0x88, 0x9F, 0x06, 0x18, 0x48, 0x00, 0x00, 0x8D, 0x7C, 0x7C, 0x1B, 0x78, 0x7F, 0xA3, 0xEB, 0x78, 0x88, 0x9F,
-	    0x06, 0x18, 0x48, 0x00, 0x00, 0x7D, 0x7C, 0x7C, 0x18, 0x50, 0x7C, 0x63, 0x19, 0xD6, 0x2C, 0x03, 0x15, 0xF9,
-	    0x40, 0x81, 0x00, 0xB0, 0x38, 0x00, 0x00, 0x01, 0x90, 0x1F, 0x23, 0x58, 0x90, 0x1F, 0x23, 0x40, 0x80, 0x9F,
-	    0x00, 0x04, 0x2C, 0x04, 0x00, 0x0A, 0x40, 0xA2, 0x00, 0x98, 0x88, 0x7F, 0x00, 0x0C, 0x38, 0x80, 0x00, 0x01,
-	    0x3D, 0x80, 0x80, 0x03, 0x61, 0x8C, 0x41, 0x8C, 0x7D, 0x89, 0x03, 0xA6, 0x4E, 0x80, 0x04, 0x21, 0x2C, 0x03,
-	    0x00, 0x00, 0x41, 0x82, 0x00, 0x78, 0x80, 0x83, 0x00, 0x2C, 0x80, 0x84, 0x1E, 0xCC, 0xC0, 0x3F, 0x00, 0x2C,
-	    0xD0, 0x24, 0x00, 0x18, 0xC0, 0x5E, 0x00, 0x04, 0xFC, 0x01, 0x10, 0x40, 0x41, 0x81, 0x00, 0x0C, 0x38, 0x60,
-	    0x00, 0x80, 0x48, 0x00, 0x00, 0x08, 0x38, 0x60, 0x00, 0x7F, 0x98, 0x64, 0x00, 0x06, 0x48, 0x00, 0x00, 0x48,
-	    0x7C, 0x85, 0x23, 0x78, 0x38, 0x63, 0xFF, 0xFF, 0x2C, 0x03, 0x00, 0x00, 0x40, 0x80, 0x00, 0x08, 0x38, 0x63,
-	    0x00, 0x05, 0x3C, 0x80, 0x80, 0x46, 0x60, 0x84, 0xB1, 0x08, 0x1C, 0x63, 0x00, 0x30, 0x7C, 0x84, 0x1A, 0x14,
-	    0x1C, 0x65, 0x00, 0x0C, 0x7C, 0x84, 0x1A, 0x14, 0x88, 0x64, 0x00, 0x02, 0x7C, 0x63, 0x07, 0x74, 0x4E, 0x80,
-	    0x00, 0x20, 0x4E, 0x80, 0x00, 0x21, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xBA, 0x81, 0x00, 0x08,
-	    0x80, 0x01, 0x00, 0xB4, 0x38, 0x21, 0x00, 0xB0, 0x7C, 0x08, 0x03, 0xA6, 0x00, 0x00, 0x00, 0x00, 0xC2, 0x09,
-	    0x98, 0xA4, 0x00, 0x00, 0x00, 0x2B, // #External/UCF + Arduino Toggle UI/UCF/UCF
-	                                        // 0.74 Shield Drop - Check for Toggle.asm
-	    0x7C, 0x08, 0x02, 0xA6, 0x90, 0x01, 0x00, 0x04, 0x94, 0x21, 0xFF, 0x50, 0xBE, 0x81, 0x00, 0x08, 0x7C, 0x7E,
-	    0x1B, 0x78, 0x83, 0xFE, 0x00, 0x2C, 0x48, 0x00, 0x01, 0x01, 0x7F, 0xA8, 0x02, 0xA6, 0x88, 0x9F, 0x06, 0x18,
-	    0x38, 0x62, 0xF2, 0x28, 0x7C, 0x63, 0x20, 0xAE, 0x2C, 0x03, 0x00, 0x01, 0x41, 0x82, 0x00, 0x14, 0x38, 0x62,
-	    0xF2, 0x30, 0x7C, 0x63, 0x20, 0xAE, 0x2C, 0x03, 0x00, 0x01, 0x40, 0x82, 0x00, 0xF8, 0xC0, 0x3F, 0x06, 0x3C,
-	    0x80, 0x6D, 0xAE, 0xB4, 0xC0, 0x03, 0x03, 0x14, 0xFC, 0x01, 0x00, 0x40, 0x40, 0x81, 0x00, 0xE4, 0xC0, 0x3F,
-	    0x06, 0x20, 0x48, 0x00, 0x00, 0x71, 0xD0, 0x21, 0x00, 0x90, 0xC0, 0x3F, 0x06, 0x24, 0x48, 0x00, 0x00, 0x65,
-	    0xC0, 0x41, 0x00, 0x90, 0xEC, 0x42, 0x00, 0xB2, 0xEC, 0x21, 0x00, 0x72, 0xEC, 0x21, 0x10, 0x2A, 0xC0, 0x5D,
-	    0x00, 0x0C, 0xFC, 0x01, 0x10, 0x40, 0x41, 0x80, 0x00, 0xB4, 0x88, 0x9F, 0x06, 0x70, 0x2C, 0x04, 0x00, 0x03,
-	    0x40, 0x81, 0x00, 0xA8, 0xC0, 0x1D, 0x00, 0x10, 0xC0, 0x3F, 0x06, 0x24, 0xFC, 0x00, 0x08, 0x40, 0x40, 0x80,
-	    0x00, 0x98, 0xBA, 0x81, 0x00, 0x08, 0x80, 0x01, 0x00, 0xB4, 0x38, 0x21, 0x00, 0xB0, 0x7C, 0x08, 0x03, 0xA6,
-	    0x80, 0x61, 0x00, 0x1C, 0x83, 0xE1, 0x00, 0x14, 0x38, 0x21, 0x00, 0x18, 0x38, 0x63, 0x00, 0x08, 0x7C, 0x68,
-	    0x03, 0xA6, 0x4E, 0x80, 0x00, 0x20, 0xFC, 0x00, 0x0A, 0x10, 0xC0, 0x3D, 0x00, 0x00, 0xEC, 0x00, 0x00, 0x72,
-	    0xC0, 0x3D, 0x00, 0x04, 0xEC, 0x00, 0x08, 0x28, 0xFC, 0x00, 0x00, 0x1E, 0xD8, 0x01, 0x00, 0x80, 0x80, 0x61,
-	    0x00, 0x84, 0x38, 0x63, 0x00, 0x02, 0x3C, 0x00, 0x43, 0x30, 0xC8, 0x5D, 0x00, 0x14, 0x6C, 0x63, 0x80, 0x00,
-	    0x90, 0x01, 0x00, 0x80, 0x90, 0x61, 0x00, 0x84, 0xC8, 0x21, 0x00, 0x80, 0xEC, 0x01, 0x10, 0x28, 0xC0, 0x3D,
-	    0x00, 0x00, 0xEC, 0x20, 0x08, 0x24, 0x4E, 0x80, 0x00, 0x20, 0x4E, 0x80, 0x00, 0x21, 0x42, 0xA0, 0x00, 0x00,
-	    0x37, 0x27, 0x00, 0x00, 0x43, 0x30, 0x00, 0x00, 0x3F, 0x80, 0x00, 0x00, 0xBF, 0x4C, 0xCC, 0xCD, 0x43, 0x30,
-	    0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x7F, 0xC3, 0xF3, 0x78, 0x7F, 0xE4, 0xFB, 0x78, 0xBA, 0x81, 0x00, 0x08,
-	    0x80, 0x01, 0x00, 0xB4, 0x38, 0x21, 0x00, 0xB0, 0x7C, 0x08, 0x03, 0xA6, 0x60, 0x00, 0x00, 0x00, 0x00, 0x00,
-	    0x00, 0x00, 0xC2, 0x16, 0xE7, 0x50, 0x00, 0x00, 0x00,
-	    0x33, // #Common/StaticPatches/ToggledStaticOverwrites.asm
-	    0x88, 0x62, 0xF2, 0x34, 0x2C, 0x03, 0x00, 0x00, 0x41, 0x82, 0x00, 0x14, 0x48, 0x00, 0x00, 0x75, 0x7C, 0x68,
-	    0x02, 0xA6, 0x48, 0x00, 0x01, 0x3D, 0x48, 0x00, 0x00, 0x14, 0x48, 0x00, 0x00, 0x95, 0x7C, 0x68, 0x02, 0xA6,
-	    0x48, 0x00, 0x01, 0x2D, 0x48, 0x00, 0x00, 0x04, 0x88, 0x62, 0xF2, 0x38, 0x2C, 0x03, 0x00, 0x00, 0x41, 0x82,
-	    0x00, 0x14, 0x48, 0x00, 0x00, 0xB9, 0x7C, 0x68, 0x02, 0xA6, 0x48, 0x00, 0x01, 0x11, 0x48, 0x00, 0x00, 0x10,
-	    0x48, 0x00, 0x00, 0xC9, 0x7C, 0x68, 0x02, 0xA6, 0x48, 0x00, 0x01, 0x01, 0x88, 0x62, 0xF2, 0x3C, 0x2C, 0x03,
-	    0x00, 0x00, 0x41, 0x82, 0x00, 0x14, 0x48, 0x00, 0x00, 0xD1, 0x7C, 0x68, 0x02, 0xA6, 0x48, 0x00, 0x00, 0xE9,
-	    0x48, 0x00, 0x01, 0x04, 0x48, 0x00, 0x00, 0xD1, 0x7C, 0x68, 0x02, 0xA6, 0x48, 0x00, 0x00, 0xD9, 0x48, 0x00,
-	    0x00, 0xF4, 0x4E, 0x80, 0x00, 0x21, 0x80, 0x3C, 0xE4, 0xD4, 0x00, 0x24, 0x04, 0x64, 0x80, 0x07, 0x96, 0xE0,
-	    0x60, 0x00, 0x00, 0x00, 0x80, 0x2B, 0x7E, 0x54, 0x48, 0x00, 0x00, 0x88, 0x80, 0x2B, 0x80, 0x8C, 0x48, 0x00,
-	    0x00, 0x84, 0x80, 0x12, 0x39, 0xA8, 0x60, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0x4E, 0x80, 0x00, 0x21,
-	    0x80, 0x3C, 0xE4, 0xD4, 0x00, 0x20, 0x00, 0x00, 0x80, 0x07, 0x96, 0xE0, 0x3A, 0x40, 0x00, 0x01, 0x80, 0x2B,
-	    0x7E, 0x54, 0x88, 0x7F, 0x22, 0x40, 0x80, 0x2B, 0x80, 0x8C, 0x2C, 0x03, 0x00, 0x02, 0x80, 0x10, 0xFC, 0x48,
-	    0x90, 0x05, 0x21, 0xDC, 0x80, 0x10, 0xFB, 0x68, 0x90, 0x05, 0x21, 0xDC, 0x80, 0x12, 0x39, 0xA8, 0x90, 0x1F,
-	    0x1A, 0x5C, 0xFF, 0xFF, 0xFF, 0xFF, 0x4E, 0x80, 0x00, 0x21, 0x80, 0x1D, 0x46, 0x10, 0x48, 0x00, 0x00, 0x4C,
-	    0x80, 0x1D, 0x47, 0x24, 0x48, 0x00, 0x00, 0x3C, 0x80, 0x1D, 0x46, 0x0C, 0x80, 0x9F, 0x00, 0xEC, 0xFF, 0xFF,
-	    0xFF, 0xFF, 0x4E, 0x80, 0x00, 0x21, 0x80, 0x1D, 0x46, 0x10, 0x38, 0x83, 0x7F, 0x9C, 0x80, 0x1D, 0x47, 0x24,
-	    0x88, 0x1B, 0x00, 0xC4, 0x80, 0x1D, 0x46, 0x0C, 0x3C, 0x60, 0x80, 0x3B, 0xFF, 0xFF, 0xFF, 0xFF, 0x4E, 0x80,
-	    0x00, 0x21, 0x80, 0x1D, 0x45, 0xFC, 0x48, 0x00, 0x09, 0xDC, 0xFF, 0xFF, 0xFF, 0xFF, 0x4E, 0x80, 0x00, 0x21,
-	    0x80, 0x1D, 0x45, 0xFC, 0x40, 0x80, 0x09, 0xDC, 0xFF, 0xFF, 0xFF, 0xFF, 0x38, 0xA3, 0xFF, 0xFC, 0x84, 0x65,
-	    0x00, 0x04, 0x2C, 0x03, 0xFF, 0xFF, 0x41, 0x82, 0x00, 0x10, 0x84, 0x85, 0x00, 0x04, 0x90, 0x83, 0x00, 0x00,
-	    0x4B, 0xFF, 0xFF, 0xEC, 0x4E, 0x80, 0x00, 0x20, 0x3C, 0x60, 0x80, 0x00, 0x3C, 0x80, 0x00, 0x3B, 0x60, 0x84,
-	    0x72, 0x2C, 0x3D, 0x80, 0x80, 0x32, 0x61, 0x8C, 0x8F, 0x50, 0x7D, 0x89, 0x03, 0xA6, 0x4E, 0x80, 0x04, 0x21,
-	    0x3C, 0x60, 0x80, 0x17, 0x3C, 0x80, 0x80, 0x17, 0x00, 0x00, 0x00, 0x00, 0xC2, 0x1D, 0x14, 0xC8, 0x00, 0x00,
-	    0x00, 0x04, // #Common/Preload Stadium
-	                // Transformations/Handlers/Init
-	                // isLoaded Bool.asm
-	    0x88, 0x62, 0xF2, 0x38, 0x2C, 0x03, 0x00, 0x00, 0x41, 0x82, 0x00, 0x0C, 0x38, 0x60, 0x00, 0x00, 0x98, 0x7F,
-	    0x00, 0xF0, 0x3B, 0xA0, 0x00, 0x01, 0x60, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xC2, 0x1D, 0x45, 0xEC,
-	    0x00, 0x00, 0x00, 0x1B, // #Common/Preload Stadium
-	                            // Transformations/Handlers/Load
-	                            // Transformation.asm
-	    0x88, 0x62, 0xF2, 0x38, 0x2C, 0x03, 0x00, 0x00, 0x41, 0x82, 0x00, 0xC4, 0x88, 0x7F, 0x00, 0xF0, 0x2C, 0x03,
-	    0x00, 0x00, 0x40, 0x82, 0x00, 0xB8, 0x38, 0x60, 0x00, 0x04, 0x3D, 0x80, 0x80, 0x38, 0x61, 0x8C, 0x05, 0x80,
-	    0x7D, 0x89, 0x03, 0xA6, 0x4E, 0x80, 0x04, 0x21, 0x54, 0x60, 0x10, 0x3A, 0xA8, 0x7F, 0x00, 0xE2, 0x3C, 0x80,
-	    0x80, 0x3B, 0x60, 0x84, 0x7F, 0x9C, 0x7C, 0x84, 0x00, 0x2E, 0x7C, 0x03, 0x20, 0x00, 0x41, 0x82, 0xFF, 0xD4,
-	    0x90, 0x9F, 0x00, 0xEC, 0x2C, 0x04, 0x00, 0x03, 0x40, 0x82, 0x00, 0x0C, 0x38, 0x80, 0x00, 0x00, 0x48, 0x00,
-	    0x00, 0x34, 0x2C, 0x04, 0x00, 0x04, 0x40, 0x82, 0x00, 0x0C, 0x38, 0x80, 0x00, 0x01, 0x48, 0x00, 0x00, 0x24,
-	    0x2C, 0x04, 0x00, 0x09, 0x40, 0x82, 0x00, 0x0C, 0x38, 0x80, 0x00, 0x02, 0x48, 0x00, 0x00, 0x14, 0x2C, 0x04,
-	    0x00, 0x06, 0x40, 0x82, 0x00, 0x00, 0x38, 0x80, 0x00, 0x03, 0x48, 0x00, 0x00, 0x04, 0x3C, 0x60, 0x80, 0x3E,
-	    0x60, 0x63, 0x12, 0x48, 0x54, 0x80, 0x10, 0x3A, 0x7C, 0x63, 0x02, 0x14, 0x80, 0x63, 0x03, 0xD8, 0x80, 0x9F,
-	    0x00, 0xCC, 0x38, 0xBF, 0x00, 0xC8, 0x3C, 0xC0, 0x80, 0x1D, 0x60, 0xC6, 0x42, 0x20, 0x38, 0xE0, 0x00, 0x00,
-	    0x3D, 0x80, 0x80, 0x01, 0x61, 0x8C, 0x65, 0x80, 0x7D, 0x89, 0x03, 0xA6, 0x4E, 0x80, 0x04, 0x21, 0x38, 0x60,
-	    0x00, 0x01, 0x98, 0x7F, 0x00, 0xF0, 0x80, 0x7F, 0x00, 0xD8, 0x60, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	    0xC2, 0x1D, 0x4F, 0x14, 0x00, 0x00, 0x00, 0x04, // #Common/Preload
-	                                                    // Stadium
-	                                                    // Transformations/Handlers/Reset
-	                                                    // isLoaded.asm
-	    0x88, 0x62, 0xF2, 0x38, 0x2C, 0x03, 0x00, 0x00, 0x41, 0x82, 0x00, 0x0C, 0x38, 0x60, 0x00, 0x00, 0x98, 0x7F,
-	    0x00, 0xF0, 0x80, 0x6D, 0xB2, 0xD8, 0x60, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xC2, 0x06, 0x8F, 0x30,
-	    0x00, 0x00, 0x00, 0x9D, // #Common/PAL/Handlers/Character DAT
-	                            // Patcher.asm
-	    0x88, 0x62, 0xF2, 0x34, 0x2C, 0x03, 0x00, 0x00, 0x41, 0x82, 0x04, 0xD4, 0x7C, 0x08, 0x02, 0xA6, 0x90, 0x01,
-	    0x00, 0x04, 0x94, 0x21, 0xFF, 0x50, 0xBE, 0x81, 0x00, 0x08, 0x83, 0xFE, 0x01, 0x0C, 0x83, 0xFF, 0x00, 0x08,
-	    0x3B, 0xFF, 0xFF, 0xE0, 0x80, 0x7D, 0x00, 0x00, 0x2C, 0x03, 0x00, 0x1B, 0x40, 0x80, 0x04, 0x9C, 0x48, 0x00,
-	    0x00, 0x71, 0x48, 0x00, 0x00, 0xA9, 0x48, 0x00, 0x00, 0xB9, 0x48, 0x00, 0x01, 0x51, 0x48, 0x00, 0x01, 0x79,
-	    0x48, 0x00, 0x01, 0x79, 0x48, 0x00, 0x02, 0x29, 0x48, 0x00, 0x02, 0x39, 0x48, 0x00, 0x02, 0x81, 0x48, 0x00,
-	    0x02, 0xF9, 0x48, 0x00, 0x03, 0x11, 0x48, 0x00, 0x03, 0x11, 0x48, 0x00, 0x03, 0x11, 0x48, 0x00, 0x03, 0x11,
-	    0x48, 0x00, 0x03, 0x21, 0x48, 0x00, 0x03, 0x21, 0x48, 0x00, 0x03, 0x89, 0x48, 0x00, 0x03, 0x89, 0x48, 0x00,
-	    0x03, 0x91, 0x48, 0x00, 0x03, 0x91, 0x48, 0x00, 0x03, 0xA9, 0x48, 0x00, 0x03, 0xA9, 0x48, 0x00, 0x03, 0xB9,
-	    0x48, 0x00, 0x03, 0xB9, 0x48, 0x00, 0x03, 0xC9, 0x48, 0x00, 0x03, 0xC9, 0x48, 0x00, 0x03, 0xC9, 0x48, 0x00,
-	    0x04, 0x29, 0x7C, 0x88, 0x02, 0xA6, 0x1C, 0x63, 0x00, 0x04, 0x7C, 0x84, 0x1A, 0x14, 0x80, 0xA4, 0x00, 0x00,
-	    0x54, 0xA5, 0x01, 0xBA, 0x7C, 0xA4, 0x2A, 0x14, 0x80, 0x65, 0x00, 0x00, 0x80, 0x85, 0x00, 0x04, 0x2C, 0x03,
-	    0x00, 0xFF, 0x41, 0x82, 0x00, 0x14, 0x7C, 0x63, 0xFA, 0x14, 0x90, 0x83, 0x00, 0x00, 0x38, 0xA5, 0x00, 0x08,
-	    0x4B, 0xFF, 0xFF, 0xE4, 0x48, 0x00, 0x03, 0xF0, 0x00, 0x00, 0x33, 0x44, 0x3F, 0x54, 0x7A, 0xE1, 0x00, 0x00,
-	    0x33, 0x60, 0x42, 0xC4, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x37, 0x9C, 0x42, 0x92, 0x00, 0x00,
-	    0x00, 0x00, 0x39, 0x08, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x39, 0x0C, 0x40, 0x86, 0x66, 0x66, 0x00, 0x00,
-	    0x39, 0x10, 0x3D, 0xEA, 0x0E, 0xA1, 0x00, 0x00, 0x39, 0x28, 0x41, 0xA0, 0x00, 0x00, 0x00, 0x00, 0x3C, 0x04,
-	    0x2C, 0x01, 0x48, 0x0C, 0x00, 0x00, 0x47, 0x20, 0x1B, 0x96, 0x80, 0x13, 0x00, 0x00, 0x47, 0x34, 0x1B, 0x96,
-	    0x80, 0x13, 0x00, 0x00, 0x47, 0x3C, 0x04, 0x00, 0x00, 0x09, 0x00, 0x00, 0x4A, 0x40, 0x2C, 0x00, 0x68, 0x11,
-	    0x00, 0x00, 0x4A, 0x4C, 0x28, 0x1B, 0x00, 0x13, 0x00, 0x00, 0x4A, 0x50, 0x0D, 0x00, 0x01, 0x0B, 0x00, 0x00,
-	    0x4A, 0x54, 0x2C, 0x80, 0x68, 0x11, 0x00, 0x00, 0x4A, 0x60, 0x28, 0x1B, 0x00, 0x13, 0x00, 0x00, 0x4A, 0x64,
-	    0x0D, 0x00, 0x01, 0x0B, 0x00, 0x00, 0x4B, 0x24, 0x2C, 0x00, 0x68, 0x0D, 0x00, 0x00, 0x4B, 0x30, 0x0F, 0x10,
-	    0x40, 0x13, 0x00, 0x00, 0x4B, 0x38, 0x2C, 0x80, 0x38, 0x0D, 0x00, 0x00, 0x4B, 0x44, 0x0F, 0x10, 0x40, 0x13,
-	    0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x38, 0x0C, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x4E, 0xF8, 0x2C, 0x00,
-	    0x38, 0x03, 0x00, 0x00, 0x4F, 0x08, 0x0F, 0x80, 0x00, 0x0B, 0x00, 0x00, 0x4F, 0x0C, 0x2C, 0x80, 0x20, 0x03,
-	    0x00, 0x00, 0x4F, 0x1C, 0x0F, 0x80, 0x00, 0x0B, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00,
-	    0x4D, 0x10, 0x3F, 0xC0, 0x00, 0x00, 0x00, 0x00, 0x4D, 0x70, 0x42, 0x94, 0x00, 0x00, 0x00, 0x00, 0x4D, 0xD4,
-	    0x41, 0x90, 0x00, 0x00, 0x00, 0x00, 0x4D, 0xE0, 0x41, 0x90, 0x00, 0x00, 0x00, 0x00, 0x83, 0xAC, 0x2C, 0x00,
-	    0x00, 0x09, 0x00, 0x00, 0x83, 0xB8, 0x34, 0x8C, 0x80, 0x11, 0x00, 0x00, 0x84, 0x00, 0x34, 0x8C, 0x80, 0x11,
-	    0x00, 0x00, 0x84, 0x30, 0x05, 0x00, 0x00, 0x8B, 0x00, 0x00, 0x84, 0x38, 0x04, 0x1A, 0x05, 0x00, 0x00, 0x00,
-	    0x84, 0x44, 0x05, 0x00, 0x00, 0x8B, 0x00, 0x00, 0x84, 0xDC, 0x05, 0x78, 0x05, 0x78, 0x00, 0x00, 0x85, 0xB8,
-	    0x10, 0x00, 0x01, 0x0B, 0x00, 0x00, 0x85, 0xC0, 0x03, 0xE8, 0x01, 0xF4, 0x00, 0x00, 0x85, 0xCC, 0x10, 0x00,
-	    0x01, 0x0B, 0x00, 0x00, 0x85, 0xD4, 0x03, 0x84, 0x03, 0xE8, 0x00, 0x00, 0x85, 0xE0, 0x10, 0x00, 0x01, 0x0B,
-	    0x00, 0x00, 0x88, 0x18, 0x0B, 0x00, 0x01, 0x0B, 0x00, 0x00, 0x88, 0x2C, 0x0B, 0x00, 0x01, 0x0B, 0x00, 0x00,
-	    0x88, 0xF8, 0x04, 0x1A, 0x0B, 0xB8, 0x00, 0x00, 0x89, 0x3C, 0x04, 0x1A, 0x0B, 0xB8, 0x00, 0x00, 0x89, 0x80,
-	    0x04, 0x1A, 0x0B, 0xB8, 0x00, 0x00, 0x89, 0xE0, 0x04, 0xFE, 0xF7, 0x04, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00,
-	    0x36, 0xCC, 0x42, 0xEC, 0x00, 0x00, 0x00, 0x00, 0x37, 0xC4, 0x0C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF,
-	    0x00, 0x00, 0x34, 0x68, 0x3F, 0x66, 0x66, 0x66, 0x00, 0x00, 0x39, 0xD8, 0x44, 0x0C, 0x00, 0x00, 0x00, 0x00,
-	    0x3A, 0x44, 0xB4, 0x99, 0x00, 0x11, 0x00, 0x00, 0x3A, 0x48, 0x1B, 0x8C, 0x00, 0x8F, 0x00, 0x00, 0x3A, 0x58,
-	    0xB4, 0x99, 0x00, 0x11, 0x00, 0x00, 0x3A, 0x5C, 0x1B, 0x8C, 0x00, 0x8F, 0x00, 0x00, 0x3A, 0x6C, 0xB4, 0x99,
-	    0x00, 0x11, 0x00, 0x00, 0x3A, 0x70, 0x1B, 0x8C, 0x00, 0x8F, 0x00, 0x00, 0x3B, 0x30, 0x44, 0x0C, 0x00, 0x00,
-	    0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x45, 0xC8, 0x2C, 0x01, 0x50, 0x10, 0x00, 0x00, 0x45, 0xD4, 0x2D, 0x19,
-	    0x80, 0x13, 0x00, 0x00, 0x45, 0xDC, 0x2C, 0x80, 0xB0, 0x10, 0x00, 0x00, 0x45, 0xE8, 0x2D, 0x19, 0x80, 0x13,
-	    0x00, 0x00, 0x49, 0xC4, 0x2C, 0x00, 0x68, 0x0A, 0x00, 0x00, 0x49, 0xD0, 0x28, 0x1B, 0x80, 0x13, 0x00, 0x00,
-	    0x49, 0xD8, 0x2C, 0x80, 0x78, 0x0A, 0x00, 0x00, 0x49, 0xE4, 0x28, 0x1B, 0x80, 0x13, 0x00, 0x00, 0x49, 0xF0,
-	    0x2C, 0x00, 0x68, 0x08, 0x00, 0x00, 0x49, 0xFC, 0x23, 0x1B, 0x80, 0x13, 0x00, 0x00, 0x4A, 0x04, 0x2C, 0x80,
-	    0x78, 0x08, 0x00, 0x00, 0x4A, 0x10, 0x23, 0x1B, 0x80, 0x13, 0x00, 0x00, 0x5C, 0x98, 0x1E, 0x0C, 0x80, 0x80,
-	    0x00, 0x00, 0x5C, 0xF4, 0xB4, 0x80, 0x0C, 0x90, 0x00, 0x00, 0x5D, 0x08, 0xB4, 0x80, 0x0C, 0x90, 0x00, 0x00,
-	    0x00, 0xFF, 0x00, 0x00, 0x3A, 0x1C, 0xB4, 0x94, 0x00, 0x13, 0x00, 0x00, 0x3A, 0x64, 0x2C, 0x00, 0x00, 0x15,
-	    0x00, 0x00, 0x3A, 0x70, 0xB4, 0x92, 0x80, 0x13, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00,
-	    0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x64, 0x7C, 0xB4, 0x9A, 0x40, 0x17, 0x00, 0x00, 0x64, 0x80,
-	    0x64, 0x00, 0x10, 0x97, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x33, 0xE4, 0x42, 0xDE,
-	    0x00, 0x00, 0x00, 0x00, 0x45, 0x28, 0x2C, 0x01, 0x30, 0x11, 0x00, 0x00, 0x45, 0x34, 0xB4, 0x98, 0x80, 0x13,
-	    0x00, 0x00, 0x45, 0x3C, 0x2C, 0x81, 0x30, 0x11, 0x00, 0x00, 0x45, 0x48, 0xB4, 0x98, 0x80, 0x13, 0x00, 0x00,
-	    0x45, 0x50, 0x2D, 0x00, 0x20, 0x11, 0x00, 0x00, 0x45, 0x5C, 0xB4, 0x98, 0x80, 0x13, 0x00, 0x00, 0x45, 0xF8,
-	    0x2C, 0x01, 0x30, 0x0F, 0x00, 0x00, 0x46, 0x08, 0x0F, 0x00, 0x01, 0x0B, 0x00, 0x00, 0x46, 0x0C, 0x2C, 0x81,
-	    0x28, 0x0F, 0x00, 0x00, 0x46, 0x1C, 0x0F, 0x00, 0x01, 0x0B, 0x00, 0x00, 0x4A, 0xEC, 0x2C, 0x00, 0x70, 0x03,
-	    0x00, 0x00, 0x4B, 0x00, 0x2C, 0x80, 0x38, 0x03, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00,
-	    0x48, 0x5C, 0x2C, 0x00, 0x00, 0x0F, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x37, 0xB0,
-	    0x3F, 0x59, 0x99, 0x9A, 0x00, 0x00, 0x37, 0xCC, 0x42, 0xAA, 0x00, 0x00, 0x00, 0x00, 0x55, 0x20, 0x87, 0x11,
-	    0x80, 0x13, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x3B, 0x8C, 0x44, 0x0C, 0x00, 0x00,
-	    0x00, 0x00, 0x3D, 0x0C, 0x44, 0x0C, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00,
-	    0x50, 0xE4, 0xB4, 0x99, 0x00, 0x13, 0x00, 0x00, 0x50, 0xF8, 0xB4, 0x99, 0x00, 0x13, 0x00, 0x00, 0x00, 0xFF,
-	    0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x4E, 0xB0, 0x02, 0xBC, 0xFF, 0x38, 0x00, 0x00,
-	    0x4E, 0xBC, 0x14, 0x00, 0x01, 0x23, 0x00, 0x00, 0x4E, 0xC4, 0x03, 0x84, 0x01, 0xF4, 0x00, 0x00, 0x4E, 0xD0,
-	    0x14, 0x00, 0x01, 0x23, 0x00, 0x00, 0x4E, 0xD8, 0x04, 0x4C, 0x04, 0xB0, 0x00, 0x00, 0x4E, 0xE4, 0x14, 0x00,
-	    0x01, 0x23, 0x00, 0x00, 0x50, 0x5C, 0x2C, 0x00, 0x68, 0x15, 0x00, 0x00, 0x50, 0x6C, 0x14, 0x08, 0x01, 0x23,
-	    0x00, 0x00, 0x50, 0x70, 0x2C, 0x80, 0x60, 0x15, 0x00, 0x00, 0x50, 0x80, 0x14, 0x08, 0x01, 0x23, 0x00, 0x00,
-	    0x50, 0x84, 0x2D, 0x00, 0x20, 0x15, 0x00, 0x00, 0x50, 0x94, 0x14, 0x08, 0x01, 0x23, 0x00, 0x00, 0x00, 0xFF,
-	    0x00, 0x00, 0x00, 0xFF, 0xBA, 0x81, 0x00, 0x08, 0x80, 0x01, 0x00, 0xB4, 0x38, 0x21, 0x00, 0xB0, 0x7C, 0x08,
-	    0x03, 0xA6, 0x3C, 0x60, 0x80, 0x3C, 0x60, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xC2, 0x2F, 0x9A, 0x3C,
-	    0x00, 0x00, 0x00, 0x08, // #Common/PAL/Handlers/PAL Stock Icons.asm
-	    0x88, 0x62, 0xF2, 0x34, 0x2C, 0x03, 0x00, 0x00, 0x41, 0x82, 0x00, 0x30, 0x48, 0x00, 0x00, 0x21, 0x7C, 0x88,
-	    0x02, 0xA6, 0x80, 0x64, 0x00, 0x00, 0x90, 0x7D, 0x00, 0x2C, 0x90, 0x7D, 0x00, 0x30, 0x80, 0x64, 0x00, 0x04,
-	    0x90, 0x7D, 0x00, 0x3C, 0x48, 0x00, 0x00, 0x10, 0x4E, 0x80, 0x00, 0x21, 0x3F, 0x59, 0x99, 0x9A, 0xC1, 0xA8,
-	    0x00, 0x00, 0x80, 0x1D, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0xC2, 0x10, 0xFC, 0x44, 0x00, 0x00, 0x00,
-	    0x04, // #Common/PAL/Handlers/DK
-	          // Up B/Aerial Up B.asm
-	    0x88, 0x82, 0xF2, 0x34, 0x2C, 0x04, 0x00, 0x00, 0x41, 0x82, 0x00, 0x10, 0x3C, 0x00, 0x80, 0x11, 0x60, 0x00,
-	    0x00, 0x74, 0x48, 0x00, 0x00, 0x08, 0x38, 0x03, 0xD7, 0x74, 0x00, 0x00, 0x00, 0x00, 0xC2, 0x10, 0xFB, 0x64,
-	    0x00, 0x00, 0x00, 0x04, // #Common/PAL/Handlers/DK Up B/Grounded
-	                            // Up B.asm
-	    0x88, 0x82, 0xF2, 0x34, 0x2C, 0x04, 0x00, 0x00, 0x41, 0x82, 0x00, 0x10, 0x3C, 0x00, 0x80, 0x11, 0x60, 0x00,
-	    0x00, 0x74, 0x48, 0x00, 0x00, 0x08, 0x38, 0x03, 0xD7, 0x74, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00,
-	    0x00, 0x00, 0x00, 0x00 // Termination sequence
-	};
+	std::unordered_map<u32, bool> blacklist{staticBlacklist};
 
-	static std::unordered_map<u32, bool> staticBlacklist = {
-	    {0x8008d698, true}, // Recording/GetLCancelStatus/GetLCancelStatus.asm
-	    {0x8006c324, true}, // Recording/GetLCancelStatus/ResetLCancelStatus.asm
-	    {0x800679bc, true}, // Recording/ExtendPlayerBlock.asm
-	    {0x802fef88, true}, // Recording/FlushFrameBuffer.asm
-	    {0x80005604, true}, // Recording/IsVSMode.asm
-	    {0x8016d30c, true}, // Recording/SendGameEnd.asm
-	    {0x8016e74c, true}, // Recording/SendGameInfo.asm
-	    {0x8006c5d8, true}, // Recording/SendGamePostFrame.asm
-	    {0x8006b0dc, true}, // Recording/SendGamePreFrame.asm
-	    {0x803219ec, true}, // 3.4.0: Recording/FlushFrameBuffer.asm (Have to keep old ones for backward compatibility)
-	    {0x8006da34, true}, // 3.4.0: Recording/SendGamePostFrame.asm
-	    {0x8016d884, true}, // 3.7.0: Recording/SendGameEnd.asm
-
-	    {0x8021aae4, true}, // Binary/FasterMeleeSettings/DisableFdTransitions.bin
-	    {0x801cbb90, true}, // Binary/FasterMeleeSettings/LaglessFod.bin
-	    {0x801CC8AC, true}, // Binary/FasterMeleeSettings/LaglessFod.bin
-	    {0x801CBE9C, true}, // Binary/FasterMeleeSettings/LaglessFod.bin
-	    {0x801CBEF0, true}, // Binary/FasterMeleeSettings/LaglessFod.bin
-	    {0x801CBF54, true}, // Binary/FasterMeleeSettings/LaglessFod.bin
-	    {0x80390838, true}, // Binary/FasterMeleeSettings/LaglessFod.bin
-	    {0x801CD250, true}, // Binary/FasterMeleeSettings/LaglessFod.bin
-	    {0x801CCDCC, true}, // Binary/FasterMeleeSettings/LaglessFod.bin
-	    {0x801C26B0, true}, // Binary/FasterMeleeSettings/RandomStageMusic.bin
-	    {0x803761ec, true}, // Binary/NormalLagReduction.bin
-	    {0x800198a4, true}, // Binary/PerformanceLagReduction.bin
-	    {0x80019620, true}, // Binary/PerformanceLagReduction.bin
-	    {0x801A5054, true}, // Binary/PerformanceLagReduction.bin
-	    {0x80397878, true}, // Binary/OsReportPrintOnCrash.bin
-	    {0x801A4DA0, true}, // Binary/LagReduction/PD.bin
-	    {0x801A4DB4, true}, // Binary/LagReduction/PD.bin
-	    {0x80019860, true}, // Binary/LagReduction/PD.bin
-	    {0x801A4C24, true}, // Binary/LagReduction/PD+VB.bin
-	    {0x8001985C, true}, // Binary/LagReduction/PD+VB.bin
-	    {0x80019860, true}, // Binary/LagReduction/PD+VB.bin
-	    {0x80376200, true}, // Binary/LagReduction/PD+VB.bin
-	    {0x801A5018, true}, // Binary/LagReduction/PD+VB.bin
-	    {0x80218D68, true}, // Binary/LagReduction/PD+VB.bin
-	    {0x8016E9AC, true}, // Binary/Force2PCenterHud.bin
-	    {0x80030E44, true}, // Binary/DisableScreenShake.bin
-	    {0x803761EC, true}, // Binary/NormalLagReduction.bin
-	    {0x80376238, true}, // Binary/NormalLagReduction.bin
-
-	    {0x800055f0, true}, // Common/EXITransferBuffer.asm
-	    {0x800055f8, true}, // Common/GetIsFollower.asm
-	    {0x800055fc, true}, // Common/Gecko/ProcessCodeList.asm
-	    {0x8016d294, true}, // Common/IncrementFrameIndex.asm
-	    {0x80376a24, true}, // Common/UseInGameDelay/ApplyInGameDelay.asm
-	    {0x8016e9b0, true}, // Common/UseInGameDelay/InitializeInGameDelay.asm
-	    {0x8000561c, true}, // Common/GetCommonMinorID/GetCommonMinorID.asm
-	    {0x802f666c, true}, // Common/UseInGameDelay/InitializeInGameDelay.asm v2
-	    {0x8000569c, true}, // Common/CompatibilityHooks/GetFighterNum.asm
-	    {0x800056a0, true}, // Common/CompatibilityHooks/GetSSMIndex.asm
-	    {0x800056a8, true}, // Common/CompatibilityHooks/RequestSSMLoad.asm
-
-	    {0x801a5b14, true}, // External/Salty Runback/Salty Runback.asm
-	    {0x801a4570, true}, // External/LagReduction/ForceHD/480pDeflickerOff.asm
-	    {0x802fccd8, true}, // External/Hide Nametag When Invisible/Hide Nametag When Invisible.asm
-
-	    {0x804ddb30,
-	     true}, // External/Widescreen/Adjust Offscreen Scissor/Fix Bubble Positions/Adjust Corner Value 1.asm
-	    {0x804ddb34,
-	     true}, // External/Widescreen/Adjust Offscreen Scissor/Fix Bubble Positions/Adjust Corner Value 2.asm
-	    {0x804ddb2c, true}, // External/Widescreen/Adjust Offscreen Scissor/Fix Bubble Positions/Extend Negative
-	                        // Vertical Bound.asm
-	    {0x804ddb28, true}, // External/Widescreen/Adjust Offscreen Scissor/Fix Bubble Positions/Extend Positive
-	                        // Vertical Bound.asm
-	    {0x804ddb4c, true}, // External/Widescreen/Adjust Offscreen Scissor/Fix Bubble Positions/Widen Bubble Region.asm
-	    {0x804ddb58, true}, // External/Widescreen/Adjust Offscreen Scissor/Adjust Bubble Zoom.asm
-	    {0x80086b24, true}, // External/Widescreen/Adjust Offscreen Scissor/Draw High Poly Models.asm
-	    {0x80030C7C, true}, // External/Widescreen/Adjust Offscreen Scissor/Left Camera Bound.asm
-	    {0x80030C88, true}, // External/Widescreen/Adjust Offscreen Scissor/Right Camera Bound.asm
-	    {0x802fcfc4, true}, // External/Widescreen/Nametag Fixes/Adjust Nametag Background X Scale.asm
-	    {0x804ddb84, true}, // External/Widescreen/Nametag Fixes/Adjust Nametag Text X Scale.asm
-	    {0x803BB05C, true}, // External/Widescreen/Fix Screen Flash.asm
-	    {0x8036A4A8, true}, // External/Widescreen/Overwrite CObj Values.asm
-	    {0x80302784, true}, // External/Monitor4-3/Add Shutters.asm
-	    {0x800C0148, true}, // External/FlashRedFailedLCancel/ChangeColor.asm
-	    {0x8008D690, true}, // External/FlashRedFailedLCancel/TriggerColor.asm
-
-	    {0x801A4DB4, true}, // Online/Core/ForceEngineOnRollback.asm
-	    {0x8016D310, true}, // Online/Core/HandleLRAS.asm
-	    {0x8034DED8, true}, // Online/Core/HandleRumble.asm
-	    {0x8016E748, true}, // Online/Core/InitOnlinePlay.asm
-	    {0x8016e904, true}, // Online/Core/InitPause.asm
-	    {0x801a5014, true}, // Online/Core/LoopEngineForRollback.asm
-	    {0x801a4de4, true}, // Online/Core/StartEngineLoop.asm
-	    {0x80376A28, true}, // Online/Core/TriggerSendInput.asm
-	    {0x801a4cb4, true}, // Online/Core/EXIFileLoad/AllocBuffer.asm
-	    {0x800163fc, true}, // Online/Core/EXIFileLoad/GetFileSize.asm
-	    {0x800166b8, true}, // Online/Core/EXIFileLoad/TransferFile.asm
-	    {0x80019260, true}, // Online/Core/Hacks/ForceNoDiskCrash.asm
-	    {0x80376304, true}, // Online/Core/Hacks/ForceNoVideoAssert.asm
-	    {0x80321d70, true}, // Online/Core/Hacks/PreventCharacterCrowdChants.asm
-	    {0x80019608, true}, // Online/Core/Hacks/PreventPadAlarmDuringRollback.asm
-	    {0x8038D224, true}, // Online/Core/Sound/AssignSoundInstanceId.asm
-	    {0x80088224, true}, // Online/Core/Sound/NoDestroyVoice.asm
-	    {0x800882B0, true}, // Online/Core/Sound/NoDestroyVoice2.asm
-	    {0x8038D0B0, true}, // Online/Core/Sound/PreventDuplicateSounds.asm
-	    {0x803775b8, true}, // Online/Logging/LogInputOnCopy.asm
-	    {0x8016e9b4, true}, // Online/Menus/InGame/InitInGame.asm
-	    {0x80185050, true}, // Online/Menus/VSScreen/HideStageDisplay/PreventEarlyR3Overwrite.asm
-	    {0x80184b1c, true}, // Online/Menus/VSScreen/HideStageText/SkipStageNumberShow.asm
-	    {0x801A45BC, true}, // Online/Slippi Online Scene/main.asm
-	    {0x801a45b8, true}, // Online/Slippi Online Scene/main.asm (https://bit.ly/3kxohf4)
-	    {0x801BFA20, true}, // Online/Slippi Online Scene/boot.asm
-	    {0x800cc818, true}, // External/GreenDuringWait/fall.asm
-	    {0x8008a478, true}, // External/GreenDuringWait/wait.asm
-
-	    {0x802f6690, true}, // HUD Transparency v1.1 (https://smashboards.com/threads/transparent-hud-v1-1.508509/)
-	    {0x802F71E0, true}, // Smaller "Ready, GO!" (https://smashboards.com/threads/smaller-ready-go.509740/)
-	    {0x80071960, true}, // Yellow During IASA
-	                        // (https://smashboards.com/threads/color-overlays-for-iasa-frames.401474/post-19120928)
-	};
-
-	std::unordered_map<u32, bool> blacklist;
-	blacklist.insert(staticBlacklist.begin(), staticBlacklist.end());
-
-	auto replayCommSettings = g_replayComm->getSettings();
-	if (replayCommSettings.rollbackDisplayMethod == "off")
+	if (g_replayComm->getSettings().rollbackDisplayMethod == "off")
 	{
 		// Some codes should only be blacklisted when not displaying rollbacks, these are codes
 		// that are required for things to not break when using Slippi savestates. Perhaps this
@@ -1143,28 +838,29 @@ void CEXISlippi::prepareGeckoList()
 	Slippi::GameSettings *settings = m_current_game->GetSettings();
 	if (settings->geckoCodes.empty())
 	{
-		geckoList = defaultCodeList;
+		geckoList = std::vector<u8>{defaultCodeList.begin(), defaultCodeList.end()};
 		return;
 	}
 
-	std::vector<u8> source = settings->geckoCodes;
+	const std::vector<u8> source = settings->geckoCodes;
 	INFO_LOG(SLIPPI, "Booting codes with source size: %d", source.size());
 
-	int idx = 0;
-	while (idx < source.size())
+	u32 codeOffset;
+	for (int idx = 0; idx < source.size(); idx += codeOffset)
 	{
-		u8 codeType = source[idx] & 0xFE;
-		u32 address = source[idx] << 24 | source[idx + 1] << 16 | source[idx + 2] << 8 | source[idx + 3];
-		address = (address & 0x01FFFFFF) | 0x80000000;
+		const u8 codeType = source[idx] & 0xFE;
+		const u32 address =
+		    (source[idx] << 24 | source[idx + 1] << 16 | source[idx + 2] << 8 | source[idx + 3]) & 0x01FFFFFF |
+		    0x80000000;
 
-		u32 codeOffset = 8; // Default code offset. Most codes are this length
+		codeOffset = 8; // Default code offset. Most codes are this length
 		switch (codeType)
 		{
 		case 0xC0:
 		case 0xC2:
 		{
-			u32 lineCount = source[idx + 4] << 24 | source[idx + 5] << 16 | source[idx + 6] << 8 | source[idx + 7];
-			codeOffset = 8 + (lineCount * 8);
+			codeOffset =
+			    8 + (source[idx + 4] << 24 | source[idx + 5] << 16 | source[idx + 6] << 8 | source[idx + 7] * 8);
 			break;
 		}
 		case 0x08:
@@ -1172,13 +868,12 @@ void CEXISlippi::prepareGeckoList()
 			break;
 		case 0x06:
 		{
-			u32 byteLen = source[idx + 4] << 24 | source[idx + 5] << 16 | source[idx + 6] << 8 | source[idx + 7];
-			codeOffset = 8 + ((byteLen + 7) & 0xFFFFFFF8); // Round up to next 8 bytes and add the first 8 bytes
+			codeOffset =
+			    8 + ((source[idx + 4] << 24 | source[idx + 5] << 16 | source[idx + 6] << 8 | source[idx + 7] + 7) &
+			         0xFFFFFFF8); // Round up to next 8 bytes and add the first 8 bytes
 			break;
 		}
 		}
-
-		idx += codeOffset;
 
 		// If this address is blacklisted, we don't add it to what we will send to game
 		if (blacklist.count(address))
@@ -1195,13 +890,13 @@ void CEXISlippi::prepareGeckoList()
 	geckoList.insert(geckoList.end(), {0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00});
 }
 
-void CEXISlippi::prepareCharacterFrameData(Slippi::FrameData *frame, u8 port, u8 isFollower)
+void CEXISlippi::prepareCharacterFrameData(const Slippi::FrameData *frame, const u8 port, const u8 isFollower)
 {
 	std::unordered_map<uint8_t, Slippi::PlayerFrameData> source;
 	source = isFollower ? frame->followers : frame->players;
 
 	// This must be updated if new data is added
-	int characterDataLen = 49;
+	constexpr unsigned int characterDataLen = 49;
 
 	// Check if player exists
 	if (!source.count(port))
@@ -1212,7 +907,7 @@ void CEXISlippi::prepareCharacterFrameData(Slippi::FrameData *frame, u8 port, u8
 	}
 
 	// Get data for this player
-	Slippi::PlayerFrameData data = source[port];
+	const Slippi::PlayerFrameData data = source[port];
 
 	// log << frameIndex << "\t" << port << "\t" << data.locationX << "\t" << data.locationY << "\t" <<
 	// data.animation
@@ -1238,16 +933,16 @@ void CEXISlippi::prepareCharacterFrameData(Slippi::FrameData *frame, u8 port, u8
 	// NOTE TO DEV: If you add data here, make sure to increase the size above
 }
 
-bool CEXISlippi::checkFrameFullyFetched(s32 frameIndex)
+bool CEXISlippi::checkFrameFullyFetched(const s32 frameIndex) const
 {
-	auto doesFrameExist = m_current_game->DoesFrameExist(frameIndex);
+	const auto doesFrameExist = m_current_game->DoesFrameExist(frameIndex);
 	if (!doesFrameExist)
 		return false;
 
-	Slippi::FrameData *frame = m_current_game->GetFrame(frameIndex);
+	const Slippi::FrameData *frame = m_current_game->GetFrame(frameIndex);
 
-	version::Semver200_version lastFinalizedVersion("3.7.0");
-	version::Semver200_version currentVersion(m_current_game->GetVersionString());
+	const version::Semver200_version lastFinalizedVersion("3.7.0");
+	const version::Semver200_version currentVersion(m_current_game->GetVersionString());
 
 	bool frameIsFinalized = true;
 	if (currentVersion >= lastFinalizedVersion)
@@ -1262,7 +957,7 @@ bool CEXISlippi::checkFrameFullyFetched(s32 frameIndex)
 	return frame->inputsFullyFetched && frameIsFinalized;
 }
 
-void CEXISlippi::prepareFrameData(u8 *payload)
+void CEXISlippi::prepareFrameData(const u8 *payload)
 {
 	// Since we are prepping new data, clear any existing data
 	m_read_queue.clear();
@@ -1277,7 +972,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	s32 frameIndex = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
 
 	// If loading from queue, move on to the next replay if we have past endFrame
-	auto watchSettings = g_replayComm->current;
+	const auto watchSettings = g_replayComm->current;
 #ifdef IS_PLAYBACK
 	if (shouldOutput && !outputCurrentFrame && frameIndex >= watchSettings.startFrame)
 		outputCurrentFrame = true;
@@ -1296,22 +991,22 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	}
 
 	// If a new replay should be played, terminate the current game
-	auto isNewReplay = g_replayComm->isNewReplay();
+	const auto isNewReplay = g_replayComm->isNewReplay();
 	if (isNewReplay)
 	{
 		m_read_queue.push_back(FRAME_RESP_TERMINATE);
 		return;
 	}
 
-	auto isProcessingComplete = m_current_game->IsProcessingComplete();
+	const bool isProcessingComplete = m_current_game->IsProcessingComplete();
 	// Wait until frame exists in our data before reading it. We also wait until
 	// next frame has been found to ensure we have actually received all of the
 	// data from this frame. Don't wait until next frame is processing is complete
 	// (this is the last frame, in that case)
-	auto isFrameFound = m_current_game->DoesFrameExist(frameIndex);
+	const bool isFrameFound = m_current_game->DoesFrameExist(frameIndex);
 	g_playbackStatus->latestFrame = m_current_game->GetLatestIndex();
-	auto isFrameComplete = checkFrameFullyFetched(frameIndex);
-	auto isFrameReady = isFrameFound && (isProcessingComplete || isFrameComplete);
+	const bool isFrameComplete = checkFrameFullyFetched(frameIndex);
+	const bool isFrameReady = isFrameFound && (isProcessingComplete || isFrameComplete);
 
 	// If there is a startFrame configured, manage the fast-forward flag
 	if (watchSettings.startFrame > Slippi::GAME_FIRST_FRAME)
@@ -1327,10 +1022,10 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 		}
 	}
 
-	auto commSettings = g_replayComm->getSettings();
+	const auto commSettings = g_replayComm->getSettings();
 	if (commSettings.rollbackDisplayMethod == "normal")
 	{
-		auto nextFrame = m_current_game->GetFrameAt(frameSeqIdx);
+		const auto nextFrame = m_current_game->GetFrameAt(frameSeqIdx);
 		bool shouldHardFFW = nextFrame && nextFrame->frame <= g_playbackStatus->currentPlaybackFrame;
 		g_playbackStatus->setHardFFW(shouldHardFFW);
 
@@ -1343,8 +1038,8 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	}
 
 	// If RealTimeMode is enabled, let's trigger fast forwarding under certain conditions
-	auto isFarBehind = g_playbackStatus->latestFrame - frameIndex > 2;
-	auto isVeryFarBehind = g_playbackStatus->latestFrame - frameIndex > 25;
+	const bool isFarBehind = g_playbackStatus->latestFrame - frameIndex > 2;
+	const bool isVeryFarBehind = g_playbackStatus->latestFrame - frameIndex > 25;
 	if (isFarBehind && commSettings.mode == "mirror" && commSettings.isRealTimeMode)
 	{
 		g_playbackStatus->isSoftFFW = true;
@@ -1366,14 +1061,13 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 		g_playbackStatus->setHardFFW(false);
 	}
 
-	bool shouldFFW = g_playbackStatus->shouldFFWFrame(frameIndex);
+	const bool shouldFFW = g_playbackStatus->shouldFFWFrame(frameIndex);
 	u8 requestResultCode = shouldFFW ? FRAME_RESP_FASTFORWARD : FRAME_RESP_CONTINUE;
 	if (!isFrameReady)
 	{
 		// If processing is complete, the game has terminated early. Tell our playback
 		// to end the game as well.
-		auto shouldTerminateGame = isProcessingComplete;
-		requestResultCode = shouldTerminateGame ? FRAME_RESP_TERMINATE : FRAME_RESP_WAIT;
+		requestResultCode = isProcessingComplete ? FRAME_RESP_TERMINATE : FRAME_RESP_WAIT;
 		m_read_queue.push_back(requestResultCode);
 
 		// Disable fast forward here too... this shouldn't be necessary but better
@@ -1419,10 +1113,10 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	Slippi::FrameData *frame = m_current_game->GetFrame(frameIndex);
 	if (commSettings.rollbackDisplayMethod != "off")
 	{
-		auto previousFrame = m_current_game->GetFrameAt(frameSeqIdx - 1);
+		const auto previousFrame = m_current_game->GetFrameAt(frameSeqIdx - 1);
 		frame = m_current_game->GetFrameAt(frameSeqIdx);
 
-		*(s32 *)(&playbackSavestatePayload[0]) = Common::swap32(frame->frame);
+		playbackSavestatePayload[0] = static_cast<s32>(Common::swap32(frame->frame));
 
 		if (previousFrame && frame->frame <= previousFrame->frame)
 		{
@@ -1447,9 +1141,8 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	m_read_queue.push_back(rollbackCode);
 
 	// Add frame rng seed to be restored at priority 0
-	u8 rngResult = frame->randomSeedExists ? 1 : 0;
-	m_read_queue.push_back(rngResult);
-	appendWordToBuffer(&m_read_queue, *(u32 *)&frame->randomSeed);
+	m_read_queue.push_back(static_cast<u8>(frame->randomSeedExists));
+	appendWordToBuffer(&m_read_queue, static_cast<u32>(frame->randomSeed));
 
 	// Add frame data for every character
 	for (u8 port = 0; port < 4; port++)
@@ -1459,7 +1152,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	}
 }
 
-void CEXISlippi::prepareIsStockSteal(u8 *payload)
+void CEXISlippi::prepareIsStockSteal(const u8 *payload)
 {
 	// Since we are prepping new data, clear any existing data
 	m_read_queue.clear();
@@ -1471,13 +1164,12 @@ void CEXISlippi::prepareIsStockSteal(u8 *payload)
 	}
 
 	// Parse args
-	s32 frameIndex = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
-	u8 playerIndex = payload[4];
+	const s32 frameIndex = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
+	const u8 playerIndex = payload[4];
 
 	// I'm not sure checking for the frame should be necessary. Theoretically this
 	// should get called after the frame request so the frame should already exist
-	auto isFrameFound = m_current_game->DoesFrameExist(frameIndex);
-	if (!isFrameFound)
+	if (!m_current_game->DoesFrameExist(frameIndex))
 	{
 		m_read_queue.push_back(0);
 		return;
@@ -1485,7 +1177,7 @@ void CEXISlippi::prepareIsStockSteal(u8 *payload)
 
 	// Load the data from this frame into the read buffer
 	Slippi::FrameData *frame = m_current_game->GetFrame(frameIndex);
-	auto players = frame->players;
+	const auto players = frame->players;
 
 	u8 playerIsBack = players.count(playerIndex) ? 1 : 0;
 	m_read_queue.push_back(playerIsBack);
@@ -1495,8 +1187,7 @@ void CEXISlippi::prepareIsFileReady()
 {
 	m_read_queue.clear();
 
-	auto isNewReplay = g_replayComm->isNewReplay();
-	if (!isNewReplay)
+	if (!g_replayComm->isNewReplay())
 	{
 		g_replayComm->nextReplay();
 		m_read_queue.push_back(0);
@@ -1542,21 +1233,21 @@ void CEXISlippi::prepareIsFileReady()
 // slippi_netplay got set to null on it's own thread and then the instance of the ExiDevice would crash while performing
 // a method that was that used it.
 // Maybe someone smart can fix that logic instead of this monkey patch.
-bool CEXISlippi::isDisconnected()
+bool CEXISlippi::isDisconnected() const
 {
 	if (!slippi_netplay)
 		return true;
 
-	auto status = slippi_netplay->GetSlippiConnectStatus();
+	const auto status = slippi_netplay->GetSlippiConnectStatus();
 	return status != SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED;
 }
 
-void CEXISlippi::handleOnlineInputs(u8 *payload)
+void CEXISlippi::handleOnlineInputs(const u8 *payload)
 {
 	m_read_queue.clear();
 
-	s32 frame = Common::swap32(&payload[0]);
-	s32 finalizedFrame = Common::swap32(&payload[4]);
+	const s32 frame = Common::swap32(&payload[0]);
+	const s32 finalizedFrame = Common::swap32(&payload[4]);
 
 	if (frame == 1)
 	{
@@ -1598,7 +1289,7 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 	// Drop inputs that we no longer need (inputs older than the finalized frame passed in)
 	slippi_netplay->DropOldRemoteInputs(finalizedFrame);
 
-	bool shouldSkip = shouldSkipOnlineFrame(frame, finalizedFrame);
+	const bool shouldSkip = shouldSkipOnlineFrame(frame, finalizedFrame);
 	if (shouldSkip)
 	{
 		// Send inputs that have not yet been acked
@@ -1613,11 +1304,12 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 	prepareOpponentInputs(frame, shouldSkip);
 }
 
-bool CEXISlippi::shouldSkipOnlineFrame(s32 frame, s32 finalizedFrame)
+bool CEXISlippi::shouldSkipOnlineFrame(const s32 frame, const s32 finalizedFrame)
 {
-	auto status = slippi_netplay->GetSlippiConnectStatus();
-	bool connectionFailed = status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_FAILED;
-	bool connectionDisconnected = status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_DISCONNECTED;
+	const auto status = slippi_netplay->GetSlippiConnectStatus();
+	const bool connectionFailed = status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_FAILED;
+	const bool connectionDisconnected =
+	    status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_DISCONNECTED;
 	if (connectionFailed || connectionDisconnected)
 	{
 		// If connection failed just continue the game
@@ -1636,8 +1328,9 @@ bool CEXISlippi::shouldSkipOnlineFrame(s32 frame, s32 finalizedFrame)
 	// we have enough inputs to finalize to not overflow the available states, so if our latest frame
 	// is 101, we can't let frame 109 be created. 101 - 100 >= 109 - 100 - 7 : 1 >= 2 (false).
 	// It has to work this way because we only have room to move our states forward by one for frame 108
-	s32 latestRemoteFrame = slippi_netplay->GetSlippiLatestRemoteFrame(ROLLBACK_MAX_FRAMES);
-	auto hasEnoughNewInputs = latestRemoteFrame - finalizedFrame >= (frame - finalizedFrame - ROLLBACK_MAX_FRAMES);
+	const s32 latestRemoteFrame = slippi_netplay->GetSlippiLatestRemoteFrame(ROLLBACK_MAX_FRAMES);
+	const auto hasEnoughNewInputs =
+	    latestRemoteFrame - finalizedFrame >= (frame - finalizedFrame - ROLLBACK_MAX_FRAMES);
 	if (!hasEnoughNewInputs)
 	{
 		stallFrameCount++;
@@ -1656,17 +1349,17 @@ bool CEXISlippi::shouldSkipOnlineFrame(s32 frame, s32 finalizedFrame)
 
 	stallFrameCount = 0;
 
-	s32 frameTime = 16683;
-	s32 t1 = 10000;
-	s32 t2 = (2 * frameTime) + t1;
+	constexpr s32 frameTime = 16683;
+	constexpr s32 t1 = 10000;
+	constexpr s32 t2 = (2 * frameTime) + t1;
 
 	// Only skip once for a given frame because our time detection method doesn't take into consideration
 	// waiting for a frame. Also it's less jarring and it happens often enough that it will smoothly
 	// get to the right place
-	auto isTimeSyncFrame = frame % SLIPPI_ONLINE_LOCKSTEP_INTERVAL; // Only time sync every 30 frames
+	const auto isTimeSyncFrame = frame % SLIPPI_ONLINE_LOCKSTEP_INTERVAL; // Only time sync every 30 frames
 	if (isTimeSyncFrame == 0 && !isCurrentlySkipping)
 	{
-		auto offsetUs = slippi_netplay->CalcTimeOffsetUs();
+		const auto offsetUs = slippi_netplay->CalcTimeOffsetUs();
 		INFO_LOG(SLIPPI_ONLINE, "[Frame %d] Offset for skip is: %d us", frame, offsetUs);
 
 		// At the start of the game, let's make sure to sync perfectly, but after that let the slow instance
@@ -1680,7 +1373,7 @@ bool CEXISlippi::shouldSkipOnlineFrame(s32 frame, s32 finalizedFrame)
 		{
 			isCurrentlySkipping = true;
 
-			int maxSkipFrames = frame <= 120 ? 5 : 1; // On early frames, support skipping more frames
+			const int maxSkipFrames = frame <= 120 ? 5 : 1; // On early frames, support skipping more frames
 			framesToSkip = ((offsetUs - t1) / frameTime) + 1;
 			framesToSkip = framesToSkip > maxSkipFrames ? maxSkipFrames : framesToSkip; // Only skip 5 frames max
 
@@ -1703,7 +1396,7 @@ bool CEXISlippi::shouldSkipOnlineFrame(s32 frame, s32 finalizedFrame)
 	return false;
 }
 
-bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame)
+bool CEXISlippi::shouldAdvanceOnlineFrame(const s32 frame)
 {
 	// Logic below is used to test frame advance by forcing it more often
 	// SConfig::GetInstance().m_EmulationSpeed = 0.5f;
@@ -1719,18 +1412,18 @@ bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame)
 	// Return true if we are over 60% of a frame behind our opponent. We limit how often this happens
 	// to get a reliable average to act on. We will allow advancing up to 5 frames (spread out) over
 	// the 30 frame period. This makes the game feel relatively smooth still
-	auto isTimeSyncFrame = (frame % SLIPPI_ONLINE_LOCKSTEP_INTERVAL) == 0; // Only time sync every 30 frames
+	const auto isTimeSyncFrame = (frame % SLIPPI_ONLINE_LOCKSTEP_INTERVAL) == 0; // Only time sync every 30 frames
 	if (isTimeSyncFrame)
 	{
-		auto offsetUs = slippi_netplay->CalcTimeOffsetUs();
+		const auto offsetUs = slippi_netplay->CalcTimeOffsetUs();
 
 		// Dynamically adjust emulation speed in order to fine-tune time sync to reduce one sided rollbacks even more
 		// Modify emulation speed up to a max of 1% at 3 frames offset or more. Don't slow down the front instance as
 		// much because we want to prioritize performance for the fast PC
 		float deviation = 0;
-		float maxSlowDownAmount = 0.005f;
-		float maxSpeedUpAmount = 0.01f;
-		int frameWindow = 3;
+		constexpr float maxSlowDownAmount = 0.005f;
+		constexpr float maxSpeedUpAmount = 0.01f;
+		constexpr unsigned int frameWindow = 3;
 		if (offsetUs > -250 && offsetUs < 8000)
 		{
 			// Do nothing, leave deviation at 0 for 100% emulation speed when ahead by 8 ms or less
@@ -1738,33 +1431,33 @@ bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame)
 		else if (offsetUs < 0)
 		{
 			// Here we are behind, so let's speed up our instance
-			float frameWindowMultiplier = std::min(-offsetUs / (frameWindow * 16683.0f), 1.0f);
+			const float frameWindowMultiplier = std::min(-offsetUs / (frameWindow * 16683.0f), 1.0f);
 			deviation = frameWindowMultiplier * maxSpeedUpAmount;
 		}
 		else
 		{
 			// Here we are ahead, so let's slow down our instance
-			float frameWindowMultiplier = std::min(offsetUs / (frameWindow * 16683.0f), 1.0f);
+			const float frameWindowMultiplier = std::min(offsetUs / (frameWindow * 16683.0f), 1.0f);
 			deviation = frameWindowMultiplier * -maxSlowDownAmount;
 		}
 
-		auto dynamicEmulationSpeed = 1.0f + deviation;
+		const auto dynamicEmulationSpeed = 1.0f + deviation;
 		SConfig::GetInstance().m_EmulationSpeed = dynamicEmulationSpeed;
 		// SConfig::GetInstance().m_EmulationSpeed = 0.97f; // used for testing
 
 		INFO_LOG(SLIPPI_ONLINE, "[Frame %d] Offset for advance is: %d us. New speed: %.2f%%", frame, offsetUs,
 		         dynamicEmulationSpeed * 100.0f);
 
-		s32 frameTime = 16683;
-		s32 t1 = 10000;
-		s32 t2 = frameTime + t1;
+		constexpr s32 frameTime = 16683;
+		constexpr s32 t1 = 10000;
+		constexpr s32 t2 = frameTime + t1;
 
 		// Count the number of times we're below a threshold we should easily be able to clear. This is checked twice
 		// per second.
 		fallBehindCounter += offsetUs < -t1 ? 1 : 0;
 		fallFarBehindCounter += offsetUs < -t2 ? 1 : 0;
 
-		bool isSlow = (offsetUs < -t1 && fallBehindCounter > 50) || (offsetUs < -t2 && fallFarBehindCounter > 15);
+		const bool isSlow = (offsetUs < -t1 && fallBehindCounter > 50) || (offsetUs < -t2 && fallFarBehindCounter > 15);
 		if (isSlow && lastSearch.mode != SlippiMatchmaking::OnlinePlayMode::TEAMS)
 		{
 			// We don't show this message for teams because it seems to false positive a lot there, maybe because the
@@ -1781,7 +1474,7 @@ bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame)
 			isCurrentlyAdvancing = true;
 
 			// On early frames, don't advance any frames. Let the stalling logic handle the initial sync
-			int maxAdvFrames = frame > 120 ? 3 : 0;
+			const int maxAdvFrames = frame > 120 ? 3 : 0;
 			framesToAdvance = ((-offsetUs - t1) / frameTime) + 1;
 			framesToAdvance = framesToAdvance > maxAdvFrames ? maxAdvFrames : framesToAdvance;
 
@@ -1807,13 +1500,13 @@ bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame)
 	return false;
 }
 
-void CEXISlippi::handleSendInputs(u8 *payload)
+void CEXISlippi::handleSendInputs(const u8 *payload) const
 {
 	if (isConnectionStalled)
 		return;
 
-	s32 frame = Common::swap32(&payload[0]);
-	u8 delay = payload[8];
+	const s32 frame = Common::swap32(&payload[0]);
+	const u8 delay = payload[8];
 
 	// On the first frame sent, we need to queue up empty dummy pads for as many
 	//	frames as we have delay
@@ -1831,13 +1524,13 @@ void CEXISlippi::handleSendInputs(u8 *payload)
 	slippi_netplay->SendSlippiPad(std::move(pad));
 }
 
-void CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)
+void CEXISlippi::prepareOpponentInputs(const s32 frame, const bool shouldSkip)
 {
 	m_read_queue.clear();
 
 	u8 frameResult = 1; // Indicates to continue frame
 
-	auto state = slippi_netplay->GetSlippiConnectStatus();
+	const auto state = slippi_netplay->GetSlippiConnectStatus();
 	if (shouldSkip)
 	{
 		// Event though we are skipping an input, we still want to prepare the opponent inputs because
@@ -1856,7 +1549,7 @@ void CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)
 
 	m_read_queue.push_back(frameResult); // Write out the control message value
 
-	u8 remotePlayerCount = matchmaking->RemotePlayerCount();
+	const u8 remotePlayerCount = matchmaking->RemotePlayerCount();
 	m_read_queue.push_back(remotePlayerCount); // Indicate the number of remote players
 
 	std::unique_ptr<SlippiRemotePadOutput> results[SLIPPI_REMOTE_PLAYER_MAX];
@@ -1890,7 +1583,7 @@ void CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)
 		appendWordToBuffer(&m_read_queue, static_cast<u32>(frame));
 	}
 
-	s32 *val = std::min_element(std::begin(latestFrameRead), std::end(latestFrameRead));
+	const s32 *val = std::min_element(std::begin(latestFrameRead), std::end(latestFrameRead));
 	appendWordToBuffer(&m_read_queue, static_cast<u32>(*val));
 
 	// copy pad data over
@@ -1901,8 +1594,8 @@ void CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)
 		// Get pad data if this remote player exists
 		if (i < remotePlayerCount)
 		{
-			auto txStart = results[i]->data.begin() + offset[i];
-			auto txEnd = results[i]->data.end();
+			const auto txStart = results[i]->data.begin() + offset[i];
+			const auto txEnd = results[i]->data.end();
 			tx.insert(tx.end(), txStart, txEnd);
 		}
 
@@ -1915,16 +1608,16 @@ void CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)
 	// m_read_queue[7], m_read_queue[8], m_read_queue[9], m_read_queue[10], m_read_queue[11], m_read_queue[12]);
 }
 
-void CEXISlippi::handleCaptureSavestate(u8 *payload)
+void CEXISlippi::handleCaptureSavestate(const u8 *payload)
 {
 #ifndef IS_PLAYBACK
 	if (isDisconnected())
 		return;
 #endif
 
-	s32 frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
+	const s32 frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
 
-	u64 startTime = Common::Timer::GetTimeUs();
+	const u64 startTime = Common::Timer::GetTimeUs();
 
 	// Grab an available savestate
 	std::unique_ptr<SlippiSavestate> ss;
@@ -1936,7 +1629,7 @@ void CEXISlippi::handleCaptureSavestate(u8 *payload)
 	else
 	{
 		// If there were no available savestates, use the oldest one
-		auto it = activeSavestates.begin();
+		const auto it = activeSavestates.begin();
 		ss = std::move(it->second);
 		activeSavestates.erase(it->first);
 	}
@@ -1951,15 +1644,15 @@ void CEXISlippi::handleCaptureSavestate(u8 *payload)
 	ss->Capture();
 	activeSavestates[frame] = std::move(ss);
 
-	u32 timeDiff = (u32)(Common::Timer::GetTimeUs() - startTime);
+	const u32 timeDiff = (u32)(Common::Timer::GetTimeUs() - startTime);
 	// INFO_LOG(SLIPPI_ONLINE, "SLIPPI ONLINE: Captured savestate for frame %d in: %f ms", frame,
 	//         ((double)timeDiff) / 1000);
 }
 
-void CEXISlippi::handleLoadSavestate(u8 *payload)
+void CEXISlippi::handleLoadSavestate(const u8 *payload)
 {
-	s32 frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
-	u32 *preserveArr = (u32 *)(&payload[4]);
+	const s32 frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
+	const u32 *preserveArr = (u32 *)(&payload[4]);
 
 	if (!activeSavestates.count(frame))
 	{
@@ -1968,7 +1661,7 @@ void CEXISlippi::handleLoadSavestate(u8 *payload)
 		return;
 	}
 
-	u64 startTime = Common::Timer::GetTimeUs();
+	const u64 startTime = Common::Timer::GetTimeUs();
 
 	// Fetch preservation blocks
 	std::vector<SlippiSavestate::PreserveBlock> blocks;
@@ -1993,15 +1686,14 @@ void CEXISlippi::handleLoadSavestate(u8 *payload)
 
 	activeSavestates.clear();
 
-	u32 timeDiff = (u32)(Common::Timer::GetTimeUs() - startTime);
+	const u32 timeDiff = (u32)(Common::Timer::GetTimeUs() - startTime);
 	// INFO_LOG(SLIPPI_ONLINE, "SLIPPI ONLINE: Loaded savestate for frame %d in: %f ms", frame, ((double)timeDiff) /
 	// 1000);
 }
 
-void CEXISlippi::startFindMatch(u8 *payload)
+void CEXISlippi::startFindMatch(const u8 *payload)
 {
-	SlippiMatchmaking::MatchSearchSettings search;
-	search.mode = (SlippiMatchmaking::OnlinePlayMode)payload[0];
+	SlippiMatchmaking::MatchSearchSettings search{static_cast<SlippiMatchmaking::OnlinePlayMode>(payload[0])};
 
 	std::string shiftJisCode;
 	shiftJisCode.insert(shiftJisCode.begin(), &payload[1], &payload[1] + 18);
@@ -2012,13 +1704,11 @@ void CEXISlippi::startFindMatch(u8 *payload)
 	{
 		// Make sure to convert to UTF8, otherwise json library will fail when
 		// calling dump().
-		std::string utf8Code = SHIFTJISToUTF8(shiftJisCode);
-		directCodes->AddOrUpdateCode(utf8Code);
+		directCodes->AddOrUpdateCode(SHIFTJISToUTF8(shiftJisCode));
 	}
 	else if (search.mode == SlippiMatchmaking::TEAMS)
 	{
-		std::string utf8Code = SHIFTJISToUTF8(shiftJisCode);
-		teamsCodes->AddOrUpdateCode(utf8Code);
+		teamsCodes->AddOrUpdateCode(SHIFTJISToUTF8(shiftJisCode));
 	}
 
 	// TODO: Make this work so we dont have to pass shiftJis to mm server
@@ -2050,7 +1740,7 @@ void CEXISlippi::startFindMatch(u8 *payload)
 	}
 	else if (search.mode == SlippiMatchmaking::OnlinePlayMode::TEAMS)
 	{
-		auto isMex = SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_MEX;
+		const bool isMex = SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_MEX;
 		// Some special handling for teams since it is being heavily used for unranked
 		if (localSelections.characterId >= 26 && !isMex)
 		{
@@ -2063,7 +1753,7 @@ void CEXISlippi::startFindMatch(u8 *payload)
 	if (!isEnetInitialized)
 	{
 		// Initialize enet
-		auto res = enet_initialize();
+		const auto res = enet_initialize();
 		if (res < 0)
 			ERROR_LOG(SLIPPI_ONLINE, "Failed to initialize enet res: %d", res);
 
@@ -2074,9 +1764,9 @@ void CEXISlippi::startFindMatch(u8 *payload)
 #endif
 }
 
-bool CEXISlippi::doesTagMatchInput(u8 *input, u8 inputLen, std::string tag)
+bool CEXISlippi::doesTagMatchInput(const u8 *input, const u8 inputLen, const std::string &tag) const
 {
-	auto jisTag = UTF8ToSHIFTJIS(tag);
+	const auto jisTag = UTF8ToSHIFTJIS(tag);
 
 	// Check if this tag matches what has been input so far
 	bool isMatch = true;
@@ -2094,12 +1784,12 @@ bool CEXISlippi::doesTagMatchInput(u8 *input, u8 inputLen, std::string tag)
 	return isMatch;
 }
 
-void CEXISlippi::handleNameEntryLoad(u8 *payload)
+void CEXISlippi::handleNameEntryLoad(const u8 *payload)
 {
-	u8 inputLen = payload[24];
-	u32 initialIndex = payload[25] << 24 | payload[26] << 16 | payload[27] << 8 | payload[28];
-	u8 scrollDirection = payload[29];
-	u8 curMode = payload[30];
+	const u8 &inputLen = payload[24];
+	const u32 &initialIndex = payload[25] << 24 | payload[26] << 16 | payload[27] << 8 | payload[28];
+	const u8 &scrollDirection = payload[29];
+	const u8 &curMode = payload[30];
 
 	auto codeHistory = directCodes.get();
 	if (curMode == SlippiMatchmaking::TEAMS)
@@ -2219,8 +1909,8 @@ void CEXISlippi::prepareOnlineMatchState()
 
 	m_read_queue.clear();
 
-	auto errorState = SlippiMatchmaking::ProcessState::ERROR_ENCOUNTERED;
-	SlippiMatchmaking::ProcessState mmState = !forcedError.empty() ? errorState : matchmaking->GetMatchmakeState();
+	SlippiMatchmaking::ProcessState mmState =
+	    !forcedError.empty() ? SlippiMatchmaking::ProcessState::ERROR_ENCOUNTERED : matchmaking->GetMatchmakeState();
 
 #ifdef LOCAL_TESTING
 	if (localSelections.isCharacterSelected || isLocalConnected)
@@ -2232,10 +1922,10 @@ void CEXISlippi::prepareOnlineMatchState()
 
 	m_read_queue.push_back(mmState); // Matchmaking State
 
-	u8 localPlayerReady = localSelections.isCharacterSelected;
+	const u8 localPlayerReady = localSelections.isCharacterSelected;
 	u8 remotePlayersReady = 0;
 
-	auto userInfo = user->GetUserInfo();
+	const auto userInfo = user->GetUserInfo();
 
 	if (mmState == SlippiMatchmaking::ProcessState::CONNECTION_SUCCESS)
 	{
@@ -2273,15 +1963,15 @@ void CEXISlippi::prepareOnlineMatchState()
 #ifdef LOCAL_TESTING
 		bool isConnected = true;
 #else
-		auto status = slippi_netplay->GetSlippiConnectStatus();
-		bool isConnected = status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED;
+		const bool isConnected = slippi_netplay->GetSlippiConnectStatus() ==
+		                         SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED;
 #endif
 		if (isConnected)
 		{
-			auto matchInfo = slippi_netplay->GetMatchInfo();
+			const auto matchInfo = slippi_netplay->GetMatchInfo();
 			remotePlayersReady = 1;
 #ifndef LOCAL_TESTING
-			u8 remotePlayerCount = matchmaking->RemotePlayerCount();
+			const u8 remotePlayerCount = matchmaking->RemotePlayerCount();
 			for (int i = 0; i < remotePlayerCount; i++)
 			{
 				if (!matchInfo->remotePlayerSelections[i].isCharacterSelected)
@@ -2293,7 +1983,7 @@ void CEXISlippi::prepareOnlineMatchState()
 
 			if (remotePlayerCount == 1)
 			{
-				auto isDecider = slippi_netplay->IsDecider();
+				const auto isDecider = slippi_netplay->IsDecider();
 				localPlayerIndex = isDecider ? 0 : 1;
 				remotePlayerIndex = isDecider ? 1 : 0;
 			}
@@ -2314,7 +2004,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		{
 			std::vector<std::string> uids;
 
-			auto mmPlayers = matchmaking->GetPlayerInfo();
+			const auto mmPlayers = matchmaking->GetPlayerInfo();
 			for (auto mmp : mmPlayers)
 			{
 				uids.push_back(mmp.uid);
@@ -2330,14 +2020,19 @@ void CEXISlippi::prepareOnlineMatchState()
 		slippi_netplay = nullptr;
 	}
 
+	m_read_queue.push_back(localPlayerReady);   // Local player ready
+	m_read_queue.push_back(remotePlayersReady); // Remote players ready
+	m_read_queue.push_back(localPlayerIndex);   // Local player index
+	m_read_queue.push_back(remotePlayerIndex);  // Remote player index
+
 	u32 rngOffset = 0;
 	std::string localPlayerName = "";
 	std::string oppName = "";
 	std::string p1Name = "";
 	std::string p2Name = "";
 	u8 chatMessageId = 0;
-	u8 chatMessagePlayerIdx = 0;
 	u8 sentChatMessageId = 0;
+	u8 chatMessagePlayerIdx = 0;
 
 #ifdef LOCAL_TESTING
 	localPlayerIndex = 0;
@@ -2349,22 +2044,17 @@ void CEXISlippi::prepareOnlineMatchState()
 	oppName = p2Name = "Player 2";
 #endif
 
-	m_read_queue.push_back(localPlayerReady);   // Local player ready
-	m_read_queue.push_back(remotePlayersReady); // Remote players ready
-	m_read_queue.push_back(localPlayerIndex);   // Local player index
-	m_read_queue.push_back(remotePlayerIndex);  // Remote player index
-
 	// Set chat message if any
 	if (slippi_netplay)
 	{
-		auto isSingleMode = matchmaking && matchmaking->RemotePlayerCount() == 1;
-		bool isChatEnabled = isSlippiChatEnabled();
+		const bool isSingleMode = matchmaking && matchmaking->RemotePlayerCount() == 1;
+		const bool isChatEnabled = isSlippiChatEnabled();
 		sentChatMessageId = slippi_netplay->GetSlippiRemoteSentChatMessage(isChatEnabled);
 
 		// Prevent processing a message in the same frame
 		if (sentChatMessageId <= 0)
 		{
-			auto remoteMessageSelection = slippi_netplay->GetSlippiRemoteChatMessage(isChatEnabled);
+			const auto remoteMessageSelection = slippi_netplay->GetSlippiRemoteChatMessage(isChatEnabled);
 			chatMessageId = remoteMessageSelection.messageId;
 			chatMessagePlayerIdx = remoteMessageSelection.playerIdx;
 			if (chatMessageId == SlippiPremadeText::CHAT_MSG_CHAT_DISABLED && !isSingleMode)
@@ -2394,11 +2084,11 @@ void CEXISlippi::prepareOnlineMatchState()
 
 	if (localPlayerReady && remotePlayersReady)
 	{
-		auto isDecider = slippi_netplay->IsDecider();
-		u8 remotePlayerCount = matchmaking->RemotePlayerCount();
-		auto matchInfo = slippi_netplay->GetMatchInfo();
-		SlippiPlayerSelections lps = matchInfo->localPlayerSelections;
-		auto rps = matchInfo->remotePlayerSelections;
+		const auto isDecider = slippi_netplay->IsDecider();
+		const u8 remotePlayerCount = matchmaking->RemotePlayerCount();
+		const auto matchInfo = slippi_netplay->GetMatchInfo();
+		const SlippiPlayerSelections lps = matchInfo->localPlayerSelections;
+		const auto rps = matchInfo->remotePlayerSelections;
 
 #ifdef LOCAL_TESTING
 		lps.playerIdx = 0;
@@ -2433,8 +2123,8 @@ void CEXISlippi::prepareOnlineMatchState()
 #endif
 
 		// Check if someone is picking dumb characters in non-direct
-		auto localCharOk = lps.characterId < 26;
-		auto remoteCharOk = true;
+		const bool localCharOk = lps.characterId < 26;
+		bool remoteCharOk = true;
 		INFO_LOG(SLIPPI_ONLINE, "remotePlayerCount: %d", remotePlayerCount);
 		for (int i = 0; i < remotePlayerCount; i++)
 		{
@@ -2491,7 +2181,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		}
 		else if (lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::TEAMS)
 		{
-			auto isMex = SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_MEX;
+			const bool isMex = SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_MEX;
 
 			if (!localCharOk && !isMex)
 			{
@@ -2514,7 +2204,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		INFO_LOG(SLIPPI_ONLINE, "Rng Offset: 0x%x", rngOffset);
 
 		// Check if everyone is the same color
-		auto color = orderedSelections[0].teamId;
+		const auto color = orderedSelections[0].teamId;
 		bool areAllSameTeam = true;
 		for (const auto &s : orderedSelections)
 		{
@@ -2531,7 +2221,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		std::vector<std::vector<u8>> teamAssignmentPermutations = {
 		    {0, 0, 1, 1}, {1, 1, 0, 0}, {0, 1, 1, 0}, {1, 0, 0, 1}, {0, 1, 0, 1}, {1, 0, 1, 0},
 		};
-		auto teamAssignments = teamAssignmentPermutations[rngOffset % teamAssignmentPermutations.size()];
+		const auto teamAssignments = teamAssignmentPermutations.at(rngOffset % teamAssignmentPermutations.size());
 
 		// Overwrite player character choices
 		for (auto &s : orderedSelections)
@@ -2566,10 +2256,10 @@ void CEXISlippi::prepareOnlineMatchState()
 			onlineMatchBlock[0x61 + 3 * 0x24] = 3;
 
 			// Make one character lighter if same character, same color
-			bool isSheikVsZelda = lps.characterId == 0x12 && rps[0].characterId == 0x13 ||
-			                      lps.characterId == 0x13 && rps[0].characterId == 0x12;
-			bool charMatch = lps.characterId == rps[0].characterId || isSheikVsZelda;
-			bool colMatch = lps.characterColor == rps[0].characterColor;
+			const bool isSheikVsZelda = lps.characterId == 0x12 && rps[0].characterId == 0x13 ||
+			                            lps.characterId == 0x13 && rps[0].characterId == 0x12;
+			const bool charMatch = lps.characterId == rps[0].characterId || isSheikVsZelda;
+			const bool colMatch = lps.characterColor == rps[0].characterColor;
 
 			onlineMatchBlock[0x67 + 0x24] = charMatch && colMatch ? 1 : 0;
 		}
@@ -2586,8 +2276,8 @@ void CEXISlippi::prepareOnlineMatchState()
 		*stage = Common::swap16(stageId);
 
 		// Turn pause off in unranked/ranked, on in other modes
-		auto pauseAllowed = !SlippiMatchmaking::IsFixedRulesMode(lastSearch.mode) &&
-		                    lastSearch.mode != SlippiMatchmaking::OnlinePlayMode::TEAMS;
+		const bool pauseAllowed = !SlippiMatchmaking::IsFixedRulesMode(lastSearch.mode) &&
+		                          lastSearch.mode != SlippiMatchmaking::OnlinePlayMode::TEAMS;
 		u8 *gameBitField3 = (u8 *)&onlineMatchBlock[2];
 		*gameBitField3 = pauseAllowed ? *gameBitField3 & 0xF7 : *gameBitField3 | 0x8;
 		//*gameBitField3 = *gameBitField3 | 0x8;
@@ -2595,14 +2285,14 @@ void CEXISlippi::prepareOnlineMatchState()
 		// Group players into left/right side for team splash screen display
 		for (int i = 0; i < 4; i++)
 		{
-			int teamId = onlineMatchBlock[0x69 + i * 0x24];
+			const int teamId = onlineMatchBlock[0x69 + i * 0x24];
 			if (teamId == lps.teamId)
 				leftTeamPlayers.push_back(i);
 			else
 				rightTeamPlayers.push_back(i);
 		}
-		int leftTeamSize = leftTeamPlayers.size();
-		int rightTeamSize = rightTeamPlayers.size();
+		const int leftTeamSize = leftTeamPlayers.size();
+		const int rightTeamSize = rightTeamPlayers.size();
 		leftTeamPlayers.resize(4, 0);
 		rightTeamPlayers.resize(4, 0);
 		leftTeamPlayers[3] = leftTeamSize;
@@ -2613,12 +2303,12 @@ void CEXISlippi::prepareOnlineMatchState()
 	appendWordToBuffer(&m_read_queue, rngOffset);
 
 	// Add delay frames to output
-	m_read_queue.push_back((u8)SConfig::GetInstance().m_slippiOnlineDelay);
+	m_read_queue.push_back(static_cast<u8>(SConfig::GetInstance().m_slippiOnlineDelay));
 
 	// Add chat messages id
-	m_read_queue.push_back((u8)sentChatMessageId);
-	m_read_queue.push_back((u8)chatMessageId);
-	m_read_queue.push_back((u8)chatMessagePlayerIdx);
+	m_read_queue.push_back(static_cast<u8>(sentChatMessageId));
+	m_read_queue.push_back(static_cast<u8>(chatMessageId));
+	m_read_queue.push_back(static_cast<u8>(chatMessagePlayerIdx));
 
 	// Add player groupings for VS splash screen
 	leftTeamPlayers.resize(4, 0);
@@ -2646,7 +2336,7 @@ void CEXISlippi::prepareOnlineMatchState()
 	}
 
 	// Create the opponent string using the names of all players on opposing teams
-	int teamIdx = onlineMatchBlock[0x69 + localPlayerIndex * 0x24];
+	const int teamIdx = onlineMatchBlock[0x69 + localPlayerIndex * 0x24];
 	std::string oppText = "";
 	for (int i = 0; i < 4; i++)
 	{
@@ -2670,7 +2360,7 @@ void CEXISlippi::prepareOnlineMatchState()
 	std::string defaultConnectCodes[] = {"PLYR#001", "PLYR#002", "PLYR#003", "PLYR#004"};
 #endif
 
-	auto playerInfo = matchmaking->GetPlayerInfo();
+	const auto playerInfo = matchmaking->GetPlayerInfo();
 	for (int i = 0; i < 4; i++)
 	{
 		std::string connectCode = i < playerInfo.size() ? playerInfo[i].connectCode : "";
@@ -2707,17 +2397,14 @@ void CEXISlippi::prepareOnlineMatchState()
 
 u16 CEXISlippi::getRandomStage()
 {
-	static u16 selectedStage;
-
 	// Reset stage pool if it's empty
 	if (stagePool.empty())
 	{
 		stagePool.insert(stagePool.end(), allowedStages.begin(), allowedStages.end());
 	}
-
 	// Get random stage
-	int randIndex = generator() % stagePool.size();
-	selectedStage = stagePool[randIndex];
+	const int randIndex = rng() % stagePool.size();
+	const u16 selectedStage = stagePool[randIndex];
 
 	// Remove last selection from stage pool
 	stagePool.erase(stagePool.begin() + randIndex);
@@ -2725,32 +2412,25 @@ u16 CEXISlippi::getRandomStage()
 	return selectedStage;
 }
 
-void CEXISlippi::setMatchSelections(u8 *payload)
+void CEXISlippi::setMatchSelections(const u8 *payload)
 {
-	SlippiPlayerSelections s;
+	SlippiPlayerSelections player_selections{
+	    0, payload[1], payload[2], payload[0], false, Common::swap16(&payload[4]), payload[6] == 1 || payload[6] == 3};
 
-	s.teamId = payload[0];
-	s.characterId = payload[1];
-	s.characterColor = payload[2];
-	s.isCharacterSelected = payload[3];
+	const u8 stageSelectOption = payload[6];
 
-	s.stageId = Common::swap16(&payload[4]);
-	u8 stageSelectOption = payload[6];
-	u8 onlineMode = payload[7];
-
-	s.isStageSelected = stageSelectOption == 1 || stageSelectOption == 3;
 	if (stageSelectOption == 3)
 	{
 		// If stage requested is random, select a random stage
-		s.stageId = getRandomStage();
+		player_selections.stageId = getRandomStage();
 	}
-	INFO_LOG(SLIPPI, "LPS set char: %d, iSS: %d, %d, stage: %d, team: %d", s.isCharacterSelected, stageSelectOption,
-	         s.isStageSelected, s.stageId, s.teamId);
+	INFO_LOG(SLIPPI, "LPS set char: %d, iSS: %d, %d, stage: %d, team: %d", player_selections.isCharacterSelected,
+	         stageSelectOption, player_selections.isStageSelected, player_selections.stageId, player_selections.teamId);
 
-	s.rngOffset = generator() % 0xFFFF;
+	player_selections.rngOffset = rng() % 0xFFFF;
 
 	// Merge these selections
-	localSelections.Merge(s);
+	localSelections.Merge(player_selections);
 
 	if (slippi_netplay)
 	{
@@ -2758,14 +2438,13 @@ void CEXISlippi::setMatchSelections(u8 *payload)
 	}
 }
 
-void CEXISlippi::prepareFileLength(u8 *payload)
+void CEXISlippi::prepareFileLength(const u8 *payload)
 {
 	m_read_queue.clear();
 
-	std::string fileName((char *)&payload[0]);
+	const std::string fileName((char *)&payload[0]);
 
-	std::string contents;
-	u32 size = gameFileLoader->LoadFile(fileName, contents);
+	const u32 size = gameFileLoader->LoadFile(fileName, std::string{});
 
 	INFO_LOG(SLIPPI, "Getting file size for: %s -> %d", fileName.c_str(), size);
 
@@ -2773,15 +2452,15 @@ void CEXISlippi::prepareFileLength(u8 *payload)
 	appendWordToBuffer(&m_read_queue, size);
 }
 
-void CEXISlippi::prepareFileLoad(u8 *payload)
+void CEXISlippi::prepareFileLoad(const u8 *payload)
 {
 	m_read_queue.clear();
 
-	std::string fileName((char *)&payload[0]);
+	const std::string fileName((char *)&payload[0]);
 
 	std::string contents;
-	u32 size = gameFileLoader->LoadFile(fileName, contents);
-	std::vector<u8> buf(contents.begin(), contents.end());
+	const u32 size = gameFileLoader->LoadFile(fileName, contents);
+	const std::vector<u8> buf(contents.begin(), contents.end());
 
 	INFO_LOG(SLIPPI, "Writing file contents: %s -> %d", fileName.c_str(), size);
 
@@ -2793,7 +2472,7 @@ void CEXISlippi::prepareGctLength()
 {
 	m_read_queue.clear();
 
-	u32 size = Gecko::GetGctLength();
+	const u32 size = Gecko::GetGctLength();
 
 	INFO_LOG(SLIPPI, "Getting gct size: %d", size);
 
@@ -2801,14 +2480,14 @@ void CEXISlippi::prepareGctLength()
 	appendWordToBuffer(&m_read_queue, size);
 }
 
-void CEXISlippi::prepareGctLoad(u8 *payload)
+void CEXISlippi::prepareGctLoad(const u8 *payload)
 {
 	m_read_queue.clear();
 
-	auto gct = Gecko::GenerateGct();
+	const auto gct = Gecko::GenerateGct();
 
 	// This is the address where the codes will be written to
-	auto address = Common::swap32(&payload[0]);
+	const u32 address = Common::swap32(&payload[0]);
 
 	// for (size_t i = 0, e = gct.size(); i < e; ++i)
 	//	PowerPC::HostWrite_U8(gct[i], (u32)(address + i));
@@ -2831,17 +2510,17 @@ void CEXISlippi::prepareGctLoad(u8 *payload)
 	m_read_queue.insert(m_read_queue.end(), gct.begin(), gct.end());
 }
 
-std::vector<u8> CEXISlippi::loadPremadeText(u8 *payload)
+std::vector<u8> CEXISlippi::loadPremadeText(const u8 *payload)
 {
-	u8 textId = payload[0];
+	const u8 textId = payload[0];
 	std::vector<u8> premadeTextData;
-	auto spt = SlippiPremadeText();
+	auto spt = SlippiPremadeText{};
 
 	// WARN_LOG(SLIPPI, "SLIPPI premade text texture id: 0x%x", payload[0]);
 
 	if (textId >= SlippiPremadeText::SPT_CHAT_P1 && textId <= SlippiPremadeText::SPT_CHAT_P4)
 	{
-		auto port = textId - 1;
+		const auto port = textId - 1;
 		std::string playerName;
 		if (matchmaking)
 			playerName = matchmaking->GetPlayerName(port);
@@ -2851,7 +2530,7 @@ std::vector<u8> CEXISlippi::loadPremadeText(u8 *payload)
 #endif
 
 		// WARN_LOG(SLIPPI, "SLIPPI premade text param: 0x%x", payload[1]);
-		u8 paramId = payload[1];
+		const u8 paramId = payload[1];
 
 		for (auto it = spt.unsupportedStringMap.begin(); it != spt.unsupportedStringMap.end(); it++)
 		{
@@ -2867,8 +2546,8 @@ std::vector<u8> CEXISlippi::loadPremadeText(u8 *payload)
 			return premadeTextData = spt.GetPremadeTextData(SlippiPremadeText::SPT_CHAT_DISABLED, playerName.c_str());
 		}
 
-		auto chatMessage = spt.premadeTextsParams[paramId];
-		std::string param = ReplaceAll(chatMessage.c_str(), " ", "<S>");
+		const auto chatMessage = spt.premadeTextsParams[paramId];
+		const std::string param = ReplaceAll(chatMessage.c_str(), " ", "<S>");
 		premadeTextData = spt.GetPremadeTextData(textId, playerName.c_str(), param.c_str());
 	}
 	else
@@ -2885,29 +2564,25 @@ std::vector<u8> CEXISlippi::loadPremadeText(u8 *payload)
 	return premadeTextData;
 }
 
-void CEXISlippi::preparePremadeTextLength(u8 *payload)
+void CEXISlippi::preparePremadeTextLength(const u8 *payload)
 {
-	u8 textId = payload[0];
-	std::vector<u8> premadeTextData = loadPremadeText(payload);
-
 	m_read_queue.clear();
 	// Write size to output
-	appendWordToBuffer(&m_read_queue, premadeTextData.size());
+	appendWordToBuffer(&m_read_queue, loadPremadeText(payload).size());
 }
 
-void CEXISlippi::preparePremadeTextLoad(u8 *payload)
+void CEXISlippi::preparePremadeTextLoad(const u8 *payload)
 {
-	u8 textId = payload[0];
-	std::vector<u8> premadeTextData = loadPremadeText(payload);
+	const std::vector<u8> premadeTextData = loadPremadeText(payload);
 
 	m_read_queue.clear();
 	// Write data to output
 	m_read_queue.insert(m_read_queue.end(), premadeTextData.begin(), premadeTextData.end());
 }
 
-bool CEXISlippi::isSlippiChatEnabled()
+bool CEXISlippi::isSlippiChatEnabled() const
 {
-	auto chatEnabledChoice = SConfig::GetInstance().m_slippiEnableQuickChat;
+	const auto chatEnabledChoice = SConfig::GetInstance().m_slippiEnableQuickChat;
 	bool res = true;
 	switch (lastSearch.mode)
 	{
@@ -2921,12 +2596,12 @@ bool CEXISlippi::isSlippiChatEnabled()
 	return res; // default is enabled
 }
 
-void CEXISlippi::handleChatMessage(u8 *payload)
+void CEXISlippi::handleChatMessage(const u8 *payload)
 {
 	if (!isSlippiChatEnabled())
 		return;
 
-	int messageId = payload[0];
+	const int messageId = payload[0];
 	INFO_LOG(SLIPPI, "SLIPPI CHAT INPUT: 0x%x", messageId);
 
 #ifdef LOCAL_TESTING
@@ -2936,7 +2611,7 @@ void CEXISlippi::handleChatMessage(u8 *payload)
 	if (slippi_netplay)
 	{
 
-		auto userInfo = user->GetUserInfo();
+		const auto userInfo = user->GetUserInfo();
 		auto packet = std::make_unique<sf::Packet>();
 		//		OSD::AddMessage("[Me]: "+ msg, OSD::Duration::VERY_LONG, OSD::Color::YELLOW);
 		slippi_netplay->remoteSentChatMessageId = messageId;
@@ -2946,7 +2621,7 @@ void CEXISlippi::handleChatMessage(u8 *payload)
 	}
 }
 
-void CEXISlippi::logMessageFromGame(u8 *payload)
+void CEXISlippi::logMessageFromGame(const u8 *payload) const
 {
 	if (payload[0] == 0)
 	{
@@ -2960,10 +2635,9 @@ void CEXISlippi::logMessageFromGame(u8 *payload)
 	}
 }
 
-void CEXISlippi::handleLogInRequest()
+void CEXISlippi::handleLogInRequest() const
 {
-	bool logInRes = user->AttemptLogin();
-	if (!logInRes)
+	if (!user->AttemptLogin())
 	{
 		main_frame->LowerRenderWindow();
 		user->OpenLogInPage();
@@ -2971,16 +2645,15 @@ void CEXISlippi::handleLogInRequest()
 	}
 }
 
-void CEXISlippi::handleLogOutRequest()
+void CEXISlippi::handleLogOutRequest() const
 {
 	user->LogOut();
 }
 
-void CEXISlippi::handleUpdateAppRequest()
+void CEXISlippi::handleUpdateAppRequest() const
 {
-	bool isUpdating = user->UpdateApp();
 #ifdef _WIN32
-	if (isUpdating)
+	if (user->UpdateApp())
 	{
 		main_frame->LowerRenderWindow();
 		main_frame->DoExit();
@@ -2992,15 +2665,14 @@ void CEXISlippi::prepareOnlineStatus()
 {
 	m_read_queue.clear();
 
-	auto isLoggedIn = user->IsLoggedIn();
-	auto userInfo = user->GetUserInfo();
+	const SlippiUser::UserInfo userInfo = user->GetUserInfo();
 
 	u8 appState = 0;
-	if (isLoggedIn)
+	if (user->IsLoggedIn())
 	{
 		// Check if we have the latest version, and if not, indicate we need to update
-		version::Semver200_version latestVersion(userInfo.latestVersion);
-		version::Semver200_version currentVersion(scm_slippi_semver_str);
+		const version::Semver200_version latestVersion(userInfo.latestVersion);
+		const version::Semver200_version currentVersion(scm_slippi_semver_str);
 
 		appState = latestVersion > currentVersion ? 2 : 1;
 	}
@@ -3008,21 +2680,22 @@ void CEXISlippi::prepareOnlineStatus()
 	m_read_queue.push_back(appState);
 
 	// Write player name (31 bytes)
-	std::string playerName = ConvertStringForGame(userInfo.displayName, MAX_NAME_LENGTH);
+	const std::string playerName = ConvertStringForGame(userInfo.displayName, MAX_NAME_LENGTH);
 	m_read_queue.insert(m_read_queue.end(), playerName.begin(), playerName.end());
 
 	// Write connect code (10 bytes)
-	std::string connectCode = ConvertConnectCodeForGame(userInfo.connectCode);
+	const std::string connectCode = ConvertConnectCodeForGame(userInfo.connectCode);
 	m_read_queue.insert(m_read_queue.end(), connectCode.begin(), connectCode.end());
 }
 
-void doConnectionCleanup(std::unique_ptr<SlippiMatchmaking> mm, std::unique_ptr<SlippiNetplayClient> nc)
+void doConnectionCleanup(std::unique_ptr<SlippiMatchmaking> match_maker,
+                         std::unique_ptr<SlippiNetplayClient> netplay_client)
 {
-	if (mm)
-		mm.reset();
+	if (match_maker)
+		match_maker.reset();
 
-	if (nc)
-		nc.reset();
+	if (netplay_client)
+		netplay_client.reset();
 }
 
 void CEXISlippi::handleConnectionCleanup()
@@ -3061,35 +2734,28 @@ void CEXISlippi::handleConnectionCleanup()
 void CEXISlippi::prepareNewSeed()
 {
 	m_read_queue.clear();
-
-	u32 newSeed = generator() % 0xFFFFFFFF;
-
-	appendWordToBuffer(&m_read_queue, newSeed);
+	appendWordToBuffer(&m_read_queue, rng() % 0xFFFFFFFF);
 }
 
-void CEXISlippi::handleReportGame(u8 *payload)
+void CEXISlippi::handleReportGame(const u8 *payload)
 {
 #ifndef LOCAL_TESTING
-	SlippiGameReporter::GameReport r;
-	r.durationFrames = Common::swap32(&payload[0]);
+	SlippiGameReporter::GameReport game_report{Common::swap32(&payload[0])};
 
 	// ERROR_LOG(SLIPPI_ONLINE, "Frames: %d", r.durationFrames);
 
-	for (auto i = 0; i < 2; ++i)
+	for (unsigned int i = 0; i < 2; ++i)
 	{
-		SlippiGameReporter::PlayerReport p;
-		auto offset = i * 6;
-		p.stocksRemaining = payload[5 + offset];
-
-		auto swappedDamageDone = Common::swap32(&payload[6 + offset]);
-		p.damageDone = *(float *)&swappedDamageDone;
+		const unsigned int offset = i * 6;
+		SlippiGameReporter::PlayerReport player_report{static_cast<float>(Common::swap32(&payload[6 + offset])),
+		                                               payload[5 + offset]};
 
 		// ERROR_LOG(SLIPPI_ONLINE, "Stocks: %d, DamageDone: %f", p.stocksRemaining, p.damageDone);
 
-		r.players.push_back(p);
+		game_report.players.push_back(player_report);
 	}
 
-	gameReporter->StartReport(r);
+	gameReporter->StartReport(game_report);
 #endif
 }
 

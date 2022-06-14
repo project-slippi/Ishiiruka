@@ -36,7 +36,7 @@ SlippiMatchmaking::SlippiMatchmaking(SlippiUser *user)
 
 	MM_HOST = scm_slippi_semver_str.find("dev") == std::string::npos ? MM_HOST_PROD : MM_HOST_DEV;
 
-	generator = std::default_random_engine(Common::Timer::GetTimeMs());
+	rng = std::default_random_engine(Common::Timer::GetTimeMs());
 }
 
 SlippiMatchmaking::~SlippiMatchmaking()
@@ -220,7 +220,7 @@ void SlippiMatchmaking::startMatchmaking()
 		if (customPort)
 			m_hostPort = SConfig::GetInstance().m_slippiNetplayPort;
 		else
-			m_hostPort = 41000 + (generator() % 10000);
+			m_hostPort = 41000 + (rng() % 10000);
 		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Port to use: %d...", m_hostPort);
 
 		// We are explicitly setting the client address because we are trying to utilize our connection

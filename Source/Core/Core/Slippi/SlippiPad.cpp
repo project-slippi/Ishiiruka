@@ -9,7 +9,7 @@ SlippiPad::SlippiPad(int32_t frame)
   memcpy(this->padBuf, emptyPad, SLIPPI_PAD_FULL_SIZE);
 }
 
-SlippiPad::SlippiPad(int32_t frame, u8* padBuf) : SlippiPad(frame)
+SlippiPad::SlippiPad(int32_t frame,const  u8* padBuf) : SlippiPad(frame)
 {
   // Overwrite the data portion of the pad
   memcpy(this->padBuf, padBuf, SLIPPI_PAD_DATA_SIZE);
