@@ -821,31 +821,30 @@ GCPadStatus Input(int chan, std::chrono::high_resolution_clock::time_point *tp)
 			u8 b1 = controller_payload_copy[1 + (9 * chan) + 1];
 			u8 b2 = controller_payload_copy[1 + (9 * chan) + 2];
 
-			if (b1 & (1 << 0))
+			if (b1 & (1 << 0) && SConfig::GetInstance().m_AChoice[chan])
 				pad.button |= SConfig::GetInstance().m_AChoice[chan];
-			if (b1 & (1 << 1))
+			if (b1 & (1 << 1) && SConfig::GetInstance().m_BChoice[chan])
 				pad.button |= SConfig::GetInstance().m_BChoice[chan];
-			if (b1 & (1 << 2))
+			if (b1 & (1 << 2) && SConfig::GetInstance().m_XChoice[chan])
 				pad.button |= SConfig::GetInstance().m_XChoice[chan];
-			if (b1 & (1 << 3))
+			if (b1 & (1 << 3) && SConfig::GetInstance().m_YChoice[chan])
 				pad.button |= SConfig::GetInstance().m_YChoice[chan];
 
-			if (b1 & (1 << 4))
+			if (b1 & (1 << 4) && SConfig::GetInstance().m_LeftChoice[chan])
 				pad.button |= SConfig::GetInstance().m_LeftChoice[chan];
-			if (b1 & (1 << 5))
+			if (b1 & (1 << 5) && SConfig::GetInstance().m_RightChoice[chan])
 				pad.button |= SConfig::GetInstance().m_RightChoice[chan];
-			if (b1 & (1 << 6))
+			if (b1 & (1 << 6) && SConfig::GetInstance().m_DownChoice[chan])
 				pad.button |= SConfig::GetInstance().m_DownChoice[chan];
-			if (b1 & (1 << 7))
+			if (b1 & (1 << 7) && SConfig::GetInstance().m_UpChoice[chan])
 				pad.button |= SConfig::GetInstance().m_UpChoice[chan];
-
 			if (b2 & (1 << 0))
 				pad.button |= PAD_BUTTON_START;
-			if (b2 & (1 << 1))
+			if (b2 & (1 << 1) && SConfig::GetInstance().m_ZChoice[chan])
 				pad.button |= SConfig::GetInstance().m_ZChoice[chan];
-			if (b2 & (1 << 2))
+			if (b2 & (1 << 2) && SConfig::GetInstance().m_RChoice[chan])
 				pad.button |= SConfig::GetInstance().m_RChoice[chan];
-			if (b2 & (1 << 3))
+			if (b2 & (1 << 3) && SConfig::GetInstance().m_LChoice[chan])
 				pad.button |= SConfig::GetInstance().m_LChoice[chan];
 
 			if (get_origin)

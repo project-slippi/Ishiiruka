@@ -33,8 +33,9 @@ GCAdapterConfigDiag::GCAdapterConfigDiag(wxWindow* const parent, const wxString&
   remap_array_string.Add(_("D-pad right"));
   remap_array_string.Add(_("D-pad down"));
   remap_array_string.Add(_("D-pad left"));
+  remap_array_string.Add(_("None"));
 
-	wxCheckBox* const gamecube_rumble = new wxCheckBox(this, wxID_ANY, _("Rumble"));
+wxCheckBox* const gamecube_rumble = new wxCheckBox(this, wxID_ANY, _("Rumble"));
   wxChoice* const a_choice = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, remap_array_string);
   wxChoice* const b_choice = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, remap_array_string);
   wxChoice* const x_choice = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, remap_array_string);
@@ -73,8 +74,6 @@ GCAdapterConfigDiag::GCAdapterConfigDiag(wxWindow* const parent, const wxString&
 	down_choice->Bind(wxEVT_CHOICE, &GCAdapterConfigDiag::OnDownChoice, this);
 	left_choice->Bind(wxEVT_CHOICE, &GCAdapterConfigDiag::OnLeftChoice, this);
 
-	// swap_x_and_z->SetValue(SConfig::GetInstance().m_AdapterZXSwap[m_pad_id]);
-	// swap_x_and_z->Bind(wxEVT_CHECKBOX, &GCAdapterConfigDiag::OnZXSwap, this);
 	m_adapter_status = new wxStaticText(this, wxID_ANY, _("Adapter Not Detected"));
 
 	if (!GCAdapter::IsDetected())
@@ -94,7 +93,6 @@ GCAdapterConfigDiag::GCAdapterConfigDiag(wxWindow* const parent, const wxString&
 			right_choice->Disable();
 			down_choice->Disable();
 			left_choice->Disable();
-			// swap_x_and_z->Disable();
 		}
 	}
 	else
@@ -247,6 +245,8 @@ int GCAdapterConfigDiag::PadButtonToSelection(PadButton button) {
 		return 9;
 	case PAD_BUTTON_LEFT:
 		return 10;
+	case PAD_BUTTON_NONE:
+		return 11;
 	};
 	return -1;
 }
