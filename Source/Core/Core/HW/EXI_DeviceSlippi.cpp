@@ -1518,7 +1518,7 @@ void CEXISlippi::prepareIsFileReady()
 	if (shouldOutput)
 	{
 		auto lastFrame = m_current_game->GetLatestIndex();
-		auto gameEndMethod = m_current_game->getGameEndMethod();
+		auto gameEndMethod = m_current_game->GetGameEndMethod();
 		auto watchSettings = g_replayComm->current;
 		auto replayCommSettings = g_replayComm->getSettings();
 		std::cout << "[FILE_PATH] " << watchSettings.path << std::endl;
