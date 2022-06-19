@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 
+#include "Core/Slippi/SlippiPad.h"
 #include "Common/CommonTypes.h"
 #include "Common/Thread.h"
 #include "InputCommon/ControllerInterface/Device.h"
@@ -127,6 +128,7 @@ public:
 
 	void RegisterHotplugCallback(std::function<void(void)> callback);
 	void InvokeHotplugCallbacks() const;
+	std::map<int, SlippiPad> GetSlippiPads();
 
 private:
 	std::vector<std::function<void()>> m_hotplug_callbacks;

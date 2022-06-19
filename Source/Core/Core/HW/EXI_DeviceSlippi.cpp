@@ -35,6 +35,8 @@
 //#include "Core/PatchEngine.h"
 #include "Core/PowerPC/PowerPC.h"
 
+#include "InputCommon/ControllerInterface/ControllerInterface.h"
+
 // Not clean but idk a better way atm
 #include "DolphinWX/Frame.h"
 #include "DolphinWX/Main.h"
@@ -3109,6 +3111,35 @@ void CEXISlippi::prepareDelayResponse()
 	}
 }
 
+void CEXISlippi::prepareOverwriteInputs()
+{
+	m_read_queue.clear();
+	// If blocking pipe input is configured, this will block until pipe input is sent for this frame
+	g_controller_interface.UpdateInput();
+	std::map<int, SlippiPad> pads =	g_controller_interface.GetSlippiPads();
+
+	// Insert the pads
+	for (int i = 1; i <= 4; i++)
+	{
+		if (pads.count(i-1) != 0)
+		{
+			// Do overwrite this port
+			m_read_queue.push_back(1);
+			for (int j = 0; j < SLIPPI_PAD_DATA_SIZE; j++)
+			{
+				m_read_queue.push_back(pads[i-1].padBuf[j]);
+			}
+		}
+		else
+		{
+			// Don't overwrite this port
+			m_read_queue.push_back(0);
+			appendWordToBuffer(&m_read_queue, 0);
+			appendWordToBuffer(&m_read_queue, 0);
+		}
+	}
+}
+
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 {
 	u8 *memPtr = Memory::GetPointer(_uAddr);
@@ -3256,6 +3287,9 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_GET_DELAY:
 			prepareDelayResponse();
+			break;
+		case CMD_OVERWRITE_INPUTS:
+			prepareOverwriteInputs();
 			break;
 		default:
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "");
