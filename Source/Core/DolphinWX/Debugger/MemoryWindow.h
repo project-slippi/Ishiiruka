@@ -23,15 +23,15 @@ class wxRadioButton;
 class CMemoryWindow : public wxPanel
 {
 public:
-	CMemoryWindow(wxWindow* parent, wxWindowID id = wxID_ANY, const wxPoint& pos = wxDefaultPosition,
+	CMemoryWindow(CCodeWindow *_pCodeWindow, wxWindow *parent, wxWindowID id = wxID_ANY,
+	              const wxPoint &pos = wxDefaultPosition,
 		const wxSize& size = wxDefaultSize, long style = wxTAB_TRAVERSAL | wxBORDER_NONE,
 		const wxString& name = _("Memory"));
 
 	void Repopulate();
 
 	void JumpToAddress(u32 _Address);
-
-private:
+  private:
 	DECLARE_EVENT_TABLE()
 
 	void OnDataTypeChanged(wxCommandEvent& event);
@@ -44,6 +44,7 @@ private:
 	void OnDumpMem2(wxCommandEvent& event);
 	void OnDumpFakeVMEM(wxCommandEvent& event);
 	void OnMemCheckOptionChange(wxCommandEvent& event);
+	void OnHostMessage(wxCommandEvent &event);
 
 	wxButton* btnSearch;
 	wxRadioButton* m_rb_ascii;

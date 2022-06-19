@@ -65,9 +65,9 @@ EVT_RADIOBUTTON(IDM_MEMCHECK_OPTIONS_CHANGE, CMemoryWindow::OnMemCheckOptionChan
 EVT_CHECKBOX(IDM_MEMCHECK_OPTIONS_CHANGE, CMemoryWindow::OnMemCheckOptionChange)
 END_EVENT_TABLE()
 
-CMemoryWindow::CMemoryWindow(wxWindow* parent, wxWindowID id, const wxPoint& pos,
+CMemoryWindow::CMemoryWindow(CCodeWindow *_pCodeWindow, wxWindow *parent, wxWindowID id, const wxPoint &pos,
 	const wxSize& size, long style, const wxString& name)
-	: wxPanel(parent, id, pos, size, style, name)
+	: wxPanel(parent, id, pos, size, style, name), m_code_window(_pCodeWindow)
 {
 	DebugInterface* di = &PowerPC::debug_interface;
 
@@ -118,7 +118,8 @@ CMemoryWindow::CMemoryWindow(wxWindow* parent, wxWindowID id, const wxPoint& pos
 
 	wxStaticBoxSizer* const memcheck_options_sizer =
 		new wxStaticBoxSizer(wxVERTICAL, this, "Memory breakpoint options");
-	memcheck_options_sizer->Add(rdbReadWrite = new wxRadioButton(this, IDM_MEMCHECK_OPTIONS_CHANGE,
+	memcheck_options_sizer->Add(
+		rdbReadWrite = new wxRadioButton(this, IDM_MEMCHECK_OPTIONS_CHANGE,
 		"Read and Write", wxDefaultPosition,
 		wxDefaultSize, wxRB_GROUP));
 	memcheck_options_sizer->Add(
@@ -144,10 +145,15 @@ CMemoryWindow::CMemoryWindow(wxWindow* parent, wxWindowID id, const wxPoint& pos
 	SetSizer(sizerBig);
 	m_rb_hex->SetValue(true);  // Set defaults
 	chkLog->SetValue(true);
+	rdbReadWrite->SetValue(false);
+	rdbWrite->SetValue(true);
 	m_rbox_data_type->SetSelection(static_cast<int>(memview->GetDataType()));
 
 	sizerRight->Fit(this);
 	sizerBig->Fit(this);
+
+	// Other
+	Bind(wxEVT_HOST_COMMAND, &CMemoryWindow::OnHostMessage, this);
 }
 
 void CMemoryWindow::JumpToAddress(u32 _Address)
@@ -402,4 +408,22 @@ void CMemoryWindow::OnMemCheckOptionChange(wxCommandEvent& event)
 		memview->SetMemCheckOptions(true, true, chkLog->GetValue());
 	else
 		memview->SetMemCheckOptions(rdbRead->GetValue(), rdbWrite->GetValue(), chkLog->GetValue());
+}
+
+
+// ----------
+// Events
+
+void CMemoryWindow::OnHostMessage(wxCommandEvent &event)
+{
+	switch (event.GetId())
+	{
+	case IDM_UPDATE_BREAKPOINTS:
+		if (m_code_window->HasPanel<CBreakPointWindow>())
+			m_code_window->GetPanel<CBreakPointWindow>()->NotifyUpdate();
+		Refresh();
+
+		break;
+
+	}
 }

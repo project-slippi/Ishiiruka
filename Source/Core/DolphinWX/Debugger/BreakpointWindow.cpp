@@ -152,7 +152,10 @@ void CBreakPointWindow::OnAddBreakPoint(wxCommandEvent& WXUNUSED(event))
 void CBreakPointWindow::OnAddMemoryCheck(wxCommandEvent& WXUNUSED(event))
 {
 	MemoryCheckDlg memDlg(this);
-	memDlg.ShowModal();
+	if (memDlg.ShowModal() == wxID_OK)
+	{
+		NotifyUpdate();
+	}
 }
 
 void CBreakPointWindow::Event_SaveAll(wxCommandEvent& WXUNUSED(event))
