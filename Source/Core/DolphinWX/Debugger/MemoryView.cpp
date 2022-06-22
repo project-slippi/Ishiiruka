@@ -50,17 +50,9 @@ enum
 wxDEFINE_EVENT(DOLPHIN_EVT_MEMORY_VIEW_DATA_TYPE_CHANGED, wxCommandEvent);
 
 CMemoryView::CMemoryView(DebugInterface *debuginterface, wxWindow *parent)
-    : wxControl(parent, wxID_ANY)
-    , debugger(debuginterface)
-    , align(0)
-    , rowHeight(FromDIP(13))
-    , m_left_col_width(FromDIP(LEFT_COL_WIDTH))
-    , selection(0)
-    , oldSelection(0)
-    , selecting(false)
-    , memory(0)
-    , curAddress(debuginterface->GetPC())
-    , m_data_type(MemoryDataType::U8)
+    : wxControl(parent, wxID_ANY), debugger(debuginterface), align(0), rowHeight(FromDIP(13)),
+	m_left_col_width(FromDIP(LEFT_COL_WIDTH)), selection(0), oldSelection(0), selecting(false),
+	memory(0), curAddress(debuginterface->GetPC()), m_data_type(MemoryDataType::U8)
 {
 	Bind(wxEVT_PAINT, &CMemoryView::OnPaint, this);
 	Bind(wxEVT_LEFT_DOWN, &CMemoryView::OnMouseDownL, this);
@@ -347,22 +339,25 @@ void CMemoryView::OnPaint(wxPaintEvent &event)
 		dc.SetTextForeground(wxColour(0x60, 0x00, 0x00)); // Dark red
 		draw_text(temp);
 
-		if (m_data_type == MemoryDataType::ShiftJIS)
+		if (!IsHexMode())
 		{
-			std::string quadword;
-			for (unsigned int i = 0; i < align; i += sizeof(u32))
+			if (m_data_type == MemoryDataType::ShiftJIS)
 			{
-				const std::string mem = debugger->GetRawMemoryString(memory, address + i);
-				quadword += mem;
+				std::string quadword;
+				for (unsigned int i = 0; i < align; i += sizeof(u32))
+				{
+					const std::string mem = debugger->GetRawMemoryString(memory, address + i);
+					quadword += mem;
+				}
+				dc.SetTextForeground(navy_color);
+				draw_text(StrToWxStr(quadword), 2);
 			}
-			dc.SetTextForeground(navy_color);
-			draw_text(StrToWxStr(quadword), 2);
-		}
-		else if (!IsHexMode())
-		{
-			const std::string mem = debugger->GetRawMemoryString(memory, address);
-			dc.SetTextForeground(navy_color);
-			draw_text(StrToWxStr(mem), 2);
+			else
+			{
+				const std::string mem = debugger->GetRawMemoryString(memory, address);
+				dc.SetTextForeground(navy_color);
+				draw_text(StrToWxStr(mem), 2);
+			}
 		}
 
 		dc.SetTextForeground(*wxBLACK);
@@ -403,7 +398,8 @@ void CMemoryView::OnPaint(wxPaintEvent &event)
 		}
 		else if (m_data_type == MemoryDataType::ShiftJIS)
 		{
-			std::string raw;
+			u8 shiftJIS[16];
+			dis.reserve(16);
 			for (unsigned int i = 0; i < align; i += sizeof(u32))
 			{
 				if (!PowerPC::HostIsRAMAddress(address + i))
@@ -411,42 +407,14 @@ void CMemoryView::OnPaint(wxPaintEvent &event)
 				u32 word = debugger->ReadExtraMemory(memory, address + i);
 				const u8 *bytes = static_cast<u8*>(static_cast<void *>(&word));
 	
-				// reverse byte order for little endian
-				u8 le_bytes[4];
-				for (int i = 0; i < 4; i++)
+				// Reverse byte order for little endian
+				for (int j = 0; j < 4; j++)
 				{
-					if (bytes[3 - i] == 0x0)
-					{
-						le_bytes[i] = 0x20;
-					}
-					else
-					{
-						le_bytes[i] = bytes[3 - i];
-					}
+					// Replace null chars with space
+					shiftJIS[i+j] = (bytes[3 - j] == 0x0) ? 0x20 : bytes[3 - j];
 				}
-				
-				raw += std::string(le_bytes, le_bytes + sizeof(le_bytes));
-				//std::string sjChar = SHIFTJISToUTF8(std::string(le_bytes, le_bytes + sizeof(le_bytes)));
-				//dis += sjChar;
 			}
-			dis += SHIFTJISToUTF8(raw);
-			/*const u8 *bytes = static_cast<u8 *>(static_cast<void *>(&mem_data));
-
-			u8 rev[4];
-			for (int i = 0; i < 4; i++)
-			{
-				//u8 byte = static_cast<u8>(mem_data >> (24 - i * 8));
-				rev[i] = bytes[3 - i];
-			}
-
-			std::string sjChar = SHIFTJISToUTF8(std::string(rev, rev + sizeof(rev)));
-			dis += sjChar;
-
-			Symbol *sym = g_symbolDB.GetSymbolFromAddr(mem_data);
-			if (sym)
-			{
-				dis += StringFromFormat(" # -> %s", sym->name.c_str());
-			}*/
+			dis += SHIFTJISToUTF8(std::string(shiftJIS, shiftJIS + sizeof(shiftJIS)));
 		}
 		else
 		{
