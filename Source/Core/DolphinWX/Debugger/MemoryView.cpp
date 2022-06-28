@@ -347,7 +347,7 @@ void CMemoryView::OnPaint(wxPaintEvent &event)
 				for (unsigned int i = 0; i < align; i += sizeof(u32))
 				{
 					const std::string mem = debugger->GetRawMemoryString(memory, address + i);
-					quadword += mem;
+					quadword += mem + " ";
 				}
 				dc.SetTextForeground(navy_color);
 				draw_text(StrToWxStr(quadword), 2);
