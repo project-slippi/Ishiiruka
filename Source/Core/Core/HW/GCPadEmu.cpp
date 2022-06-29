@@ -126,10 +126,12 @@ GCPadStatus GCPad::GetInput() const
 
 	// sticks
 	m_main_stick->GetState(&x, &y);
-	pad.stickX =
-		static_cast<u8>(GCPadStatus::MAIN_STICK_CENTER_X + (x * GCPadStatus::MAIN_STICK_RADIUS));
-	pad.stickY =
-		static_cast<u8>(GCPadStatus::MAIN_STICK_CENTER_Y + (y * GCPadStatus::MAIN_STICK_RADIUS));
+	// immediately compute and cast the absolute offsets to u8 to avoid rounding inconsistencies
+	// for example, when x or y is 0.5/-0.5, the absolute offset of that axis should always be 63, never 64
+	u8 stickXAbsoluteOffset = static_cast<u8>(abs(x) * GCPadStatus::MAIN_STICK_RADIUS);
+	u8 stickYAbsoluteOffset = static_cast<u8>(abs(y) * GCPadStatus::MAIN_STICK_RADIUS);
+	pad.stickX = static_cast<u8>(GCPadStatus::MAIN_STICK_CENTER_X + sign(x) * stickXAbsoluteOffset);
+	pad.stickY = static_cast<u8>(GCPadStatus::MAIN_STICK_CENTER_Y + sign(y) * stickYAbsoluteOffset);
 
 	m_c_stick->GetState(&x, &y);
 	pad.substickX =
