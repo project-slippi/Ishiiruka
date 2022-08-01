@@ -34,6 +34,8 @@ class SlippiGameReporter
 		u32 gameIndex = 0;
 		u32 tiebreakIndex = 0;
 		s8 winnerIdx = 0;
+		u8 gameEndMethod = 0;
+		s8 lrasInitiator = 0;
 		int stageId;
 		std::vector<PlayerReport> players;
 	};
@@ -42,11 +44,13 @@ class SlippiGameReporter
 	~SlippiGameReporter();
 
 	void StartReport(GameReport report);
+	void ReportAbandonment(std::string matchId);
 	void StartNewSession();
 	void ReportThreadHandler();
 
   protected:
 	const std::string REPORT_URL = "https://rankings-dot-slippi.uc.r.appspot.com/report";
+	const std::string ABANDON_URL = "https://rankings-dot-slippi.uc.r.appspot.com/abandon";
 	CURL *m_curl = nullptr;
 	struct curl_slist *m_curlHeaderList = nullptr;
 

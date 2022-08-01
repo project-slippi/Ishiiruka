@@ -275,6 +275,17 @@ CEXISlippi::~CEXISlippi()
 	}
 	m_slippiserver->endGame(true);
 
+	// Try to determine whether we were playing an in-progress ranked match, if so
+	// indicate to server that this client has abandoned. Anyone trying to modify
+	// this behavior to game their rating is subject to get banned.
+	auto activeMatchId = matchmaking->GetMatchmakeResult().id;
+	if (activeMatchId.find("mode.ranked") != std::string::npos)
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Exit during in-progress ranked game: %s", activeMatchId.c_str());
+		gameReporter->ReportAbandonment(activeMatchId);
+	}
+	handleConnectionCleanup();
+
 	localSelections.Reset();
 
 	// Kill threads to prevent cleanup crash
@@ -3072,9 +3083,11 @@ void CEXISlippi::handleReportGame(SlippiExiTypes::ReportGameQuery &query)
 	r.tiebreakIndex = query.tiebreakIndex;
 	r.winnerIdx = query.winnerIdx;
 	r.stageId = Common::FromBigEndian(*(u16 *)&query.gameInfoBlock[0xE]);
+	r.gameEndMethod = query.gameEndMethod;
+	r.lrasInitiator = query.lrasInitiator;
 
-	ERROR_LOG(SLIPPI_ONLINE, "Mode: %d / %d, Frames: %d, GameIdx: %d, TiebreakIdx: %d, WinnerIdx: %d, StageId: %d",
-	          r.onlineMode, query.onlineMode, r.durationFrames, r.gameIndex, r.tiebreakIndex, r.winnerIdx, r.stageId);
+	ERROR_LOG(SLIPPI_ONLINE, "Mode: %d / %d, Frames: %d, GameIdx: %d, TiebreakIdx: %d, WinnerIdx: %d, StageId: %d, GameEndMethod: %d, LRASInitiator: %d",
+	          r.onlineMode, query.onlineMode, r.durationFrames, r.gameIndex, r.tiebreakIndex, r.winnerIdx, r.stageId, r.gameEndMethod, r.lrasInitiator);
 
 	auto mmPlayers = recentMmResult.players;
 
@@ -3201,6 +3214,7 @@ void CEXISlippi::prepareGamePrepOppStep(SlippiExiTypes::GpFetchStepQuery &query)
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 {
 	u8 *memPtr = Memory::GetPointer(_uAddr);
+	//INFO_LOG(SLIPPI, "DMA Write: %x, Size: %d", _uAddr, _uSize);
 
 	u32 bufLoc = 0;
 

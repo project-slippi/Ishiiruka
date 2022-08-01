@@ -28,6 +28,8 @@ class SlippiExiTypes
 		u32 gameIndex;
 		u32 tiebreakIndex;
 		s8 winnerIdx;
+		u8 gameEndMethod;
+		s8 lrasInitiator;
 		ReportGameQueryPlayer players[REPORT_PLAYER_COUNT];
 		u8 gameInfoBlock[312];
 	};

@@ -117,6 +117,8 @@ void SlippiGameReporter::ReportThreadHandler()
 			request["tiebreakIndex"] = report.onlineMode == ranked ? report.tiebreakIndex : 0;
 			request["gameDurationFrames"] = report.durationFrames;
 			request["winnerIdx"] = report.winnerIdx;
+			request["gameEndMethod"] = report.gameEndMethod;
+			request["lrasInitiator"] = report.lrasInitiator;
 			request["stageId"] = report.stageId;
 
 			json players = json::array();
@@ -154,5 +156,30 @@ void SlippiGameReporter::ReportThreadHandler()
 			gameIndex++;
 			Common::SleepCurrentThread(0);
 		}
+	}
+}
+
+void SlippiGameReporter::ReportAbandonment(std::string matchId)
+{
+	auto userInfo = m_user->GetUserInfo();
+
+	// Prepare report
+	json request;
+	request["matchId"] = matchId;
+	request["uid"] = userInfo.uid;
+	request["playKey"] = userInfo.playKey;
+
+	auto requestString = request.dump();
+
+	// Send report
+	curl_easy_setopt(m_curl, CURLOPT_POST, true);
+	curl_easy_setopt(m_curl, CURLOPT_URL, ABANDON_URL.c_str());
+	curl_easy_setopt(m_curl, CURLOPT_POSTFIELDS, requestString.c_str());
+	curl_easy_setopt(m_curl, CURLOPT_POSTFIELDSIZE, requestString.length());
+	CURLcode res = curl_easy_perform(m_curl);
+
+	if (res != 0)
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "[GameReport] Got error executing abandonment request. Err code: %d", res);
 	}
 }
