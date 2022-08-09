@@ -114,7 +114,7 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_GET_GECKO_CODES, 0},
 
 	    // The following are used for Slippi online and also have fixed sizes
-	    {CMD_ONLINE_INPUTS, 21},
+	    {CMD_ONLINE_INPUTS, 25},
 	    {CMD_CAPTURE_SAVESTATE, 32},
 	    {CMD_LOAD_SAVESTATE, 32},
 	    {CMD_GET_MATCH_STATE, 0},
@@ -184,7 +184,7 @@ class CEXISlippi : public IEXIDevice
 	bool isSlippiChatEnabled();
 	void handleOnlineInputs(u8 *payload);
 	void prepareOpponentInputs(s32 frame, bool shouldSkip);
-	void handleSendInputs(u8 *payload);
+	void handleSendInputs(s32 frame, u8 delay, s32 checksumFrame, u32 checksum, u8 *inputs);
 	void handleCaptureSavestate(u8 *payload);
 	void handleLoadSavestate(u8 *payload);
 	void handleNameEntryLoad(u8 *payload);

@@ -1563,6 +1563,9 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 
 	s32 frame = Common::swap32(&payload[0]);
 	s32 finalizedFrame = Common::swap32(&payload[4]);
+	u32 finalizedFrameChecksum = Common::swap32(&payload[8]);
+	u8 delay = payload[12];
+	u8 *inputs = &payload[13];
 
 	if (frame == 1)
 	{
@@ -1613,7 +1616,7 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 	else
 	{
 		// Send the input for this frame along with everything that has yet to be acked
-		handleSendInputs(payload);
+		handleSendInputs(frame, delay, finalizedFrame, finalizedFrameChecksum, inputs);
 	}
 
 	prepareOpponentInputs(frame, shouldSkip);
@@ -1810,13 +1813,10 @@ bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame)
 	return false;
 }
 
-void CEXISlippi::handleSendInputs(u8 *payload)
+void CEXISlippi::handleSendInputs(s32 frame, u8 delay, s32 checksumFrame, u32 checksum, u8 *inputs)
 {
 	if (isConnectionStalled)
 		return;
-
-	s32 frame = Common::swap32(&payload[0]);
-	u8 delay = payload[8];
 
 	// On the first frame sent, we need to queue up empty dummy pads for as many
 	//	frames as we have delay
@@ -1829,7 +1829,7 @@ void CEXISlippi::handleSendInputs(u8 *payload)
 		}
 	}
 
-	auto pad = std::make_unique<SlippiPad>(frame + delay, &payload[9]);
+	auto pad = std::make_unique<SlippiPad>(frame + delay, checksumFrame, checksum, inputs);
 
 	slippi_netplay->SendSlippiPad(std::move(pad));
 }
@@ -1863,6 +1863,23 @@ void CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)
 	m_read_queue.push_back(remotePlayerCount); // Indicate the number of remote players
 
 	std::unique_ptr<SlippiRemotePadOutput> results[SLIPPI_REMOTE_PLAYER_MAX];
+
+	for (int i = 0; i < remotePlayerCount; i++)
+	{
+		results[i] = slippi_netplay->GetSlippiRemotePad(i, ROLLBACK_MAX_FRAMES);
+		// results[i] = slippi_netplay->GetFakePadOutput(frame);
+
+		//INFO_LOG(SLIPPI_ONLINE, "Sending checksum values: [%d] %08x", results[i]->checksumFrame, results[i]->checksum);
+		appendWordToBuffer(&m_read_queue, static_cast<u32>(results[i]->checksumFrame));
+		appendWordToBuffer(&m_read_queue, results[i]->checksum);
+	}
+	for (int i = remotePlayerCount; i < SLIPPI_REMOTE_PLAYER_MAX; i++)
+	{
+		// Send dummy data for unused players
+		appendWordToBuffer(&m_read_queue, 0);
+		appendWordToBuffer(&m_read_queue, 0);
+	}
+
 	int offset[SLIPPI_REMOTE_PLAYER_MAX];
 	// INFO_LOG(SLIPPI_ONLINE, "Preparing pad data for frame %d", frame);
 
@@ -1871,9 +1888,6 @@ void CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)
 	// Get pad data for each remote player and write each of their latest frame nums to the buf
 	for (int i = 0; i < remotePlayerCount; i++)
 	{
-		results[i] = slippi_netplay->GetSlippiRemotePad(i, ROLLBACK_MAX_FRAMES);
-		//results[i] = slippi_netplay->GetFakePadOutput(frame);
-
 		// determine offset from which to copy data
 		offset[i] = (results[i]->latestFrame - frame) * SLIPPI_PAD_FULL_SIZE;
 		offset[i] = offset[i] < 0 ? 0 : offset[i];
