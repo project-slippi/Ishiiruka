@@ -73,7 +73,10 @@
 #include "VideoCommon/VideoConfig.h"
 
 #include "Core/Slippi/SlippiPlayback.h"
+#include "Core/Slippi/SlippiReplayComm.h"
+
 extern std::unique_ptr<SlippiPlaybackStatus> g_playbackStatus;
+extern std::unique_ptr<SlippiReplayComm> g_replayComm;
 
 #if defined(HAVE_X11) && HAVE_X11
 // X11Utils nastiness that's only used here
@@ -702,6 +705,13 @@ void CFrame::UpdateTitle(const std::string &str)
 	if (SConfig::GetInstance().bRenderToMain && SConfig::GetInstance().m_InterfaceStatusbar)
 	{
 		GetStatusBar()->SetStatusText(str, 0);
+
+		if (g_replayComm->getSettings().gameStation != "") {
+			std::string titleStr = StringFromFormat("%s | %s", scm_rev_str.c_str(), g_replayComm->getSettings().gameStation.c_str());
+			m_RenderFrame->SetTitle(titleStr);
+			return;
+		}
+		
 		m_RenderFrame->SetTitle(scm_rev_str);
 	}
 	else

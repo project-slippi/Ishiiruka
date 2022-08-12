@@ -171,7 +171,6 @@ class CEXISlippi : public IEXIDevice
 	void closeFile();
 	std::string generateFileName();
 	bool checkFrameFullyFetched(s32 frameIndex);
-	bool shouldFFWFrame(s32 frameIndex);
 
 	// std::ofstream log;
 
@@ -227,8 +226,6 @@ class CEXISlippi : public IEXIDevice
 	bool doesTagMatchInput(u8 *input, u8 inputLen, std::string tag);
 
 	std::vector<u8> loadPremadeText(u8 *payload);
-
-	int getCharColor(u8 charId, u8 teamId);
 
 	void FileWriteThread(void);
 

@@ -32,6 +32,7 @@ class SlippiReplayComm
 		bool shouldResync; // If true, logic will attempt to resync games
 		std::string rollbackDisplayMethod; // off, normal, visible
 		std::string commandId;
+		std::string gameStation;
 		std::queue<WatchSettings> queue;
 	} CommSettings;
 
