@@ -74,18 +74,5 @@ class SlippiExiTypes
 // Not sure if resetting is strictly needed, might be contained to the file
 #pragma pack()
 
-	template <typename T> static T Convert(u8 *payload) { return *reinterpret_cast<T *>(payload); }
-	template <> static ReportGameQuery Convert(u8 *payload) 
-	{
-		auto q = *reinterpret_cast<ReportGameQuery *>(payload);
-		q.frameLength = Common::FromBigEndian(q.frameLength);
-		q.gameIndex = Common::FromBigEndian(q.gameIndex);
-		q.tiebreakIndex = Common::FromBigEndian(q.tiebreakIndex);
-		for (int i = 0; i < REPORT_PLAYER_COUNT; i++)
-		{
-			auto *p = &q.players[i];
-			p->damageDone = Common::FromBigEndian(p->damageDone);
-		}
-		return q;
-	}
+	template <typename T> static T Convert(u8 *payload);
 };

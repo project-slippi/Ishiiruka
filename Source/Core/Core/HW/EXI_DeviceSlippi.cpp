@@ -3096,7 +3096,7 @@ void CEXISlippi::prepareNewSeed()
 	appendWordToBuffer(&m_read_queue, newSeed);
 }
 
-void CEXISlippi::handleReportGame(SlippiExiTypes::ReportGameQuery &query)
+void CEXISlippi::handleReportGame(const SlippiExiTypes::ReportGameQuery &query)
 {
 	SlippiGameReporter::GameReport r;
 	r.matchId = recentMmResult.id;
@@ -3156,10 +3156,8 @@ void CEXISlippi::prepareDelayResponse()
 	}
 }
 
-void CEXISlippi::handleOverwriteSelections(SlippiExiTypes::OverwriteSelectionsQuery &query)
+void CEXISlippi::handleOverwriteSelections(const SlippiExiTypes::OverwriteSelectionsQuery &query)
 {
-	auto stageId = Common::FromBigEndian(query.stage_id);
-
 	overwrite_selections.clear();
 
 	for (int i = 0; i < 4; i++)
@@ -3176,14 +3174,14 @@ void CEXISlippi::handleOverwriteSelections(SlippiExiTypes::OverwriteSelectionsQu
 		s.characterId = query.chars[i].char_id;
 		s.characterColor = query.chars[i].char_color_id;
 		s.isStageSelected = true;
-		s.stageId = stageId;
+		s.stageId = query.stage_id;
 		s.playerIdx = i;
 
 		overwrite_selections.push_back(s);
 	}
 }
 
-void CEXISlippi::handleGamePrepStepComplete(SlippiExiTypes::GpCompleteStepQuery &query)
+void CEXISlippi::handleGamePrepStepComplete(const SlippiExiTypes::GpCompleteStepQuery &query)
 {
 	if (!slippi_netplay)
 		return;
@@ -3197,7 +3195,7 @@ void CEXISlippi::handleGamePrepStepComplete(SlippiExiTypes::GpCompleteStepQuery 
 	slippi_netplay->SendGamePrepStep(res);
 }
 
-void CEXISlippi::prepareGamePrepOppStep(SlippiExiTypes::GpFetchStepQuery &query)
+void CEXISlippi::prepareGamePrepOppStep(const SlippiExiTypes::GpFetchStepQuery &query)
 {
 	SlippiExiTypes::GpFetchStepResponse resp;
 

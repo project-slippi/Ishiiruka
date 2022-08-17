@@ -198,10 +198,10 @@ class CEXISlippi : public IEXIDevice
 	void prepareOnlineStatus();
 	void handleConnectionCleanup();
 	void prepareNewSeed();
-	void handleReportGame(SlippiExiTypes::ReportGameQuery &query);
-	void handleOverwriteSelections(SlippiExiTypes::OverwriteSelectionsQuery &query);
-	void handleGamePrepStepComplete(SlippiExiTypes::GpCompleteStepQuery &query);
-	void prepareGamePrepOppStep(SlippiExiTypes::GpFetchStepQuery &query);
+	void handleReportGame(const SlippiExiTypes::ReportGameQuery &query);
+	void handleOverwriteSelections(const SlippiExiTypes::OverwriteSelectionsQuery &query);
+	void handleGamePrepStepComplete(const SlippiExiTypes::GpCompleteStepQuery &query);
+	void prepareGamePrepOppStep(const SlippiExiTypes::GpFetchStepQuery &query);
 
 	// replay playback stuff
 	void prepareGameInfo(u8 *payload);
