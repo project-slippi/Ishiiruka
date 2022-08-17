@@ -796,9 +796,6 @@
     <ClCompile Include="Slippi\SlippiDirectCodes.cpp">
       <Filter>Slippi</Filter>
     </ClCompile>
-    <ClCompile Include="Slippi\SlippiExiTypes.cpp">
-      <Filter>Slippi</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BootManager.h" />

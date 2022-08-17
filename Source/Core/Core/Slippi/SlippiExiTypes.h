@@ -73,14 +73,14 @@ struct OverwriteSelectionsQuery
 // Not sure if resetting is strictly needed, might be contained to the file
 #pragma pack()
 
-template <typename T> static T Convert(u8 *payload)
+template <typename T> inline T Convert(u8 *payload)
 {
 	return *reinterpret_cast<T *>(payload);
 }
 
 // Here we define custom convert functions for any type that larger than u8 sized fields to convert from big-endian
 
-template <> static ReportGameQuery Convert(u8 *payload)
+template <> inline ReportGameQuery Convert(u8 *payload)
 {
 	auto q = *reinterpret_cast<ReportGameQuery *>(payload);
 	q.frameLength = Common::FromBigEndian(q.frameLength);
@@ -94,7 +94,7 @@ template <> static ReportGameQuery Convert(u8 *payload)
 	return q;
 }
 
-template <> static OverwriteSelectionsQuery Convert(u8 *payload)
+template <> inline OverwriteSelectionsQuery Convert(u8 *payload)
 {
 	auto q = *reinterpret_cast<OverwriteSelectionsQuery *>(payload);
 	q.stage_id = Common::FromBigEndian(q.stage_id);
