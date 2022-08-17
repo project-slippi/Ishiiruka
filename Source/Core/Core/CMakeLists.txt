@@ -200,7 +200,6 @@ set(SRCS	ActionReplay.cpp
 			Slippi/SlippiUser.cpp
 			Slippi/SlippiGameReporter.cpp
 			Slippi/SlippiDirectCodes.cpp
-			Slippi/SlippiExiTypes.cpp
 			)
 
 if(_M_X86)
