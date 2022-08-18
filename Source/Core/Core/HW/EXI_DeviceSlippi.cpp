@@ -2459,8 +2459,12 @@ void CEXISlippi::prepareOnlineMatchState()
 				remoteCharOk = false;
 		}
 
-		// TODO: This is annoying, ideally remotePlayerSelections would just include everyone including the local player
+		// TODO: Ideally remotePlayerSelections would just include everyone including the local player
 		// TODO: Would also simplify some logic in the Netplay class
+
+		// Here we are storing pointers to the player selections. That means that we can technically modify
+		// the values from here, which is probably not the cleanest thing since they're coming from the netplay class.
+		// Unfortunately, I think it might be required for the overwrite stuff to work correctly though, maybe on a tiebreak in ranked?
 		std::vector<SlippiPlayerSelections *> orderedSelections(remotePlayerCount + 1);
 		orderedSelections[lps.playerIdx] = &lps;
 		for (int i = 0; i < remotePlayerCount; i++)
@@ -2545,7 +2549,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		bool areAllSameTeam = true;
 		for (const auto &s : orderedSelections)
 		{
-			// ERROR_LOG(SLIPPI_ONLINE, "[%d] First team: %d. Team: %d", s->playerIdx, color, s->teamId);
+			// ERROR_LOG(SLIPPI_ONLINE, "[%d] First team: %d. Team: %d. LocalPlayer: %d", s->playerIdx, color, s->teamId, localPlayerIndex);
 			if (s->teamId != color)
 			{
 				areAllSameTeam = false;
@@ -2569,19 +2573,20 @@ void CEXISlippi::prepareOnlineMatchState()
 				continue;
 			}
 
+			auto teamId = s->teamId;
 			if (areAllSameTeam)
 			{
 				// Overwrite teamId. Color is overwritten by ASM
-				s->teamId = teamAssignments[s->playerIdx];
+				teamId = teamAssignments[s->playerIdx];
 			}
 
-			// ERROR_LOG(SLIPPI_ONLINE, "idx: %d, char: %d, team: %d", s->playerIdx, s->characterId, s->teamId);
+			// ERROR_LOG(SLIPPI_ONLINE, "idx: %d, char: %d, team: %d", s->playerIdx, s->characterId, teamId);
 
 			// Overwrite player character
 			onlineMatchBlock[0x60 + (s->playerIdx) * 0x24] = s->characterId;
 			onlineMatchBlock[0x63 + (s->playerIdx) * 0x24] = s->characterColor;
 			onlineMatchBlock[0x67 + (s->playerIdx) * 0x24] = 0;
-			onlineMatchBlock[0x69 + (s->playerIdx) * 0x24] = s->teamId;
+			onlineMatchBlock[0x69 + (s->playerIdx) * 0x24] = teamId;
 		}
 
 		// Handle Singles/Teams specific logic
