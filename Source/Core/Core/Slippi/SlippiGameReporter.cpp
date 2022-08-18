@@ -74,9 +74,8 @@ void SlippiGameReporter::StartReport(GameReport report)
 	cv.notify_one();
 }
 
-void SlippiGameReporter::StartNewSession(std::vector<std::string> playerUids)
+void SlippiGameReporter::StartNewSession()
 {
-	this->playerUids = playerUids;
 	gameIndex = 1;
 }
 
@@ -95,6 +94,14 @@ void SlippiGameReporter::ReportThreadHandler()
 			auto report = gameReportQueue.Front();
 			gameReportQueue.Pop();
 
+			auto ranked = SlippiMatchmaking::OnlinePlayMode::RANKED;
+			auto unranked = SlippiMatchmaking::OnlinePlayMode::UNRANKED;
+			bool shouldReport = report.onlineMode == ranked || report.onlineMode == unranked;
+			if (!shouldReport)
+			{
+				break;
+			}
+
 			auto userInfo = m_user->GetUserInfo();
 
 			WARN_LOG(SLIPPI_ONLINE, "Checking game report for game %d. Length: %d...", gameIndex,
@@ -102,18 +109,30 @@ void SlippiGameReporter::ReportThreadHandler()
 
 			// Prepare report
 			json request;
+			request["matchId"] = report.matchId;
 			request["uid"] = userInfo.uid;
 			request["playKey"] = userInfo.playKey;
-			request["gameIndex"] = gameIndex;
+			request["mode"] = report.onlineMode;
+			request["gameIndex"] = report.onlineMode == ranked ? report.gameIndex : gameIndex;
+			request["tiebreakIndex"] = report.onlineMode == ranked ? report.tiebreakIndex : 0;
 			request["gameDurationFrames"] = report.durationFrames;
+			request["winnerIdx"] = report.winnerIdx;
+			request["gameEndMethod"] = report.gameEndMethod;
+			request["lrasInitiator"] = report.lrasInitiator;
+			request["stageId"] = report.stageId;
 
 			json players = json::array();
 			for (int i = 0; i < report.players.size(); i++)
 			{
 				json p;
-				p["uid"] = playerUids[i];
+				p["uid"] = report.players[i].uid;
+				p["slotType"] = report.players[i].slotType;
 				p["damageDone"] = report.players[i].damageDone;
 				p["stocksRemaining"] = report.players[i].stocksRemaining;
+				p["characterId"] = report.players[i].charId;
+				p["colorId"] = report.players[i].colorId;
+				p["startingStocks"] = report.players[i].startingStocks;
+				p["startingPercent"] = report.players[i].startingPercent;
 
 				players[i] = p;
 			}
@@ -137,5 +156,30 @@ void SlippiGameReporter::ReportThreadHandler()
 			gameIndex++;
 			Common::SleepCurrentThread(0);
 		}
+	}
+}
+
+void SlippiGameReporter::ReportAbandonment(std::string matchId)
+{
+	auto userInfo = m_user->GetUserInfo();
+
+	// Prepare report
+	json request;
+	request["matchId"] = matchId;
+	request["uid"] = userInfo.uid;
+	request["playKey"] = userInfo.playKey;
+
+	auto requestString = request.dump();
+
+	// Send report
+	curl_easy_setopt(m_curl, CURLOPT_POST, true);
+	curl_easy_setopt(m_curl, CURLOPT_URL, ABANDON_URL.c_str());
+	curl_easy_setopt(m_curl, CURLOPT_POSTFIELDS, requestString.c_str());
+	curl_easy_setopt(m_curl, CURLOPT_POSTFIELDSIZE, requestString.length());
+	CURLcode res = curl_easy_perform(m_curl);
+
+	if (res != 0)
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "[GameReport] Got error executing abandonment request. Err code: %d", res);
 	}
 }

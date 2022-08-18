@@ -424,7 +424,7 @@ void ConvertNarrowSpecialSHIFTJIS(std::string &input)
 	}
 }
 
-std::string ConvertStringForGame(const std::string &input, int length)
+std::string TruncateLengthChar(const std::string &input, int length)
 {
 	auto utf32 = UTF8ToUTF32(input);
 
@@ -434,7 +434,12 @@ std::string ConvertStringForGame(const std::string &input, int length)
 		utf32.resize(length);
 	}
 
-	auto utf8 = UTF32toUTF8(utf32);
+	return UTF32toUTF8(utf32);
+}
+
+std::string ConvertStringForGame(const std::string &input, int length)
+{
+	auto utf8 = TruncateLengthChar(input, length);
 	auto shiftJis = UTF8ToSHIFTJIS(utf8);
 	ConvertNarrowSpecialSHIFTJIS(shiftJis);
 

@@ -3,6 +3,7 @@
 #include "Common/CommonTypes.h"
 #include "Common/FifoQueue.h"
 #include "Core/Slippi/SlippiUser.h"
+#include "Core/Slippi/SlippiMatchmaking.h"
 #include <atomic>
 #include <condition_variable> // std::condition_variable
 #include <curl/curl.h>
@@ -16,12 +17,26 @@ class SlippiGameReporter
   public:
 	struct PlayerReport
 	{
+		std::string uid;
+		u8 slotType;
 		float damageDone;
 		u8 stocksRemaining;
+		u8 charId;
+		u8 colorId;
+		int startingStocks;
+		int startingPercent;
 	};
 	struct GameReport
 	{
+		SlippiMatchmaking::OnlinePlayMode onlineMode;
+		std::string matchId;
 		u32 durationFrames = 0;
+		u32 gameIndex = 0;
+		u32 tiebreakIndex = 0;
+		s8 winnerIdx = 0;
+		u8 gameEndMethod = 0;
+		s8 lrasInitiator = 0;
+		int stageId;
 		std::vector<PlayerReport> players;
 	};
 
@@ -29,11 +44,13 @@ class SlippiGameReporter
 	~SlippiGameReporter();
 
 	void StartReport(GameReport report);
-	void StartNewSession(std::vector<std::string> playerUids);
+	void ReportAbandonment(std::string matchId);
+	void StartNewSession();
 	void ReportThreadHandler();
 
   protected:
 	const std::string REPORT_URL = "https://rankings-dot-slippi.uc.r.appspot.com/report";
+	const std::string ABANDON_URL = "https://rankings-dot-slippi.uc.r.appspot.com/abandon";
 	CURL *m_curl = nullptr;
 	struct curl_slist *m_curlHeaderList = nullptr;
 

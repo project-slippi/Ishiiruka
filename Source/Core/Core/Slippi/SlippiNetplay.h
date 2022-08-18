@@ -33,9 +33,19 @@
 
 struct SlippiRemotePadOutput
 {
-	int32_t latestFrame;
+	s32 latestFrame;
+	s32 checksumFrame;
+	u32 checksum;
 	u8 playerIdx;
 	std::vector<u8> data;
+};
+
+struct SlippiGamePrepStepResults
+{
+	u8 step_idx;
+	u8 char_selection;
+	u8 char_color_selection;
+	u8 stage_selections[2];
 };
 
 class SlippiPlayerSelections
@@ -89,6 +99,12 @@ class SlippiPlayerSelections
 	}
 };
 
+struct ChecksumEntry
+{
+	s32 frame;
+	u32 value;
+};
+
 class SlippiMatchInfo
 {
   public:
@@ -136,6 +152,8 @@ class SlippiNetplayClient
 	void SendConnectionSelected();
 	void SendSlippiPad(std::unique_ptr<SlippiPad> pad);
 	void SetMatchSelections(SlippiPlayerSelections &s);
+	void SendGamePrepStep(SlippiGamePrepStepResults &s);
+	bool GetGamePrepResults(u8 stepIdx, SlippiGamePrepStepResults &res);
 	std::unique_ptr<SlippiRemotePadOutput> GetFakePadOutput(int frame);
 	std::unique_ptr<SlippiRemotePadOutput> GetSlippiRemotePad(int index, int maxFrameCount);
 	void DropOldRemoteInputs(int32_t finalizedFrame);
@@ -200,6 +218,10 @@ class SlippiNetplayClient
 	std::deque<std::unique_ptr<SlippiPad>> localPadQueue; // most recent inputs at start of deque
 	std::deque<std::unique_ptr<SlippiPad>>
 	    remotePadQueue[SLIPPI_REMOTE_PLAYER_MAX]; // most recent inputs at start of deque
+
+	ChecksumEntry remoteChecksum[SLIPPI_REMOTE_PLAYER_MAX];
+
+	std::deque<SlippiGamePrepStepResults> gamePrepStepQueue;
 
 	u64 pingUs[SLIPPI_REMOTE_PLAYER_MAX];
 	int32_t lastFrameAcked[SLIPPI_REMOTE_PLAYER_MAX];
