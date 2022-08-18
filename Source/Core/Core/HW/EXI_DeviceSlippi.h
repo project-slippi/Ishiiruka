@@ -127,11 +127,11 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_GET_ONLINE_STATUS, 0},
 	    {CMD_CLEANUP_CONNECTION, 0},
 	    {CMD_GET_NEW_SEED, 0},
-	    {CMD_REPORT_GAME, (u32)sizeof(SlippiExiTypes::ReportGameQuery) - 1},
+	    {CMD_REPORT_GAME, static_cast<u32>(sizeof(SlippiExiTypes::ReportGameQuery) - 1)},
 	    {CMD_FETCH_CODE_SUGGESTION, 31},
-	    {CMD_OVERWRITE_SELECTIONS, (u32)sizeof(SlippiExiTypes::OverwriteSelectionsQuery) - 1},
-	    {CMD_GP_COMPLETE_STEP, (u32)sizeof(SlippiExiTypes::GpCompleteStepQuery) - 1},
-	    {CMD_GP_FETCH_STEP, (u32)sizeof(SlippiExiTypes::GpFetchStepQuery) - 1},
+	    {CMD_OVERWRITE_SELECTIONS, static_cast<u32>(sizeof(SlippiExiTypes::OverwriteSelectionsQuery) - 1)},
+	    {CMD_GP_COMPLETE_STEP, static_cast<u32>(sizeof(SlippiExiTypes::GpCompleteStepQuery) - 1)},
+	    {CMD_GP_FETCH_STEP, static_cast<u32>(sizeof(SlippiExiTypes::GpFetchStepQuery) - 1)},
 
 	    // Misc
 	    {CMD_LOG_MESSAGE, 0xFFFF}, // Variable size... will only work if by itself
