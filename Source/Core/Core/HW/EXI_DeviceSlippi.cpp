@@ -2545,6 +2545,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		bool areAllSameTeam = true;
 		for (const auto &s : orderedSelections)
 		{
+			// ERROR_LOG(SLIPPI_ONLINE, "[%d] First team: %d. Team: %d", s->playerIdx, color, s->teamId);
 			if (s->teamId != color)
 			{
 				areAllSameTeam = false;
@@ -2574,7 +2575,7 @@ void CEXISlippi::prepareOnlineMatchState()
 				s->teamId = teamAssignments[s->playerIdx];
 			}
 
-			// ERROR_LOG(SLIPPI_ONLINE, "idx: %d, char: %d", s.playerIdx, s.characterId);
+			// ERROR_LOG(SLIPPI_ONLINE, "idx: %d, char: %d, team: %d", s->playerIdx, s->characterId, s->teamId);
 
 			// Overwrite player character
 			onlineMatchBlock[0x60 + (s->playerIdx) * 0x24] = s->characterId;
@@ -2672,23 +2673,34 @@ void CEXISlippi::prepareOnlineMatchState()
 	}
 
 	// Create the opponent string using the names of all players on opposing teams
-	int teamIdx = onlineMatchBlock[0x69 + localPlayerIndex * 0x24];
-	std::string oppText = "";
-	for (int i = 0; i < 4; i++)
+	std::vector<std::string> opponentNames = {};
+	if (matchmaking->RemotePlayerCount() == 1)
 	{
-		if (i == localPlayerIndex)
-			continue;
-
-		if (onlineMatchBlock[0x69 + i * 0x24] != teamIdx)
+		opponentNames.push_back(matchmaking->GetPlayerName(remotePlayerIndex));
+	}
+	else
+	{
+		int teamIdx = onlineMatchBlock[0x69 + localPlayerIndex * 0x24];
+		for (int i = 0; i < 4; i++)
 		{
-			if (oppText != "")
-				oppText += "/";
+			if (localPlayerIndex == i || onlineMatchBlock[0x69 + i * 0x24] == teamIdx)
+				continue;
 
-			oppText += matchmaking->GetPlayerName(i);
+			opponentNames.push_back(matchmaking->GetPlayerName(i));
 		}
 	}
-	if (matchmaking->RemotePlayerCount() == 1)
-		oppText = matchmaking->GetPlayerName(remotePlayerIndex);
+
+	auto numOpponents = opponentNames.size() == 0 ? 1 : opponentNames.size();
+	auto charsPerName = (MAX_NAME_LENGTH - (numOpponents - 1)) / numOpponents;
+	std::string oppText = "";
+	for (auto &name : opponentNames)
+	{
+		if (oppText != "")
+			oppText += "/";
+
+		oppText += TruncateLengthChar(name, charsPerName);
+	}
+
 	oppName = ConvertStringForGame(oppText, MAX_NAME_LENGTH);
 	m_read_queue.insert(m_read_queue.end(), oppName.begin(), oppName.end());
 
