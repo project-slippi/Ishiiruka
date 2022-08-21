@@ -1257,6 +1257,7 @@ void CFrame::PollHotkeys(wxTimerEvent &event)
 
 void CFrame::ParseHotkeys()
 {
+	bool isSlippiOnline = IsOnline();
 	for (int i = 0; i < NUM_HOTKEYS; i++)
 	{
 		switch (i)
@@ -1462,8 +1463,13 @@ void CFrame::ParseHotkeys()
 		OSDChoice = 4;
 		g_Config.bDisableFog = !g_Config.bDisableFog;
 	}
-	Core::SetIsThrottlerTempDisabled(IsHotkey(HK_TOGGLE_THROTTLE, true));
-	if (IsHotkey(HK_DECREASE_EMULATION_SPEED) && !IsOnline())
+
+	if (!isSlippiOnline)
+	{
+		Core::SetIsThrottlerTempDisabled(IsHotkey(HK_TOGGLE_THROTTLE, true));
+	}
+
+	if (IsHotkey(HK_DECREASE_EMULATION_SPEED) && !isSlippiOnline)
 	{
 		OSDChoice = 5;
 
@@ -1477,7 +1483,7 @@ void CFrame::ParseHotkeys()
 		if (SConfig::GetInstance().m_EmulationSpeed >= 0.95f && SConfig::GetInstance().m_EmulationSpeed <= 1.05f)
 			SConfig::GetInstance().m_EmulationSpeed = 1.0f;
 	}
-	if (IsHotkey(HK_INCREASE_EMULATION_SPEED) && !IsOnline())
+	if (IsHotkey(HK_INCREASE_EMULATION_SPEED) && !isSlippiOnline)
 	{
 		OSDChoice = 5;
 
@@ -1491,7 +1497,7 @@ void CFrame::ParseHotkeys()
 	{
 		State::Save(m_saveSlot);
 	}
-	if (IsHotkey(HK_LOAD_STATE_SLOT_SELECTED))
+	if (IsHotkey(HK_LOAD_STATE_SLOT_SELECTED) && !isSlippiOnline)
 	{
 		State::Load(m_saveSlot);
 	}
