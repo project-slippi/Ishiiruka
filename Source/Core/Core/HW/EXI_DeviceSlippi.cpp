@@ -2369,6 +2369,26 @@ void CEXISlippi::prepareOnlineMatchState()
 	oppName = p2Name = "Player 2";
 #endif
 
+	SlippiDesyncRecoveryResp desync_recovery;
+	if (slippi_netplay)
+	{
+		desync_recovery = slippi_netplay->GetDesyncRecoveryState();
+	}
+
+	// If we have an active desync recovery and haven't received the opponent's state, wait
+	if (desync_recovery.is_recovering && desync_recovery.is_waiting)
+	{
+		remotePlayersReady = 0;
+	}
+
+	if (desync_recovery.is_error)
+	{
+		// If desync recovery failed, just disconnect connection. Hopefully this will almost never happen
+		handleConnectionCleanup();
+		prepareOnlineMatchState(); // run again with new state
+		return;
+	}
+
 	m_read_queue.push_back(localPlayerReady);   // Local player ready
 	m_read_queue.push_back(remotePlayersReady); // Remote players ready
 	m_read_queue.push_back(localPlayerIndex);   // Local player index
@@ -2639,6 +2659,20 @@ void CEXISlippi::prepareOnlineMatchState()
 		rightTeamPlayers.resize(4, 0);
 		leftTeamPlayers[3] = leftTeamSize;
 		rightTeamPlayers[3] = rightTeamSize;
+
+		// Handle desync recovery. The default values in desync_recovery.state are 480 seconds (8 min timer) and
+		// 4-stock/0 percent damage for the fighters. That means if we are not in a desync recovery state, the
+		// state of the timer and fighters will be restored to the defaults
+		u32 *seconds_remaining = reinterpret_cast<u32 *>(&onlineMatchBlock[0x10]);
+		*seconds_remaining = Common::swap32(desync_recovery.state.seconds_remaining);
+
+		for (int i = 0; i < 4; i++)
+		{
+			onlineMatchBlock[0x62 + i * 0x24] = desync_recovery.state.fighters[i].stocks_remaining;
+
+			u16 *current_health = reinterpret_cast<u16 *>(&onlineMatchBlock[0x70 + i * 0x24]);
+			*current_health = Common::swap16(desync_recovery.state.fighters[i].current_health);
+		}
 	}
 
 	// Add rng offset to output
@@ -3152,6 +3186,26 @@ void CEXISlippi::handleReportGame(const SlippiExiTypes::ReportGameQuery &query)
 		r.players.push_back(p);
 	}
 
+	// If ranked mode and the game ended with a quit out, this is either a desync or an interrupted game,
+	// attempt to send synced values to opponents in order to restart the match where it was left off
+	if (r.onlineMode == SlippiMatchmaking::OnlinePlayMode::RANKED && r.gameEndMethod == 7)
+	{
+		WARN_LOG(SLIPPI_ONLINE, "Hello?");
+		SlippiSyncedGameState s;
+		s.match_id = r.matchId;
+		s.game_index = r.gameIndex;
+		s.tiebreak_index = r.tiebreakIndex;
+		s.seconds_remaining = query.syncedTimer;
+		for (int i = 0; i < 4; i++)
+		{
+			s.fighters[i].stocks_remaining = query.players[i].syncedStocksRemaining;
+			s.fighters[i].current_health = query.players[i].syncedCurrentHealth;
+		}
+
+		if (slippi_netplay)
+			slippi_netplay->SendSyncedGameState(s);
+	}
+
 #ifndef LOCAL_TESTING
 	gameReporter->StartReport(r);
 #endif
@@ -3200,16 +3254,14 @@ void CEXISlippi::handleOverwriteSelections(const SlippiExiTypes::OverwriteSelect
 
 void CEXISlippi::handleGamePrepStepComplete(const SlippiExiTypes::GpCompleteStepQuery &query)
 {
-	if (!slippi_netplay)
-		return;
-
 	SlippiGamePrepStepResults res;
 	res.step_idx = query.step_idx;
 	res.char_selection = query.char_selection;
 	res.char_color_selection = query.char_color_selection;
 	memcpy(res.stage_selections, query.stage_selections, 2);
 	
-	slippi_netplay->SendGamePrepStep(res);
+	if (slippi_netplay)
+		slippi_netplay->SendGamePrepStep(res);
 }
 
 void CEXISlippi::prepareGamePrepOppStep(const SlippiExiTypes::GpFetchStepQuery &query)

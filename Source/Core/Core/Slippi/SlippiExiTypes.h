@@ -17,6 +17,8 @@ struct ReportGameQueryPlayer
 	u8 slotType;
 	u8 stocksRemaining;
 	float damageDone;
+	u8 syncedStocksRemaining;
+	u16 syncedCurrentHealth;
 };
 
 struct ReportGameQuery
@@ -29,6 +31,7 @@ struct ReportGameQuery
 	s8 winnerIdx;
 	u8 gameEndMethod;
 	s8 lrasInitiator;
+	u32 syncedTimer;
 	ReportGameQueryPlayer players[REPORT_PLAYER_COUNT];
 	u8 gameInfoBlock[312];
 };
@@ -86,10 +89,12 @@ template <> inline ReportGameQuery Convert(u8 *payload)
 	q.frameLength = Common::FromBigEndian(q.frameLength);
 	q.gameIndex = Common::FromBigEndian(q.gameIndex);
 	q.tiebreakIndex = Common::FromBigEndian(q.tiebreakIndex);
+	q.syncedTimer = Common::FromBigEndian(q.syncedTimer);
 	for (int i = 0; i < REPORT_PLAYER_COUNT; i++)
 	{
 		auto *p = &q.players[i];
 		p->damageDone = Common::FromBigEndian(p->damageDone);
+		p->syncedCurrentHealth = Common::FromBigEndian(p->syncedCurrentHealth);
 	}
 	return q;
 }
