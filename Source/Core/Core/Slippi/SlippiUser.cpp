@@ -114,26 +114,20 @@ bool SlippiUser::AttemptLogin()
 {
 	std::string userFilePath = File::GetSlippiUserJSONPath();
 
-	//INFO_LOG(SLIPPI_ONLINE, "Looking for file at: %s", userFilePath.c_str());
-
+// TODO: Remove a couple updates after ranked
+#ifndef __APPLE__
 	{
-		std::string userFilePathTxt =
-		    userFilePath + ".txt"; // Put the filename here in its own scope because we don't really need it elsewhere
-		if (File::Exists(userFilePathTxt))
+#ifdef _WIN32
+		std::string oldUserFilePath = File::GetExeDirectory() + DIR_SEP + "user.json";
+#else
+		std::string oldUserFilePath = File::GetUserPath(D_USER_IDX) + DIR_SEP + "user.json";
+#endif
+		if (File::Exists(oldUserFilePath) && !File::Rename(oldUserFilePath, userFilePath))
 		{
-			// If both files exist we just log they exist and take no further action
-			if (File::Exists(userFilePath))
-			{
-				INFO_LOG(SLIPPI_ONLINE,
-				         "Found both .json.txt and .json file for user data. Using .json and ignoring the .json.txt");
-			}
-			// If only the .txt file exists move the contents to a json file and log if it fails
-			else if (!File::Rename(userFilePathTxt, userFilePath))
-			{
-				WARN_LOG(SLIPPI_ONLINE, "Could not move file %s to %s", userFilePathTxt.c_str(), userFilePath.c_str());
-			}
+			WARN_LOG(SLIPPI_ONLINE, "Could not move file %s to %s", oldUserFilePath.c_str(), userFilePath.c_str());
 		}
 	}
+#endif
 
 	// Get user file
 	std::string userFileContents;
@@ -198,7 +192,8 @@ bool SlippiUser::UpdateApp()
 	if (!File::Exists(path))
 	{
 		ERROR_LOG(SLIPPI_ONLINE, "Update requested but updater does not exist.");
-		OSD::AddMessage("Updater cannot be found. Please download the latest Slippi version from slippi.gg.", 30000, 0xFFFF0000);
+		OSD::AddMessage("Updater cannot be found. Please download the latest Slippi version from slippi.gg.", 30000,
+		                0xFFFF0000);
 		return false;
 	}
 
@@ -208,10 +203,9 @@ bool SlippiUser::UpdateApp()
 	RunSystemCommand(command);
 	return true;
 #elif defined(__APPLE__)
-	CriticalAlertT(
-		"Automatic updates are not available for standalone Netplay builds on macOS. Please get the latest update from slippi.gg/netplay. "
-		"(The Slippi Launcher has automatic updates on macOS, and you should consider switching to that)"
-	);
+	CriticalAlertT("Automatic updates are not available for standalone Netplay builds on macOS. Please get the latest "
+	               "update from slippi.gg/netplay. "
+	               "(The Slippi Launcher has automatic updates on macOS, and you should consider switching to that)");
 	return false;
 #else
 	const char *appimage_path = getenv("APPIMAGE");
@@ -310,7 +304,7 @@ SlippiUser::UserInfo SlippiUser::parseFile(std::string fileContents)
 	info.playKey = readString(res, "playKey");
 	info.connectCode = readString(res, "connectCode");
 	info.latestVersion = readString(res, "latestVersion");
-	
+
 	return info;
 }
 
