@@ -273,7 +273,7 @@ jobs:
           libao \
           sound-touch \
           hidapi \
-          python@3.y
+          python@3.10
       - name: "Build ${{ matrix.build_type }} Dolphin"
         if: success()
         shell: bash
