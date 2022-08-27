@@ -272,7 +272,8 @@ jobs:
           pkgconfig \
           libao \
           sound-touch \
-          hidapi
+          hidapi \
+          python@3.y
       - name: "Build ${{ matrix.build_type }} Dolphin"
         if: success()
         shell: bash
