@@ -193,7 +193,9 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 		// Fetch current time immediately for the most accurate timing calculations
 		u64 curTime = Common::Timer::GetTimeUs();
 
-		int32_t frame;
+		s32 frame;
+		s32 checksumFrame;
+		u32 checksum;
 		if (!(packet >> frame))
 		{
 			ERROR_LOG(SLIPPI_ONLINE, "Netplay packet too small to read frame count");
@@ -205,12 +207,27 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 			ERROR_LOG(SLIPPI_ONLINE, "Netplay packet too small to read player index");
 			break;
 		}
+		if (!(packet >> checksumFrame))
+		{
+			ERROR_LOG(SLIPPI_ONLINE, "Netplay packet too small to read checksum frame");
+			break;
+		}
+		if (!(packet >> checksum))
+		{
+			ERROR_LOG(SLIPPI_ONLINE, "Netplay packet too small to read checksum value");
+			break;
+		}
 		u8 pIdx = PlayerIdxFromPort(packetPlayerPort);
 		if (pIdx >= m_remotePlayerCount)
 		{
 			ERROR_LOG(SLIPPI_ONLINE, "Got packet with invalid player idx %d", pIdx);
 			break;
 		}
+
+		// This is the amount of bytes from the start of the packet where the pad data starts
+		int padDataOffset = 14;
+
+		//ERROR_LOG(SLIPPI_ONLINE, "Received Checksum. CurFrame: %d, ChkFrame: %d, Chk: %08x", frame, checksumFrame, checksum);
 
 		// This fetches the m_server index that stores the connection we want to overwrite (if necessary). Note that
 		// this index is not necessarily the same as the pIdx because if we have users connecting with the same
@@ -278,6 +295,7 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 
 		frameOffsetData[pIdx].idx = (frameOffsetData[pIdx].idx + 1) % SLIPPI_ONLINE_LOCKSTEP_INTERVAL;
 
+		s64 inputsToCopy;
 		{
 			std::lock_guard<std::mutex> lk(pad_mutex); // TODO: Is this the correct lock?
 
@@ -290,14 +308,14 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 			s64 frame64 = static_cast<s64>(frame);
 			s32 headFrame = remotePadQueue[pIdx].empty() ? 0 : remotePadQueue[pIdx].front()->frame;
 			// Expand int size up to 64 bits to avoid overflowing
-			s64 inputsToCopy = frame64 - static_cast<s64>(headFrame);
+			inputsToCopy = frame64 - static_cast<s64>(headFrame);
 
 			// Check that the packet actually contains the data it claims to
-			if ((6 + inputsToCopy * SLIPPI_PAD_DATA_SIZE) > static_cast<s64>(packet.getDataSize()))
+			if ((padDataOffset + inputsToCopy * SLIPPI_PAD_DATA_SIZE) > static_cast<s64>(packet.getDataSize()))
 			{
 				ERROR_LOG(SLIPPI_ONLINE,
 				          "Netplay packet too small to read pad buffer. Size: %d, Inputs: %d, MinSize: %d",
-				          (int)packet.getDataSize(), inputsToCopy, 6 + inputsToCopy * SLIPPI_PAD_DATA_SIZE);
+				          (int)packet.getDataSize(), inputsToCopy, padDataOffset + inputsToCopy * SLIPPI_PAD_DATA_SIZE);
 				break;
 			}
 
@@ -311,27 +329,40 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 
 			for (s64 i = inputsToCopy - 1; i >= 0; i--)
 			{
-				auto pad = std::make_unique<SlippiPad>(static_cast<s32>(frame64 - i), pIdx,
-				                                       &packetData[6 + i * SLIPPI_PAD_DATA_SIZE]);
+				auto pad = std::make_unique<SlippiPad>(static_cast<s32>(frame64 - i),
+				                                       &packetData[padDataOffset + i * SLIPPI_PAD_DATA_SIZE]);
 				// INFO_LOG(SLIPPI_ONLINE, "Rcv [%d] -> %02X %02X %02X %02X %02X %02X %02X %02X", pad->frame,
 				//         pad->padBuf[0], pad->padBuf[1], pad->padBuf[2], pad->padBuf[3], pad->padBuf[4],
 				//         pad->padBuf[5], pad->padBuf[6], pad->padBuf[7]);
 
 				remotePadQueue[pIdx].push_front(std::move(pad));
 			}
+
+			// Write checksum pad to keep track of latest remote checksum
+			ChecksumEntry e;
+			e.frame = checksumFrame;
+			e.value = checksum;
+			remote_checksums[pIdx] = e;
 		}
 
-		// Send Ack
-		sf::Packet spac;
-		spac << (MessageId)NP_MSG_SLIPPI_PAD_ACK;
-		spac << frame;
-		spac << playerIdx;
-		// INFO_LOG(SLIPPI_ONLINE, "Sending ack packet for frame %d (player %d) to peer at %d:%d", frame,
-		// packetPlayerPort,
-		//         peer->address.host, peer->address.port);
+		// Only ack if inputsToCopy is greater than 0. Otherwise we are receiving an old input and
+		// we should have already acked something in the future. This can also happen in the case
+		// where a new game starts quickly before the remote queue is reset and if we ack the early
+		// inputs we will never receive them
+		if (inputsToCopy > 0)
+		{
+			// Send Ack
+			sf::Packet spac;
+			spac << (MessageId)NP_MSG_SLIPPI_PAD_ACK;
+			spac << frame;
+			spac << playerIdx;
+			// INFO_LOG(SLIPPI_ONLINE, "Sending ack packet for frame %d (player %d) to peer at %d:%d", frame,
+			// packetPlayerPort,
+			//         peer->address.host, peer->address.port);
 
-		ENetPacket *epac = enet_packet_create(spac.getData(), spac.getDataSize(), ENET_PACKET_FLAG_UNSEQUENCED);
-		int sendResult = enet_peer_send(peer, 2, epac);
+			ENetPacket *epac = enet_packet_create(spac.getData(), spac.getDataSize(), ENET_PACKET_FLAG_UNSEQUENCED);
+			int sendResult = enet_peer_send(peer, 2, epac);
+		}
 	}
 	break;
 
@@ -435,6 +466,55 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 	{
 		// Currently this is unused but the intent is to support two-way simultaneous connection attempts
 		isConnectionSelected = true;
+	}
+	break;
+
+	case NP_MSG_SLIPPI_COMPLETE_STEP:
+	{
+		SlippiGamePrepStepResults results;
+
+		packet >> results.step_idx;
+		packet >> results.char_selection;
+		packet >> results.char_color_selection;
+		packet >> results.stage_selections[0];
+		packet >> results.stage_selections[1];
+
+		gamePrepStepQueue.push_back(results);
+	}
+	break;
+
+	case NP_MSG_SLIPPI_SYNCED_STATE:
+	{
+		u8 packetPlayerPort;
+		if (!(packet >> packetPlayerPort))
+		{
+			ERROR_LOG(SLIPPI_ONLINE, "Netplay packet too small to read player index");
+			break;
+		}
+		u8 pIdx = PlayerIdxFromPort(packetPlayerPort);
+		if (pIdx >= m_remotePlayerCount)
+		{
+			ERROR_LOG(SLIPPI_ONLINE, "Got packet with invalid player idx %d", pIdx);
+			break;
+		}
+
+		SlippiSyncedGameState results;
+		packet >> results.match_id;
+		packet >> results.game_index;
+		packet >> results.tiebreak_index;
+		packet >> results.seconds_remaining;
+		for (int i = 0; i < 4; i++)
+		{
+			packet >> results.fighters[i].stocks_remaining;
+			packet >> results.fighters[i].current_health;
+		}
+
+		//ERROR_LOG(SLIPPI_ONLINE, "Received synced state from opponent. %s, %d, %d, %d. F1: %d (%d%%), F2: %d (%d%%)",
+		//         results.match_id.c_str(), results.game_index, results.tiebreak_index, results.seconds_remaining,
+		//         results.fighters[0].stocks_remaining, results.fighters[0].current_health,
+		//         results.fighters[1].stocks_remaining, results.fighters[1].current_health);
+
+		remote_sync_states[pIdx] = results;
 	}
 	break;
 
@@ -992,6 +1072,11 @@ void SlippiNetplayClient::StartSlippiGame()
 		ackTimers[i].Clear();
 	}
 
+	is_desync_recovery = false;
+
+	// Clear game prep queue in case anything is still lingering
+	gamePrepStepQueue.clear();
+
 	// Reset match info for next game
 	matchInfo.Reset();
 }
@@ -1054,6 +1139,8 @@ void SlippiNetplayClient::SendSlippiPad(std::unique_ptr<SlippiPad> pad)
 	*spac << static_cast<MessageId>(NP_MSG_SLIPPI_PAD);
 	*spac << frame;
 	*spac << this->playerIdx;
+	*spac << localPadQueue.front()->checksumFrame;
+	*spac << localPadQueue.front()->checksum;
 
 	// INFO_LOG(SLIPPI_ONLINE, "Sending a packet of inputs [%d]...", frame);
 	for (auto it = localPadQueue.begin(); it != localPadQueue.end(); ++it)
@@ -1098,6 +1185,59 @@ void SlippiNetplayClient::SetMatchSelections(SlippiPlayerSelections &s)
 	SendAsync(std::move(spac));
 }
 
+void SlippiNetplayClient::SendGamePrepStep(SlippiGamePrepStepResults &s)
+{
+	auto spac = std::make_unique<sf::Packet>();
+	*spac << static_cast<MessageId>(NP_MSG_SLIPPI_COMPLETE_STEP);
+	*spac << s.step_idx;
+	*spac << s.char_selection;
+	*spac << s.char_color_selection;
+	*spac << s.stage_selections[0] << s.stage_selections[1];
+	SendAsync(std::move(spac));
+}
+
+void SlippiNetplayClient::SendSyncedGameState(SlippiSyncedGameState &s) {
+	//WARN_LOG(SLIPPI_ONLINE, "Sending synced state. %s, %d, %d, %d. F1: %d (%d%%), F2: %d (%d%%)",
+	//          s.match_id.c_str(), s.game_index, s.tiebreak_index, s.seconds_remaining,
+	//          s.fighters[0].stocks_remaining, s.fighters[0].current_health,
+	//          s.fighters[1].stocks_remaining, s.fighters[1].current_health);
+
+	is_desync_recovery = true;
+	local_sync_state = s;
+
+	auto spac = std::make_unique<sf::Packet>();
+	*spac << static_cast<MessageId>(NP_MSG_SLIPPI_SYNCED_STATE);
+	*spac << this->playerIdx;
+	*spac << s.match_id;
+	*spac << s.game_index;
+	*spac << s.tiebreak_index;
+	*spac << s.seconds_remaining;
+	for (int i = 0; i < 4; i++)
+	{
+		*spac << s.fighters[i].stocks_remaining;
+		*spac << s.fighters[i].current_health;
+	}
+	SendAsync(std::move(spac));
+}
+
+bool SlippiNetplayClient::GetGamePrepResults(u8 stepIdx, SlippiGamePrepStepResults &res)
+{
+	// Just pull stuff off until we find something for the right step. I think that should be fine
+	while (!gamePrepStepQueue.empty())
+	{
+		auto front = gamePrepStepQueue.front();
+		if (front.step_idx == stepIdx)
+		{
+			res = front;
+			return true;
+		}
+
+		gamePrepStepQueue.pop_front();
+	}
+
+	return false;
+}
+
 SlippiPlayerSelections SlippiNetplayClient::GetSlippiRemoteChatMessage(bool isChatEnabled)
 {
 	SlippiPlayerSelections copiedSelection = SlippiPlayerSelections();
@@ -1116,16 +1256,18 @@ SlippiPlayerSelections SlippiNetplayClient::GetSlippiRemoteChatMessage(bool isCh
 		copiedSelection.messageId = 0;
 		copiedSelection.playerIdx = 0;
 
-        // if chat is not enabled, automatically send back a message saying so.
-        if(remoteChatMessageSelection != nullptr && !isChatEnabled &&
-		    (remoteChatMessageSelection->messageId > 0 && remoteChatMessageSelection->messageId != SlippiPremadeText::CHAT_MSG_CHAT_DISABLED)){
-            auto packet = std::make_unique<sf::Packet>();
-            remoteSentChatMessageId = SlippiPremadeText::CHAT_MSG_CHAT_DISABLED;
-            WriteChatMessageToPacket(*packet, remoteSentChatMessageId, LocalPlayerPort());
-            SendAsync(std::move(packet));
-            remoteSentChatMessageId = 0;
+		// if chat is not enabled, automatically send back a message saying so.
+		if (remoteChatMessageSelection != nullptr && !isChatEnabled &&
+		    (remoteChatMessageSelection->messageId > 0 &&
+		     remoteChatMessageSelection->messageId != SlippiPremadeText::CHAT_MSG_CHAT_DISABLED))
+		{
+			auto packet = std::make_unique<sf::Packet>();
+			remoteSentChatMessageId = SlippiPremadeText::CHAT_MSG_CHAT_DISABLED;
+			WriteChatMessageToPacket(*packet, remoteSentChatMessageId, LocalPlayerPort());
+			SendAsync(std::move(packet));
+			remoteSentChatMessageId = 0;
 			remoteChatMessageSelection = nullptr;
-        }
+		}
 	}
 
 	return copiedSelection;
@@ -1193,6 +1335,8 @@ std::unique_ptr<SlippiRemotePadOutput> SlippiNetplayClient::GetSlippiRemotePad(i
 	int inputCount = 0;
 
 	padOutput->latestFrame = 0;
+	padOutput->checksumFrame = remote_checksums[index].frame;
+	padOutput->checksum = remote_checksums[index].value;
 
 	// Copy inputs from the remote pad queue to the output. We iterate backwards because
 	// we want to get the oldest frames possible (will have been cleared to contain the last
@@ -1321,4 +1465,90 @@ s32 SlippiNetplayClient::CalcTimeOffsetUs()
 
 	// INFO_LOG(SLIPPI_ONLINE, "Time offsets, [0]: %d, [1]: %d, [2]: %d", offsets[0], offsets[1], offsets[2]);
 	return minOffset;
+}
+
+bool SlippiNetplayClient::IsWaitingForDesyncRecovery()
+{
+	// If we are not in a desync recovery state, we do not need to wait
+	if (!is_desync_recovery)
+		return false;
+
+	for (int i = 0; i < m_remotePlayerCount; i++)
+	{
+		if (local_sync_state.game_index != remote_sync_states[i].game_index)
+			return true;
+
+		if (local_sync_state.tiebreak_index != remote_sync_states[i].tiebreak_index)
+			return true;
+	}
+
+	return false;
+}
+
+SlippiDesyncRecoveryResp SlippiNetplayClient::GetDesyncRecoveryState()
+{
+	SlippiDesyncRecoveryResp result;
+
+	result.is_recovering = is_desync_recovery;
+	result.is_waiting = IsWaitingForDesyncRecovery();
+
+	// If we are not recovering or if we are currently waiting, don't need to compute state, just return
+	if (!result.is_recovering || result.is_waiting)
+		return result;
+
+	result.state = local_sync_state;
+
+	// Here let's try to reconcile all the states into one. This is important to make sure
+	// everyone starts at the same percent/stocks because their last synced state might be
+	// a slightly different frame. There didn't seem to be an easy way to guarantee they'd
+	// all be on exactly the same frame
+	for (int i = 0; i < m_remotePlayerCount; i++)
+	{
+		auto &s = remote_sync_states[i];
+		if (abs(static_cast<int>(result.state.seconds_remaining) - static_cast<int>(s.seconds_remaining)) > 1)
+		{
+			ERROR_LOG(SLIPPI_ONLINE, "Timer values for desync recovery too different: %d, %d",
+			          result.state.seconds_remaining, s.seconds_remaining);
+			result.is_error = true;
+			return result;
+		}
+
+		// Use the timer with more time remaining
+		if (s.seconds_remaining > result.state.seconds_remaining)
+		{
+			result.state.seconds_remaining = s.seconds_remaining;
+		}
+
+		for (int j = 0; j < 4; j++)
+		{
+			auto &fighter = result.state.fighters[i];
+			auto &iFighter = s.fighters[i];
+
+			if (fighter.stocks_remaining != iFighter.stocks_remaining)
+			{
+				// This might actually happen sometimes if a desync happens right as someone is KO'd... should be
+				// quite rare though in a 1v1 situation.
+				ERROR_LOG(SLIPPI_ONLINE, "Stocks remaining for desync recovery do not match: [Player %d] %d, %d",
+				          j + 1, fighter.stocks_remaining, iFighter.stocks_remaining);
+				result.is_error = true;
+				return result;
+			}
+
+			if (abs(static_cast<int>(fighter.current_health) - static_cast<int>(iFighter.current_health)) > 25)
+			{
+				ERROR_LOG(SLIPPI_ONLINE, "Current health for desync recovery too different: [Player %d] %d, %d", j + 1,
+				          fighter.current_health, iFighter.current_health);
+				result.is_error = true;
+				return result;
+			}
+
+			// Use the lower health value
+			if (iFighter.current_health < fighter.current_health)
+			{
+				result.state.fighters[i].current_health = iFighter.current_health;
+			}
+		}
+	}
+
+	return result;
 }

@@ -73,7 +73,10 @@
 #include "VideoCommon/VideoConfig.h"
 
 #include "Core/Slippi/SlippiPlayback.h"
+#include "Core/Slippi/SlippiReplayComm.h"
+
 extern std::unique_ptr<SlippiPlaybackStatus> g_playbackStatus;
+extern std::unique_ptr<SlippiReplayComm> g_replayComm;
 
 #if defined(HAVE_X11) && HAVE_X11
 // X11Utils nastiness that's only used here
@@ -702,6 +705,13 @@ void CFrame::UpdateTitle(const std::string &str)
 	if (SConfig::GetInstance().bRenderToMain && SConfig::GetInstance().m_InterfaceStatusbar)
 	{
 		GetStatusBar()->SetStatusText(str, 0);
+
+		if (g_replayComm->getSettings().gameStation != "") {
+			std::string titleStr = StringFromFormat("%s | %s", scm_rev_str.c_str(), g_replayComm->getSettings().gameStation.c_str());
+			m_RenderFrame->SetTitle(titleStr);
+			return;
+		}
+		
 		m_RenderFrame->SetTitle(scm_rev_str);
 	}
 	else
@@ -1247,6 +1257,7 @@ void CFrame::PollHotkeys(wxTimerEvent &event)
 
 void CFrame::ParseHotkeys()
 {
+	bool isSlippiOnline = IsOnline();
 	for (int i = 0; i < NUM_HOTKEYS; i++)
 	{
 		switch (i)
@@ -1452,8 +1463,13 @@ void CFrame::ParseHotkeys()
 		OSDChoice = 4;
 		g_Config.bDisableFog = !g_Config.bDisableFog;
 	}
-	Core::SetIsThrottlerTempDisabled(IsHotkey(HK_TOGGLE_THROTTLE, true));
-	if (IsHotkey(HK_DECREASE_EMULATION_SPEED) && !IsOnline())
+
+	if (!isSlippiOnline)
+	{
+		Core::SetIsThrottlerTempDisabled(IsHotkey(HK_TOGGLE_THROTTLE, true));
+	}
+
+	if (IsHotkey(HK_DECREASE_EMULATION_SPEED) && !isSlippiOnline)
 	{
 		OSDChoice = 5;
 
@@ -1467,7 +1483,7 @@ void CFrame::ParseHotkeys()
 		if (SConfig::GetInstance().m_EmulationSpeed >= 0.95f && SConfig::GetInstance().m_EmulationSpeed <= 1.05f)
 			SConfig::GetInstance().m_EmulationSpeed = 1.0f;
 	}
-	if (IsHotkey(HK_INCREASE_EMULATION_SPEED) && !IsOnline())
+	if (IsHotkey(HK_INCREASE_EMULATION_SPEED) && !isSlippiOnline)
 	{
 		OSDChoice = 5;
 
@@ -1481,7 +1497,7 @@ void CFrame::ParseHotkeys()
 	{
 		State::Save(m_saveSlot);
 	}
-	if (IsHotkey(HK_LOAD_STATE_SLOT_SELECTED))
+	if (IsHotkey(HK_LOAD_STATE_SLOT_SELECTED) && !isSlippiOnline)
 	{
 		State::Load(m_saveSlot);
 	}

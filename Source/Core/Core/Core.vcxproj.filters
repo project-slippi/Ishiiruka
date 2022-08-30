@@ -1373,6 +1373,9 @@
     <ClInclude Include="Slippi\SlippiDirectCodes.h">
       <Filter>Slippi</Filter>
     </ClInclude>
+    <ClInclude Include="Slippi\SlippiExiTypes.h">
+      <Filter>Slippi</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="CMakeLists.txt" />

@@ -125,6 +125,8 @@ std::string ReplaceAll(std::string result, const std::string& src, const std::st
 
 std::u32string UTF8ToUTF32(const std::string &input);
 std::string UTF32toUTF8(const std::u32string &input);
+
+std::string TruncateLengthChar(const std::string &input, int length);
 std::string ConvertStringForGame(const std::string &input, int length);
 
 std::string CP1252ToUTF8(const std::string& str);
