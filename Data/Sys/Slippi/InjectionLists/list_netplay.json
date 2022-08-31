@@ -472,7 +472,7 @@
    "InjectionAddress": "8006A880",
    "Codetype": "Auto",
    "Annotation": "",
-   "Tags": ""
+   "Tags": "[affects-gameplay]"
   },
   {
    "InjectionAddress": "802F7094",
@@ -622,7 +622,7 @@
    "InjectionAddress": "801D4578",
    "Codetype": "Auto",
    "Annotation": "",
-   "Tags": ""
+   "Tags": "[affects-gameplay]"
   },
   {
    "InjectionAddress": "80023FFC",
