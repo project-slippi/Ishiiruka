@@ -1,0 +1,22 @@
+{
+ "Details": [
+  {
+   "InjectionAddress": "801A4DA0",
+   "Codetype": "C2",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "801A4DB4",
+   "Codetype": "04",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "80019860",
+   "Codetype": "04",
+   "Annotation": "",
+   "Tags": ""
+  }
+ ]
+}
