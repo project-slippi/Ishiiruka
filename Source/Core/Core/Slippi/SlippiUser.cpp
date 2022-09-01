@@ -185,8 +185,10 @@ bool SlippiUser::UpdateApp()
 
 #ifdef _WIN32
 	std::string command = "explorer \"" + url + "\"";
+#elif defined(__APPLE__)
+	std::string command = "open \"" + url + "\"";
 #else
-	std::string command = "xdg-open \"" + url + "\""; // Linux, does this work on Mac?
+	std::string command = "xdg-open \"" + url + "\""; // Linux
 #endif
 
 	RunSystemCommand(command);
