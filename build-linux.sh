@@ -25,7 +25,7 @@ make -j$(nproc)
 popd
 
 # Copy and then clean the Sys folder in
-rsync --delete-after ${DATA_SYS_PATH} ${BINARY_PATH}
+rsync -r --delete-after ${DATA_SYS_PATH} ${BINARY_PATH}
 
 touch ./build/Binaries/portable.txt
 
