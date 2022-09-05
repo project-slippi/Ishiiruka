@@ -5,7 +5,7 @@ CMAKE_FLAGS='-DLINUX_LOCAL_DEV=true'
 
 PLAYBACK_CODES_PATH="./Data/PlaybackGeckoCodes/"
 
-DATA_SYS_PATH="./Data/Sys/"
+DATA_SYS_PATH="./Data/Sys"
 BINARY_PATH="./build/Binaries/"
 
 # Build type
@@ -24,8 +24,8 @@ cmake ${CMAKE_FLAGS} ../
 make -j$(nproc)
 popd
 
-# Copy the Sys folder in
-cp -r -n ${DATA_SYS_PATH} ${BINARY_PATH}
+# Copy and then clean the Sys folder in
+rsync --delete-after ${DATA_SYS_PATH} ${BINARY_PATH}
 
 touch ./build/Binaries/portable.txt
 
