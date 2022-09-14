@@ -11,6 +11,7 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <map>
 
 class SlippiGameReporter
 {
@@ -36,7 +37,7 @@ class SlippiGameReporter
 		s8 winnerIdx = 0;
 		u8 gameEndMethod = 0;
 		s8 lrasInitiator = 0;
-		int stageId;
+		int stageId = 0;
 		std::vector<PlayerReport> players;
 	};
 
@@ -47,6 +48,8 @@ class SlippiGameReporter
 	void ReportAbandonment(std::string matchId);
 	void StartNewSession();
 	void ReportThreadHandler();
+	void PushReplayData(u8 *data, u32 length, std::string action);
+	void UploadReplay(int idx, std::string url);
 
   protected:
 	const std::string REPORT_URL = "https://rankings-dot-slippi.uc.r.appspot.com/report";
@@ -54,13 +57,22 @@ class SlippiGameReporter
 	CURL *m_curl = nullptr;
 	struct curl_slist *m_curlHeaderList = nullptr;
 
+	CURL *m_curl_upload = nullptr;
+	struct curl_slist *m_curl_upload_headers = nullptr;
+
 	u32 gameIndex = 1;
 	std::vector<std::string> playerUids;
 
 	SlippiUser *m_user;
+	std::string m_iso_hash;
 	Common::FifoQueue<GameReport, false> gameReportQueue;
 	std::thread reportingThread;
 	std::mutex mtx;
 	std::condition_variable cv;
 	std::atomic<bool> runThread;
+	std::thread m_md5_thread;
+
+	std::map<int, std::vector<u8>> m_replay_data;
+	int m_replay_write_idx = 0;
+	int m_replay_last_completed_idx = -1;
 };
