@@ -431,6 +431,9 @@ void SlippiPlaybackStatus::generateDenylist()
 	    {0x8006c5d8, true},
 	    // Post 3.7.0: Recording/SendGameEnd.asm
 	    {0x8016d30c, true},
+	    // Online/Menus/InGame/InitInGame.asm
+	    // https://github.com/project-slippi/slippi-ssbm-asm/blame/7211b1cfe0792e0fa5ebfbac6bb493bda05d8ee2/Online/Menus/InGame/InitInGame.asm
+	    {0x8016e9b4, true},
 
 	    // Common codes not in our codebase
 	    // HUD Transparency v1.1 (https://smashboards.com/threads/transparent-hud-v1-1.508509/)
@@ -456,8 +459,6 @@ void SlippiPlaybackStatus::generateDenylist()
 	{
 		if (entry.isDirectory)
 			continue;
-
-		WARN_LOG(SLIPPI, "Injection List checking: %s. %s", entry.physicalName.c_str(), entry.virtualName.c_str());
 
 		std::string contents;
 		File::ReadFileToString(entry.physicalName, contents);
