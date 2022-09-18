@@ -1,0 +1,328 @@
+{
+ "Details": [
+  {
+   "InjectionAddress": "801BFA20",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "8015EE98",
+   "Codetype": "04",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "8015EDDC",
+   "Codetype": "04",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "80164B14",
+   "Codetype": "04",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "801648F4",
+   "Codetype": "04",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "8015EE4C",
+   "Codetype": "04",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "8015EE14",
+   "Codetype": "04",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "8015D968",
+   "Codetype": "04",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "8015D9D8",
+   "Codetype": "04",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "8017229C",
+   "Codetype": "04",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "801737B0",
+   "Codetype": "04",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "80164658",
+   "Codetype": "04",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "801644E8",
+   "Codetype": "04",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "8030490C",
+   "Codetype": "04",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "803044F0",
+   "Codetype": "04",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "803D4A48",
+   "Codetype": "04",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "803D4A4C",
+   "Codetype": "04",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "803D4A50",
+   "Codetype": "04",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "803D4A60",
+   "Codetype": "04",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "803D4A78",
+   "Codetype": "04",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "8015D94C",
+   "Codetype": "04",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "8015D984",
+   "Codetype": "04",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "8016B480",
+   "Codetype": "04",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "801B0A14",
+   "Codetype": "04",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "802641B0",
+   "Codetype": "04",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "80397878",
+   "Codetype": "04",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "801AF6F4",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "8025B8BC",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "803D4A70",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "800679BC",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "803219EC",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "8016D884",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "8016E74C",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "8006DA34",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "8006B0DC",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "80005604",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "8008D698",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "8006C324",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "800055F8",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "8016D294",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "801D460C",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": "[affects-gameplay]"
+  },
+  {
+   "InjectionAddress": "801D14C8",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": "[affects-gameplay]"
+  },
+  {
+   "InjectionAddress": "801D45EC",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": "[affects-gameplay]"
+  },
+  {
+   "InjectionAddress": "801D4F14",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": "[affects-gameplay]"
+  },
+  {
+   "InjectionAddress": "801D4610",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": "[affects-gameplay]"
+  },
+  {
+   "InjectionAddress": "801D4724",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": "[affects-gameplay]"
+  },
+  {
+   "InjectionAddress": "804DEC18",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "801C154C",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": "[affects-gameplay]"
+  },
+  {
+   "InjectionAddress": "80068EEC",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": "[affects-gameplay]"
+  },
+  {
+   "InjectionAddress": "800055F0",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "800055FC",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "80005600",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "800AC5B8",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": "[affects-gameplay]"
+  },
+  {
+   "InjectionAddress": "801D24FC",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": "[affects-gameplay]"
+  }
+ ]
+}

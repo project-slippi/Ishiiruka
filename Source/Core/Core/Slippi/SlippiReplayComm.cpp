@@ -171,6 +171,7 @@ void SlippiReplayComm::loadFile()
 		commFileSettings.isRealTimeMode = false;
 		commFileSettings.shouldResync = true;
 		commFileSettings.rollbackDisplayMethod = "off";
+		commFileSettings.gameStation = "";
 
 		if (res.is_string())
 		{
@@ -202,6 +203,7 @@ void SlippiReplayComm::loadFile()
 	commFileSettings.isRealTimeMode = res.value("isRealTimeMode", false);
 	commFileSettings.shouldResync = res.value("shouldResync", true);
 	commFileSettings.rollbackDisplayMethod = res.value("rollbackDisplayMethod", "off");
+	commFileSettings.gameStation = res.value("gameStation", "");
 
 	if (commFileSettings.mode == "queue")
 	{
