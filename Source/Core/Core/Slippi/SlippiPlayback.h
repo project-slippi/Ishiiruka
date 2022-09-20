@@ -38,6 +38,8 @@ class SlippiPlaybackStatus
 	bool shouldFFWFrame(int32_t frameIndex) const;
 	void prepareSlippiPlayback(s32 &frameIndex);
 	void setHardFFW(bool enable);
+	std::unordered_map<u32, bool> getDenylist();
+	std::vector<u8> getLegacyCodelist();
 
   private:
 	void SavestateThread(void);
@@ -45,11 +47,16 @@ class SlippiPlaybackStatus
 	void loadState(s32 closestStateFrame);
 	void processInitialState(std::vector<u8> &iState);
 	void updateWatchSettingsStartEnd();
+	void generateDenylist();
+	void generateLegacyCodelist();
 
 	std::unordered_map<int32_t, std::shared_future<std::string>>
 	    futureDiffs;        // State diffs keyed by frameIndex, processed async
 	std::vector<u8> iState; // The initial state
 	std::vector<u8> cState; // The current (latest) state
+
+	std::unordered_map<u32, bool> denylist;
+	std::vector<u8> legacyCodelist;
 
 	open_vcdiff::VCDiffDecoder decoder;
 	open_vcdiff::VCDiffEncoder *encoder = NULL;
