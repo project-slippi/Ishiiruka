@@ -471,7 +471,7 @@ namespace Slippi {
           // Transform this message into a different message
           command = data[SPLIT_MESSAGE_INTERNAL_DATA_LEN + 2];
           data = &splitMessageBuf[0];
-          payloadSize = asmEvents[command];
+          payloadSize = splitMessageBuf.size();
           shouldResetSplitMessageBuf = true;
         }
       }

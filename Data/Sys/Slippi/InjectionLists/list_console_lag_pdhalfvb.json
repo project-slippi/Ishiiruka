@@ -1,0 +1,46 @@
+{
+ "Details": [
+  {
+   "InjectionAddress": "801A4D98",
+   "Codetype": "C2",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "801A5050",
+   "Codetype": "C2",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "801A4BEC",
+   "Codetype": "C2",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "80158268",
+   "Codetype": "04",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "8034EB60",
+   "Codetype": "C2",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "80397878",
+   "Codetype": "04",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "801A4570",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": ""
+  }
+ ]
+}

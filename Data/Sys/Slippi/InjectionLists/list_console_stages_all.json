@@ -1,0 +1,40 @@
+{
+ "Details": [
+  {
+   "InjectionAddress": "8025A530",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "8025B718",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "803E67E0",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": "[affects-gameplay]"
+  },
+  {
+   "InjectionAddress": "8021AAE4",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": "[affects-gameplay]"
+  },
+  {
+   "InjectionAddress": "801D1548",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": "[affects-gameplay]"
+  },
+  {
+   "InjectionAddress": "801E3348",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": "[affects-gameplay]"
+  }
+ ]
+}

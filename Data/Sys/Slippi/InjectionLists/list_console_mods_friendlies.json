@@ -1,0 +1,94 @@
+{
+ "Details": [
+  {
+   "InjectionAddress": "8016E510",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": "[affects-gameplay]"
+  },
+  {
+   "InjectionAddress": "802FCCD8",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "80261B1C",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "80261B30",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "802605FC",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "804DC47C",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "80261A6C",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "80266CE0",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "802608D8",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "80259B84",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "80259C40",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "801A5B14",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "80265220",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "8016EA30",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "8016EBAC",
+   "Codetype": "Auto",
+   "Annotation": "",
+   "Tags": ""
+  }
+ ]
+}
