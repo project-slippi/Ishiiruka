@@ -31,6 +31,7 @@ class SlippiGameReporter
 	{
 		SlippiMatchmaking::OnlinePlayMode onlineMode;
 		std::string matchId;
+		int reportAttempts = 0;
 		u32 durationFrames = 0;
 		u32 gameIndex = 0;
 		u32 tiebreakIndex = 0;
