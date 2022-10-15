@@ -43,7 +43,13 @@ u32 SlippiGameFileLoader::LoadFile(std::string fileName, std::string &data)
 	}
 
 	std::string fileContents;
-	File::ReadFileToString(gameFilePath, fileContents);
+
+	// Don't read MxDt.dat because our Launcher may not have successfully deleted it and
+	// loading the old one from the file system would break m-ex based ISOs
+	if (fileName != "MxDt.dat")
+	{
+		File::ReadFileToString(gameFilePath, fileContents);
+	}
 
 	if (gameFilePath.substr(gameFilePath.length() - 5) == ".diff")
 	{

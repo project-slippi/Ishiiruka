@@ -41,6 +41,7 @@ SlippiMatchmaking::SlippiMatchmaking(SlippiUser *user)
 
 SlippiMatchmaking::~SlippiMatchmaking()
 {
+	isMmTerminated = true;
 	m_state = ProcessState::ERROR_ENCOUNTERED;
 	m_errorMsg = "Matchmaking shut down";
 
@@ -144,6 +145,11 @@ void SlippiMatchmaking::MatchmakeThread()
 {
 	while (IsSearching())
 	{
+		if (isMmTerminated)
+		{
+			break;
+		}
+
 		switch (m_state)
 		{
 		case ProcessState::INITIALIZING:
@@ -455,6 +461,9 @@ void SlippiMatchmaking::handleMatchmaking()
 	m_remoteIps.clear();
 	m_playerInfo.clear();
 
+	std::string matchId = getResp.value("matchId", "");
+	WARN_LOG(SLIPPI_ONLINE, "Match ID: %s", matchId.c_str());
+
 	auto queue = getResp["players"];
 	if (queue.is_array())
 	{
@@ -541,6 +550,10 @@ void SlippiMatchmaking::handleMatchmaking()
 		}
 	}
 
+	m_mmResult.id = matchId;
+	m_mmResult.players = m_playerInfo;
+	m_mmResult.stages = m_allowedStages;
+
 	// Disconnect and destroy enet client to mm server
 	terminateMmConnection();
 
@@ -561,6 +574,11 @@ std::vector<SlippiUser::UserInfo> SlippiMatchmaking::GetPlayerInfo()
 std::vector<u16> SlippiMatchmaking::GetStages()
 {
 	return m_allowedStages;
+}
+
+SlippiMatchmaking::MatchmakeResult SlippiMatchmaking::GetMatchmakeResult()
+{
+	return m_mmResult;
 }
 
 std::string SlippiMatchmaking::GetPlayerName(u8 port)
