@@ -157,7 +157,7 @@ void SlippiGameReporter::StartReport(GameReport report)
 
 void SlippiGameReporter::StartNewSession()
 {
-	gameIndex = 1;
+	// Maybe we could do stuff here? We used to initialize gameIndex but that isn't required anymore
 }
 
 void SlippiGameReporter::ReportThreadHandler()
@@ -184,7 +184,6 @@ void SlippiGameReporter::ReportThreadHandler()
 			// If the thread is shutting down, give up after one attempt
 			if (!runThread && !isFirstAttempt)
 			{
-				gameIndex += 1;
 				gameReportQueue.Pop();
 				continue;
 			}
@@ -193,7 +192,7 @@ void SlippiGameReporter::ReportThreadHandler()
 
 			auto userInfo = m_user->GetUserInfo();
 
-			WARN_LOG(SLIPPI_ONLINE, "Checking game report for game %d. Length: %d...", gameIndex,
+			WARN_LOG(SLIPPI_ONLINE, "Checking game report for game %d. Length: %d...", report.gameIndex,
 			         report.durationFrames);
 
 			// Prepare report
@@ -202,8 +201,8 @@ void SlippiGameReporter::ReportThreadHandler()
 			request["uid"] = userInfo.uid;
 			request["playKey"] = userInfo.playKey;
 			request["mode"] = report.onlineMode;
-			request["gameIndex"] = report.onlineMode == ranked ? report.gameIndex : gameIndex;
-			request["tiebreakIndex"] = report.onlineMode == ranked ? report.tiebreakIndex : 0;
+			request["gameIndex"] = report.gameIndex;
+			request["tiebreakIndex"] = report.tiebreakIndex;
 			request["gameDurationFrames"] = report.durationFrames;
 			request["winnerIdx"] = report.winnerIdx;
 			request["gameEndMethod"] = report.gameEndMethod;
@@ -232,7 +231,6 @@ void SlippiGameReporter::ReportThreadHandler()
 			// Just pop before request if this is the last attempt
 			if (isLastAttempt)
 			{
-				gameIndex += 1;
 				gameReportQueue.Pop();
 			}
 
@@ -284,7 +282,6 @@ void SlippiGameReporter::ReportThreadHandler()
 			// If this was not the last attempt, pop if we are successful. On the last attempt pop will already have happened
 			if (!isLastAttempt)
 			{
-				gameIndex += 1;
 				gameReportQueue.Pop();
 			}
 
