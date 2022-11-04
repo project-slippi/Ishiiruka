@@ -2481,6 +2481,11 @@ void CEXISlippi::prepareOnlineMatchState()
 
 	// Add the match struct block to output
 	m_read_queue.insert(m_read_queue.end(), onlineMatchBlock.begin(), onlineMatchBlock.end());
+
+	// Add match id to output
+	std::string matchId = recentMmResult.id;
+	matchId.resize(51);
+	m_read_queue.insert(m_read_queue.end(), matchId.begin(), matchId.end());
 }
 
 u16 CEXISlippi::getRandomStage()
