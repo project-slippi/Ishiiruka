@@ -61,7 +61,6 @@ class SlippiGameReporter
 	CURL *m_curl_upload = nullptr;
 	struct curl_slist *m_curl_upload_headers = nullptr;
 
-	u32 gameIndex = 1;
 	std::vector<std::string> playerUids;
 
 	SlippiUser *m_user;
