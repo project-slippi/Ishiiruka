@@ -109,6 +109,7 @@ jobs:
           $FILE_NAME="${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-${{ matrix.artifact_name }}.zip"
           mkdir artifact
           cd .\Binary\x64\
+          attrib +r Sys\*.* /s
           fsutil file createnew portable.txt 0
           7z a $FILE_NAME .\*
           move $FILE_NAME ..\..\artifact\
