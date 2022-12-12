@@ -2481,6 +2481,11 @@ void CEXISlippi::prepareOnlineMatchState()
 
 	// Add the match struct block to output
 	m_read_queue.insert(m_read_queue.end(), onlineMatchBlock.begin(), onlineMatchBlock.end());
+
+	// Add match id to output
+	std::string matchId = recentMmResult.id;
+	matchId.resize(51);
+	m_read_queue.insert(m_read_queue.end(), matchId.begin(), matchId.end());
 }
 
 u16 CEXISlippi::getRandomStage()
@@ -2891,7 +2896,6 @@ void CEXISlippi::handleReportGame(const SlippiExiTypes::ReportGameQuery &query)
 	// attempt to send synced values to opponents in order to restart the match where it was left off
 	if (r.onlineMode == SlippiMatchmaking::OnlinePlayMode::RANKED && r.gameEndMethod == 7)
 	{
-		WARN_LOG(SLIPPI_ONLINE, "Hello?");
 		SlippiSyncedGameState s;
 		s.match_id = r.matchId;
 		s.game_index = r.gameIndex;

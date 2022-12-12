@@ -157,7 +157,7 @@ void SlippiGameReporter::StartReport(GameReport report)
 
 void SlippiGameReporter::StartNewSession()
 {
-	gameIndex = 1;
+	// Maybe we could do stuff here? We used to initialize gameIndex but that isn't required anymore
 }
 
 void SlippiGameReporter::ReportThreadHandler()
@@ -174,14 +174,25 @@ void SlippiGameReporter::ReportThreadHandler()
 		// Process all messages
 		while (!gameReportQueue.Empty())
 		{
-			auto report = gameReportQueue.Front();
-			gameReportQueue.Pop();
+			auto &report = gameReportQueue.Front();
+			report.reportAttempts += 1;
+
+			auto isFirstAttempt = report.reportAttempts == 1;
+			auto isLastAttempt = report.reportAttempts >= 5; // Only do five attempts
+			auto errorSleepMs = isLastAttempt ? 0 : report.reportAttempts * 100;
+
+			// If the thread is shutting down, give up after one attempt
+			if (!runThread && !isFirstAttempt)
+			{
+				gameReportQueue.Pop();
+				continue;
+			}
 
 			auto ranked = SlippiMatchmaking::OnlinePlayMode::RANKED;
 
 			auto userInfo = m_user->GetUserInfo();
 
-			WARN_LOG(SLIPPI_ONLINE, "Checking game report for game %d. Length: %d...", gameIndex,
+			WARN_LOG(SLIPPI_ONLINE, "Checking game report for game %d. Length: %d...", report.gameIndex,
 			         report.durationFrames);
 
 			// Prepare report
@@ -190,8 +201,8 @@ void SlippiGameReporter::ReportThreadHandler()
 			request["uid"] = userInfo.uid;
 			request["playKey"] = userInfo.playKey;
 			request["mode"] = report.onlineMode;
-			request["gameIndex"] = report.onlineMode == ranked ? report.gameIndex : gameIndex;
-			request["tiebreakIndex"] = report.onlineMode == ranked ? report.tiebreakIndex : 0;
+			request["gameIndex"] = report.gameIndex;
+			request["tiebreakIndex"] = report.tiebreakIndex;
 			request["gameDurationFrames"] = report.durationFrames;
 			request["winnerIdx"] = report.winnerIdx;
 			request["gameEndMethod"] = report.gameEndMethod;
@@ -217,6 +228,12 @@ void SlippiGameReporter::ReportThreadHandler()
 
 			request["players"] = players;
 
+			// Just pop before request if this is the last attempt
+			if (isLastAttempt)
+			{
+				gameReportQueue.Pop();
+			}
+
 			auto requestString = request.dump();
 
 			// Send report
@@ -228,13 +245,10 @@ void SlippiGameReporter::ReportThreadHandler()
 			curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &resp);
 			CURLcode res = curl_easy_perform(m_curl);
 
-			// Increment game index even if this fails, because we don't currently retry
-			gameIndex++;
-
 			if (res != 0)
 			{
 				ERROR_LOG(SLIPPI_ONLINE, "[GameReport] Got error executing request. Err code: %d", res);
-				Common::SleepCurrentThread(0);
+				Common::SleepCurrentThread(errorSleepMs);
 				continue;
 			}
 
@@ -243,18 +257,32 @@ void SlippiGameReporter::ReportThreadHandler()
 			if (responseCode != 200)
 			{
 				ERROR_LOG(SLIPPI, "[GameReport] Server responded with non-success status: %d", responseCode);
-				Common::SleepCurrentThread(0);
+				Common::SleepCurrentThread(errorSleepMs);
 				continue;
 			}
 
-			// Grab resp
+			// Check if response is valid json
+			if (!json::accept(resp))
+			{
+				ERROR_LOG(SLIPPI, "[GameReport] Server responded with invalid json: %s", resp.c_str());
+				Common::SleepCurrentThread(errorSleepMs);
+				continue;
+			}
+
+			// Parse the response
 			auto r = json::parse(resp);
 			bool success = r.value("success", false);
 			if (!success)
 			{
 				ERROR_LOG(SLIPPI, "[GameReport] Report reached server but failed. %s", resp.c_str());
-				Common::SleepCurrentThread(0);
+				Common::SleepCurrentThread(errorSleepMs);
 				continue;
+			}
+
+			// If this was not the last attempt, pop if we are successful. On the last attempt pop will already have happened
+			if (!isLastAttempt)
+			{
+				gameReportQueue.Pop();
 			}
 
 			std::string uploadUrl = r.value("uploadUrl", "");

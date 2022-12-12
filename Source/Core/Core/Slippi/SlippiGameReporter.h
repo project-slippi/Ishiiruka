@@ -31,6 +31,7 @@ class SlippiGameReporter
 	{
 		SlippiMatchmaking::OnlinePlayMode onlineMode;
 		std::string matchId;
+		int reportAttempts = 0;
 		u32 durationFrames = 0;
 		u32 gameIndex = 0;
 		u32 tiebreakIndex = 0;
@@ -60,7 +61,6 @@ class SlippiGameReporter
 	CURL *m_curl_upload = nullptr;
 	struct curl_slist *m_curl_upload_headers = nullptr;
 
-	u32 gameIndex = 1;
 	std::vector<std::string> playerUids;
 
 	SlippiUser *m_user;
