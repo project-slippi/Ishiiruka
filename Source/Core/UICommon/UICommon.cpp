@@ -148,7 +148,7 @@ void SetUserDirectory(const std::string& custom_path)
   }
   else
   {
-	user_path = File::GetBundleDirectory() + "/Contents/Resources/User" DIR_SEP;
+	user_path = File::GetApplicationSupportDirectory() + "/User" DIR_SEP;
   }
 
 #else
