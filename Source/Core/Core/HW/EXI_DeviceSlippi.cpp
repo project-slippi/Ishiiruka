@@ -3008,12 +3008,10 @@ void CEXISlippi::prepareGamePrepOppStep(const SlippiExiTypes::GpFetchStepQuery &
 
 void CEXISlippi::handleCompleteSet(const SlippiExiTypes::ReportSetCompletionQuery &query)
 {
-	ERROR_LOG(SLIPPI_ONLINE, "Hello");
-
 	auto lastMatchId = recentMmResult.id;
 	if (lastMatchId.find("mode.ranked") != std::string::npos)
 	{
-		ERROR_LOG(SLIPPI_ONLINE, "Reporting set completion: %s", lastMatchId.c_str());
+		INFO_LOG(SLIPPI_ONLINE, "Reporting set completion: %s", lastMatchId.c_str());
 		gameReporter->ReportCompletion(lastMatchId, query.endMode);
 	}
 }

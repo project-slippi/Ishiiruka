@@ -8,6 +8,7 @@
 #include "Common/StringUtil.h"
 #include "Common/Thread.h"
 
+#include "VideoCommon/OnScreenDisplay.h"
 #include "Common/Common.h"
 #include "Core/ConfigManager.h"
 
@@ -108,6 +109,13 @@ SlippiGameReporter::SlippiGameReporter(SlippiUser *user)
 			return true;
 		});
 
+		if (knownDesyncIsos.find(this->m_iso_hash) != knownDesyncIsos.end() && knownDesyncIsos.at(this->m_iso_hash))
+		{
+			OSD::AddTypedMessage(
+			    OSD::MessageType::DesyncWarning,
+			    "\n\n\n\nCAUTION: You are using an ISO that is known to cause desyncs",
+			    20000, OSD::Color::RED);
+		}
 		INFO_LOG(SLIPPI_ONLINE, "Md5 Hash: %s", this->m_iso_hash.c_str());
 	});
 	m_md5_thread.detach();
