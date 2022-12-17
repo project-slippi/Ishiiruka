@@ -47,6 +47,7 @@ class SlippiGameReporter
 
 	void StartReport(GameReport report);
 	void ReportAbandonment(std::string matchId);
+	void ReportCompletion(std::string matchId, u8 endMode);
 	void StartNewSession();
 	void ReportThreadHandler();
 	void PushReplayData(u8 *data, u32 length, std::string action);
@@ -55,11 +56,15 @@ class SlippiGameReporter
   protected:
 	const std::string REPORT_URL = "https://rankings-dot-slippi.uc.r.appspot.com/report";
 	const std::string ABANDON_URL = "https://rankings-dot-slippi.uc.r.appspot.com/abandon";
+	const std::string COMPLETE_URL = "https://rankings-dot-slippi.uc.r.appspot.com/complete";
 	CURL *m_curl = nullptr;
 	struct curl_slist *m_curlHeaderList = nullptr;
 
 	CURL *m_curl_upload = nullptr;
 	struct curl_slist *m_curl_upload_headers = nullptr;
+
+	char m_curl_err_buf[CURL_ERROR_SIZE];
+	char m_curl_upload_err_buf[CURL_ERROR_SIZE];
 
 	std::vector<std::string> playerUids;
 

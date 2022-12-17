@@ -78,6 +78,7 @@ class CEXISlippi : public IEXIDevice
 		CMD_OVERWRITE_SELECTIONS = 0xBF,
 		CMD_GP_COMPLETE_STEP = 0xC0,
 		CMD_GP_FETCH_STEP = 0xC1,
+		CMD_REPORT_SET_COMPLETE = 0xC2,
 
 		// Misc
 		CMD_LOG_MESSAGE = 0xD0,
@@ -132,6 +133,7 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_OVERWRITE_SELECTIONS, static_cast<u32>(sizeof(SlippiExiTypes::OverwriteSelectionsQuery) - 1)},
 	    {CMD_GP_COMPLETE_STEP, static_cast<u32>(sizeof(SlippiExiTypes::GpCompleteStepQuery) - 1)},
 	    {CMD_GP_FETCH_STEP, static_cast<u32>(sizeof(SlippiExiTypes::GpFetchStepQuery) - 1)},
+	    {CMD_REPORT_SET_COMPLETE, static_cast<u32>(sizeof(SlippiExiTypes::ReportSetCompletionQuery) - 1)},
 
 	    // Misc
 	    {CMD_LOG_MESSAGE, 0xFFFF}, // Variable size... will only work if by itself
@@ -202,6 +204,7 @@ class CEXISlippi : public IEXIDevice
 	void handleOverwriteSelections(const SlippiExiTypes::OverwriteSelectionsQuery &query);
 	void handleGamePrepStepComplete(const SlippiExiTypes::GpCompleteStepQuery &query);
 	void prepareGamePrepOppStep(const SlippiExiTypes::GpFetchStepQuery &query);
+	void handleCompleteSet(const SlippiExiTypes::ReportSetCompletionQuery &query);
 
 	// replay playback stuff
 	void prepareGameInfo(u8 *payload);
