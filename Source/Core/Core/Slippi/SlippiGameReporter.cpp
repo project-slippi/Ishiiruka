@@ -365,7 +365,7 @@ void SlippiGameReporter::ReportCompletion(std::string matchId, u8 endMode)
 
 	if (res != 0)
 	{
-		ERROR_LOG(SLIPPI_ONLINE, "[GameReport] Got error executing completion request. Err code: %d", res);
+		ERROR_LOG(SLIPPI_ONLINE, "[GameReport] Got error executing completion request. Err code: %d. Msg: %s", res, m_curl_err_buf);
 	}
 }
 
