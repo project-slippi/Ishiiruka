@@ -11,6 +11,30 @@
 class SlippiUser
 {
   public:
+	enum SlippiRank
+	{
+		RANK_UNRANKED,
+		RANK_BRONZE_1,
+		RANK_BRONZE_2,
+		RANK_BRONZE_3,
+		RANK_SILVER_1,
+		RANK_SILVER_2,
+		RANK_SILVER_3,
+		RANK_GOLD_1,
+		RANK_GOLD_2,
+		RANK_GOLD_3,
+		RANK_PLATINUM_1,
+		RANK_PLATINUM_2,
+		RANK_PLATINUM_3,
+		RANK_DIAMOND_1,
+		RANK_DIAMOND_2,
+		RANK_DIAMOND_3,
+		RANK_MASTER_1,
+		RANK_MASTER_2,
+		RANK_MASTER_3,
+		RANK_GRANDMASTER,
+	};
+
 	struct UserInfo
 	{
 		std::string uid = "";
@@ -21,6 +45,14 @@ class SlippiUser
 		std::string fileContents = "";
 
 		int port;
+	};
+
+	struct RankInfo
+	{
+		SlippiRank rank;
+		float ratingOrdinal;
+		int globalPlacing;
+		int regionalPlacing;
 	};
 
 	SlippiUser();
@@ -35,6 +67,9 @@ class SlippiUser
 	UserInfo GetUserInfo();
 	bool IsLoggedIn();
 	void FileListenThread();
+
+	RankInfo GetRankInfo(std::string connectCode);
+	SlippiRank GetRank(float ratingOrdinal, int globalPlacing, int regionalPlacing);
 
   protected:
 	UserInfo parseFile(std::string fileContents);

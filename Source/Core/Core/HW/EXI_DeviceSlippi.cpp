@@ -43,7 +43,7 @@
 #define SLEEP_TIME_MS 8
 #define WRITE_FILE_SLEEP_TIME_MS 85
 
-//#define LOCAL_TESTING
+#define LOCAL_TESTING
 //#define CREATE_DIFF_FILES
 
 static std::unordered_map<u8, std::string> slippi_names;
@@ -1578,7 +1578,8 @@ void CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)
 		results[i] = slippi_netplay->GetSlippiRemotePad(i, ROLLBACK_MAX_FRAMES);
 		// results[i] = slippi_netplay->GetFakePadOutput(frame);
 
-		//INFO_LOG(SLIPPI_ONLINE, "Sending checksum values: [%d] %08x", results[i]->checksumFrame, results[i]->checksum);
+		// INFO_LOG(SLIPPI_ONLINE, "Sending checksum values: [%d] %08x", results[i]->checksumFrame,
+		// results[i]->checksum);
 		appendWordToBuffer(&m_read_queue, static_cast<u32>(results[i]->checksumFrame));
 		appendWordToBuffer(&m_read_queue, results[i]->checksum);
 	}
@@ -2185,7 +2186,8 @@ void CEXISlippi::prepareOnlineMatchState()
 
 		// Here we are storing pointers to the player selections. That means that we can technically modify
 		// the values from here, which is probably not the cleanest thing since they're coming from the netplay class.
-		// Unfortunately, I think it might be required for the overwrite stuff to work correctly though, maybe on a tiebreak in ranked?
+		// Unfortunately, I think it might be required for the overwrite stuff to work correctly though, maybe on a
+		// tiebreak in ranked?
 		std::vector<SlippiPlayerSelections *> orderedSelections(remotePlayerCount + 1);
 		orderedSelections[lps.playerIdx] = &lps;
 		for (int i = 0; i < remotePlayerCount; i++)
@@ -2197,7 +2199,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		for (int i = 0; i < overwrite_selections.size(); i++)
 		{
 			const auto &ow = overwrite_selections[i];
-			
+
 			orderedSelections[i]->characterId = ow.characterId;
 			orderedSelections[i]->characterColor = ow.characterColor;
 			orderedSelections[i]->stageId = ow.stageId;
@@ -2270,7 +2272,8 @@ void CEXISlippi::prepareOnlineMatchState()
 		bool areAllSameTeam = true;
 		for (const auto &s : orderedSelections)
 		{
-			// ERROR_LOG(SLIPPI_ONLINE, "[%d] First team: %d. Team: %d. LocalPlayer: %d", s->playerIdx, color, s->teamId, localPlayerIndex);
+			// ERROR_LOG(SLIPPI_ONLINE, "[%d] First team: %d. Team: %d. LocalPlayer: %d", s->playerIdx, color,
+			// s->teamId, localPlayerIndex);
 			if (s->teamId != color)
 			{
 				areAllSameTeam = false;
@@ -2866,8 +2869,11 @@ void CEXISlippi::handleReportGame(const SlippiExiTypes::ReportGameQuery &query)
 	r.gameEndMethod = query.gameEndMethod;
 	r.lrasInitiator = query.lrasInitiator;
 
-	ERROR_LOG(SLIPPI_ONLINE, "Mode: %d / %d, Frames: %d, GameIdx: %d, TiebreakIdx: %d, WinnerIdx: %d, StageId: %d, GameEndMethod: %d, LRASInitiator: %d",
-	          r.onlineMode, query.onlineMode, r.durationFrames, r.gameIndex, r.tiebreakIndex, r.winnerIdx, r.stageId, r.gameEndMethod, r.lrasInitiator);
+	ERROR_LOG(SLIPPI_ONLINE,
+	          "Mode: %d / %d, Frames: %d, GameIdx: %d, TiebreakIdx: %d, WinnerIdx: %d, StageId: %d, GameEndMethod: %d, "
+	          "LRASInitiator: %d",
+	          r.onlineMode, query.onlineMode, r.durationFrames, r.gameIndex, r.tiebreakIndex, r.winnerIdx, r.stageId,
+	          r.gameEndMethod, r.lrasInitiator);
 
 	auto mmPlayers = recentMmResult.players;
 
@@ -2944,7 +2950,7 @@ void CEXISlippi::handleOverwriteSelections(const SlippiExiTypes::OverwriteSelect
 		// TODO: wrong players I think
 		if (!query.chars[i].is_set)
 			continue;
-		
+
 		SlippiPlayerSelections s;
 		s.isCharacterSelected = true;
 		s.characterId = query.chars[i].char_id;
@@ -2964,7 +2970,7 @@ void CEXISlippi::handleGamePrepStepComplete(const SlippiExiTypes::GpCompleteStep
 	res.char_selection = query.char_selection;
 	res.char_color_selection = query.char_color_selection;
 	memcpy(res.stage_selections, query.stage_selections, 2);
-	
+
 	if (slippi_netplay)
 		slippi_netplay->SendGamePrepStep(res);
 }
@@ -3016,10 +3022,33 @@ void CEXISlippi::handleCompleteSet(const SlippiExiTypes::ReportSetCompletionQuer
 	}
 }
 
+void CEXISlippi::handleGetRank()
+{
+	// INFO_LOG(SLIPPI, "handleGetRank()");
+	auto userInfo = user->GetUserInfo();
+	auto rankInfo = user->GetRankInfo(userInfo.connectCode);
+
+	u8 rank = rankInfo.rank;
+	float ratingOrdinal = rankInfo.ratingOrdinal;
+	u8 global = rankInfo.globalPlacing;
+	u8 regional = rankInfo.regionalPlacing;
+
+	m_read_queue.clear();
+	m_read_queue.push_back(rank);
+
+	union { float f; unsigned char bytes[sizeof(float)]; } u;
+	u.f = ratingOrdinal;
+	for (int i = sizeof(float) - 1; i >= 0; i--)
+		m_read_queue.push_back((u8) u.bytes[i]);
+
+	m_read_queue.push_back(global);
+	m_read_queue.push_back(regional);
+}
+
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 {
 	u8 *memPtr = Memory::GetPointer(_uAddr);
-	//INFO_LOG(SLIPPI, "DMA Write: %x, Size: %d", _uAddr, _uSize);
+	// INFO_LOG(SLIPPI, "DMA Write: %x, Size: %d", _uAddr, _uSize);
 
 	u32 bufLoc = 0;
 
@@ -3172,7 +3201,8 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			prepareDelayResponse();
 			break;
 		case CMD_OVERWRITE_SELECTIONS:
-			handleOverwriteSelections(SlippiExiTypes::Convert<SlippiExiTypes::OverwriteSelectionsQuery>(&memPtr[bufLoc]));
+			handleOverwriteSelections(
+			    SlippiExiTypes::Convert<SlippiExiTypes::OverwriteSelectionsQuery>(&memPtr[bufLoc]));
 			break;
 		case CMD_GP_FETCH_STEP:
 			prepareGamePrepOppStep(SlippiExiTypes::Convert<SlippiExiTypes::GpFetchStepQuery>(&memPtr[bufLoc]));
@@ -3182,6 +3212,9 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_REPORT_SET_COMPLETE:
 			handleCompleteSet(SlippiExiTypes::Convert<SlippiExiTypes::ReportSetCompletionQuery>(&memPtr[bufLoc]));
+			break;
+		case CMD_GET_RANK:
+			handleGetRank();
 			break;
 		default:
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "");
