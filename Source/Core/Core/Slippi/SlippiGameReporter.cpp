@@ -8,6 +8,7 @@
 #include "Common/StringUtil.h"
 #include "Common/Thread.h"
 
+#include "VideoCommon/OnScreenDisplay.h"
 #include "Common/Common.h"
 #include "Core/ConfigManager.h"
 
@@ -63,6 +64,9 @@ SlippiGameReporter::SlippiGameReporter(SlippiUser *user)
 		m_curlHeaderList = curl_slist_append(m_curlHeaderList, "Content-Type: application/json");
 		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, m_curlHeaderList);
 
+		curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, m_curl_err_buf);
+		curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
+
 #ifdef _WIN32
 		// ALPN support is enabled by default but requires Windows >= 8.1.
 		curl_easy_setopt(curl, CURLOPT_SSL_ENABLE_ALPN, false);
@@ -78,6 +82,8 @@ SlippiGameReporter::SlippiGameReporter(SlippiUser *user)
 		curl_easy_setopt(curl_upload, CURLOPT_UPLOAD, 1L);
 		curl_easy_setopt(curl_upload, CURLOPT_WRITEFUNCTION, &curl_receive);
 		curl_easy_setopt(curl_upload, CURLOPT_TIMEOUT_MS, 10000);
+		curl_easy_setopt(curl_upload, CURLOPT_ERRORBUFFER, m_curl_upload_err_buf);
+		curl_easy_setopt(curl_upload, CURLOPT_FAILONERROR, 1L);
 
 		// Set up HTTP Headers
 		m_curl_upload_headers = curl_slist_append(m_curl_upload_headers, "Content-Type: application/octet-stream");
@@ -103,6 +109,13 @@ SlippiGameReporter::SlippiGameReporter(SlippiUser *user)
 			return true;
 		});
 
+		if (knownDesyncIsos.find(this->m_iso_hash) != knownDesyncIsos.end() && knownDesyncIsos.at(this->m_iso_hash))
+		{
+			OSD::AddTypedMessage(
+			    OSD::MessageType::DesyncWarning,
+			    "\n\n\n\nCAUTION: You are using an ISO that is known to cause desyncs",
+			    20000, OSD::Color::RED);
+		}
 		INFO_LOG(SLIPPI_ONLINE, "Md5 Hash: %s", this->m_iso_hash.c_str());
 	});
 	m_md5_thread.detach();
@@ -157,7 +170,7 @@ void SlippiGameReporter::StartReport(GameReport report)
 
 void SlippiGameReporter::StartNewSession()
 {
-	gameIndex = 1;
+	// Maybe we could do stuff here? We used to initialize gameIndex but that isn't required anymore
 }
 
 void SlippiGameReporter::ReportThreadHandler()
@@ -174,14 +187,25 @@ void SlippiGameReporter::ReportThreadHandler()
 		// Process all messages
 		while (!gameReportQueue.Empty())
 		{
-			auto report = gameReportQueue.Front();
-			gameReportQueue.Pop();
+			auto &report = gameReportQueue.Front();
+			report.reportAttempts += 1;
+
+			auto isFirstAttempt = report.reportAttempts == 1;
+			auto isLastAttempt = report.reportAttempts >= 5; // Only do five attempts
+			auto errorSleepMs = isLastAttempt ? 0 : report.reportAttempts * 100;
+
+			// If the thread is shutting down, give up after one attempt
+			if (!runThread && !isFirstAttempt)
+			{
+				gameReportQueue.Pop();
+				continue;
+			}
 
 			auto ranked = SlippiMatchmaking::OnlinePlayMode::RANKED;
 
 			auto userInfo = m_user->GetUserInfo();
 
-			WARN_LOG(SLIPPI_ONLINE, "Checking game report for game %d. Length: %d...", gameIndex,
+			WARN_LOG(SLIPPI_ONLINE, "Checking game report for game %d. Length: %d...", report.gameIndex,
 			         report.durationFrames);
 
 			// Prepare report
@@ -190,8 +214,8 @@ void SlippiGameReporter::ReportThreadHandler()
 			request["uid"] = userInfo.uid;
 			request["playKey"] = userInfo.playKey;
 			request["mode"] = report.onlineMode;
-			request["gameIndex"] = report.onlineMode == ranked ? report.gameIndex : gameIndex;
-			request["tiebreakIndex"] = report.onlineMode == ranked ? report.tiebreakIndex : 0;
+			request["gameIndex"] = report.gameIndex;
+			request["tiebreakIndex"] = report.tiebreakIndex;
 			request["gameDurationFrames"] = report.durationFrames;
 			request["winnerIdx"] = report.winnerIdx;
 			request["gameEndMethod"] = report.gameEndMethod;
@@ -217,6 +241,12 @@ void SlippiGameReporter::ReportThreadHandler()
 
 			request["players"] = players;
 
+			// Just pop before request if this is the last attempt
+			if (isLastAttempt)
+			{
+				gameReportQueue.Pop();
+			}
+
 			auto requestString = request.dump();
 
 			// Send report
@@ -228,13 +258,10 @@ void SlippiGameReporter::ReportThreadHandler()
 			curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &resp);
 			CURLcode res = curl_easy_perform(m_curl);
 
-			// Increment game index even if this fails, because we don't currently retry
-			gameIndex++;
-
 			if (res != 0)
 			{
 				ERROR_LOG(SLIPPI_ONLINE, "[GameReport] Got error executing request. Err code: %d", res);
-				Common::SleepCurrentThread(0);
+				Common::SleepCurrentThread(errorSleepMs);
 				continue;
 			}
 
@@ -243,18 +270,32 @@ void SlippiGameReporter::ReportThreadHandler()
 			if (responseCode != 200)
 			{
 				ERROR_LOG(SLIPPI, "[GameReport] Server responded with non-success status: %d", responseCode);
-				Common::SleepCurrentThread(0);
+				Common::SleepCurrentThread(errorSleepMs);
 				continue;
 			}
 
-			// Grab resp
+			// Check if response is valid json
+			if (!json::accept(resp))
+			{
+				ERROR_LOG(SLIPPI, "[GameReport] Server responded with invalid json: %s", resp.c_str());
+				Common::SleepCurrentThread(errorSleepMs);
+				continue;
+			}
+
+			// Parse the response
 			auto r = json::parse(resp);
 			bool success = r.value("success", false);
 			if (!success)
 			{
 				ERROR_LOG(SLIPPI, "[GameReport] Report reached server but failed. %s", resp.c_str());
-				Common::SleepCurrentThread(0);
+				Common::SleepCurrentThread(errorSleepMs);
 				continue;
+			}
+
+			// If this was not the last attempt, pop if we are successful. On the last attempt pop will already have happened
+			if (!isLastAttempt)
+			{
+				gameReportQueue.Pop();
 			}
 
 			std::string uploadUrl = r.value("uploadUrl", "");
@@ -299,6 +340,32 @@ void SlippiGameReporter::ReportAbandonment(std::string matchId)
 	if (res != 0)
 	{
 		ERROR_LOG(SLIPPI_ONLINE, "[GameReport] Got error executing abandonment request. Err code: %d", res);
+	}
+}
+
+void SlippiGameReporter::ReportCompletion(std::string matchId, u8 endMode)
+{
+	auto userInfo = m_user->GetUserInfo();
+
+	// Prepare report
+	json request;
+	request["matchId"] = matchId;
+	request["uid"] = userInfo.uid;
+	request["playKey"] = userInfo.playKey;
+	request["endMode"] = endMode;
+
+	auto requestString = request.dump();
+
+	// Send report
+	curl_easy_setopt(m_curl, CURLOPT_POST, true);
+	curl_easy_setopt(m_curl, CURLOPT_URL, COMPLETE_URL.c_str());
+	curl_easy_setopt(m_curl, CURLOPT_POSTFIELDS, requestString.c_str());
+	curl_easy_setopt(m_curl, CURLOPT_POSTFIELDSIZE, requestString.length());
+	CURLcode res = curl_easy_perform(m_curl);
+
+	if (res != 0)
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "[GameReport] Got error executing completion request. Err code: %d. Msg: %s", res, m_curl_err_buf);
 	}
 }
 

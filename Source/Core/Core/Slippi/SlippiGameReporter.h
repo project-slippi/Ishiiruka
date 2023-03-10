@@ -31,6 +31,7 @@ class SlippiGameReporter
 	{
 		SlippiMatchmaking::OnlinePlayMode onlineMode;
 		std::string matchId;
+		int reportAttempts = 0;
 		u32 durationFrames = 0;
 		u32 gameIndex = 0;
 		u32 tiebreakIndex = 0;
@@ -46,6 +47,7 @@ class SlippiGameReporter
 
 	void StartReport(GameReport report);
 	void ReportAbandonment(std::string matchId);
+	void ReportCompletion(std::string matchId, u8 endMode);
 	void StartNewSession();
 	void ReportThreadHandler();
 	void PushReplayData(u8 *data, u32 length, std::string action);
@@ -54,14 +56,24 @@ class SlippiGameReporter
   protected:
 	const std::string REPORT_URL = "https://rankings-dot-slippi.uc.r.appspot.com/report";
 	const std::string ABANDON_URL = "https://rankings-dot-slippi.uc.r.appspot.com/abandon";
+	const std::string COMPLETE_URL = "https://rankings-dot-slippi.uc.r.appspot.com/complete";
 	CURL *m_curl = nullptr;
 	struct curl_slist *m_curlHeaderList = nullptr;
 
 	CURL *m_curl_upload = nullptr;
 	struct curl_slist *m_curl_upload_headers = nullptr;
 
-	u32 gameIndex = 1;
+	char m_curl_err_buf[CURL_ERROR_SIZE];
+	char m_curl_upload_err_buf[CURL_ERROR_SIZE];
+
 	std::vector<std::string> playerUids;
+
+	std::unordered_map<std::string, bool> knownDesyncIsos = {
+	    {"23d6baef06bd65989585096915da20f2", true},
+	    {"27a5668769a54cd3515af47b8d9982f3", true},
+	    {"5805fa9f1407aedc8804d0472346fc5f", true},
+	    {"9bb3e275e77bb1a160276f2330f93931", true},
+	};
 
 	SlippiUser *m_user;
 	std::string m_iso_hash;

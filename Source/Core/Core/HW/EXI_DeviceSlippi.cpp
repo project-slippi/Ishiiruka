@@ -2481,6 +2481,11 @@ void CEXISlippi::prepareOnlineMatchState()
 
 	// Add the match struct block to output
 	m_read_queue.insert(m_read_queue.end(), onlineMatchBlock.begin(), onlineMatchBlock.end());
+
+	// Add match id to output
+	std::string matchId = recentMmResult.id;
+	matchId.resize(51);
+	m_read_queue.insert(m_read_queue.end(), matchId.begin(), matchId.end());
 }
 
 u16 CEXISlippi::getRandomStage()
@@ -2891,7 +2896,6 @@ void CEXISlippi::handleReportGame(const SlippiExiTypes::ReportGameQuery &query)
 	// attempt to send synced values to opponents in order to restart the match where it was left off
 	if (r.onlineMode == SlippiMatchmaking::OnlinePlayMode::RANKED && r.gameEndMethod == 7)
 	{
-		WARN_LOG(SLIPPI_ONLINE, "Hello?");
 		SlippiSyncedGameState s;
 		s.match_id = r.matchId;
 		s.game_index = r.gameIndex;
@@ -3000,6 +3004,16 @@ void CEXISlippi::prepareGamePrepOppStep(const SlippiExiTypes::GpFetchStepQuery &
 
 	auto data_ptr = (u8 *)&resp;
 	m_read_queue.insert(m_read_queue.end(), data_ptr, data_ptr + sizeof(SlippiExiTypes::GpFetchStepResponse));
+}
+
+void CEXISlippi::handleCompleteSet(const SlippiExiTypes::ReportSetCompletionQuery &query)
+{
+	auto lastMatchId = recentMmResult.id;
+	if (lastMatchId.find("mode.ranked") != std::string::npos)
+	{
+		INFO_LOG(SLIPPI_ONLINE, "Reporting set completion: %s", lastMatchId.c_str());
+		gameReporter->ReportCompletion(lastMatchId, query.endMode);
+	}
 }
 
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
@@ -3165,6 +3179,9 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_GP_COMPLETE_STEP:
 			handleGamePrepStepComplete(SlippiExiTypes::Convert<SlippiExiTypes::GpCompleteStepQuery>(&memPtr[bufLoc]));
+			break;
+		case CMD_REPORT_SET_COMPLETE:
+			handleCompleteSet(SlippiExiTypes::Convert<SlippiExiTypes::ReportSetCompletionQuery>(&memPtr[bufLoc]));
 			break;
 		default:
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "");

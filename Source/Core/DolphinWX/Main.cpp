@@ -124,8 +124,11 @@ bool DolphinApp::OnInit()
 	RegisterMsgAlertHandler(&wxMsgAlert);
 	RegisterStringTranslator(&wxStringTranslator);
 
+    // Don't use wxWidgets fatal exception handling on macOS as it obscures the root cause.
+#ifndef __APPLE__
 #if wxUSE_ON_FATAL_EXCEPTION
 	wxHandleFatalExceptions(true);
+#endif
 #endif
 
 	UICommon::SetUserDirectory(m_user_path.ToStdString());
