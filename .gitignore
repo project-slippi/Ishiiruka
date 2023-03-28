@@ -47,6 +47,10 @@ Externals/SlippiLib/CMakeCache.txt
 Externals/SlippiLib/CMakeFiles/
 Externals/SlippiLib/Makefile
 Externals/SlippiLib/cmake_install.cmake
+
+# The rust build directory, just ignore it
+Externals/slippi-jukebox/target
+
 Ishiiruka.pro
 Source/.idea/
 Source/enc_temp_folder/
