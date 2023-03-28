@@ -586,6 +586,9 @@ if(ENCODE_FRAMEDUMPS)
 
 endif()
 
+message("Using static Corrosion from Externals for Rust linking support")
+add_subdirectory(Externals/corrosion)
+
 if(NOT ANDROID)
 	set(PORTAUDIO_FOUND TRUE)
 	add_definitions(-DHAVE_PORTAUDIO=1)

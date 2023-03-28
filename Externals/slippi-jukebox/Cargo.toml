@@ -1,0 +1,12 @@
+[package]
+name = "slippi_jukebox"
+version = "0.1.0"
+authors = ["To be filled in by the real author lol"]
+description = "A helper library that reacts to memory states during gameplay and plays music out."
+repository = ""
+
+[build-dependencies]
+cbindgen = "0.24.3"
+
+[lib]
+crate-type = ["cdylib"]
