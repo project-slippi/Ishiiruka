@@ -49,7 +49,7 @@ void Init()
     // whatever the jukebox creates is more or less tied to `HW::Init` and `HW::Shutdown`.
     //
     // Basically, we just need to pass over the offset for it to work with.
-    start_slippi_jukebox(Memory::m_pRAM);
+    start_slippi_jukebox(Memory::m_pRAM, JukeboxLog);
 
 	DSP::Init(SConfig::GetInstance().bDSPHLE);
 	DVDInterface::Init();

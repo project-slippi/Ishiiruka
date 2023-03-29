@@ -30,6 +30,27 @@ void GenericLog(LogTypes::LOG_LEVELS level, LogTypes::LOG_TYPE type, const char*
 	va_end(args);
 }
 
+// See the notes in the header definition for why this exists.
+void JukeboxLog(int level, const char* file, int line, const char *msg){
+	va_list args;
+
+    LogTypes::LOG_LEVELS log_level = LogTypes::LNOTICE;
+
+    if(level == 2)
+        log_level = LogTypes::LERROR;
+
+    if(level == 3)
+        log_level = LogTypes::LWARNING;
+
+    if(level == 4)
+        log_level = LogTypes::LINFO;
+
+    if(level == 5)
+        log_level = LogTypes::LDEBUG;
+
+    GenericLog(log_level, LogTypes::SLIPPI_JUKEBOX, file, line, msg, args);
+}
+
 LogManager* LogManager::m_logManager = nullptr;
 
 static size_t DeterminePathCutOffPoint()
@@ -71,6 +92,7 @@ LogManager::LogManager()
 	m_Log[LogTypes::EXPANSIONINTERFACE] = new LogContainer("EXI", "Expansion Interface");
 	m_Log[LogTypes::SLIPPI] = new LogContainer("SLIPPI", "Slippi");
   m_Log[LogTypes::SLIPPI_ONLINE] = new LogContainer("SLIPPI_ONLINE", "Slippi Online");
+	m_Log[LogTypes::SLIPPI_JUKEBOX] = new LogContainer("SLIPPI_JUKEBOX", "Slippi Jukebox");
 	m_Log[LogTypes::FILEMON] = new LogContainer("FileMon", "File Monitor");
 	m_Log[LogTypes::GDB_STUB] = new LogContainer("GDB_STUB", "GDB Stub");
 	m_Log[LogTypes::GPFIFO] = new LogContainer("GP", "GPFifo");
