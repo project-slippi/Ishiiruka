@@ -284,6 +284,14 @@ void SlippiGameReporter::ReportThreadHandler()
 
 			// Parse the response
 			auto r = json::parse(resp);
+
+			if (!r.is_object())
+			{
+				ERROR_LOG(SLIPPI, "JSON was not an object. %s", r);
+				Common::SleepCurrentThread(errorSleepMs);
+				continue;
+			}
+
 			bool success = r.value("success", false);
 			if (!success)
 			{
