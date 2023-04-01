@@ -287,7 +287,7 @@ void SlippiGameReporter::ReportThreadHandler()
 
 			if (!r.is_object())
 			{
-				ERROR_LOG(SLIPPI, "JSON was not an object. %s", r);
+				ERROR_LOG(SLIPPI, "JSON was not an object. %s", resp.c_str());
 				Common::SleepCurrentThread(errorSleepMs);
 				continue;
 			}
