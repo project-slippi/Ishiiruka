@@ -21,29 +21,29 @@
 
   <!-- This block handles anything related to building the Rust library. -->
   <ItemDefinitionGroup Label="Build slippi-rs">
-    <PreBuildEvent Condition="'$(Configuration)'=='Debug' || '$(Configuration)'=='DebugFast'">
+    <PreBuildEvent Condition="'$(Configuration)'=='Debug' OR '$(Configuration)'=='DebugFast'">
         <Command>cargo build --manifest-path=$(ExternalsDir)slippi-jukebox/Cargo.toml</Command>
         <Message>Compiling slippi-rs</Message>
     </PreBuildEvent>
-    <PreBuildEvent Condition="'$(Configuration)'=='Release' || '$(Configuration)'=='ReleasePlayback'">
+    <PreBuildEvent Condition="'$(Configuration)'=='Release' OR '$(Configuration)'=='ReleasePlayback'">
         <Command>cargo build --release --manifest-path=$(ExternalsDir)slippi-jukebox/Cargo.toml</Command>
         <Message>Compiling slippi-rs</Message>
     </PreBuildEvent>
 
-    <PreLinkEvent Condition="'$(Configuration)'=='Debug' || '$(Configuration)'=='DebugFast'">
+    <PreLinkEvent Condition="'$(Configuration)'=='Debug' OR '$(Configuration)'=='DebugFast'">
         <Command>copy $(ExternalsDir)slippi-jukebox/target/debug/slippi_jukebox.dll $(BinaryOutputDir)x64/slippi_jukebox.dll</Command>
         <Message>Copying slippi_jukebox.dll to project linker</Message>
     </PreLinkEvent>
-    <PreLinkEvent Condition="'$(Configuration)'=='Release' || '$(Configuration)'=='ReleasePlayback'">
+    <PreLinkEvent Condition="'$(Configuration)'=='Release' OR '$(Configuration)'=='ReleasePlayback'">
         <Command>copy $(ExternalsDir)slippi-jukebox/target/release/slippi_jukebox.dll $(BinaryOutputDir)x64/slippi_jukebox.dll</Command>
         <Message>Copying slippi_jukebox.dll to project linker</Message>
     </PreLinkEvent>
     
-    <PreLinkEvent Condition="'$(Configuration)'=='Debug' || '$(Configuration)'=='DebugFast'">
+    <PreLinkEvent Condition="'$(Configuration)'=='Debug' OR '$(Configuration)'=='DebugFast'">
         <Command>copy $(ExternalsDir)slippi-jukebox/target/debug/slippi_jukebox.dll.lib $(BinaryOutputDir)x64/slippi_jukebox.dll.lib</Command>
         <Message>Copying slippi_jukebox.dll.lib to project linker</Message>
     </PreLinkEvent>
-    <PreLinkEvent Condition="'$(Configuration)'=='Release' || '$(Configuration)'=='ReleasePlayback'">
+    <PreLinkEvent Condition="'$(Configuration)'=='Release' OR '$(Configuration)'=='ReleasePlayback'">
         <Command>copy $(ExternalsDir)slippi-jukebox/target/release/slippi_jukebox.dll.lib $(BinaryOutputDir)x64/slippi_jukebox.dll.lib</Command>
         <Message>Copying slippi_jukebox.dll.lib to project linker</Message>
     </PreLinkEvent>
