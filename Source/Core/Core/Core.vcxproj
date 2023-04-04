@@ -18,20 +18,6 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
 </ItemGroup>
-
-<!-- Build the Rust lib and copy DLLs into the executable directory -->
-<ItemGroup>
-    <ExternalRustDlls Include="$(ExternalsDir)slippi-jukebox\target\release\*.dll;$(ExternalsDir)slippi-jukebox\target\release\*.dll.lib;" />
-</ItemGroup>
-<Target Name="BeforeBuild">
-    <Message Text="Compiling slippi-dolphin-extensions" Importance="High" />
-    <Exec Command="cargo build --manifest-path=$(ExternalsDir)slippi-jukebox/Cargo.toml" />
-</Target>
-<Target Name="AfterBuild" Inputs="@(ExternalRustDlls)" Outputs="@(ExternalRustDlls -> '$(BinaryOutputDir)%(RecursiveDir)%(Filename)%(Extension)')">
-    <Message Text="Copying slippi-dolphin-extensions .dlls" Importance="High" />
-    <Copy SourceFiles="@(ExternalRustDlls)" DestinationFolder="$(BinaryOutputDir)%(RecursiveDir)" Condition="!Exists('$(BinaryOutputDir)%(RecursiveDir)%(Filename)%(ExternalRustDlls.Extension)') OR $([System.DateTime]::Parse('%(ModifiedTime)').Ticks) &gt; $([System.IO.File]::GetLastWriteTime('$(BinaryOutputDir)%(RecursiveDir)%(Filename)%(ExternalRustDlls.Extension)').Ticks)" />
-</Target>
-
   <!-- This block handles anything related to building the Rust library.
   <ItemDefinitionGroup Label="Build slippi-rs">
     <PreBuildEvent Condition="'$(Configuration)'=='Debug' OR '$(Configuration)'=='DebugFast'">
@@ -624,4 +610,16 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+<!-- Build the Rust lib and copy DLLs into the executable directory -->
+<ItemGroup>
+    <ExternalRustDlls Include="$(ExternalsDir)slippi-jukebox\target\release\*.dll;$(ExternalsDir)slippi-jukebox\target\release\*.dll.lib;" />
+</ItemGroup>
+<Target Name="BeforeBuild">
+    <Message Text="Compiling slippi-dolphin-extensions" Importance="High" />
+    <Exec Command="cargo build --manifest-path=$(ExternalsDir)slippi-jukebox/Cargo.toml" />
+</Target>
+<Target Name="AfterBuild" Inputs="@(ExternalRustDlls)" Outputs="@(ExternalRustDlls -> '$(BinaryOutputDir)%(RecursiveDir)%(Filename)%(Extension)')">
+    <Message Text="Copying slippi-dolphin-extensions .dlls" Importance="High" />
+    <Copy SourceFiles="@(ExternalRustDlls)" DestinationFolder="$(BinaryOutputDir)%(RecursiveDir)" Condition="!Exists('$(BinaryOutputDir)%(RecursiveDir)%(Filename)%(ExternalRustDlls.Extension)') OR $([System.DateTime]::Parse('%(ModifiedTime)').Ticks) &gt; $([System.IO.File]::GetLastWriteTime('$(BinaryOutputDir)%(RecursiveDir)%(Filename)%(ExternalRustDlls.Extension)').Ticks)" />
+</Target>
 </Project>
