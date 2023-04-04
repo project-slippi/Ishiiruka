@@ -19,14 +19,27 @@
     </ProjectConfiguration>
 </ItemGroup>
 
-  <!-- This block handles anything related to building the Rust library. -->
+<!-- Build the Rust lib and copy DLLs into the executable directory -->
+<ItemGroup>
+    <ExternalRustDlls Include="$(ExternalsDir)slippi-jukebox\target\release\*.dll;$(ExternalsDir)slippi-jukebox\target\release\*.dll.lib;" />
+</ItemGroup>
+<Target Name="BeforeBuild">
+    <Message Text="Compiling slippi-dolphin-extensions" Importance="High" />
+    <Exec Command="cargo build --manifest-path=$(ExternalsDir)slippi-jukebox/Cargo.toml" />
+</Target>
+<Target Name="AfterBuild" Inputs="@(ExternalRustDlls)" Outputs="@(ExternalRustDlls -> '$(BinaryOutputDir)%(RecursiveDir)%(Filename)%(Extension)')">
+    <Message Text="Copying slippi-dolphin-extensions .dlls" Importance="High" />
+    <Copy SourceFiles="@(ExternalRustDlls)" DestinationFolder="$(BinaryOutputDir)%(RecursiveDir)" Condition="!Exists('$(BinaryOutputDir)%(RecursiveDir)%(Filename)%(ExternalRustDlls.Extension)') OR $([System.DateTime]::Parse('%(ModifiedTime)').Ticks) &gt; $([System.IO.File]::GetLastWriteTime('$(BinaryOutputDir)%(RecursiveDir)%(Filename)%(ExternalRustDlls.Extension)').Ticks)" />
+</Target>
+
+  <!-- This block handles anything related to building the Rust library.
   <ItemDefinitionGroup Label="Build slippi-rs">
     <PreBuildEvent Condition="'$(Configuration)'=='Debug' OR '$(Configuration)'=='DebugFast'">
-        <Command>cargo build --manifest-path=$(ExternalsDir)slippi-jukebox/Cargo.toml</Command>
+        <Command>cargo build manifest-path=$(ExternalsDir)slippi-jukebox/Cargo.toml</Command>
         <Message>Compiling slippi-rs</Message>
     </PreBuildEvent>
     <PreBuildEvent Condition="'$(Configuration)'=='Release' OR '$(Configuration)'=='ReleasePlayback'">
-        <Command>cargo build --release --manifest-path=$(ExternalsDir)slippi-jukebox/Cargo.toml</Command>
+        <Command>cargo build release manifest-path=$(ExternalsDir)slippi-jukebox/Cargo.toml</Command>
         <Message>Compiling slippi-rs</Message>
     </PreBuildEvent>
 
@@ -49,11 +62,10 @@
     </PreLinkEvent>
 </ItemDefinitionGroup>
 
-<!-- May need to somehow do an ENV var check here? -->
 <PropertyGroup>
   <PreBuildEventUseInBuild>true</PreBuildEventUseInBuild>
   <PreLinkEventUseInBuild>true</PreLinkEventUseInBuild>
-</PropertyGroup>
+</PropertyGroup -->
 
   <PropertyGroup Label="Globals">
     <ProjectGuid>{8C60E805-0DA5-4E25-8F84-038DB504BB0D}</ProjectGuid>
