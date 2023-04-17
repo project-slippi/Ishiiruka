@@ -32,8 +32,6 @@ void GenericLog(LogTypes::LOG_LEVELS level, LogTypes::LOG_TYPE type, const char*
 
 // See the notes in the header definition for why this exists.
 void JukeboxLog(int level, const char* file, int line, const char *msg){
-	va_list args;
-
     LogTypes::LOG_LEVELS log_level = LogTypes::LNOTICE;
 
     if(level == 2)
@@ -48,7 +46,7 @@ void JukeboxLog(int level, const char* file, int line, const char *msg){
     if(level == 5)
         log_level = LogTypes::LDEBUG;
 
-    GenericLog(log_level, LogTypes::SLIPPI_JUKEBOX, file, line, msg, args);
+    GenericLog(log_level, LogTypes::SLIPPI_JUKEBOX, file, line, msg);
 }
 
 LogManager* LogManager::m_logManager = nullptr;
