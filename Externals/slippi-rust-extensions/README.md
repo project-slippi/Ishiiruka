@@ -1,9 +1,18 @@
-## Slippi Jukebox
-The real author can fill this in.
+## Slippi Rust Extensions
+This external module houses various Slippi-specific bits of functionality and is ultimately linked into the
+Dolphin executable and instrumented via the C FFI.
 
-## Generating the bindings for Ishiiruka
-You need cbindgen installed. For now, re-run this after any changes have been made to the library.
+The core of it is a "shadow" EXI device that's bound to the lifetime of the C++ Slippi EXI Device subclass.
 
-``` sh
-cbindgen --config cbindgen.toml --crate slippi_jukebox --output includes/SlippiJukebox.h
+The build script in this repository automatically generates C bindings that get output to 
+`includes/SlippiRustExtensions.h`, and the Dolphin CMake and Visual Studio projects are pre-configured to find
+this header and link the necessary libraries and dlls.
+
+### The _playback_ feature
+There is an optional feature flag for this repository for playback-specific functionality. This will automatically be
+set via either CMake or Visual Studio if you're building a Playback-enabled project, but if you're building and testing
+out of band you may need to enable this flag, e.g:
+
+```
+cargo build --release --features playback
 ```

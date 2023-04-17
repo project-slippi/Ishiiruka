@@ -39,6 +39,9 @@
 #include "DolphinWX/Frame.h"
 #include "DolphinWX/Main.h"
 
+// The Rust library that houses a "shadow" EXI Device that we can call into.
+#include "SlippiRustExtensions.h"
+
 #define FRAME_INTERVAL 900
 #define SLEEP_TIME_MS 8
 #define WRITE_FILE_SLEEP_TIME_MS 85
@@ -129,6 +132,8 @@ std::string ConvertConnectCodeForGame(const std::string &input)
 CEXISlippi::CEXISlippi()
 {
 	INFO_LOG(SLIPPI, "EXI SLIPPI Constructor called.");
+    
+    slprs_exi_device_ptr = slprs_exi_device_create(Memory::m_pRAM, JukeboxLog);
 
 	m_slippiserver = SlippiSpectateServer::getInstance();
 	user = std::make_unique<SlippiUser>();
@@ -263,6 +268,9 @@ CEXISlippi::CEXISlippi()
 CEXISlippi::~CEXISlippi()
 {
 	u8 empty[1];
+	
+    // Instruct the Rust EXI device to shut down/drop everything.
+	slprs_exi_device_destroy(slprs_exi_device_ptr);
 
 	// Closes file gracefully to prevent file corruption when emulation
 	// suddenly stops. This would happen often on netplay when the opponent

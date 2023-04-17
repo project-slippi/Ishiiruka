@@ -143,8 +143,13 @@ if(wxWidgets_FOUND)
     #
     # (This doesn't feel perfect here, but truth be told I can't think offhand of
     # a better location for it at the moment.)
-    corrosion_import_crate(MANIFEST_PATH ${CMAKE_SOURCE_DIR}/Externals/slippi-rust-extensions/Cargo.toml)
-    target_link_libraries("${DOLPHIN_EXE}" PUBLIC slippi_rust-extensions)
+    set(RUST_FEATURES "")
+    if(DIS_PLAYBACK)
+        set(RUST_FEATURES "playback")
+    endif()
+
+    corrosion_import_crate(MANIFEST_PATH ${CMAKE_SOURCE_DIR}/Externals/slippi-rust-extensions/Cargo.toml ${RUST_FEATURES})
+    target_link_libraries("${DOLPHIN_EXE}" PUBLIC slippi_rust_extensions)
 
 	if(APPLE)
 		include(BundleUtilities)

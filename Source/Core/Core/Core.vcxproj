@@ -65,7 +65,7 @@
     </ClCompile>
     <PreBuildEvent>
       <Message>Compile slippi-rust-extensions</Message>
-      <Command>cargo build --manifest-path=$(ExternalsDir)slippi-rust-extensions/Cargo.toml --target x86_64-pc-windows-msvc --release</Command>
+      <Command>cargo build --manifest-path=$(ExternalsDir)slippi-rust-extensions/Cargo.toml --target x86_64-pc-windows-msvc --release --features playback</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugFast|x64'">
