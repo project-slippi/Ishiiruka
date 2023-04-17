@@ -17,42 +17,7 @@
       <Configuration>Release</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
-</ItemGroup>
-  <!-- This block handles anything related to building the Rust library.
-  <ItemDefinitionGroup Label="Build slippi-rs">
-    <PreBuildEvent Condition="'$(Configuration)'=='Debug' OR '$(Configuration)'=='DebugFast'">
-        <Command>cargo build manifest-path=$(ExternalsDir)slippi-jukebox/Cargo.toml</Command>
-        <Message>Compiling slippi-rs</Message>
-    </PreBuildEvent>
-    <PreBuildEvent Condition="'$(Configuration)'=='Release' OR '$(Configuration)'=='ReleasePlayback'">
-        <Command>cargo build release manifest-path=$(ExternalsDir)slippi-jukebox/Cargo.toml</Command>
-        <Message>Compiling slippi-rs</Message>
-    </PreBuildEvent>
-
-    <PreLinkEvent Condition="'$(Configuration)'=='Debug' OR '$(Configuration)'=='DebugFast'">
-        <Command>copy $(ExternalsDir)slippi-jukebox/target/debug/slippi_jukebox.dll $(BinaryOutputDir)x64/slippi_jukebox.dll</Command>
-        <Message>Copying slippi_jukebox.dll to project linker</Message>
-    </PreLinkEvent>
-    <PreLinkEvent Condition="'$(Configuration)'=='Release' OR '$(Configuration)'=='ReleasePlayback'">
-        <Command>copy $(ExternalsDir)slippi-jukebox/target/release/slippi_jukebox.dll $(BinaryOutputDir)x64/slippi_jukebox.dll</Command>
-        <Message>Copying slippi_jukebox.dll to project linker</Message>
-    </PreLinkEvent>
-    
-    <PreLinkEvent Condition="'$(Configuration)'=='Debug' OR '$(Configuration)'=='DebugFast'">
-        <Command>copy $(ExternalsDir)slippi-jukebox/target/debug/slippi_jukebox.dll.lib $(BinaryOutputDir)x64/slippi_jukebox.dll.lib</Command>
-        <Message>Copying slippi_jukebox.dll.lib to project linker</Message>
-    </PreLinkEvent>
-    <PreLinkEvent Condition="'$(Configuration)'=='Release' OR '$(Configuration)'=='ReleasePlayback'">
-        <Command>copy $(ExternalsDir)slippi-jukebox/target/release/slippi_jukebox.dll.lib $(BinaryOutputDir)x64/slippi_jukebox.dll.lib</Command>
-        <Message>Copying slippi_jukebox.dll.lib to project linker</Message>
-    </PreLinkEvent>
-</ItemDefinitionGroup>
-
-<PropertyGroup>
-  <PreBuildEventUseInBuild>true</PreBuildEventUseInBuild>
-  <PreLinkEventUseInBuild>true</PreLinkEventUseInBuild>
-</PropertyGroup -->
-
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{8C60E805-0DA5-4E25-8F84-038DB504BB0D}</ProjectGuid>
     <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
@@ -86,25 +51,43 @@
   <PropertyGroup Label="UserMacros" />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ExternalsDir)base64;$(ExternalsDir)nlohmann;${ExternalsDir}open-vcdiff;$(ExternalsDir)SlippiLib;$(ExternalsDir)slippi-jukebox/includes;$(ExternalsDir)semver;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ExternalsDir)base64;$(ExternalsDir)nlohmann;${ExternalsDir}open-vcdiff;$(ExternalsDir)SlippiLib;$(ExternalsDir)slippi-rust-extensions/includes;$(ExternalsDir)semver;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
+    <PreBuildEvent>
+      <Message>Compile slippi-rust-extensions</Message>
+      <Command>cargo build --manifest-path=$(ExternalsDir)slippi-rust-extensions/Cargo.toml --target x86_64-pc-windows-msvc --release</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleasePlayback|x64'">
     <ClCompile>
-        <AdditionalIncludeDirectories>$(ExternalsDir)base64;$(ExternalsDir)nlohmann;${ExternalsDir}open-vcdiff;$(ExternalsDir)SlippiLib;$(ExternalsDir)slippi-jukebox/includes;$(ExternalsDir)semver;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ExternalsDir)base64;$(ExternalsDir)nlohmann;${ExternalsDir}open-vcdiff;$(ExternalsDir)SlippiLib;$(ExternalsDir)slippi-rust-extensions/includes;$(ExternalsDir)semver;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>IS_PLAYBACK;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
+    <PreBuildEvent>
+      <Message>Compile slippi-rust-extensions</Message>
+      <Command>cargo build --manifest-path=$(ExternalsDir)slippi-rust-extensions/Cargo.toml --target x86_64-pc-windows-msvc --release</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugFast|x64'">
     <ClCompile>
-        <AdditionalIncludeDirectories>$(ExternalsDir)base64;$(ExternalsDir)nlohmann;${ExternalsDir}open-vcdiff;$(ExternalsDir)SlippiLib;$(ExternalsDir)slippi-jukebox/includes;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ExternalsDir)base64;$(ExternalsDir)nlohmann;${ExternalsDir}open-vcdiff;$(ExternalsDir)SlippiLib;$(ExternalsDir)slippi-rust-extensions/includes;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>DEBUGFAST;_WIN32_WINNT=0x0602;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
+    <PreBuildEvent>
+      <Message>Compile slippi-rust-extensions</Message>
+      <!-- This could be tweaked to not be release mode, but would need corresponding tweaks in Dolphin.vcproj -->
+      <Command>cargo build --manifest-path=$(ExternalsDir)slippi-rust-extensions/Cargo.toml --target x86_64-pc-windows-msvc --release</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-        <AdditionalIncludeDirectories>$(ExternalsDir)base64;$(ExternalsDir)nlohmann;$(ExternalsDir)SlippiLib;$(ExternalsDir)slippi-jukebox/includes;$(ExternalsDir)HDiffPatch;$(ExternalsDir)semver;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ExternalsDir)base64;$(ExternalsDir)nlohmann;$(ExternalsDir)SlippiLib;$(ExternalsDir)slippi-rust-extensions/includes;$(ExternalsDir)HDiffPatch;$(ExternalsDir)semver;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
+    <PreBuildEvent>
+      <Message>Compile slippi-rust-extensions</Message>
+      <!-- This could be tweaked to not be release mode, but would need corresponding tweaks in Dolphin.vcproj -->
+      <Command>cargo build --manifest-path=$(ExternalsDir)slippi-rust-extensions/Cargo.toml --target x86_64-pc-windows-msvc --release</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\DolphinWX\PlaybackSlider.cpp" />
@@ -610,16 +593,4 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
-<!-- Build the Rust lib and copy DLLs into the executable directory -->
-<ItemGroup>
-    <ExternalRustDlls Include="$(ExternalsDir)slippi-jukebox\target\release\*.dll;$(ExternalsDir)slippi-jukebox\target\release\*.dll.lib;" />
-</ItemGroup>
-<Target Name="BeforeBuild">
-    <Message Text="Compiling slippi-dolphin-extensions" Importance="High" />
-    <Exec Command="cargo build --manifest-path=$(ExternalsDir)slippi-jukebox/Cargo.toml" />
-</Target>
-<Target Name="AfterBuild" Inputs="@(ExternalRustDlls)" Outputs="@(ExternalRustDlls -> '$(BinaryOutputDir)%(RecursiveDir)%(Filename)%(Extension)')">
-    <Message Text="Copying slippi-dolphin-extensions .dlls" Importance="High" />
-    <Copy SourceFiles="@(ExternalRustDlls)" DestinationFolder="$(BinaryOutputDir)%(RecursiveDir)" Condition="!Exists('$(BinaryOutputDir)%(RecursiveDir)%(Filename)%(ExternalRustDlls.Extension)') OR $([System.DateTime]::Parse('%(ModifiedTime)').Ticks) &gt; $([System.IO.File]::GetLastWriteTime('$(BinaryOutputDir)%(RecursiveDir)%(Filename)%(ExternalRustDlls.Extension)').Ticks)" />
-</Target>
 </Project>

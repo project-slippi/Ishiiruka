@@ -1,0 +1,15 @@
+[package]
+name = "slippi_rust_extensions"
+description = "An internal library that exposes entry points via the C FFI."
+version = "0.1.0"
+authors = [
+    ""
+]
+repository = ""
+publish = false
+
+[build-dependencies]
+cbindgen = "0.24.3"
+
+[lib]
+crate-type = ["cdylib"]

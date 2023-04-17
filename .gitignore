@@ -49,7 +49,7 @@ Externals/SlippiLib/Makefile
 Externals/SlippiLib/cmake_install.cmake
 
 # The rust build directory, just ignore it
-Externals/slippi-jukebox/target
+Externals/slippi-rust-extensions/target
 
 Ishiiruka.pro
 Source/.idea/

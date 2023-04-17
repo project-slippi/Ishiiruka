@@ -139,12 +139,12 @@ if(wxWidgets_FOUND)
 	add_executable("${DOLPHIN_EXE}" ${SRCS} ${GUI_SRCS})
 	target_link_libraries("${DOLPHIN_EXE}" ${LIBS} ${WXLIBS})
 
-    # Link SlippiJukebox in.
+    # Link slippi-rust-extensions in.
     #
     # (This doesn't feel perfect here, but truth be told I can't think offhand of
     # a better location for it at the moment.)
-    corrosion_import_crate(MANIFEST_PATH ${CMAKE_SOURCE_DIR}/Externals/slippi-jukebox/Cargo.toml)
-    target_link_libraries("${DOLPHIN_EXE}" PUBLIC slippi_jukebox)
+    corrosion_import_crate(MANIFEST_PATH ${CMAKE_SOURCE_DIR}/Externals/slippi-rust-extensions/Cargo.toml)
+    target_link_libraries("${DOLPHIN_EXE}" PUBLIC slippi_rust-extensions)
 
 	if(APPLE)
 		include(BundleUtilities)

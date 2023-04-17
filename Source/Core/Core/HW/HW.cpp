@@ -26,8 +26,6 @@
 #include "Core/State.h"
 #include "DiscIO/NANDContentLoader.h"
 
-#include "SlippiJukebox.h"
-
 namespace HW
 {
 void Init()
@@ -44,12 +42,6 @@ void Init()
 	ProcessorInterface::Init();
 	ExpansionInterface::Init();  // Needs to be initialized before Memory
 	Memory::Init();
-
-    // There may be a better place to put this, but I figure the lifespan of
-    // whatever the jukebox creates is more or less tied to `HW::Init` and `HW::Shutdown`.
-    //
-    // Basically, we just need to pass over the offset for it to work with.
-    start_slippi_jukebox(Memory::m_pRAM, JukeboxLog);
 
 	DSP::Init(SConfig::GetInstance().bDSPHLE);
 	DVDInterface::Init();
@@ -69,8 +61,6 @@ void Init()
 
 void Shutdown()
 {
-    shutdown_slippi_jukebox();
-
 	if (SConfig::GetInstance().bWii)
 	{
 		WII_IPC_HLE_Interface::Shutdown();  // Depends on Memory

@@ -279,7 +279,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "slippi_jukebox"
+name = "slippi_rust_extensions"
 version = "0.1.0"
 dependencies = [
  "cbindgen",
