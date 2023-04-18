@@ -13,7 +13,7 @@ extern "C" {
 ///
 /// The returned pointer from this should be used for any of the subsequent `slprs_exi_device_`
 /// calls, and should *not* be used after calling `slprs_exi_device_destroy`.
-uintptr_t slprs_exi_device_create(const uint8_t *ram_offset,
+uintptr_t slprs_exi_device_create(const uint8_t *m_pRAM,
                                   void (*logger_fn)(int, const char*, int, const char*));
 
 /// This method should be called from the EXI device subclass shim that's registered on

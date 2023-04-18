@@ -7,12 +7,19 @@ repository = ""
 edition = "2021"
 publish = false
 
-[build-dependencies]
-cbindgen = "0.24.3"
-
 [lib]
 crate-type = ["cdylib"]
+
+[profile.release]
+debug = true
+
+[build-dependencies]
+cbindgen = "0.24.3"
 
 [features]
 default = []
 playback = []
+
+[dependencies]
+tracing = "0.1"
+tracing-subscriber = "0.3"

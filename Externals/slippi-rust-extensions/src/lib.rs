@@ -7,17 +7,23 @@
 //! destructor is run.
 
 use std::ffi::{c_char, c_int};
+use std::sync::Once;
 
-mod dolphin;
-use dolphin::DolphinAdapter;
+use tracing_subscriber::prelude::*;
 
 mod exi;
 use exi::SlippiEXIDevice;
+
+mod logger;
+use logger::DolphinLoggerLayer;
 
 mod jukebox;
 
 /// A generic Result type alias that just wraps in our error type.
 pub(crate) type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+
+/// A guard so that we don't double-init logging layers.
+static LOGGER: Once = Once::new();
 
 /// This is the entry point for the library - the C++ (Dolphin) side of things should call this
 /// and pass the appropriate pointers and functions. At that point, everything on the Rust side
@@ -28,13 +34,26 @@ pub(crate) type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 /// calls, and should *not* be used after calling `slprs_exi_device_destroy`.
 #[no_mangle]
 pub extern "C" fn slprs_exi_device_create(
-    ram_offset: *const u8,
+    m_pRAM: *const u8,
     logger_fn: unsafe extern "C" fn(c_int, *const c_char, c_int, *const c_char)
 ) -> usize {
-    let dolphin_adapter = DolphinAdapter::new(ram_offset, logger_fn);
-    let device = Box::new(SlippiEXIDevice::new(dolphin_adapter));
+    // We install our custom logger up-front. Since the EXI device can be restarted, we guard
+    // against this running multiple times. We don't use `try_init` here because we do want to
+    // know if something else, somehow, registered before us.
+    //
+    // *Usually* you do not want a library installing a global logger, however our use case is
+    // not so standard: this library does in a sense act as an application due to the way it's
+    // called into, and we *want* a global subscriber.
+    LOGGER.call_once(|| {
+        tracing_subscriber::registry()
+            .with(DolphinLoggerLayer::new(logger_fn))
+            .init();
+    });
+
+    let device = Box::new(SlippiEXIDevice::new(m_pRAM as usize));
     let ptr = Box::into_raw(device);
-    ptr as usize
+    let ptr = ptr as usize;
+    ptr
 }
 
 /// This method should be called from the EXI device subclass shim that's registered on
@@ -55,7 +74,7 @@ pub extern "C" fn slprs_exi_device_dma_write(
     };
 
     if let Err(e) = device.dma_write(address as usize, size as usize) {
-        device.dolphin.logger.error(format!("{:?}", e));
+        tracing::error!(error = ?e, "dma_write failure");
     }
 
     // Fall back into a raw pointer so Rust doesn't obliterate the object
@@ -80,7 +99,7 @@ pub extern "C" fn slprs_exi_device_dma_read(
     };
 
     if let Err(e) = device.dma_read(address as usize, size as usize) {
-        device.dolphin.logger.error(format!("{:?}", e));
+        tracing::error!(error = ?e, "dma_read failure");
     }
 
     // Fall back into a raw pointer so Rust doesn't obliterate the object.
@@ -91,8 +110,11 @@ pub extern "C" fn slprs_exi_device_dma_read(
 /// notify the Rust side that it can safely shut down and clean up.
 #[no_mangle]
 pub extern "C" fn slprs_exi_device_destroy(exi_device_instance: usize) {
+    tracing::warn!(instance = exi_device_instance, "Destroy");
+
     unsafe {
         // Coerce ownership back, then let standard Drop semantics apply
         let _device = Box::from_raw(exi_device_instance as *mut SlippiEXIDevice);
     }
 }
+
