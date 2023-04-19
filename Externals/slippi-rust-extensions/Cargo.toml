@@ -10,8 +10,11 @@ publish = false
 [lib]
 crate-type = ["cdylib"]
 
-[profile.release]
-debug = true
+# Uncomment this if you need to satisfy release-build constraints but want debug
+# information included for backtrace reasons. Windows can be odd sometimes and this
+# can be helpful.
+# [profile.release]
+# debug = true
 
 [build-dependencies]
 cbindgen = "0.24.3"
