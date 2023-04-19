@@ -6,23 +6,24 @@
 //! Slippi stuff is happening" and enables us to let the Rust side live in its own world.
 
 use crate::jukebox::Jukebox;
+use crate::logger::Log;
 
 /// An EXI Device subclass specific to managing and interacting with the game itself.
 #[derive(Debug)]
 pub(crate) struct SlippiEXIDevice {
-    jukebox: Jukebox
+    jukebox: Option<Jukebox>
 }
 
 impl SlippiEXIDevice {
     /// Creates and returns a new `SlippiEXIDevice` with default values.
     ///
     /// At the moment you should never need to call this yourself.
-    pub fn new(m_pRAM: usize) -> Self {
-        tracing::info!("Starting SlippiEXIDevice");
+    pub fn new() -> Self {
+        tracing::info!(target: Log::General, "Starting SlippiEXIDevice");
 
-        let jukebox = Jukebox::new(m_pRAM);
-
-        Self { jukebox }
+        Self {
+            jukebox: None
+        }
     }
 
     /// Stubbed for now, but this would get called by the C++ EXI device on DMAWrite.
@@ -32,6 +33,16 @@ impl SlippiEXIDevice {
 
     /// Stubbed for now, but this would get called by the C++ EXI device on DMARead.
     pub fn dma_read(&mut self, _address: usize, _size: usize) -> crate::Result<()> {
+        Ok(())
+    }
+
+    /// Initializes a new Jukebox.
+    pub fn start_jukebox(&mut self, m_pRAM: usize) -> crate::Result<()> {
+        let jukebox = Jukebox::new(m_pRAM);
+        jukebox.start();
+
+        self.jukebox = Some(jukebox);
+
         Ok(())
     }
 }

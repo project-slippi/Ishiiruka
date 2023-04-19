@@ -20,6 +20,8 @@
 #include "Common/StringUtil.h"
 #include "Common/Timer.h"
 
+#include "SlippiRustExtensions.h"
+
 void GenericLog(LogTypes::LOG_LEVELS level, LogTypes::LOG_TYPE type, const char* file, int line,
 	const char* fmt, ...)
 {
@@ -31,22 +33,12 @@ void GenericLog(LogTypes::LOG_LEVELS level, LogTypes::LOG_TYPE type, const char*
 }
 
 // See the notes in the header definition for why this exists.
-void JukeboxLog(int level, const char* file, int line, const char *msg){
-    LogTypes::LOG_LEVELS log_level = LogTypes::LNOTICE;
-
-    if(level == 2)
-        log_level = LogTypes::LERROR;
-
-    if(level == 3)
-        log_level = LogTypes::LWARNING;
-
-    if(level == 4)
-        log_level = LogTypes::LINFO;
-
-    if(level == 5)
-        log_level = LogTypes::LDEBUG;
-
-    GenericLog(log_level, LogTypes::SLIPPI_JUKEBOX, file, line, msg);
+void SlippiRustLogger(int level, int slp_log_type, const char* file, int line, const char *msg) {
+    // These variant types are ultimately ints, but we'll go ahead and cast them to satisfy
+    // the compiler.
+    LogTypes::LOG_LEVELS log_level = static_cast<LogTypes::LOG_LEVELS>(level);
+    LogTypes::LOG_TYPE log_type = static_cast<LogTypes::LOG_TYPE>(slp_log_type);
+    GenericLog(log_level, log_type, file, line, "%s", msg);
 }
 
 LogManager* LogManager::m_logManager = nullptr;
@@ -72,56 +64,76 @@ static size_t DeterminePathCutOffPoint()
 
 LogManager::LogManager()
 {
-	// create log containers
-	m_Log[LogTypes::ACTIONREPLAY] = new LogContainer("ActionReplay", "ActionReplay");
-	m_Log[LogTypes::AUDIO] = new LogContainer("Audio", "Audio Emulator");
-	m_Log[LogTypes::AUDIO_INTERFACE] = new LogContainer("AI", "Audio Interface (AI)");
-	m_Log[LogTypes::BOOT] = new LogContainer("BOOT", "Boot");
-	m_Log[LogTypes::COMMANDPROCESSOR] = new LogContainer("CP", "CommandProc");
-	m_Log[LogTypes::COMMON] = new LogContainer("COMMON", "Common");
-	m_Log[LogTypes::CONSOLE] = new LogContainer("CONSOLE", "Dolphin Console");
-	m_Log[LogTypes::DISCIO] = new LogContainer("DIO", "Disc IO");
-	m_Log[LogTypes::DSPHLE] = new LogContainer("DSPHLE", "DSP HLE");
-	m_Log[LogTypes::DSPLLE] = new LogContainer("DSPLLE", "DSP LLE");
-	m_Log[LogTypes::DSP_MAIL] = new LogContainer("DSPMails", "DSP Mails");
-	m_Log[LogTypes::DSPINTERFACE] = new LogContainer("DSP", "DSPInterface");
-	m_Log[LogTypes::DVDINTERFACE] = new LogContainer("DVD", "DVD Interface");
-	m_Log[LogTypes::DYNA_REC] = new LogContainer("JIT", "Dynamic Recompiler");
-	m_Log[LogTypes::EXPANSIONINTERFACE] = new LogContainer("EXI", "Expansion Interface");
-	m_Log[LogTypes::SLIPPI] = new LogContainer("SLIPPI", "Slippi");
-  m_Log[LogTypes::SLIPPI_ONLINE] = new LogContainer("SLIPPI_ONLINE", "Slippi Online");
-	m_Log[LogTypes::SLIPPI_JUKEBOX] = new LogContainer("SLIPPI_JUKEBOX", "Slippi Jukebox");
-	m_Log[LogTypes::FILEMON] = new LogContainer("FileMon", "File Monitor");
-	m_Log[LogTypes::GDB_STUB] = new LogContainer("GDB_STUB", "GDB Stub");
-	m_Log[LogTypes::GPFIFO] = new LogContainer("GP", "GPFifo");
-	m_Log[LogTypes::HOST_GPU] = new LogContainer("Host GPU", "Host GPU");
-	m_Log[LogTypes::MASTER_LOG] = new LogContainer("*", "Master Log");
-	m_Log[LogTypes::MEMCARD_MANAGER] = new LogContainer("MemCard Manager", "MemCard Manager");
-	m_Log[LogTypes::MEMMAP] = new LogContainer("MI", "MI & memmap");
-	m_Log[LogTypes::NETPLAY] = new LogContainer("NETPLAY", "Netplay");
-	m_Log[LogTypes::OSHLE] = new LogContainer("HLE", "HLE");
-	m_Log[LogTypes::OSREPORT] = new LogContainer("OSREPORT", "OSReport");
-	m_Log[LogTypes::PAD] = new LogContainer("PAD", "Pad");
-	m_Log[LogTypes::PIXELENGINE] = new LogContainer("PE", "PixelEngine");
-	m_Log[LogTypes::PROCESSORINTERFACE] = new LogContainer("PI", "ProcessorInt");
-	m_Log[LogTypes::POWERPC] = new LogContainer("PowerPC", "IBM CPU");
-	m_Log[LogTypes::SERIALINTERFACE] = new LogContainer("SI", "Serial Interface (SI)");
-	m_Log[LogTypes::SP1] = new LogContainer("SP1", "Serial Port 1");
-	m_Log[LogTypes::VIDEO] = new LogContainer("Video", "Video Backend");
-	m_Log[LogTypes::VIDEOINTERFACE] = new LogContainer("VI", "Video Interface (VI)");
-	m_Log[LogTypes::WIIMOTE] = new LogContainer("Wiimote", "Wiimote");
-	m_Log[LogTypes::WII_IPC] = new LogContainer("WII_IPC", "WII IPC");
-	m_Log[LogTypes::WII_IPC_DVD] = new LogContainer("WII_IPC_DVD", "WII IPC DVD");
-	m_Log[LogTypes::WII_IPC_ES] = new LogContainer("WII_IPC_ES", "WII IPC ES");
-	m_Log[LogTypes::WII_IPC_FILEIO] = new LogContainer("WII_IPC_FILEIO", "WII IPC FILEIO");
-	m_Log[LogTypes::WII_IPC_HID] = new LogContainer("WII_IPC_HID", "WII IPC HID");
-	m_Log[LogTypes::WII_IPC_HLE] = new LogContainer("WII_IPC_HLE", "WII IPC HLE");
-	m_Log[LogTypes::WII_IPC_SD] = new LogContainer("WII_IPC_SD", "WII IPC SD");
-	m_Log[LogTypes::WII_IPC_SSL] = new LogContainer("WII_IPC_SSL", "WII IPC SSL");
-	m_Log[LogTypes::WII_IPC_STM] = new LogContainer("WII_IPC_STM", "WII IPC STM");
-	m_Log[LogTypes::WII_IPC_NET] = new LogContainer("WII_IPC_NET", "WII IPC NET");
-	m_Log[LogTypes::WII_IPC_WC24] = new LogContainer("WII_IPC_WC24", "WII IPC WC24");
-	m_Log[LogTypes::WII_IPC_WIIMOTE] = new LogContainer("WII_IPC_WIIMOTE", "WII IPC WIIMOTE");
+    // We want this called before we create any `LogContainer`s below that may register with the Rust
+    // side of things.
+    slprs_logging_init(SlippiRustLogger);
+	
+    // create log containers
+	m_Log[LogTypes::ACTIONREPLAY] = new LogContainer("ActionReplay", "ActionReplay", LogTypes::ACTIONREPLAY);
+	m_Log[LogTypes::AUDIO] = new LogContainer("Audio", "Audio Emulator", LogTypes::AUDIO);
+	m_Log[LogTypes::AUDIO_INTERFACE] = new LogContainer("AI", "Audio Interface (AI)", LogTypes::AUDIO_INTERFACE);
+	m_Log[LogTypes::BOOT] = new LogContainer("BOOT", "Boot", LogTypes::BOOT);
+	m_Log[LogTypes::COMMANDPROCESSOR] = new LogContainer("CP", "CommandProc", LogTypes::COMMANDPROCESSOR);
+	m_Log[LogTypes::COMMON] = new LogContainer("COMMON", "Common", LogTypes::COMMON);
+	m_Log[LogTypes::CONSOLE] = new LogContainer("CONSOLE", "Dolphin Console", LogTypes::CONSOLE);
+	m_Log[LogTypes::DISCIO] = new LogContainer("DIO", "Disc IO", LogTypes::DISCIO);
+	m_Log[LogTypes::DSPHLE] = new LogContainer("DSPHLE", "DSP HLE", LogTypes::DSPHLE);
+	m_Log[LogTypes::DSPLLE] = new LogContainer("DSPLLE", "DSP LLE", LogTypes::DSPLLE);
+	m_Log[LogTypes::DSP_MAIL] = new LogContainer("DSPMails", "DSP Mails", LogTypes::DSP_MAIL);
+	m_Log[LogTypes::DSPINTERFACE] = new LogContainer("DSP", "DSPInterface", LogTypes::DSPINTERFACE);
+	m_Log[LogTypes::DVDINTERFACE] = new LogContainer("DVD", "DVD Interface", LogTypes::DVDINTERFACE);
+	m_Log[LogTypes::DYNA_REC] = new LogContainer("JIT", "Dynamic Recompiler", LogTypes::DYNA_REC);
+	m_Log[LogTypes::EXPANSIONINTERFACE] = new LogContainer("EXI", "Expansion Interface", LogTypes::EXPANSIONINTERFACE);
+	m_Log[LogTypes::SLIPPI] = new LogContainer("SLIPPI", "Slippi", LogTypes::SLIPPI);
+    m_Log[LogTypes::SLIPPI_ONLINE] = new LogContainer("SLIPPI_ONLINE", "Slippi Online", LogTypes::SLIPPI_ONLINE);
+	
+    // This LogContainer will register with the Rust side under the "slippi_rust_extension" target.
+    m_Log[LogTypes::SLIPPI_RUST_GENERAL] = new LogContainer(
+        "SLIPPI_RUST_GENERAL",
+        "Slippi (Rust)",
+        LogTypes::SLIPPI_RUST_GENERAL,
+        "slippi_rust_extensions"
+    );
+
+    // This LogContainer will register with the Rust side under the "slippi_rust_jukebox" target.
+	m_Log[LogTypes::SLIPPI_RUST_JUKEBOX] = new LogContainer(
+        "SLIPPI_RUST_JUKEBOX",
+        "Slippi Jukebox (Rust)",
+        LogTypes::SLIPPI_RUST_JUKEBOX,
+        "slippi_rust_jukebox"
+    );
+
+	m_Log[LogTypes::FILEMON] = new LogContainer("FileMon", "File Monitor", LogTypes::FILEMON);
+	m_Log[LogTypes::GDB_STUB] = new LogContainer("GDB_STUB", "GDB Stub", LogTypes::GDB_STUB);
+	m_Log[LogTypes::GPFIFO] = new LogContainer("GP", "GPFifo", LogTypes::GPFIFO);
+	m_Log[LogTypes::HOST_GPU] = new LogContainer("Host GPU", "Host GPU", LogTypes::HOST_GPU);
+	m_Log[LogTypes::MASTER_LOG] = new LogContainer("*", "Master Log", LogTypes::MASTER_LOG);
+	m_Log[LogTypes::MEMCARD_MANAGER] = new LogContainer("MemCard Manager", "MemCard Manager", LogTypes::MEMCARD_MANAGER);
+	m_Log[LogTypes::MEMMAP] = new LogContainer("MI", "MI & memmap", LogTypes::MEMMAP);
+	m_Log[LogTypes::NETPLAY] = new LogContainer("NETPLAY", "Netplay", LogTypes::NETPLAY);
+	m_Log[LogTypes::OSHLE] = new LogContainer("HLE", "HLE", LogTypes::OSHLE);
+	m_Log[LogTypes::OSREPORT] = new LogContainer("OSREPORT", "OSReport", LogTypes::OSREPORT);
+	m_Log[LogTypes::PAD] = new LogContainer("PAD", "Pad", LogTypes::PAD);
+	m_Log[LogTypes::PIXELENGINE] = new LogContainer("PE", "PixelEngine", LogTypes::PIXELENGINE);
+	m_Log[LogTypes::PROCESSORINTERFACE] = new LogContainer("PI", "ProcessorInt", LogTypes::PROCESSORINTERFACE);
+	m_Log[LogTypes::POWERPC] = new LogContainer("PowerPC", "IBM CPU", LogTypes::POWERPC);
+	m_Log[LogTypes::SERIALINTERFACE] = new LogContainer("SI", "Serial Interface (SI)", LogTypes::SERIALINTERFACE);
+	m_Log[LogTypes::SP1] = new LogContainer("SP1", "Serial Port 1", LogTypes::SP1);
+	m_Log[LogTypes::VIDEO] = new LogContainer("Video", "Video Backend", LogTypes::VIDEO);
+	m_Log[LogTypes::VIDEOINTERFACE] = new LogContainer("VI", "Video Interface (VI)", LogTypes::VIDEOINTERFACE);
+	m_Log[LogTypes::WIIMOTE] = new LogContainer("Wiimote", "Wiimote", LogTypes::WIIMOTE);
+	m_Log[LogTypes::WII_IPC] = new LogContainer("WII_IPC", "WII IPC", LogTypes::WII_IPC);
+	m_Log[LogTypes::WII_IPC_DVD] = new LogContainer("WII_IPC_DVD", "WII IPC DVD", LogTypes::WII_IPC_DVD);
+	m_Log[LogTypes::WII_IPC_ES] = new LogContainer("WII_IPC_ES", "WII IPC ES", LogTypes::WII_IPC_ES);
+	m_Log[LogTypes::WII_IPC_FILEIO] = new LogContainer("WII_IPC_FILEIO", "WII IPC FILEIO", LogTypes::WII_IPC_FILEIO);
+	m_Log[LogTypes::WII_IPC_HID] = new LogContainer("WII_IPC_HID", "WII IPC HID", LogTypes::WII_IPC_HID);
+	m_Log[LogTypes::WII_IPC_HLE] = new LogContainer("WII_IPC_HLE", "WII IPC HLE", LogTypes::WII_IPC_HLE);
+	m_Log[LogTypes::WII_IPC_SD] = new LogContainer("WII_IPC_SD", "WII IPC SD", LogTypes::WII_IPC_SD);
+	m_Log[LogTypes::WII_IPC_SSL] = new LogContainer("WII_IPC_SSL", "WII IPC SSL", LogTypes::WII_IPC_SSL);
+	m_Log[LogTypes::WII_IPC_STM] = new LogContainer("WII_IPC_STM", "WII IPC STM", LogTypes::WII_IPC_STM);
+	m_Log[LogTypes::WII_IPC_NET] = new LogContainer("WII_IPC_NET", "WII IPC NET", LogTypes::WII_IPC_NET);
+	m_Log[LogTypes::WII_IPC_WC24] = new LogContainer("WII_IPC_WC24", "WII IPC WC24", LogTypes::WII_IPC_WC24);
+	m_Log[LogTypes::WII_IPC_WIIMOTE] = new LogContainer("WII_IPC_WIIMOTE", "WII IPC WIIMOTE", LogTypes::WII_IPC_WIIMOTE);
 
 	RegisterListener(LogListener::FILE_LISTENER,
 		new FileLogListener(File::GetUserPath(F_MAINLOG_IDX)));
@@ -192,9 +204,38 @@ void LogManager::Shutdown()
 	m_logManager = nullptr;
 }
 
-LogContainer::LogContainer(const std::string& shortName, const std::string& fullName, bool enable)
-	: m_fullName(fullName), m_shortName(shortName), m_enable(enable), m_level(LogTypes::LWARNING)
+LogContainer::LogContainer(
+    const std::string& shortName,
+    const std::string& fullName,
+    LogTypes::LOG_TYPE logtype,
+    const std::string& rustIdentifier,
+    bool enable
+) : m_fullName(fullName), m_shortName(shortName), m_logtype(logtype), m_rustIdentifier(rustIdentifier), m_enable(enable), m_level(LogTypes::LWARNING)
 {
+    if(m_rustIdentifier != "")
+    {
+        slprs_logging_register_container(m_rustIdentifier.c_str(), m_logtype, m_enable, m_level);
+    }
+}
+
+void LogContainer::SetEnable(bool enable)
+{
+    m_enable = enable;
+    
+    if(m_rustIdentifier != "")
+    {
+        slprs_logging_update_container(m_rustIdentifier.c_str(), m_enable, m_level);
+    }
+}
+
+void LogContainer::SetLevel(LogTypes::LOG_LEVELS level)
+{
+    m_level = level;
+
+    if(m_rustIdentifier != "")
+    {
+        slprs_logging_update_container(m_rustIdentifier.c_str(), m_enable, m_level);
+    }
 }
 
 FileLogListener::FileLogListener(const std::string& filename)

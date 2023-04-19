@@ -1,3 +1,5 @@
+include_directories(${CMAKE_SOURCE_DIR}/Externals/slippi-rust-extensions/includes)
+
 set(SRCS Analytics.cpp
          BreakPoints.cpp
          CDUtils.cpp

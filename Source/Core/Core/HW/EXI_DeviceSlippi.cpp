@@ -133,7 +133,7 @@ CEXISlippi::CEXISlippi()
 {
 	INFO_LOG(SLIPPI, "EXI SLIPPI Constructor called.");
     
-    //slprs_exi_device_ptr = slprs_exi_device_create(Memory::m_pRAM, JukeboxLog);
+    slprs_exi_device_ptr = slprs_exi_device_create();
 
 	m_slippiserver = SlippiSpectateServer::getInstance();
 	user = std::make_unique<SlippiUser>();
@@ -270,10 +270,7 @@ CEXISlippi::~CEXISlippi()
 	u8 empty[1];
 	
     // Instruct the Rust EXI device to shut down/drop everything.
-    //if (slprs_exi_device_ptr)
-    //{
-	// slprs_exi_device_destroy(slprs_exi_device_ptr);
-    //}
+    slprs_exi_device_destroy(slprs_exi_device_ptr);
 
 	// Closes file gracefully to prevent file corruption when emulation
 	// suddenly stops. This would happen often on netplay when the opponent
@@ -3178,6 +3175,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_GCT_LOAD:
 			prepareGctLoad(&memPtr[bufLoc + 1]);
+            slprs_exi_device_start_jukebox(slprs_exi_device_ptr, Memory::m_pRAM);
 			break;
 		case CMD_GET_DELAY:
 			prepareDelayResponse();

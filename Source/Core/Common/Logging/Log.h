@@ -40,7 +40,8 @@ enum LOG_TYPE
 	SERIALINTERFACE,
 	SLIPPI,
 	SLIPPI_ONLINE,
-	SLIPPI_JUKEBOX,
+	SLIPPI_RUST_GENERAL,
+	SLIPPI_RUST_JUKEBOX,
 	SP1,
 	VIDEO,
 	VIDEOINTERFACE,
@@ -90,10 +91,10 @@ static const char LOG_LEVEL_TO_CHAR[7] = "-NEWID";
 // responsible for ensuring that the msg string lives for an appropriate lifetime.
 //
 // Due to the way that the LOG_TYPES enum works, this is currently hardcoded to be the 
-// `SLIPPI_JUKEBOX` type. If a new log is added and the number changes, it would require
-// changing out the entire generated definition on the Rust side, so it's just... simpler,
-// for now, to do this.
-void JukeboxLog(int level, const char* file, int line, const char *msg);
+// specific necessary type in the function body. If a new log is added and the number changes,
+// it would require changing out the entire generated definition on the Rust side, so it's 
+// just... simpler, for now, to do this.
+void SlippiRustLogger(int level, int slp_log_type, const char* file, int line, const char *msg);
 
 void GenericLog(LogTypes::LOG_LEVELS level, LogTypes::LOG_TYPE type, const char* file, int line,
 	const char* fmt, ...)
