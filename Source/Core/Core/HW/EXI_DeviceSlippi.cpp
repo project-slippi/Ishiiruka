@@ -21,6 +21,7 @@
 #include "Common/Thread.h"
 #include "Core/HW/Memmap.h"
 
+#include "AudioCommon/AudioCommon.h"
 #include "VideoCommon/OnScreenDisplay.h"
 
 #include "Core/Core.h"
@@ -3175,7 +3176,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_GCT_LOAD:
 			prepareGctLoad(&memPtr[bufLoc + 1]);
-            slprs_exi_device_start_jukebox(slprs_exi_device_ptr, Memory::m_pRAM);
+            slprs_exi_device_start_jukebox(slprs_exi_device_ptr, Memory::m_pRAM, AudioCommon::SendAIBuffer);
 			break;
 		case CMD_GET_DELAY:
 			prepareDelayResponse();

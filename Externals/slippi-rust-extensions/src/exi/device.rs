@@ -5,7 +5,7 @@
 //! `SlippiEXIDevice` and forwards calls over the C FFI. This has a fairly clean mapping to "when
 //! Slippi stuff is happening" and enables us to let the Rust side live in its own world.
 
-use crate::jukebox::Jukebox;
+use crate::jukebox::{Jukebox, ForeignAudioSamplerFn};
 use crate::logger::Log;
 
 /// An EXI Device subclass specific to managing and interacting with the game itself.
@@ -37,8 +37,8 @@ impl SlippiEXIDevice {
     }
 
     /// Initializes a new Jukebox.
-    pub fn start_jukebox(&mut self, m_pRAM: usize) -> crate::Result<()> {
-        let jukebox = Jukebox::new(m_pRAM);
+    pub fn start_jukebox(&mut self, m_pRAM: usize, sampler_fn: ForeignAudioSamplerFn) -> crate::Result<()> {
+        let jukebox = Jukebox::new(m_pRAM, sampler_fn);
         jukebox.start();
 
         self.jukebox = Some(jukebox);

@@ -38,7 +38,9 @@ void slprs_exi_device_dma_read(uintptr_t exi_device_instance,
 /// Kicks off the Jukebox process. This needs to be called after the EXI device is created
 /// in order for certain pieces of Dolphin to be properly initalized; this may change down
 /// the road though and is not set in stone.
-void slprs_exi_device_start_jukebox(uintptr_t exi_device_instance, const uint8_t *m_pRAM);
+void slprs_exi_device_start_jukebox(uintptr_t exi_device_instance,
+                                    const uint8_t *m_pRAM,
+                                    void (*sample_handler_fn)(const short *samples, unsigned int num_samples));
 
 /// This should be called from the Dolphin LogManager initialization to ensure that
 /// all logging needs on the Rust side are configured appropriately.
