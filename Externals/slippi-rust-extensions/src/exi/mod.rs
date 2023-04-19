@@ -26,7 +26,7 @@ pub extern "C" fn slprs_exi_device_create() -> usize {
 /// notify the Rust side that it can safely shut down and clean up.
 #[no_mangle]
 pub extern "C" fn slprs_exi_device_destroy(exi_device_instance: usize) {
-    tracing::warn!(instance = exi_device_instance, "Destroying");
+    tracing::warn!(target: Log::General, instance = exi_device_instance, "Destroying");
 
     // Coerce the instance from the pointer. This is theoretically safe since we control
     // the C++ side and can guarantee that the `exi_device_instance` pointer is only owned
