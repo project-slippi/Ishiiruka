@@ -1,0 +1,15 @@
+[package]
+name = "slippi-exi-device"
+description = "Implements a shadow EXI device."
+version = "0.1.0"
+authors = [
+    "Slippi Team",
+    "Ryan McGrath <ryan@rymc.io>"
+]
+edition = "2021"
+publish = false
+
+[dependencies]
+dolphin-logger = { path = "../logger" }
+slippi-jukebox = { path = "../jukebox" }
+tracing = { workspace = true }

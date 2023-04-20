@@ -139,7 +139,7 @@ if(wxWidgets_FOUND)
 	add_executable("${DOLPHIN_EXE}" ${SRCS} ${GUI_SRCS})
 	target_link_libraries("${DOLPHIN_EXE}" ${LIBS} ${WXLIBS})
 
-    # Link slippi-rust-extensions in.
+    # Link SlippiRustExtensions in.
     #
     # (This doesn't feel perfect here, but truth be told I can't think offhand of
     # a better location for it at the moment.)
@@ -148,7 +148,7 @@ if(wxWidgets_FOUND)
         set(RUST_FEATURES "playback")
     endif()
 
-    corrosion_import_crate(MANIFEST_PATH ${CMAKE_SOURCE_DIR}/Externals/slippi-rust-extensions/Cargo.toml ${RUST_FEATURES})
+    corrosion_import_crate(MANIFEST_PATH ${CMAKE_SOURCE_DIR}/Externals/SlippiRustExtensions/Cargo.toml ${RUST_FEATURES})
     target_link_libraries("${DOLPHIN_EXE}" PUBLIC slippi_rust_extensions)
 
 	if(APPLE)

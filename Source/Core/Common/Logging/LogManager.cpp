@@ -87,12 +87,12 @@ LogManager::LogManager()
 	m_Log[LogTypes::SLIPPI] = new LogContainer("SLIPPI", "Slippi", LogTypes::SLIPPI);
     m_Log[LogTypes::SLIPPI_ONLINE] = new LogContainer("SLIPPI_ONLINE", "Slippi Online", LogTypes::SLIPPI_ONLINE);
 	
-    // This LogContainer will register with the Rust side under the "slippi_rust_extension" target.
-    m_Log[LogTypes::SLIPPI_RUST_GENERAL] = new LogContainer(
-        "SLIPPI_RUST_GENERAL",
-        "Slippi (Rust)",
-        LogTypes::SLIPPI_RUST_GENERAL,
-        "slippi_rust_extensions"
+    // This LogContainer will register with the Rust side under the "slippi_rust_exi" target.
+    m_Log[LogTypes::SLIPPI_RUST_EXI] = new LogContainer(
+        "SLIPPI_RUST_EXI",
+        "Slippi EXI (Rust)",
+        LogTypes::SLIPPI_RUST_EXI,
+        "slippi_rust_exi"
     );
 
     // This LogContainer will register with the Rust side under the "slippi_rust_jukebox" target.

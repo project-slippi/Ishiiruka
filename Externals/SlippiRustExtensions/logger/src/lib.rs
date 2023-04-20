@@ -1,8 +1,8 @@
-//! This module provides a tracing subscriber configuration that works with the
+//! This library provides a tracing subscriber configuration that works with the
 //! Dolphin logging setup.
 //!
 //! It essentially maps the concept of a `LogContainer` over to Rust, and provides
-//! C FFI hooks to forward state change calls in. On top of that, this module contains
+//! hooks to forward state change calls in. On top of that, this module contains
 //! a custom `tracing_subscriber::Layer` that will pass logs back to Dolphin.
 //!
 //! Ultimately this should mean no log fragmentation or confusion.
@@ -26,12 +26,13 @@ use layer::{DolphinLoggerLayer, convert_dolphin_log_level_to_tracing_level};
 /// accordingly. The syntax will be the same as if using an enum.
 ///
 /// If you want to add a new logger type, you will need to add a new value here
-/// and create a corresponding `RustLogContainer` on the Dolphin side. The rest
-/// should "just work".
+/// and create a corresponding `LogContainer` on the Dolphin side with the corresponding
+/// tag. The rest should "just work".
+#[allow(non_snake_case)]
 #[allow(non_upper_case_globals)]
-pub(crate) mod Log {
-    /// The default target for all tracing (the crate name).
-    pub const General: &'static str = "slippi_rust_extensions";
+pub mod Log {
+    /// The default target for EXI tracing.
+    pub const EXI: &'static str = "slippi_rust_exi";
 
     /// Can be used to segment Jukebox logs.
     pub const Jukebox: &'static str = "slippi_rust_jukebox";
@@ -39,11 +40,11 @@ pub(crate) mod Log {
 
 /// Represents a `LogContainer` on the Dolphin side.
 #[derive(Debug)]
-pub(crate) struct LogContainer {
-    pub kind: String,
-    pub log_type: c_int,
-    pub is_enabled: bool,
-    pub level: Level
+struct LogContainer {
+    kind: String,
+    log_type: c_int,
+    is_enabled: bool,
+    level: Level
 }
 
 /// A global stack of `LogContainers`.
@@ -65,8 +66,7 @@ static LOG_CONTAINERS: OnceCell<Arc<RwLock<Vec<LogContainer>>>> = OnceCell::new(
 /// ```
 /// void Log(level, log_type, filename, line_number, msg);
 /// ```
-#[no_mangle]
-pub extern "C" fn slprs_logging_init(
+pub fn init(
     logger_fn: unsafe extern "C" fn(c_int, c_int, *const c_char, c_int, *const c_char),
 ) {
     let _containers = LOG_CONTAINERS.get_or_init(|| {
@@ -85,13 +85,12 @@ pub extern "C" fn slprs_logging_init(
     });
 }
 
-/// Registers a log container, which mirrors a Dolphin `LogContainer` (`RustLogContainer`).
+/// Registers a log container, which mirrors a Dolphin `LogContainer`.
 ///
 /// This enables passing a configured log level and/or enabled status across the boundary from
 /// Dolphin to our tracing subscriber setup. This is important as we want to short-circuit any
 /// allocations during log handling that aren't necessary (e.g if a log is outright disabled).
-#[no_mangle]
-pub extern "C" fn slprs_logging_register_container(
+pub fn register_container(
     kind: *const c_char,
     log_type: c_int,
     is_enabled: bool,
@@ -104,14 +103,14 @@ pub extern "C" fn slprs_logging_register_container(
     
     let kind = c_kind_str
         .to_str()
-        .expect("[slprs_logging_register_container]: Failed to convert kind c_char to str")
+        .expect("[dolphin_logger::register_container]: Failed to convert kind c_char to str")
         .to_string();
 
     let containers = LOG_CONTAINERS.get()
-        .expect("[slprs_logging_register_container]: Attempting to get `LOG_CONTAINERS` before init");
+        .expect("[dolphin_logger::register_container]: Attempting to get `LOG_CONTAINERS` before init");
 
     let mut writer = containers.write()
-        .expect("[slprs_logging_register_container]: Unable to acquire write lock on `LOG_CONTAINERS`?");
+        .expect("[dolphin_logger::register_container]: Unable to acquire write lock on `LOG_CONTAINERS`?");
 
     (*writer).push(LogContainer {
         kind,
@@ -123,8 +122,7 @@ pub extern "C" fn slprs_logging_register_container(
 
 /// Sets a particular log container to a new enabled state. When a log container is in a disabled
 /// state, no allocations will happen behind the scenes for any logging period.
-#[no_mangle]
-pub extern "C" fn slprs_logging_update_container(kind: *const c_char, enabled: bool, level: c_int) {
+pub fn update_container(kind: *const c_char, enabled: bool, level: c_int) {
     // We control the other end of the registration flow, so we can ensure this ptr's valid UTF-8.
     let c_kind_str = unsafe {
         CStr::from_ptr(kind)
@@ -132,13 +130,13 @@ pub extern "C" fn slprs_logging_update_container(kind: *const c_char, enabled: b
     
     let kind = c_kind_str
         .to_str()
-        .expect("[slprs_logging_update_container]: Failed to convert kind c_char to str");
+        .expect("[dolphin_logger::update_container]: Failed to convert kind c_char to str");
 
     let containers = LOG_CONTAINERS.get()
-        .expect("[slprs_logging_update_container]: Attempting to get `LOG_CONTAINERS` before init");
+        .expect("[dolphin_logger::update_container]: Attempting to get `LOG_CONTAINERS` before init");
 
     let mut writer = containers.write()
-        .expect("[slprs_logging_set_container_enabled]: Unable to acquire write lock on `LOG_CONTAINERS`?");
+        .expect("[dolphin_logger::update_container]: Unable to acquire write lock on `LOG_CONTAINERS`?");
 
     for container in (*writer).iter_mut() {
         if container.kind == kind {

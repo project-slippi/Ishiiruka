@@ -2,36 +2,32 @@
 
 use std::ffi::{c_uint, c_short};
 
-use crate::logger::Log;
+use dolphin_logger::Log;
 
 /// This handler definition represents a passed-in function for pushing audio samples
 /// into the current Dolphin SoundStream interface.
 pub type ForeignAudioSamplerFn = unsafe extern "C" fn(samples: *const c_short, num_samples: c_uint);
 
+type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+
 /// Soontm.
 #[derive(Debug)]
 pub struct Jukebox {
-    m_pRAM: usize,
+    m_p_ram: usize,
     sampler_fn: ForeignAudioSamplerFn
 }
 
 impl Jukebox {
     /// Returns a new configured Jukebox, ready to play.
-    pub fn new(m_pRAM: usize, sampler_fn: ForeignAudioSamplerFn) -> Self {
+    pub fn new(m_p_ram: *const u8, sampler_fn: ForeignAudioSamplerFn) -> Result<Self> {
+        let m_p_ram = m_p_ram as usize;
+
         tracing::info!(
             target: Log::Jukebox,
-            m_pRAM,
+            m_p_ram,
             "Initializing Jukebox"
         );
 
-        Self { m_pRAM, sampler_fn }
-    }
-
-    /// Starts the Jukebox. This may be able to be condensed, above my pay grade.
-    pub fn start(&self) {
-        tracing::info!(
-            target: Log::Jukebox,
-            "Starting Jukebox"
-        );
+        Ok(Self { m_p_ram, sampler_fn })
     }
 }

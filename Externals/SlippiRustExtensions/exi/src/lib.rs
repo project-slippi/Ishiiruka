@@ -5,12 +5,12 @@
 //! `SlippiEXIDevice` and forwards calls over the C FFI. This has a fairly clean mapping to "when
 //! Slippi stuff is happening" and enables us to let the Rust side live in its own world.
 
-use crate::jukebox::{Jukebox, ForeignAudioSamplerFn};
-use crate::logger::Log;
+use dolphin_logger::Log;
+use slippi_jukebox::{Jukebox, ForeignAudioSamplerFn};
 
 /// An EXI Device subclass specific to managing and interacting with the game itself.
 #[derive(Debug)]
-pub(crate) struct SlippiEXIDevice {
+pub struct SlippiEXIDevice {
     jukebox: Option<Jukebox>
 }
 
@@ -19,7 +19,7 @@ impl SlippiEXIDevice {
     ///
     /// At the moment you should never need to call this yourself.
     pub fn new() -> Self {
-        tracing::info!(target: Log::General, "Starting SlippiEXIDevice");
+        tracing::info!(target: Log::EXI, "Starting SlippiEXIDevice");
 
         Self {
             jukebox: None
@@ -27,22 +27,25 @@ impl SlippiEXIDevice {
     }
 
     /// Stubbed for now, but this would get called by the C++ EXI device on DMAWrite.
-    pub fn dma_write(&mut self, _address: usize, _size: usize) -> crate::Result<()> {
-        Ok(())
-    }
+    pub fn dma_write(&mut self, _address: usize, _size: usize) {}
 
     /// Stubbed for now, but this would get called by the C++ EXI device on DMARead.
-    pub fn dma_read(&mut self, _address: usize, _size: usize) -> crate::Result<()> {
-        Ok(())
-    }
+    pub fn dma_read(&mut self, _address: usize, _size: usize) {}
 
     /// Initializes a new Jukebox.
-    pub fn start_jukebox(&mut self, m_pRAM: usize, sampler_fn: ForeignAudioSamplerFn) -> crate::Result<()> {
-        let jukebox = Jukebox::new(m_pRAM, sampler_fn);
-        jukebox.start();
+    pub fn start_jukebox(&mut self, m_p_ram: *const u8, sampler_fn: ForeignAudioSamplerFn) {
+        match Jukebox::new(m_p_ram, sampler_fn) {
+            Ok(jukebox) => {
+                self.jukebox = Some(jukebox);
+            },
 
-        self.jukebox = Some(jukebox);
-
-        Ok(())
+            Err(e) => {
+                tracing::error!(
+                    target: Log::EXI,
+                    error = ?e,
+                    "Failed to start Jukebox"
+                );
+            }
+        }
     }
 }

@@ -51,42 +51,42 @@
   <PropertyGroup Label="UserMacros" />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ExternalsDir)base64;$(ExternalsDir)nlohmann;${ExternalsDir}open-vcdiff;$(ExternalsDir)SlippiLib;$(ExternalsDir)slippi-rust-extensions/includes;$(ExternalsDir)semver;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ExternalsDir)base64;$(ExternalsDir)nlohmann;${ExternalsDir}open-vcdiff;$(ExternalsDir)SlippiLib;$(ExternalsDir)SlippiRustExtensions/ffi/includes;$(ExternalsDir)semver;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <PreBuildEvent>
-      <Message>Compile slippi-rust-extensions</Message>
-      <Command>cargo build --manifest-path=$(ExternalsDir)slippi-rust-extensions/Cargo.toml --target x86_64-pc-windows-msvc --release</Command>
+      <Message>Compile SlippiRustExtensions</Message>
+      <Command>cargo build --manifest-path=$(ExternalsDir)SlippiRustExtensions/Cargo.toml --target x86_64-pc-windows-msvc --release</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleasePlayback|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ExternalsDir)base64;$(ExternalsDir)nlohmann;${ExternalsDir}open-vcdiff;$(ExternalsDir)SlippiLib;$(ExternalsDir)slippi-rust-extensions/includes;$(ExternalsDir)semver;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ExternalsDir)base64;$(ExternalsDir)nlohmann;${ExternalsDir}open-vcdiff;$(ExternalsDir)SlippiLib;$(ExternalsDir)SlippiRustExtensions/ffi/includes;$(ExternalsDir)semver;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>IS_PLAYBACK;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <PreBuildEvent>
-      <Message>Compile slippi-rust-extensions</Message>
-      <Command>cargo build --manifest-path=$(ExternalsDir)slippi-rust-extensions/Cargo.toml --target x86_64-pc-windows-msvc --release --features playback</Command>
+      <Message>Compile SlippiRustExtensions</Message>
+      <Command>cargo build --manifest-path=$(ExternalsDir)SlippiRustExtensions/Cargo.toml --target x86_64-pc-windows-msvc --release --features playback</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugFast|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ExternalsDir)base64;$(ExternalsDir)nlohmann;${ExternalsDir}open-vcdiff;$(ExternalsDir)SlippiLib;$(ExternalsDir)slippi-rust-extensions/includes;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ExternalsDir)base64;$(ExternalsDir)nlohmann;${ExternalsDir}open-vcdiff;$(ExternalsDir)SlippiLib;$(ExternalsDir)SlippiRustExtensions/ffi/includes;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>DEBUGFAST;_WIN32_WINNT=0x0602;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <PreBuildEvent>
-      <Message>Compile slippi-rust-extensions</Message>
+      <Message>Compile SlippiRustExtensions</Message>
       <!-- This could be tweaked to not be release mode, but would need corresponding tweaks in Dolphin.vcproj -->
-      <Command>cargo build --manifest-path=$(ExternalsDir)slippi-rust-extensions/Cargo.toml --target x86_64-pc-windows-msvc --release</Command>
+      <Command>cargo build --manifest-path=$(ExternalsDir)SlippiRustExtensions/Cargo.toml --target x86_64-pc-windows-msvc --release</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ExternalsDir)base64;$(ExternalsDir)nlohmann;$(ExternalsDir)SlippiLib;$(ExternalsDir)slippi-rust-extensions/includes;$(ExternalsDir)HDiffPatch;$(ExternalsDir)semver;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ExternalsDir)base64;$(ExternalsDir)nlohmann;$(ExternalsDir)SlippiLib;$(ExternalsDir)SlippiRustExtensions/ffi/includes;$(ExternalsDir)HDiffPatch;$(ExternalsDir)semver;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <PreBuildEvent>
-      <Message>Compile slippi-rust-extensions</Message>
+      <Message>Compile SlippiRustExtensions</Message>
       <!-- This could be tweaked to not be release mode, but would need corresponding tweaks in Dolphin.vcproj -->
-      <Command>cargo build --manifest-path=$(ExternalsDir)slippi-rust-extensions/Cargo.toml --target x86_64-pc-windows-msvc --release</Command>
+      <Command>cargo build --manifest-path=$(ExternalsDir)SlippiRustExtensions/Cargo.toml --target x86_64-pc-windows-msvc --release</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

@@ -15,15 +15,15 @@ extern "C" {
 /// The returned pointer from this should *not* be used after calling `slprs_exi_device_destroy`.
 uintptr_t slprs_exi_device_create();
 
-/// The "exit point" for the library - the C++ (Dolphin) side of things should call this to
-/// notify the Rust side that it can safely shut down and clean up.
-void slprs_exi_device_destroy(uintptr_t exi_device_instance);
+/// The C++ (Dolphin) side of things should call this to notify the Rust side that it
+/// can safely shut down and clean up.
+void slprs_exi_device_destroy(uintptr_t exi_device_instance_ptr);
 
 /// This method should be called from the EXI device subclass shim that's registered on
 /// the Dolphin side, corresponding to:
 ///
 /// `virtual void DMAWrite(u32 _uAddr, u32 _uSize);`
-void slprs_exi_device_dma_write(uintptr_t exi_device_instance,
+void slprs_exi_device_dma_write(uintptr_t exi_device_instance_ptr,
                                 const uint8_t *address,
                                 const uint8_t *size);
 
@@ -31,23 +31,21 @@ void slprs_exi_device_dma_write(uintptr_t exi_device_instance,
 /// the Dolphin side, corresponding to:
 ///
 /// `virtual void DMARead(u32 _uAddr, u32 _uSize);`
-void slprs_exi_device_dma_read(uintptr_t exi_device_instance,
+void slprs_exi_device_dma_read(uintptr_t exi_device_instance_ptr,
                                const uint8_t *address,
                                const uint8_t *size);
 
 /// Kicks off the Jukebox process. This needs to be called after the EXI device is created
 /// in order for certain pieces of Dolphin to be properly initalized; this may change down
 /// the road though and is not set in stone.
-void slprs_exi_device_start_jukebox(uintptr_t exi_device_instance,
-                                    const uint8_t *m_pRAM,
+void slprs_exi_device_start_jukebox(uintptr_t exi_device_instance_ptr,
+                                    const uint8_t *m_p_ram,
                                     void (*sample_handler_fn)(const short *samples, unsigned int num_samples));
 
 /// This should be called from the Dolphin LogManager initialization to ensure that
 /// all logging needs on the Rust side are configured appropriately.
 ///
-/// *Usually* you do not want a library installing a global logger, however our use case is
-/// not so standard: this library does in a sense act as an application due to the way it's
-/// called into, and we *want* a global subscriber.
+/// For more information, consult `dolphin_logger::init`.
 ///
 /// Note that `logger_fn` cannot be type-aliased here, otherwise cbindgen will
 /// mess up the header output. That said, the function type represents:
@@ -59,16 +57,15 @@ void slprs_logging_init(void (*logger_fn)(int, int, const char*, int, const char
 
 /// Registers a log container, which mirrors a Dolphin `LogContainer` (`RustLogContainer`).
 ///
-/// This enables passing a configured log level and/or enabled status across the boundary from
-/// Dolphin to our tracing subscriber setup. This is important as we want to short-circuit any
-/// allocations during log handling that aren't necessary (e.g if a log is outright disabled).
+/// See `dolphin_loger::register_container` for more information.
 void slprs_logging_register_container(const char *kind,
                                       int log_type,
                                       bool is_enabled,
                                       int default_log_level);
 
-/// Sets a particular log container to a new enabled state. When a log container is in a disabled
-/// state, no allocations will happen behind the scenes for any logging period.
+/// Updates the configuration for a registered logging container.
+///
+/// For more information, see `dolphin_logger::update_container`.
 void slprs_logging_update_container(const char *kind, bool enabled, int level);
 
 } // extern "C"

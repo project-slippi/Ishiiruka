@@ -1,5 +1,5 @@
 //! This build script simply generates C FFI bindings for the freestanding
-//! functions in `main.rs` and dumps them into a header that the Dolphin
+//! functions in `lib.rs` and dumps them into a header that the Dolphin
 //! project is pre-configured to find.
 
 use std::env;
