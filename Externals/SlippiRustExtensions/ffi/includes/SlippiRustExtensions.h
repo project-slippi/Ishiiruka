@@ -51,9 +51,9 @@ void slprs_exi_device_start_jukebox(uintptr_t exi_device_instance_ptr,
 /// mess up the header output. That said, the function type represents:
 ///
 /// ```
-/// void Log(level, log_type, filename, line_number, msg);
+/// void Log(level, log_type, msg);
 /// ```
-void slprs_logging_init(void (*logger_fn)(int, int, const char*, int, const char*));
+void slprs_logging_init(void (*logger_fn)(int, int, const char*));
 
 /// Registers a log container, which mirrors a Dolphin `LogContainer` (`RustLogContainer`).
 ///

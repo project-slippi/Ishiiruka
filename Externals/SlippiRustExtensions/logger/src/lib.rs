@@ -17,6 +17,17 @@ use tracing_subscriber::prelude::*;
 mod layer;
 use layer::{DolphinLoggerLayer, convert_dolphin_log_level_to_tracing_level};
 
+/// A type that mirrors a function over on the C++ side; because the library exists as
+/// a dylib, it can't depend on any functions from the host application - but we _can_
+/// pass in a hook/callback fn.
+///
+/// This should correspond to:
+///
+/// ```
+/// void LogFn(level, log_type, msg);
+/// ```
+pub(crate) type ForeignLoggerFn = unsafe extern "C" fn(c_int, c_int, *const c_char);
+
 /// A marker for where logs should be routed to.
 ///
 /// Rust enum variants can't be strings, but we want to be able to pass an
@@ -32,10 +43,10 @@ use layer::{DolphinLoggerLayer, convert_dolphin_log_level_to_tracing_level};
 #[allow(non_upper_case_globals)]
 pub mod Log {
     /// The default target for EXI tracing.
-    pub const EXI: &'static str = "slippi_rust_exi";
+    pub const EXI: &'static str = "SLIPPI_RUST_EXI";
 
     /// Can be used to segment Jukebox logs.
-    pub const Jukebox: &'static str = "slippi_rust_jukebox";
+    pub const Jukebox: &'static str = "SLIPPI_RUST_JUKEBOX";
 }
 
 /// Represents a `LogContainer` on the Dolphin side.
@@ -59,16 +70,7 @@ static LOG_CONTAINERS: OnceCell<Arc<RwLock<Vec<LogContainer>>>> = OnceCell::new(
 /// *Usually* you do not want a library installing a global logger, however our use case is
 /// not so standard: this library does in a sense act as an application due to the way it's
 /// called into, and we *want* a global subscriber.
-/// 
-/// Note that `logger_fn` cannot be type-aliased here, otherwise cbindgen will
-/// mess up the header output. That said, the function type represents:
-///
-/// ```
-/// void Log(level, log_type, filename, line_number, msg);
-/// ```
-pub fn init(
-    logger_fn: unsafe extern "C" fn(c_int, c_int, *const c_char, c_int, *const c_char),
-) {
+pub fn init(logger_fn: ForeignLoggerFn) {
     let _containers = LOG_CONTAINERS.get_or_init(|| {
         Arc::new(RwLock::new(Vec::new()))
     });

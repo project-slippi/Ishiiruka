@@ -119,11 +119,11 @@ pub extern "C" fn slprs_exi_device_start_jukebox(
 /// mess up the header output. That said, the function type represents:
 ///
 /// ```
-/// void Log(level, log_type, filename, line_number, msg);
+/// void Log(level, log_type, msg);
 /// ```
 #[no_mangle]
 pub extern "C" fn slprs_logging_init(
-    logger_fn: unsafe extern "C" fn(c_int, c_int, *const c_char, c_int, *const c_char),
+    logger_fn: unsafe extern "C" fn(c_int, c_int, *const c_char)
 ) {
     dolphin_logger::init(logger_fn);
 }

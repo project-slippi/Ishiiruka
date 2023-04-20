@@ -33,12 +33,12 @@ void GenericLog(LogTypes::LOG_LEVELS level, LogTypes::LOG_TYPE type, const char*
 }
 
 // See the notes in the header definition for why this exists.
-void SlippiRustLogger(int level, int slp_log_type, const char* file, int line, const char *msg) {
-    // These variant types are ultimately ints, but we'll go ahead and cast them to satisfy
-    // the compiler.
+void SlippiRustExtensionsLogger(int level, int slp_log_type, const char *msg) {
     LogTypes::LOG_LEVELS log_level = static_cast<LogTypes::LOG_LEVELS>(level);
     LogTypes::LOG_TYPE log_type = static_cast<LogTypes::LOG_TYPE>(slp_log_type);
-    GenericLog(log_level, log_type, file, line, "%s", msg);
+	
+    if (LogManager::GetInstance())
+		LogManager::GetInstance()->LogPreformatted(log_level, log_type, msg);
 }
 
 LogManager* LogManager::m_logManager = nullptr;
@@ -66,7 +66,7 @@ LogManager::LogManager()
 {
     // We want this called before we create any `LogContainer`s below that may register with the Rust
     // side of things.
-    slprs_logging_init(SlippiRustLogger);
+    slprs_logging_init(SlippiRustExtensionsLogger);
 	
     // create log containers
 	m_Log[LogTypes::ACTIONREPLAY] = new LogContainer("ActionReplay", "ActionReplay", LogTypes::ACTIONREPLAY);
@@ -87,20 +87,20 @@ LogManager::LogManager()
 	m_Log[LogTypes::SLIPPI] = new LogContainer("SLIPPI", "Slippi", LogTypes::SLIPPI);
     m_Log[LogTypes::SLIPPI_ONLINE] = new LogContainer("SLIPPI_ONLINE", "Slippi Online", LogTypes::SLIPPI_ONLINE);
 	
-    // This LogContainer will register with the Rust side under the "slippi_rust_exi" target.
+    // This LogContainer will register with the Rust side under the "SLIPPI_RUST_EXI" target.
     m_Log[LogTypes::SLIPPI_RUST_EXI] = new LogContainer(
         "SLIPPI_RUST_EXI",
         "Slippi EXI (Rust)",
         LogTypes::SLIPPI_RUST_EXI,
-        "slippi_rust_exi"
+        true
     );
 
-    // This LogContainer will register with the Rust side under the "slippi_rust_jukebox" target.
+    // This LogContainer will register with the Rust side under the "SLIPPI_RUST_JUKEBOX" target.
 	m_Log[LogTypes::SLIPPI_RUST_JUKEBOX] = new LogContainer(
         "SLIPPI_RUST_JUKEBOX",
         "Slippi Jukebox (Rust)",
         LogTypes::SLIPPI_RUST_JUKEBOX,
-        "slippi_rust_jukebox"
+        true
     );
 
 	m_Log[LogTypes::FILEMON] = new LogContainer("FileMon", "File Monitor", LogTypes::FILEMON);
@@ -172,6 +172,23 @@ LogManager::~LogManager()
 	delete m_listeners[LogListener::FILE_LISTENER];
 }
 
+// Extensions that need to log across the boundary often have to allocate
+// an owned String on their side; if they can vend us a c_str then we can avoid
+// duplicating the allocation over here for the logger.
+//
+// The alternative here would be opening up `m_log` and `m_listeners` to be public,
+// but this feels like it'll transplant easier onto mainline.
+void LogManager::LogPreformatted(LogTypes::LOG_LEVELS level, LogTypes::LOG_TYPE type, const char* msg)
+{
+	LogContainer* log = m_Log[type];
+
+	if (!log->IsEnabled() || level > log->GetLevel() || !log->HasListeners())
+		return;
+
+	for (auto listener_id : *log)
+		m_listeners[listener_id]->Log(level, msg);
+}
+
 void LogManager::Log(LogTypes::LOG_LEVELS level, LogTypes::LOG_TYPE type, const char* file,
 	int line, const char* format, va_list args)
 {
@@ -208,13 +225,13 @@ LogContainer::LogContainer(
     const std::string& shortName,
     const std::string& fullName,
     LogTypes::LOG_TYPE logtype,
-    const std::string& rustIdentifier,
+    bool isRustLog,
     bool enable
-) : m_fullName(fullName), m_shortName(shortName), m_logtype(logtype), m_rustIdentifier(rustIdentifier), m_enable(enable), m_level(LogTypes::LWARNING)
+) : m_fullName(fullName), m_shortName(shortName), m_logtype(logtype), m_isRustLog(isRustLog), m_enable(enable), m_level(LogTypes::LWARNING)
 {
-    if(m_rustIdentifier != "")
+    if(m_isRustLog)
     {
-        slprs_logging_register_container(m_rustIdentifier.c_str(), m_logtype, m_enable, m_level);
+        slprs_logging_register_container(m_shortName.c_str(), m_logtype, m_enable, m_level);
     }
 }
 
@@ -222,9 +239,9 @@ void LogContainer::SetEnable(bool enable)
 {
     m_enable = enable;
     
-    if(m_rustIdentifier != "")
+    if(m_isRustLog)
     {
-        slprs_logging_update_container(m_rustIdentifier.c_str(), m_enable, m_level);
+        slprs_logging_update_container(m_shortName.c_str(), m_enable, m_level);
     }
 }
 
@@ -232,9 +249,9 @@ void LogContainer::SetLevel(LogTypes::LOG_LEVELS level)
 {
     m_level = level;
 
-    if(m_rustIdentifier != "")
+    if(m_isRustLog)
     {
-        slprs_logging_update_container(m_rustIdentifier.c_str(), m_enable, m_level);
+        slprs_logging_update_container(m_shortName.c_str(), m_enable, m_level);
     }
 }
 

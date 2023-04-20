@@ -5,10 +5,11 @@ use std::ffi::CString;
 use std::fmt::Write;
 use std::os::raw::{c_int, c_char};
 
-use tracing::Level;
+use time::OffsetDateTime;
+use tracing::{Level, Metadata};
 use tracing_subscriber::Layer;
 
-use super::LOG_CONTAINERS;
+use super::{ForeignLoggerFn, LOG_CONTAINERS};
 
 /// Corresponds to Dolphin's `LogTypes::LOG_LEVELS::LNOTICE` value.
 #[allow(dead_code)]
@@ -38,17 +39,6 @@ pub fn convert_dolphin_log_level_to_tracing_level(level: c_int) -> Level {
         _ => Level::DEBUG
     }
 }
-
-/// A type that mirrors a function over on the C++ side; because the library exists as
-/// a dylib, it can't depend on any functions from the host application - but we _can_
-/// pass in a hook/callback fn.
-///
-/// This should correspond to:
-///
-/// ```
-/// void LogFn(level, log_type, filename, line_number, msg);
-/// ```
-pub type ForeignLoggerFn = unsafe extern "C" fn(c_int, c_int, *const c_char, c_int, *const c_char);
 
 /// A custom tracing layer that forwards events back into the Dolphin logging infrastructure.
 ///
@@ -122,39 +112,20 @@ where
             Level::DEBUG | Level::TRACE => LOG_LEVEL_DEBUG,
         };
 
-        let mut visitor = DolphinLoggerVisitor::new();
+        let mut visitor = DolphinLoggerVisitor::new(metadata, target);
         event.record(&mut visitor);
         
-        match CString::new(visitor.0) {
+        match CString::new(visitor.finish()) {
             Ok(c_str_msg) => {
-                // @TODO: is this an Ishiiruka bug that filenames don't render in the logger?
-                // This does produce the correct module path... not a blocker, but annoying.
-                let filename = metadata.file().unwrap_or_else(|| "");
-
-                match CString::new(filename) {
-                    Ok(c_filename) => {
-                        let line_number = metadata.line().unwrap_or_else(|| 0);
-
-                        // A note on ownership: the Dolphin logger will create its own string
-                        // since we're passing our log over in the format str position... which,
-                        // yes, is annoying allocation-wise BUT at the moment means that we can
-                        // keep ownership of the CStrings and let them drop accordingly.
-                        unsafe {
-                            (self.logger_fn)(
-                                log_level,
-                                container.log_type,
-                                c_filename.as_ptr() as *const c_char,
-                                line_number.try_into().unwrap_or_else(|_| 0),
-                                c_str_msg.as_ptr() as *const c_char
-                            );
-                        }
-                    },
-
-                    // This should never happen, but on the off chance it does, just dump it
-                    // to stderr.
-                    Err(e) => {
-                        eprintln!("Failed to convert filename msg to CString: {:?}", e);
-                    }
+                // A note on ownership: the Dolphin logger cannot modify the contents of
+                // the passed over c_str, nor should it attempt to free anything. Rust owns
+                // this and will handle any cleanup after the logger_fn has dispatched.
+                unsafe {
+                    (self.logger_fn)(
+                        log_level,
+                        container.log_type,
+                        c_str_msg.as_ptr() as *const c_char
+                    );
                 }
             },
 
@@ -167,17 +138,60 @@ where
     }
 }
 
-/// Implements a visitor that builds a type for the logger functionality in Dolphin
+/// Implements a visitor that builds a log message for the logger functionality in Dolphin
 /// to consume. This currently builds a String internally that can be passed over to
-/// the Dolphin side and may be slightly allocation heavy as a result - but this is
-/// open to being updated.
+/// the Dolphin side.
 #[derive(Debug)]
 struct DolphinLoggerVisitor(String);
 
 impl DolphinLoggerVisitor {
     /// Creates and returns a new `DolphinLoggerVisitor`.
-    pub fn new() -> Self {
-        Self(String::new())
+    ///
+    /// This performs some initial work up front to build a log that is similar to
+    /// what Dolphin would construct; we're doing it here to avoid extra allocations
+    /// that would occur on the Dolphin logging side otherwise.
+    pub fn new(metadata: &Metadata, log_type: &str) -> Self {
+        let file = metadata.file().unwrap_or("");
+        let line = metadata.line().unwrap_or(0);
+        let level = metadata.level();
+        
+        // Dolphin logs in the format of {Minutes}:{Seconds}:{Milliseconds}.
+        let time = OffsetDateTime::now_local().unwrap_or_else(|e| {
+            eprintln!("[dolphin_logger/layer.rs] Failed to get local time: {:?}", e);
+
+            // This will only happen if, for whatever reason, the timezone offset
+            // on the current system cannot be determined. Frankly there's bigger issues
+            // than logging if that's the case.
+            OffsetDateTime::now_utc()
+        });
+
+        let mins = time.minute();
+        let secs = time.second();
+        let millsecs = time.millisecond();
+        
+        // We want 0-padded mins/secs, but we don't need the entire formatting infra
+        // that time would use - and this is simple enough to just do in a few lines.
+        let mp = match mins < 10 {
+            true => "0",
+            false => ""
+        };
+
+        let sp = match secs < 10 {
+            true => "0",
+            false => ""
+        };
+
+        Self(format!("{mp}{mins}:{sp}{secs}:{millsecs} {file}:{line} {level}[{log_type}]: "))
+    }
+
+    /// The Dolphin log window needs a newline attached to the end, so we just write one
+    /// as a finishing method.
+    pub fn finish(mut self) -> String {
+        if let Err(e) = write!(&mut self.0, "\n") {
+            eprintln!("Failed to finish logging string: {:?}", e);
+        }
+
+        self.0
     }
 }
 

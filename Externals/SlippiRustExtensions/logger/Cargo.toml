@@ -13,7 +13,9 @@ publish = false
 # This can be removed once Rust 1.70 is out.
 once_cell = "1.17.1"
 
+time = { workspace = true }
+
 # We disable the "attributes" feature as we don't currently need it and it brings
 # in extra dependencies.
-tracing = { version = "0.1", default-features = false, features = ["std"] }
+tracing = { workspace = true }
 tracing-subscriber = "0.3"

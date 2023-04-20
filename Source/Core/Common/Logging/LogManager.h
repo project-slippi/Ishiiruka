@@ -59,7 +59,7 @@ public:
         const std::string& shortName,
         const std::string& fullName,
         LogTypes::LOG_TYPE logtype,
-        const std::string& rustIdentifier = "",
+        bool isRustLog = false,
         bool enable = false
     );
 
@@ -81,7 +81,7 @@ private:
 	std::string m_fullName;
 	std::string m_shortName;
 	LogTypes::LOG_TYPE m_logtype;
-    std::string m_rustIdentifier;
+    bool m_isRustLog;
 	bool m_enable;
 	LogTypes::LOG_LEVELS m_level;
 	BitSet32 m_listener_ids;
@@ -102,6 +102,7 @@ private:
 
 public:
 	static u32 GetMaxLevel() { return MAX_LOGLEVEL; }
+    void LogPreformatted(LogTypes::LOG_LEVELS level, LogTypes::LOG_TYPE type, const char* msg);
 	void Log(LogTypes::LOG_LEVELS level, LogTypes::LOG_TYPE type, const char* file, int line,
 		const char* fmt, va_list args);
 
