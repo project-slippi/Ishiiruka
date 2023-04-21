@@ -13,7 +13,7 @@ use slippi_exi_device::SlippiEXIDevice;
 /// Creates and leaks a shadow EXI device.
 ///
 /// The C++ (Dolphin) side of things should call this and pass the appropriate arguments. At
-/// that point, everything on the Rust side is its own universe, and should be told to shut 
+/// that point, everything on the Rust side is its own universe, and should be told to shut
 /// down (at whatever point) via the corresponding `slprs_jukebox_destroy` function.
 ///
 /// The returned pointer from this should *not* be used after calling `slprs_exi_device_destroy`.
@@ -21,17 +21,25 @@ use slippi_exi_device::SlippiEXIDevice;
 pub extern "C" fn slprs_exi_device_create() -> usize {
     let exi_device = Box::new(SlippiEXIDevice::new());
     let exi_device_instance_ptr = Box::into_raw(exi_device) as usize;
-    
-    tracing::warn!(target: Log::EXI, ptr = exi_device_instance_ptr, "Creating Device");
-    
+
+    tracing::warn!(
+        target: Log::EXI,
+        ptr = exi_device_instance_ptr,
+        "Creating Device"
+    );
+
     exi_device_instance_ptr
 }
 
-/// The C++ (Dolphin) side of things should call this to notify the Rust side that it 
+/// The C++ (Dolphin) side of things should call this to notify the Rust side that it
 /// can safely shut down and clean up.
 #[no_mangle]
 pub extern "C" fn slprs_exi_device_destroy(exi_device_instance_ptr: usize) {
-    tracing::warn!(target: Log::EXI, ptr = exi_device_instance_ptr, "Destroying Device");
+    tracing::warn!(
+        target: Log::EXI,
+        ptr = exi_device_instance_ptr,
+        "Destroying Device"
+    );
 
     // Coerce the instance from the pointer. This is theoretically safe since we control
     // the C++ side and can guarantee that the `exi_device_instance_ptr` is only owned
@@ -50,14 +58,12 @@ pub extern "C" fn slprs_exi_device_destroy(exi_device_instance_ptr: usize) {
 pub extern "C" fn slprs_exi_device_dma_write(
     exi_device_instance_ptr: usize,
     address: *const u8,
-    size: *const u8
+    size: *const u8,
 ) {
     // Coerce the instance back from the pointer. This is theoretically safe since we control
     // the C++ side and can guarantee that the `exi_device_instance_ptr` pointer is only owned
     // by the C++ EXI device, and is created/destroyed with the corresponding lifetimes.
-    let mut device = unsafe {
-        Box::from_raw(exi_device_instance_ptr as *mut SlippiEXIDevice)
-    };
+    let mut device = unsafe { Box::from_raw(exi_device_instance_ptr as *mut SlippiEXIDevice) };
 
     device.dma_write(address as usize, size as usize);
 
@@ -73,14 +79,12 @@ pub extern "C" fn slprs_exi_device_dma_write(
 pub extern "C" fn slprs_exi_device_dma_read(
     exi_device_instance_ptr: usize,
     address: *const u8,
-    size: *const u8
+    size: *const u8,
 ) {
     // Coerce the instance from the pointer. This is theoretically safe since we control
     // the C++ side and can guarantee that the `exi_device_instance_ptr` pointer is only owned
     // by the C++ EXI device, and is created/destroyed with the corresponding lifetimes.
-    let mut device = unsafe {
-        Box::from_raw(exi_device_instance_ptr as *mut SlippiEXIDevice)
-    };
+    let mut device = unsafe { Box::from_raw(exi_device_instance_ptr as *mut SlippiEXIDevice) };
 
     device.dma_read(address as usize, size as usize);
 
@@ -95,14 +99,12 @@ pub extern "C" fn slprs_exi_device_dma_read(
 pub extern "C" fn slprs_exi_device_start_jukebox(
     exi_device_instance_ptr: usize,
     m_p_ram: *const u8,
-    sample_handler_fn: unsafe extern "C" fn(samples: *const c_short, num_samples: c_uint)
+    sample_handler_fn: unsafe extern "C" fn(samples: *const c_short, num_samples: c_uint),
 ) {
     // Coerce the instance from the pointer. This is theoretically safe since we control
     // the C++ side and can guarantee that the `exi_device_instance_ptr` is only owned
     // by the C++ EXI device, and is created/destroyed with the corresponding lifetimes.
-    let mut device = unsafe {
-        Box::from_raw(exi_device_instance_ptr as *mut SlippiEXIDevice)
-    };
+    let mut device = unsafe { Box::from_raw(exi_device_instance_ptr as *mut SlippiEXIDevice) };
 
     device.start_jukebox(m_p_ram, sample_handler_fn);
 
@@ -112,7 +114,7 @@ pub extern "C" fn slprs_exi_device_start_jukebox(
 
 /// This should be called from the Dolphin LogManager initialization to ensure that
 /// all logging needs on the Rust side are configured appropriately.
-/// 
+///
 /// For more information, consult `dolphin_logger::init`.
 ///
 /// Note that `logger_fn` cannot be type-aliased here, otherwise cbindgen will
@@ -122,9 +124,7 @@ pub extern "C" fn slprs_exi_device_start_jukebox(
 /// void Log(level, log_type, msg);
 /// ```
 #[no_mangle]
-pub extern "C" fn slprs_logging_init(
-    logger_fn: unsafe extern "C" fn(c_int, c_int, *const c_char)
-) {
+pub extern "C" fn slprs_logging_init(logger_fn: unsafe extern "C" fn(c_int, c_int, *const c_char)) {
     dolphin_logger::init(logger_fn);
 }
 
@@ -136,7 +136,7 @@ pub extern "C" fn slprs_logging_register_container(
     kind: *const c_char,
     log_type: c_int,
     is_enabled: bool,
-    default_log_level: c_int
+    default_log_level: c_int,
 ) {
     dolphin_logger::register_container(kind, log_type, is_enabled, default_log_level);
 }

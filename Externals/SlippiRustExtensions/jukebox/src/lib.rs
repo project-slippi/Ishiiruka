@@ -1,6 +1,6 @@
 //! A stub that will be filled out by someone else later, lol
 
-use std::ffi::{c_uint, c_short};
+use std::ffi::{c_short, c_uint};
 
 use dolphin_logger::Log;
 
@@ -14,7 +14,7 @@ type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 #[derive(Debug)]
 pub struct Jukebox {
     m_p_ram: usize,
-    sampler_fn: ForeignAudioSamplerFn
+    sampler_fn: ForeignAudioSamplerFn,
 }
 
 impl Jukebox {
@@ -22,12 +22,11 @@ impl Jukebox {
     pub fn new(m_p_ram: *const u8, sampler_fn: ForeignAudioSamplerFn) -> Result<Self> {
         let m_p_ram = m_p_ram as usize;
 
-        tracing::info!(
-            target: Log::Jukebox,
-            m_p_ram,
-            "Initializing Jukebox"
-        );
+        tracing::info!(target: Log::Jukebox, m_p_ram, "Initializing Jukebox");
 
-        Ok(Self { m_p_ram, sampler_fn })
+        Ok(Self {
+            m_p_ram,
+            sampler_fn,
+        })
     }
 }

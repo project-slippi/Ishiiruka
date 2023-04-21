@@ -15,7 +15,7 @@ use tracing::Level;
 use tracing_subscriber::prelude::*;
 
 mod layer;
-use layer::{DolphinLoggerLayer, convert_dolphin_log_level_to_tracing_level};
+use layer::{convert_dolphin_log_level_to_tracing_level, DolphinLoggerLayer};
 
 /// A type that mirrors a function over on the C++ side; because the library exists as
 /// a dylib, it can't depend on any functions from the host application - but we _can_
@@ -55,11 +55,11 @@ struct LogContainer {
     kind: String,
     log_type: c_int,
     is_enabled: bool,
-    level: Level
+    level: Level,
 }
 
 /// A global stack of `LogContainers`.
-/// 
+///
 /// All logger registrations (which require `write`) should happen up-front due to how
 /// Dolphin itself works. RwLock here should provide us parallel reader access after.
 static LOG_CONTAINERS: OnceCell<Arc<RwLock<Vec<LogContainer>>>> = OnceCell::new();
@@ -71,9 +71,7 @@ static LOG_CONTAINERS: OnceCell<Arc<RwLock<Vec<LogContainer>>>> = OnceCell::new(
 /// not so standard: this library does in a sense act as an application due to the way it's
 /// called into, and we *want* a global subscriber.
 pub fn init(logger_fn: ForeignLoggerFn) {
-    let _containers = LOG_CONTAINERS.get_or_init(|| {
-        Arc::new(RwLock::new(Vec::new()))
-    });
+    let _containers = LOG_CONTAINERS.get_or_init(|| Arc::new(RwLock::new(Vec::new())));
 
     // A guard so that we don't double-init logging layers.
     static LOGGER: Once = Once::new();
@@ -96,29 +94,29 @@ pub fn register_container(
     kind: *const c_char,
     log_type: c_int,
     is_enabled: bool,
-    default_log_level: c_int
+    default_log_level: c_int,
 ) {
     // We control the other end of the registration flow, so we can ensure this ptr's valid UTF-8.
-    let c_kind_str = unsafe {
-        CStr::from_ptr(kind)
-    };
-    
+    let c_kind_str = unsafe { CStr::from_ptr(kind) };
+
     let kind = c_kind_str
         .to_str()
         .expect("[dolphin_logger::register_container]: Failed to convert kind c_char to str")
         .to_string();
 
-    let containers = LOG_CONTAINERS.get()
-        .expect("[dolphin_logger::register_container]: Attempting to get `LOG_CONTAINERS` before init");
+    let containers = LOG_CONTAINERS.get().expect(
+        "[dolphin_logger::register_container]: Attempting to get `LOG_CONTAINERS` before init",
+    );
 
-    let mut writer = containers.write()
-        .expect("[dolphin_logger::register_container]: Unable to acquire write lock on `LOG_CONTAINERS`?");
+    let mut writer = containers.write().expect(
+        "[dolphin_logger::register_container]: Unable to acquire write lock on `LOG_CONTAINERS`?",
+    );
 
     (*writer).push(LogContainer {
         kind,
         log_type,
         is_enabled,
-        level: convert_dolphin_log_level_to_tracing_level(default_log_level)
+        level: convert_dolphin_log_level_to_tracing_level(default_log_level),
     });
 }
 
@@ -126,19 +124,19 @@ pub fn register_container(
 /// state, no allocations will happen behind the scenes for any logging period.
 pub fn update_container(kind: *const c_char, enabled: bool, level: c_int) {
     // We control the other end of the registration flow, so we can ensure this ptr's valid UTF-8.
-    let c_kind_str = unsafe {
-        CStr::from_ptr(kind)
-    };
-    
+    let c_kind_str = unsafe { CStr::from_ptr(kind) };
+
     let kind = c_kind_str
         .to_str()
         .expect("[dolphin_logger::update_container]: Failed to convert kind c_char to str");
 
-    let containers = LOG_CONTAINERS.get()
-        .expect("[dolphin_logger::update_container]: Attempting to get `LOG_CONTAINERS` before init");
+    let containers = LOG_CONTAINERS.get().expect(
+        "[dolphin_logger::update_container]: Attempting to get `LOG_CONTAINERS` before init",
+    );
 
-    let mut writer = containers.write()
-        .expect("[dolphin_logger::update_container]: Unable to acquire write lock on `LOG_CONTAINERS`?");
+    let mut writer = containers.write().expect(
+        "[dolphin_logger::update_container]: Unable to acquire write lock on `LOG_CONTAINERS`?",
+    );
 
     for container in (*writer).iter_mut() {
         if container.kind == kind {

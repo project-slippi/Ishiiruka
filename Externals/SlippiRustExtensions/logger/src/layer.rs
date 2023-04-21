@@ -3,7 +3,7 @@
 
 use std::ffi::CString;
 use std::fmt::Write;
-use std::os::raw::{c_int, c_char};
+use std::os::raw::{c_char, c_int};
 
 use time::OffsetDateTime;
 use tracing::{Level, Metadata};
@@ -30,13 +30,13 @@ const LOG_LEVEL_DEBUG: c_int = 5;
 /// A helper method for converting Dolphin's levels to a tracing::Level.
 ///
 /// Currently there's a bit of a mismatch, as `NOTICE` from Dolphin isn't
-/// really covered here... 
+/// really covered here...
 pub fn convert_dolphin_log_level_to_tracing_level(level: c_int) -> Level {
     match level {
         LOG_LEVEL_ERROR => Level::ERROR,
         LOG_LEVEL_WARNING => Level::WARN,
         LOG_LEVEL_INFO => Level::INFO,
-        _ => Level::DEBUG
+        _ => Level::DEBUG,
     }
 }
 
@@ -45,15 +45,13 @@ pub fn convert_dolphin_log_level_to_tracing_level(level: c_int) -> Level {
 /// This implements `tracing_subscriber::Layer` and is the default way to log in this library.
 #[derive(Debug)]
 pub struct DolphinLoggerLayer {
-    logger_fn: ForeignLoggerFn
+    logger_fn: ForeignLoggerFn,
 }
 
 impl DolphinLoggerLayer {
     /// Creates and returns a new logger layer.
     pub fn new(logger_fn: ForeignLoggerFn) -> Self {
-        Self {
-            logger_fn,
-        }
+        Self { logger_fn }
     }
 }
 
@@ -73,19 +71,19 @@ where
         let metadata = event.metadata();
         let target = metadata.target();
 
-        let log_containers = LOG_CONTAINERS.get()
+        let log_containers = LOG_CONTAINERS
+            .get()
             .expect("[DolphinLoggerLayer::on_event]: Unable to acquire `LOG_CONTAINERS`?");
 
-        let reader = log_containers.read()
-            .expect("[DolphinLoggerLayer::on_event]: Unable to acquire readlock on `LOG_CONTAINERS`?");
+        let reader = log_containers.read().expect(
+            "[DolphinLoggerLayer::on_event]: Unable to acquire readlock on `LOG_CONTAINERS`?",
+        );
 
-        let log_container = reader.iter().find(|container| {
-            container.kind == target
-        });
+        let log_container = reader.iter().find(|container| container.kind == target);
 
         if log_container.is_none() {
             // We want to still dump errors to the console if no log handler is set at all,
-            // otherwise debugging is a nightmare (i.e, we want to surface event flow if a 
+            // otherwise debugging is a nightmare (i.e, we want to surface event flow if a
             // logger initialization is mis-called somewhere).
             eprintln!("No logger handler found for target: {}", target);
             return;
@@ -104,7 +102,7 @@ where
             // || container.level > level {
             return;
         }
-        
+
         let log_level = match level {
             Level::INFO => LOG_LEVEL_INFO,
             Level::WARN => LOG_LEVEL_WARNING,
@@ -114,7 +112,7 @@ where
 
         let mut visitor = DolphinLoggerVisitor::new(metadata, target);
         event.record(&mut visitor);
-        
+
         match CString::new(visitor.finish()) {
             Ok(c_str_msg) => {
                 // A note on ownership: the Dolphin logger cannot modify the contents of
@@ -124,10 +122,10 @@ where
                     (self.logger_fn)(
                         log_level,
                         container.log_type,
-                        c_str_msg.as_ptr() as *const c_char
+                        c_str_msg.as_ptr() as *const c_char,
                     );
                 }
-            },
+            }
 
             // This should never happen, but on the off chance it does, I guess
             // just dump it to stderr?
@@ -154,10 +152,13 @@ impl DolphinLoggerVisitor {
         let file = metadata.file().unwrap_or("");
         let line = metadata.line().unwrap_or(0);
         let level = metadata.level();
-        
+
         // Dolphin logs in the format of {Minutes}:{Seconds}:{Milliseconds}.
         let time = OffsetDateTime::now_local().unwrap_or_else(|e| {
-            eprintln!("[dolphin_logger/layer.rs] Failed to get local time: {:?}", e);
+            eprintln!(
+                "[dolphin_logger/layer.rs] Failed to get local time: {:?}",
+                e
+            );
 
             // This will only happen if, for whatever reason, the timezone offset
             // on the current system cannot be determined. Frankly there's bigger issues
@@ -168,20 +169,22 @@ impl DolphinLoggerVisitor {
         let mins = time.minute();
         let secs = time.second();
         let millsecs = time.millisecond();
-        
+
         // We want 0-padded mins/secs, but we don't need the entire formatting infra
         // that time would use - and this is simple enough to just do in a few lines.
         let mp = match mins < 10 {
             true => "0",
-            false => ""
+            false => "",
         };
 
         let sp = match secs < 10 {
             true => "0",
-            false => ""
+            false => "",
         };
 
-        Self(format!("{mp}{mins}:{sp}{secs}:{millsecs} {file}:{line} {level}[{log_type}]: "))
+        Self(format!(
+            "{mp}{mins}:{sp}{secs}:{millsecs} {file}:{line} {level}[{log_type}]: "
+        ))
     }
 
     /// The Dolphin log window needs a newline attached to the end, so we just write one

@@ -6,12 +6,12 @@
 //! Slippi stuff is happening" and enables us to let the Rust side live in its own world.
 
 use dolphin_logger::Log;
-use slippi_jukebox::{Jukebox, ForeignAudioSamplerFn};
+use slippi_jukebox::{ForeignAudioSamplerFn, Jukebox};
 
 /// An EXI Device subclass specific to managing and interacting with the game itself.
 #[derive(Debug)]
 pub struct SlippiEXIDevice {
-    jukebox: Option<Jukebox>
+    jukebox: Option<Jukebox>,
 }
 
 impl SlippiEXIDevice {
@@ -21,9 +21,7 @@ impl SlippiEXIDevice {
     pub fn new() -> Self {
         tracing::info!(target: Log::EXI, "Starting SlippiEXIDevice");
 
-        Self {
-            jukebox: None
-        }
+        Self { jukebox: None }
     }
 
     /// Stubbed for now, but this would get called by the C++ EXI device on DMAWrite.
@@ -37,7 +35,7 @@ impl SlippiEXIDevice {
         match Jukebox::new(m_p_ram, sampler_fn) {
             Ok(jukebox) => {
                 self.jukebox = Some(jukebox);
-            },
+            }
 
             Err(e) => {
                 tracing::error!(
