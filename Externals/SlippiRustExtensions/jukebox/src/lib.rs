@@ -153,8 +153,8 @@ impl Jukebox {
         // This thread handles events sent by the dolphin-hooked thread and
         // manages audio playback
         std::thread::spawn(move || -> Result<()> {
-            let (_stream, stream_handle) = OutputStream::try_default()?; // TODO: Stop the program if we can't get a handle to the audio device
-            let sink = Sink::try_new(&stream_handle)?;
+            // let (_stream, stream_handle) = OutputStream::try_default()?; // TODO: Stop the program if we can't get a handle to the audio device
+            // let sink = Sink::try_new(&stream_handle)?;
 
             // These values will get updated by the `handle_event` fn
             let mut track_id: Option<TrackId> = None;
@@ -173,17 +173,34 @@ impl Jukebox {
                         iso.read_exact(&mut bytes)?;
 
                         // Parse data from the ISO into samples
-                        let hps: Hps = bytes.as_slice().try_into()?;
-                        let padding_length = hps.channel_count * hps.sample_rate / 4;
-                        let audio_source = HpsAudioSource {
-                            pcm: hps.into(),
-                            padding_length,
-                        };
+                        let hps: Hps = bytes.try_into()?;
+                        let sample_rate = hps.sample_rate;
+                        let pcm: PcmIterator = hps.into();
+
+                        // Take two seconds of samples from the PCM stream
+                        let mut samples = pcm.take(128_000).collect::<Vec<_>>();
+                        samples.shrink_to_fit();
+                        // Sanity check
+                        tracing::info!(
+                            target: Log::Jukebox,
+                            "sample rate: {}, samples: {:?}",
+                            sample_rate,
+                            samples.iter().skip(64_000).take(20).collect::<Vec<_>>()
+                        );
+                        // Send the samples to Dolphin with `sampler_fn`
+                        let len = samples.len() as u32;
+                        let ptr = samples.as_ptr();
+                        std::mem::forget(samples);
+                        unsafe {
+                            set_sample_rate_fn(sample_rate);
+                            set_volume_fn(u32::MAX / 2, u32::MAX / 2);
+                            push_samples_fn(ptr, len);
+                        }
 
                         // Play song
-                        sink.append(audio_source);
-                        sink.play();
-                        sink.set_volume(volume);
+                        // sink.append(audio_source);
+                        // sink.play();
+                        // sink.set_volume(volume);
                     }
                 }
 
@@ -202,7 +219,7 @@ impl Jukebox {
                         // changing the volume, updating the track and breaking
                         // the loop such that the next track starts to play,
                         // etc.
-                        match handle_melee_event(event, &sink, &mut track_id, &mut volume) {
+                        match handle_melee_event(event, /*&sink,*/ &mut track_id, &mut volume) {
                             Break(_) => break,
                             _ => (),
                         }
@@ -210,7 +227,7 @@ impl Jukebox {
                     sleep(Duration::from_millis(THREAD_LOOP_SLEEP_TIME_MS));
                 }
 
-                sink.stop();
+                // sink.stop();
             }
 
             Ok(())
@@ -273,7 +290,7 @@ fn produce_melee_event(prev_state: &DolphinState, state: &DolphinState) -> Melee
 /// adjusting volume etc.
 fn handle_melee_event(
     event: MeleeEvent,
-    sink: &Sink,
+    // sink: &Sink,
     track_id: &mut Option<TrackId>,
     volume: &mut f32,
 ) -> ControlFlow<()> {
@@ -315,15 +332,15 @@ fn handle_melee_event(
             *track_id = tracks::get_stage_track_id(stage_id);
         }
         Pause => {
-            sink.set_volume(*volume * 0.2);
+            // sink.set_volume(*volume * 0.2);
             return Continue(());
         }
         Unpause => {
-            sink.set_volume(*volume);
+            // sink.set_volume(*volume);
             return Continue(());
         }
         SetVolume(received_volume) => {
-            sink.set_volume(received_volume);
+            // sink.set_volume(received_volume);
             *volume = received_volume;
             return Continue(());
         }

@@ -109,7 +109,13 @@ pub extern "C" fn slprs_exi_device_configure_jukebox(
     // by the C++ EXI device, and is created/destroyed with the corresponding lifetimes.
     let mut device = unsafe { Box::from_raw(exi_device_instance_ptr as *mut SlippiEXIDevice) };
 
-    device.configure_jukebox(is_enabled, m_p_ram, set_sample_rate_fn, set_volume_fn, push_samples_fn);
+    device.configure_jukebox(
+        is_enabled,
+        m_p_ram,
+        set_sample_rate_fn,
+        set_volume_fn,
+        push_samples_fn,
+    );
 
     // Fall back into a raw pointer so Rust doesn't obliterate the object.
     let _leak = Box::into_raw(device);
