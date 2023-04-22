@@ -324,11 +324,17 @@ void SlippiNetplayConfigPane::OnToggleJukeboxEnabled(wxCommandEvent &event)
 	SConfig::GetInstance().bSlippiJukeboxEnabled = isEnabled;
 
     // If we have a Slippi EXI device loaded, grab it and tell it to reconfigure the Jukebox.
-    CEXISlippi* slippiEXIDevice = (CEXISlippi*)ExpansionInterface::FindDevice(TEXIDevices::EXIDEVICE_SLIPPI);
-    if (slippiEXIDevice != nullptr)
-	{
-        slippiEXIDevice->ConfigureJukebox();
-	}
+    // Note that this should only execute if `Core` is loaded and running, as otherwise the Expansion
+    // Interface is not actually initialized.
+    if (Core::IsRunning())
+    {
+        CEXISlippi* slippiEXIDevice = (CEXISlippi*)ExpansionInterface::FindDevice(TEXIDevices::EXIDEVICE_SLIPPI);
+        
+        if (slippiEXIDevice != nullptr && slippiEXIDevice->IsPresent())
+	    {
+            slippiEXIDevice->ConfigureJukebox();
+	    }
+    }
 }
 
 void SlippiNetplayConfigPane::PopulateEnableChatChoiceBox()
