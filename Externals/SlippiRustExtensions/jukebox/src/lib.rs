@@ -1,10 +1,8 @@
-//! A stub that will be filled out by someone else later, lol
-
 mod scenes;
 mod tracks;
 mod utils;
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result};
 use bus::Bus;
 use directories::BaseDirs;
 use dolphin_logger::Log;
@@ -19,7 +17,6 @@ use std::ffi::{c_short, c_uint};
 use std::io::prelude::*;
 use std::ops::ControlFlow::{self, Break, Continue};
 use std::sync::mpsc;
-use std::thread::JoinHandle;
 use std::{thread::sleep, time::Duration};
 use tracks::TrackId;
 
@@ -31,13 +28,7 @@ pub type ForeignPushSamplesFn = unsafe extern "C" fn(samples: *const c_short, nu
 
 #[derive(Debug)]
 pub struct Jukebox {
-    m_p_ram: usize,
-    set_sample_rate_fn: ForeignSetSampleRateFn,
-    set_volume_fn: ForeignSetVolumeFn,
-    push_samples_fn: ForeignPushSamplesFn,
-    memory_thread_handle: JoinHandle<Result<()>>,
-    music_thread_handle: JoinHandle<Result<()>>,
-    dolphin_event_bus: Bus<DolphinEvent>,
+    bus: Bus<JukeboxEvent>,
 }
 
 const THREAD_LOOP_SLEEP_TIME_MS: u64 = 30;
@@ -85,8 +76,8 @@ enum MeleeEvent {
 }
 
 #[derive(Debug, Clone)]
-enum DolphinEvent {
-    EmulationTerminated,
+enum JukeboxEvent {
+    Dropped,
 }
 
 impl Jukebox {
@@ -99,9 +90,7 @@ impl Jukebox {
     ) -> Result<Self, Box<dyn Error>> {
         let m_p_ram = m_p_ram as usize;
 
-        tracing::info!(target: Log::Jukebox, m_p_ram, "Initializing Jukebox");
-
-        /////////
+        tracing::info!(target: Log::Jukebox, m_p_ram, "Initializing Slippi Jukebox");
 
         let base_dirs = BaseDirs::new().context(
             "Home directory path could not be retrieved from the OS. Unable to locate Slippi.",
@@ -116,15 +105,19 @@ impl Jukebox {
         let tracks = utils::create_track_map(&mut iso)?;
         tracing::info!(target: Log::Jukebox, "Loaded {} tracks!", tracks.len());
 
+        // This channel is used for the memory-reading thread to communicate with
+        // the music-playing thread
         let (tx_melee, rx_melee) = mpsc::channel::<MeleeEvent>();
 
-        let mut dolphin_event_bus: Bus<DolphinEvent> = Bus::new(3);
-        let (mut rx_dolphin_1, mut rx_dolphin_2) =
-            (dolphin_event_bus.add_rx(), dolphin_event_bus.add_rx());
+        // The jukebox bus will be used to notify child threads when the object is
+        // about to be dropped
+        let mut jukebox_event_bus: Bus<JukeboxEvent> = Bus::new(1);
+        let (mut rx_jukebox_1, mut rx_jukebox_2) =
+            (jukebox_event_bus.add_rx(), jukebox_event_bus.add_rx());
 
         // This thread hooks into Dolphin's memory and listens for relevant
         // events
-        let memory_thread_handle = std::thread::spawn(move || -> Result<()> {
+        std::thread::spawn(move || -> Result<()> {
             // Initial state that will get updated over time
             let mut prev_state = DolphinState {
                 volume: dolphin_volume_percent,
@@ -132,19 +125,16 @@ impl Jukebox {
             };
 
             loop {
-                // Break loop if jukebox is disabled
-                if let Ok(event) = rx_dolphin_1.try_recv() {
-                    if matches!(event, DolphinEvent::EmulationTerminated) {
-                        tracing::info!(target: Log::Jukebox, "breaking memory thread loop");
+                // Break loop if jukebox has been dropped
+                if let Ok(event) = rx_jukebox_1.try_recv() {
+                    if matches!(event, JukeboxEvent::Dropped) {
                         break;
                     }
                 }
 
                 // Continuously check if the dolphin state has changed
-                let state = match read_dolphin_state(&m_p_ram, dolphin_volume_percent) {
-                    Ok(state) => state,
-                    Err(_) => DolphinState::default(),
-                };
+                let state = read_dolphin_state(&m_p_ram, dolphin_volume_percent);
+
                 // If the state has changed,
                 if prev_state != state {
                     // send an event to the music player thread
@@ -162,7 +152,7 @@ impl Jukebox {
 
         // This thread handles events sent by the dolphin-hooked thread and
         // manages audio playback
-        let music_thread_handle = std::thread::spawn(move || -> Result<()> {
+        std::thread::spawn(move || -> Result<()> {
             let (_stream, stream_handle) = OutputStream::try_default()?; // TODO: Stop the program if we can't get a handle to the audio device
             let sink = Sink::try_new(&stream_handle)?;
 
@@ -200,10 +190,9 @@ impl Jukebox {
                 // Continue to play the song indefinitely while regularly checking
                 // for new events from the thread that's hooked into dolphin memory
                 loop {
-                    // Break loop if jukebox is disabled
-                    if let Ok(event) = rx_dolphin_2.try_recv() {
-                        if matches!(event, DolphinEvent::EmulationTerminated) {
-                            tracing::info!(target: Log::Jukebox, "breaking music thread loop");
+                    // Break loop if jukebox has been dropped
+                    if let Ok(event) = rx_jukebox_2.try_recv() {
+                        if matches!(event, JukeboxEvent::Dropped) {
                             break 'outer;
                         }
                     }
@@ -227,24 +216,16 @@ impl Jukebox {
             Ok(())
         });
 
-        /////////
-
         Ok(Self {
-            m_p_ram,
-            push_samples_fn,
-            set_volume_fn,
-            set_sample_rate_fn,
-            memory_thread_handle,
-            music_thread_handle,
-            dolphin_event_bus,
+            bus: jukebox_event_bus,
         })
     }
 }
 
 impl Drop for Jukebox {
     fn drop(&mut self) {
-        self.dolphin_event_bus
-            .broadcast(DolphinEvent::EmulationTerminated);
+        tracing::info!(target: Log::Jukebox, "Dropping Slippi Jukebox");
+        self.bus.broadcast(JukeboxEvent::Dropped);
     }
 }
 
@@ -300,11 +281,19 @@ fn handle_melee_event(
 
     // TODO:
     // - Intro movie
+    //
     // - classic vs screen
     // - classic victory screen
     // - classic game over screen
     // - classic credits
     // - classic "congratulations movie"
+    //
+    // - Adventure mode field intro music
+    // - Adventure mode mushroom kingdom
+    // - Adventure mode great maze
+    // - Adventure mode brinstar escape
+    //
+    // - All Star Rest Area
 
     match event {
         TitleScreenEntered | GameEnd => {
@@ -347,34 +336,30 @@ fn handle_melee_event(
 }
 
 /// Create a `DolphinState` by reading Dolphin's memory
-fn read_dolphin_state(ram_offset: &usize, dolphin_volume_percent: f32) -> Result<DolphinState> {
-    if ram_offset == &0 {
-        return Err(anyhow!("Null Pointer"));
-    }
-
+fn read_dolphin_state(m_p_ram: &usize, dolphin_volume_percent: f32) -> DolphinState {
     // https://github.com/bkacjios/m-overlay/blob/d8c629d/source/modules/games/GALE01-2.lua#L8
     // let volume = dolphin.read_i8(0x8045C384, None)?;
-    let volume: LocalMember<i8> = LocalMember::new_offset(vec![ram_offset + 0x45C384]);
+    let volume: LocalMember<i8> = LocalMember::new_offset(vec![m_p_ram + 0x45C384]);
     let volume = unsafe { volume.read().unwrap() };
     let melee_volume_percent: f32 = ((volume as f32 - 100.0) * -1.0) / 100.0;
     // https://github.com/bkacjios/m-overlay/blob/d8c629d/source/modules/games/GALE01-2.lua#L16
-    let scene_major: LocalMember<u8> = LocalMember::new_offset(vec![ram_offset + 0x479D30]);
+    let scene_major: LocalMember<u8> = LocalMember::new_offset(vec![m_p_ram + 0x479D30]);
     let scene_major = unsafe { scene_major.read().unwrap() };
     // https://github.com/bkacjios/m-overlay/blob/d8c629d/source/modules/games/GALE01-2.lua#L19
-    let scene_minor: LocalMember<u8> = LocalMember::new_offset(vec![ram_offset + 0x479D33]);
+    let scene_minor: LocalMember<u8> = LocalMember::new_offset(vec![m_p_ram + 0x479D33]);
     let scene_minor = unsafe { scene_minor.read().unwrap() };
     // https://github.com/bkacjios/m-overlay/blob/d8c629d/source/modules/games/GALE01-2.lua#L357
-    let stage_id: LocalMember<u8> = LocalMember::new_offset(vec![ram_offset + 0x49E753]);
+    let stage_id: LocalMember<u8> = LocalMember::new_offset(vec![m_p_ram + 0x49E753]);
     let stage_id = unsafe { stage_id.read().unwrap() };
     // https://github.com/bkacjios/m-overlay/blob/d8c629d/source/modules/games/GALE01-2.lua#L248
     // 0 = in game, 1 = GAME! screen, 2 = Stage clear in 1p mode? (maybe also victory screen), 3 = menu
-    let match_info: LocalMember<u8> = LocalMember::new_offset(vec![ram_offset + 0x46B6A0]);
+    let match_info: LocalMember<u8> = LocalMember::new_offset(vec![m_p_ram + 0x46B6A0]);
     let match_info = unsafe { match_info.read().unwrap() };
     // https://github.com/bkacjios/m-overlay/blob/d8c629d/source/modules/games/GALE01-2.lua#L353
-    let is_paused: LocalMember<u8> = LocalMember::new_offset(vec![ram_offset + 0x4D640F]);
+    let is_paused: LocalMember<u8> = LocalMember::new_offset(vec![m_p_ram + 0x4D640F]);
     let is_paused = unsafe { is_paused.read().unwrap() } == 1;
 
-    Ok(DolphinState {
+    DolphinState {
         in_game: utils::is_in_game(scene_major, scene_minor),
         in_menus: utils::is_in_menus(scene_major, scene_minor),
         scene_major,
@@ -383,7 +368,7 @@ fn read_dolphin_state(ram_offset: &usize, dolphin_volume_percent: f32) -> Result
         stage_id,
         is_paused,
         match_info,
-    })
+    }
 }
 
 // This wrapper allows us to implement `rodio::Source`
