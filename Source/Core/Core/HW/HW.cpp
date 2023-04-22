@@ -72,8 +72,12 @@ void Shutdown()
 	CPU::Shutdown();
 	DVDInterface::Shutdown();
 	DSP::Shutdown();
-	Memory::Shutdown();
-	ExpansionInterface::Shutdown();
+	
+    // Slippi-specific change: We need to shut this down *before* `Memory`
+    // as we make use of some known offsets in `Memory` for the Jukebox.
+    ExpansionInterface::Shutdown();
+	
+    Memory::Shutdown();
 	SerialInterface::Shutdown();
 	AudioInterface::Shutdown();
 
