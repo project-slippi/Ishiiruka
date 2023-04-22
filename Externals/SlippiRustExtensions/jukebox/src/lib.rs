@@ -4,39 +4,36 @@ mod scenes;
 mod tracks;
 mod utils;
 
-use std::error::Error;
-use std::ffi::{c_short, c_uint};
-use std::thread::JoinHandle;
-
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
+use bus::Bus;
 use directories::BaseDirs;
+use dolphin_logger::Log;
 use hps_decode::{hps::Hps, pcm_iterator::PcmIterator};
 use process_memory::LocalMember;
 use process_memory::Memory;
 use rodio::{OutputStream, Sink};
 use scenes::scene_ids::*;
 use std::convert::TryInto;
+use std::error::Error;
+use std::ffi::{c_short, c_uint};
 use std::io::prelude::*;
 use std::ops::ControlFlow::{self, Break, Continue};
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc;
+use std::thread::JoinHandle;
 use std::{thread::sleep, time::Duration};
 use tracks::TrackId;
-
-use dolphin_logger::Log;
 
 /// This handler definition represents a passed-in function for pushing audio samples
 /// into the current Dolphin SoundStream interface.
 pub type ForeignAudioSamplerFn = unsafe extern "C" fn(samples: *const c_short, num_samples: c_uint);
 
-pub(crate) static JUKEBOX_ENABLED: AtomicBool = AtomicBool::new(true);
-
 #[derive(Debug)]
 pub struct Jukebox {
     m_p_ram: usize,
     sampler_fn: ForeignAudioSamplerFn,
-    thread1: JoinHandle<Result<()>>,
-    thread2: JoinHandle<Result<()>>,
+    memory_thread_handle: JoinHandle<Result<()>>,
+    music_thread_handle: JoinHandle<Result<()>>,
+    dolphin_event_bus: Bus<DolphinEvent>,
 }
 
 const THREAD_LOOP_SLEEP_TIME_MS: u64 = 30;
@@ -61,7 +58,7 @@ impl Default for DolphinState {
             scene_major: SCENE_MAIN_MENU,
             scene_minor: 0,
             stage_id: 0,
-            volume: 25.0,
+            volume: 0.0,
             is_paused: false,
             match_info: 0,
         }
@@ -69,7 +66,7 @@ impl Default for DolphinState {
 }
 
 #[derive(Debug)]
-enum Event {
+enum MeleeEvent {
     TitleScreenEntered,
     MenuEntered,
     LotteryEntered,
@@ -83,6 +80,11 @@ enum Event {
     NoOp,
 }
 
+#[derive(Debug, Clone)]
+enum DolphinEvent {
+    EmulationTerminated,
+}
+
 impl Jukebox {
     /// Returns a new configured Jukebox, ready to play.
     pub fn new(
@@ -90,7 +92,6 @@ impl Jukebox {
         sampler_fn: ForeignAudioSamplerFn,
     ) -> Result<Self, Box<dyn Error>> {
         let m_p_ram = m_p_ram as usize;
-        JUKEBOX_ENABLED.store(true, Ordering::Release);
 
         tracing::info!(target: Log::Jukebox, m_p_ram, "Initializing Jukebox");
 
@@ -109,12 +110,15 @@ impl Jukebox {
         let tracks = utils::create_track_map(&mut iso)?;
         tracing::info!(target: Log::Jukebox, "Loaded {} tracks!", tracks.len());
 
-        let (tx, rx) = mpsc::channel::<Event>();
+        let (tx_melee, rx_melee) = mpsc::channel::<MeleeEvent>();
 
-        // std::thread::scope(|s| {
+        let mut dolphin_event_bus: Bus<DolphinEvent> = Bus::new(3);
+        let (mut rx_dolphin_1, mut rx_dolphin_2) =
+            (dolphin_event_bus.add_rx(), dolphin_event_bus.add_rx());
+
         // This thread hooks into Dolphin's memory and listens for relevant
         // events
-        let thread1 = std::thread::spawn(move || -> Result<()> {
+        let memory_thread_handle = std::thread::spawn(move || -> Result<()> {
             // Initial state that will get updated over time
             let mut prev_state = DolphinState {
                 volume: dolphin_volume_percent,
@@ -123,24 +127,25 @@ impl Jukebox {
 
             loop {
                 // Break loop if jukebox is disabled
-                if !JUKEBOX_ENABLED.load(Ordering::Acquire) {
-                    break;
+                if let Ok(event) = rx_dolphin_1.try_recv() {
+                    if matches!(event, DolphinEvent::EmulationTerminated) {
+                        tracing::info!(target: Log::Jukebox, "breaking memory thread loop");
+                        break;
+                    }
                 }
 
                 // Continuously check if the dolphin state has changed
                 let state = match read_dolphin_state(&m_p_ram, dolphin_volume_percent) {
                     Ok(state) => state,
-                    // Exit if Dolphin memory is unreadable
-                    // (usually because the process has ended)
-                    Err(_) => std::process::exit(0),
+                    Err(_) => DolphinState::default(),
                 };
                 // If the state has changed,
                 if prev_state != state {
                     // send an event to the music player thread
-                    let event = produce_event(&prev_state, &state);
+                    let event = produce_melee_event(&prev_state, &state);
                     tracing::info!(target: Log::Jukebox, "{:?}", event);
 
-                    tx.send(event)?;
+                    tx_melee.send(event)?;
                     prev_state = state;
                 }
                 sleep(Duration::from_millis(THREAD_LOOP_SLEEP_TIME_MS));
@@ -151,7 +156,7 @@ impl Jukebox {
 
         // This thread handles events sent by the dolphin-hooked thread and
         // manages audio playback
-        let thread2 = std::thread::spawn(move || -> Result<()> {
+        let music_thread_handle = std::thread::spawn(move || -> Result<()> {
             let (_stream, stream_handle) = OutputStream::try_default()?; // TODO: Stop the program if we can't get a handle to the audio device
             let sink = Sink::try_new(&stream_handle)?;
 
@@ -190,16 +195,19 @@ impl Jukebox {
                 // for new events from the thread that's hooked into dolphin memory
                 loop {
                     // Break loop if jukebox is disabled
-                    if !JUKEBOX_ENABLED.load(Ordering::Acquire) {
-                        break 'outer;
+                    if let Ok(event) = rx_dolphin_2.try_recv() {
+                        if matches!(event, DolphinEvent::EmulationTerminated) {
+                            tracing::info!(target: Log::Jukebox, "breaking music thread loop");
+                            break 'outer;
+                        }
                     }
 
-                    if let Ok(event) = rx.try_recv() {
+                    if let Ok(event) = rx_melee.try_recv() {
                         // When we receive an event, handle it. This can include
                         // changing the volume, updating the track and breaking
                         // the loop such that the next track starts to play,
                         // etc.
-                        match handle_event(event, &sink, &mut track_id, &mut volume) {
+                        match handle_melee_event(event, &sink, &mut track_id, &mut volume) {
                             Break(_) => break,
                             _ => (),
                         }
@@ -218,20 +226,22 @@ impl Jukebox {
         Ok(Self {
             m_p_ram,
             sampler_fn,
-            thread1,
-            thread2,
+            memory_thread_handle,
+            music_thread_handle,
+            dolphin_event_bus,
         })
     }
 }
 
 impl Drop for Jukebox {
     fn drop(&mut self) {
-        JUKEBOX_ENABLED.store(false, Ordering::Release);
+        self.dolphin_event_bus
+            .broadcast(DolphinEvent::EmulationTerminated);
     }
 }
 
 /// Given the previous dolphin state and current dolphin state, produce an event
-fn produce_event(prev_state: &DolphinState, state: &DolphinState) -> Event {
+fn produce_melee_event(prev_state: &DolphinState, state: &DolphinState) -> MeleeEvent {
     let vs_screen_1 = state.scene_major == SCENE_VS_ONLINE
         && prev_state.scene_minor != SCENE_VS_ONLINE_VERSUS
         && state.scene_minor == SCENE_VS_ONLINE_VERSUS;
@@ -242,43 +252,43 @@ fn produce_event(prev_state: &DolphinState, state: &DolphinState) -> Event {
         && prev_state.scene_minor != SCENE_VS_ONLINE_RANKED
         && state.scene_minor == SCENE_VS_ONLINE_RANKED
     {
-        Event::RankedStageStrikeEntered
+        MeleeEvent::RankedStageStrikeEntered
     } else if !prev_state.in_menus && state.in_menus {
-        Event::MenuEntered
+        MeleeEvent::MenuEntered
     } else if prev_state.scene_major != SCENE_TITLE_SCREEN
         && state.scene_major == SCENE_TITLE_SCREEN
     {
-        Event::TitleScreenEntered
+        MeleeEvent::TitleScreenEntered
     } else if entered_vs_online_opponent_screen {
-        Event::VsOnlineOpponent
+        MeleeEvent::VsOnlineOpponent
     } else if prev_state.scene_major != SCENE_TROPHY_LOTTERY
         && state.scene_major == SCENE_TROPHY_LOTTERY
     {
-        Event::LotteryEntered
+        MeleeEvent::LotteryEntered
     } else if (!prev_state.in_game && state.in_game) || prev_state.stage_id != state.stage_id {
-        Event::GameStart(state.stage_id)
+        MeleeEvent::GameStart(state.stage_id)
     } else if prev_state.in_game && state.in_game && state.match_info == 1 {
-        Event::GameEnd
+        MeleeEvent::GameEnd
     } else if prev_state.volume != state.volume {
-        Event::SetVolume(state.volume)
+        MeleeEvent::SetVolume(state.volume)
     } else if !prev_state.is_paused && state.is_paused {
-        Event::Pause
+        MeleeEvent::Pause
     } else if prev_state.is_paused && !state.is_paused {
-        Event::Unpause
+        MeleeEvent::Unpause
     } else {
-        Event::NoOp
+        MeleeEvent::NoOp
     }
 }
 
 /// Handle a events received in the audio playback thread, by changing tracks,
 /// adjusting volume etc.
-fn handle_event(
-    event: Event,
+fn handle_melee_event(
+    event: MeleeEvent,
     sink: &Sink,
     track_id: &mut Option<TrackId>,
     volume: &mut f32,
 ) -> ControlFlow<()> {
-    use self::Event::*;
+    use self::MeleeEvent::*;
 
     // TODO:
     // - Intro movie
@@ -330,8 +340,8 @@ fn handle_event(
 
 /// Create a `DolphinState` by reading Dolphin's memory
 fn read_dolphin_state(ram_offset: &usize, dolphin_volume_percent: f32) -> Result<DolphinState> {
-    if !JUKEBOX_ENABLED.load(Ordering::Acquire) {
-        return Ok(DolphinState::default());
+    if ram_offset == &0 {
+        return Err(anyhow!("Null Pointer"));
     }
 
     // https://github.com/bkacjios/m-overlay/blob/d8c629d/source/modules/games/GALE01-2.lua#L8

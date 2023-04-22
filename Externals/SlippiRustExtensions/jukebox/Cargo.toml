@@ -11,6 +11,7 @@ publish = false
 
 [dependencies]
 anyhow = "1.0.70"
+bus = "2.4.0"
 directories = "5.0.0"
 dolphin-logger = { path = "../logger" }
 hps_decode = "0.1.1"
