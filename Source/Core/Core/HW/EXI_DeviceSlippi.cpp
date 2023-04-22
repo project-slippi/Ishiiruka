@@ -3176,7 +3176,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_GCT_LOAD:
 			prepareGctLoad(&memPtr[bufLoc + 1]);
-            slprs_exi_device_start_jukebox(slprs_exi_device_ptr, Memory::m_pRAM, AudioCommon::SendAIBuffer);
+            ConfigureJukebox();
 			break;
 		case CMD_GET_DELAY:
 			prepareDelayResponse();
@@ -3221,6 +3221,18 @@ void CEXISlippi::DMARead(u32 addr, u32 size)
 
 	// Copy buffer data to memory
 	Memory::CopyToEmu(addr, queueAddr, size);
+}
+
+// This method can also be called from the Settings panel, hence why 
+// it's extracted out.
+void CEXISlippi::ConfigureJukebox()
+{
+    slprs_exi_device_configure_jukebox(
+        slprs_exi_device_ptr,
+        SConfig::GetInstance().bSlippiJukeboxEnabled,
+        Memory::m_pRAM,
+        AudioCommon::SendAIBuffer
+    );
 }
 
 bool CEXISlippi::IsPresent() const

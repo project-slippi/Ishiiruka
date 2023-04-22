@@ -14,7 +14,7 @@ use slippi_exi_device::SlippiEXIDevice;
 ///
 /// The C++ (Dolphin) side of things should call this and pass the appropriate arguments. At
 /// that point, everything on the Rust side is its own universe, and should be told to shut
-/// down (at whatever point) via the corresponding `slprs_jukebox_destroy` function.
+/// down (at whatever point) via the corresponding `slprs_exi_device_destroy` function.
 ///
 /// The returned pointer from this should *not* be used after calling `slprs_exi_device_destroy`.
 #[no_mangle]
@@ -92,12 +92,13 @@ pub extern "C" fn slprs_exi_device_dma_read(
     let _leak = Box::into_raw(device);
 }
 
-/// Kicks off the Jukebox process. This needs to be called after the EXI device is created
+/// Configures the Jukebox process. This needs to be called after the EXI device is created
 /// in order for certain pieces of Dolphin to be properly initalized; this may change down
 /// the road though and is not set in stone.
 #[no_mangle]
-pub extern "C" fn slprs_exi_device_start_jukebox(
+pub extern "C" fn slprs_exi_device_configure_jukebox(
     exi_device_instance_ptr: usize,
+    is_enabled: bool,
     m_p_ram: *const u8,
     sample_handler_fn: unsafe extern "C" fn(samples: *const c_short, num_samples: c_uint),
 ) {
@@ -106,7 +107,7 @@ pub extern "C" fn slprs_exi_device_start_jukebox(
     // by the C++ EXI device, and is created/destroyed with the corresponding lifetimes.
     let mut device = unsafe { Box::from_raw(exi_device_instance_ptr as *mut SlippiEXIDevice) };
 
-    device.start_jukebox(m_p_ram, sample_handler_fn);
+    device.configure_jukebox(is_enabled, m_p_ram, sample_handler_fn);
 
     // Fall back into a raw pointer so Rust doesn't obliterate the object.
     let _leak = Box::into_raw(device);

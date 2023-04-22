@@ -24,6 +24,7 @@
 #include "Core/ConfigManager.h"
 #include "Core/Core.h"
 #include "Core/HW/EXI.h"
+#include "Core/HW/EXI_DeviceSlippi.h"
 #include "Core/HW/GCMemcard.h"
 #include "Core/HW/GCPad.h"
 #include "Core/NetPlayProto.h"
@@ -97,6 +98,11 @@ void SlippiNetplayConfigPane::InitializeGUI()
 	    _("Make inputs feel more console-like for overclocked GCC to USB "
 	      "adapters at the cost of 1.6ms of input lag (2ms for single-port official adapter)."));
 
+	m_slippi_jukebox_enabled_checkbox = new wxCheckBox(this, wxID_ANY, _("Enable Music"));
+	m_slippi_jukebox_enabled_checkbox->SetToolTip(
+	    _("Toggle in-game music for stages and menus. Changing this does not affect "
+	      "other audio like character hits or effects."));
+
 	const int space5 = FromDIP(5);
 	const int space10 = FromDIP(10);
 
@@ -143,6 +149,11 @@ void SlippiNetplayConfigPane::InitializeGUI()
 	sbSlippiInputSettings->Add(m_reduce_timing_dispersion_checkbox, 0, wxLEFT | wxRIGHT, space5);
 	sbSlippiInputSettings->AddSpacer(space5);
 
+	wxStaticBoxSizer *const sbSlippiJukeboxSettings = new wxStaticBoxSizer(wxVERTICAL, this, _("Slippi Jukebox Settings"));
+	sbSlippiJukeboxSettings->AddSpacer(space5);
+	sbSlippiJukeboxSettings->Add(m_slippi_jukebox_enabled_checkbox, 0, wxLEFT | wxRIGHT, space5);
+	sbSlippiJukeboxSettings->AddSpacer(space5);
+
 	wxBoxSizer *const main_sizer = new wxBoxSizer(wxVERTICAL);
 
 	main_sizer->AddSpacer(space5);
@@ -151,6 +162,8 @@ void SlippiNetplayConfigPane::InitializeGUI()
 	main_sizer->Add(sbSlippiOnlineSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	main_sizer->AddSpacer(space5);
 	main_sizer->Add(sbSlippiInputSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
+	main_sizer->AddSpacer(space5);
+	main_sizer->Add(sbSlippiJukeboxSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	main_sizer->AddSpacer(space5);
 
 	SetSizer(main_sizer);
@@ -194,6 +207,7 @@ void SlippiNetplayConfigPane::LoadGUIValues()
 	}
 
 	m_reduce_timing_dispersion_checkbox->SetValue(startup_params.bReduceTimingDispersion);
+	m_slippi_jukebox_enabled_checkbox->SetValue(startup_params.bSlippiJukeboxEnabled);
 }
 
 void SlippiNetplayConfigPane::BindEvents()
@@ -215,6 +229,9 @@ void SlippiNetplayConfigPane::BindEvents()
 	m_slippi_netplay_lan_ip_ctrl->Bind(wxEVT_TEXT, &SlippiNetplayConfigPane::OnNetplayLanIpChanged, this);
 
 	m_reduce_timing_dispersion_checkbox->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnReduceTimingDispersionToggle,
+	                                          this);
+
+	m_slippi_jukebox_enabled_checkbox->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnToggleJukeboxEnabled,
 	                                          this);
 }
 
@@ -298,6 +315,20 @@ void SlippiNetplayConfigPane::OnNetplayLanIpChanged(wxCommandEvent &event)
 void SlippiNetplayConfigPane::OnReduceTimingDispersionToggle(wxCommandEvent &event)
 {
 	SConfig::GetInstance().bReduceTimingDispersion = m_reduce_timing_dispersion_checkbox->GetValue();
+}
+
+void SlippiNetplayConfigPane::OnToggleJukeboxEnabled(wxCommandEvent &event)
+{
+    bool isEnabled = m_slippi_jukebox_enabled_checkbox->GetValue();
+
+	SConfig::GetInstance().bSlippiJukeboxEnabled = isEnabled;
+
+    // If we have a Slippi EXI device loaded, grab it and tell it to reconfigure the Jukebox.
+    CEXISlippi* slippiEXIDevice = (CEXISlippi*)ExpansionInterface::FindDevice(TEXIDevices::EXIDEVICE_SLIPPI);
+    if (slippiEXIDevice != nullptr)
+	{
+        slippiEXIDevice->ConfigureJukebox();
+	}
 }
 
 void SlippiNetplayConfigPane::PopulateEnableChatChoiceBox()

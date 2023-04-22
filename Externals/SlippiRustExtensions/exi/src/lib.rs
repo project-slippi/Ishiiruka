@@ -30,8 +30,18 @@ impl SlippiEXIDevice {
     /// Stubbed for now, but this would get called by the C++ EXI device on DMARead.
     pub fn dma_read(&mut self, _address: usize, _size: usize) {}
 
-    /// Initializes a new Jukebox.
-    pub fn start_jukebox(&mut self, m_p_ram: *const u8, sampler_fn: ForeignAudioSamplerFn) {
+    /// Configures a new Jukebox, or ensures an existing one is dropped if it's being disabled.
+    pub fn configure_jukebox(
+        &mut self,
+        is_enabled: bool,
+        m_p_ram: *const u8,
+        sampler_fn: ForeignAudioSamplerFn
+    ) {
+        if !is_enabled {
+            self.jukebox = None;
+            return;
+        }
+
         match Jukebox::new(m_p_ram, sampler_fn) {
             Ok(jukebox) => {
                 self.jukebox = Some(jukebox);

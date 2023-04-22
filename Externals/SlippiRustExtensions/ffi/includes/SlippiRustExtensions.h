@@ -10,7 +10,7 @@ extern "C" {
 ///
 /// The C++ (Dolphin) side of things should call this and pass the appropriate arguments. At
 /// that point, everything on the Rust side is its own universe, and should be told to shut
-/// down (at whatever point) via the corresponding `slprs_jukebox_destroy` function.
+/// down (at whatever point) via the corresponding `slprs_exi_device_destroy` function.
 ///
 /// The returned pointer from this should *not* be used after calling `slprs_exi_device_destroy`.
 uintptr_t slprs_exi_device_create();
@@ -35,12 +35,13 @@ void slprs_exi_device_dma_read(uintptr_t exi_device_instance_ptr,
                                const uint8_t *address,
                                const uint8_t *size);
 
-/// Kicks off the Jukebox process. This needs to be called after the EXI device is created
+/// Configures the Jukebox process. This needs to be called after the EXI device is created
 /// in order for certain pieces of Dolphin to be properly initalized; this may change down
 /// the road though and is not set in stone.
-void slprs_exi_device_start_jukebox(uintptr_t exi_device_instance_ptr,
-                                    const uint8_t *m_p_ram,
-                                    void (*sample_handler_fn)(const short *samples, unsigned int num_samples));
+void slprs_exi_device_configure_jukebox(uintptr_t exi_device_instance_ptr,
+                                        bool is_enabled,
+                                        const uint8_t *m_p_ram,
+                                        void (*sample_handler_fn)(const short *samples, unsigned int num_samples));
 
 /// This should be called from the Dolphin LogManager initialization to ensure that
 /// all logging needs on the Rust side are configured appropriately.
