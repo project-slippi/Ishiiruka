@@ -96,6 +96,9 @@
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </Message>
     </PreLinkEvent>
+    <ClCompile>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ExternalsDir)zlib;$(ExternalsDir)SlippiLib;$(ExternalsDir)nlohmann;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AboutDolphin.cpp" />
