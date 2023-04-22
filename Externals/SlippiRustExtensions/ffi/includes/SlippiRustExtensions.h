@@ -41,7 +41,9 @@ void slprs_exi_device_dma_read(uintptr_t exi_device_instance_ptr,
 void slprs_exi_device_configure_jukebox(uintptr_t exi_device_instance_ptr,
                                         bool is_enabled,
                                         const uint8_t *m_p_ram,
-                                        void (*sample_handler_fn)(const short *samples, unsigned int num_samples));
+                                        void (*set_sample_rate_fn)(uint32_t rate),
+                                        void (*set_volume_fn)(uint32_t left_volume, uint32_t right_volume),
+                                        void (*push_samples_fn)(const short *samples, uint32_t num_samples));
 
 /// This should be called from the Dolphin LogManager initialization to ensure that
 /// all logging needs on the Rust side are configured appropriately.

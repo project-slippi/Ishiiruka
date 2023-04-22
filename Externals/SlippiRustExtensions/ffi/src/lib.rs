@@ -100,14 +100,16 @@ pub extern "C" fn slprs_exi_device_configure_jukebox(
     exi_device_instance_ptr: usize,
     is_enabled: bool,
     m_p_ram: *const u8,
-    sample_handler_fn: unsafe extern "C" fn(samples: *const c_short, num_samples: c_uint),
+    set_sample_rate_fn: unsafe extern "C" fn(rate: u32),
+    set_volume_fn: unsafe extern "C" fn(left_volume: u32, right_volume: u32),
+    push_samples_fn: unsafe extern "C" fn(samples: *const c_short, num_samples: u32),
 ) {
     // Coerce the instance from the pointer. This is theoretically safe since we control
     // the C++ side and can guarantee that the `exi_device_instance_ptr` is only owned
     // by the C++ EXI device, and is created/destroyed with the corresponding lifetimes.
     let mut device = unsafe { Box::from_raw(exi_device_instance_ptr as *mut SlippiEXIDevice) };
 
-    device.configure_jukebox(is_enabled, m_p_ram, sample_handler_fn);
+    device.configure_jukebox(is_enabled, m_p_ram, set_sample_rate_fn, set_volume_fn, push_samples_fn);
 
     // Fall back into a raw pointer so Rust doesn't obliterate the object.
     let _leak = Box::into_raw(device);

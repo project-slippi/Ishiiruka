@@ -3252,7 +3252,34 @@ void CEXISlippi::ConfigureJukebox()
         slprs_exi_device_ptr,
         SConfig::GetInstance().bSlippiJukeboxEnabled,
         Memory::m_pRAM,
+
+        // set_sample_rate_fn
+        [](u32 sample_rate)
+        {
+            if (!g_sound_stream)
+                return;
+
+            CMixer* pMixer = g_sound_stream->GetMixer();
+            if (pMixer)
+            {
+                pMixer->SetStreamInputSampleRate(sample_rate);
+            }
+        },
+
+        // set_volume_fn
+        [](u32 left_volume, u32 right_volume)
+        {
+            if (!g_sound_stream)
+                return;
+
+            CMixer* pMixer = g_sound_stream->GetMixer();
+            if (pMixer)
+            {
+                pMixer->SetStreamingVolume(left_volume, right_volume);
+            }
+        },
         
+        // push_samples_fn
         [](const short* samples, unsigned int num_samples)
         {
             if (!g_sound_stream)

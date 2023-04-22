@@ -6,7 +6,7 @@
 //! Slippi stuff is happening" and enables us to let the Rust side live in its own world.
 
 use dolphin_logger::Log;
-use slippi_jukebox::{ForeignAudioSamplerFn, Jukebox};
+use slippi_jukebox::Jukebox;
 
 /// An EXI Device subclass specific to managing and interacting with the game itself.
 #[derive(Debug)]
@@ -35,14 +35,16 @@ impl SlippiEXIDevice {
         &mut self,
         is_enabled: bool,
         m_p_ram: *const u8,
-        sampler_fn: ForeignAudioSamplerFn
+        set_sample_rate_fn: slippi_jukebox::ForeignSetSampleRateFn,
+        set_volume_fn: slippi_jukebox::ForeignSetVolumeFn,
+        push_samples_fn: slippi_jukebox::ForeignPushSamplesFn,
     ) {
         if !is_enabled {
             self.jukebox = None;
             return;
         }
 
-        match Jukebox::new(m_p_ram, sampler_fn) {
+        match Jukebox::new(m_p_ram, set_sample_rate_fn, set_volume_fn, push_samples_fn) {
             Ok(jukebox) => {
                 self.jukebox = Some(jukebox);
             }

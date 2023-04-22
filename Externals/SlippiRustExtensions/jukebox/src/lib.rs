@@ -25,12 +25,16 @@ use tracks::TrackId;
 
 /// This handler definition represents a passed-in function for pushing audio samples
 /// into the current Dolphin SoundStream interface.
-pub type ForeignAudioSamplerFn = unsafe extern "C" fn(samples: *const c_short, num_samples: c_uint);
+pub type ForeignSetSampleRateFn = unsafe extern "C" fn(rate: u32);
+pub type ForeignSetVolumeFn = unsafe extern "C" fn(left_volume: u32, right_volume: u32);
+pub type ForeignPushSamplesFn = unsafe extern "C" fn(samples: *const c_short, num_samples: c_uint);
 
 #[derive(Debug)]
 pub struct Jukebox {
     m_p_ram: usize,
-    sampler_fn: ForeignAudioSamplerFn,
+    set_sample_rate_fn: ForeignSetSampleRateFn,
+    set_volume_fn: ForeignSetVolumeFn,
+    push_samples_fn: ForeignPushSamplesFn,
     memory_thread_handle: JoinHandle<Result<()>>,
     music_thread_handle: JoinHandle<Result<()>>,
     dolphin_event_bus: Bus<DolphinEvent>,
@@ -89,7 +93,9 @@ impl Jukebox {
     /// Returns a new configured Jukebox, ready to play.
     pub fn new(
         m_p_ram: *const u8,
-        sampler_fn: ForeignAudioSamplerFn,
+        set_sample_rate_fn: ForeignSetSampleRateFn,
+        set_volume_fn: ForeignSetVolumeFn,
+        push_samples_fn: ForeignPushSamplesFn,
     ) -> Result<Self, Box<dyn Error>> {
         let m_p_ram = m_p_ram as usize;
 
@@ -225,7 +231,9 @@ impl Jukebox {
 
         Ok(Self {
             m_p_ram,
-            sampler_fn,
+            push_samples_fn,
+            set_volume_fn,
+            set_sample_rate_fn,
             memory_thread_handle,
             music_thread_handle,
             dolphin_event_bus,
