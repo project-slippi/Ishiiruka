@@ -130,6 +130,21 @@ std::string ConvertConnectCodeForGame(const std::string &input)
 	return connectCode;
 }
 
+void JukeboxSendStreamingBuffer(const short* samples, unsigned int num_samples)
+{
+  if (!g_sound_stream)
+    return;
+
+  CMixer* pMixer = g_sound_stream->GetMixer();
+
+  if (pMixer && samples)
+  {
+    pMixer->PushStreamingSamples(samples, num_samples);
+  }
+
+  g_sound_stream->Update();
+}
+
 CEXISlippi::CEXISlippi()
 {
 	INFO_LOG(SLIPPI, "EXI SLIPPI Constructor called.");
@@ -3223,15 +3238,35 @@ void CEXISlippi::DMARead(u32 addr, u32 size)
 	Memory::CopyToEmu(addr, queueAddr, size);
 }
 
-// This method can also be called from the Settings panel, hence why 
-// it's extracted out.
+// We utilize the unused DTK stream for the Jukebox, and there's (at least in Ishiiruka)
+// no global method for pushing those samples. As this is Slippi-specific code I'm throwing it
+// here to avoid altering Dolphin more than necessary.
+//
+// One important note: this does rely on `DVDInterface.cpp` having its streaming samples push
+// commented out, otherwise null data will be getting mixed in.
+//
+// This method can also be called, indirectly, from the Settings panel.
 void CEXISlippi::ConfigureJukebox()
 {
     slprs_exi_device_configure_jukebox(
         slprs_exi_device_ptr,
         SConfig::GetInstance().bSlippiJukeboxEnabled,
         Memory::m_pRAM,
-        AudioCommon::SendAIBuffer
+        
+        [](const short* samples, unsigned int num_samples)
+        {
+            if (!g_sound_stream)
+                return;
+
+            CMixer* pMixer = g_sound_stream->GetMixer();
+
+            if (pMixer && samples)
+            {
+                pMixer->PushStreamingSamples(samples, num_samples);
+            }
+
+            g_sound_stream->Update();
+        }
     );
 }
 
