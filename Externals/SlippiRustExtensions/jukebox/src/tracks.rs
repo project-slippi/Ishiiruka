@@ -71,6 +71,7 @@ pub(crate) enum TrackId {
     FinalDestination,
     MultimanMelee2,
     BreakTheTargets,
+    BrinstarEscape,
     AllStarRestArea,
 }
 
@@ -126,8 +127,9 @@ pub(crate) fn identify_coefficients(coefficients: [u8; 8]) -> Option<(TrackId, u
         [0x03, 0x2A, 0xFF, 0xE6, 0x0A, 0x81, 0xFA, 0xE6] => Some((MultimanMelee, 3717984)),
         [0x09, 0x8D, 0xF9, 0xE0, 0x0E, 0x32, 0xF8, 0xCC] => Some((FinalDestination, 3270336)),
         [0x03, 0x43, 0xFE, 0x31, 0x0A, 0x6A, 0xFA, 0xF5] => Some((MultimanMelee2, 3354112)),
-        [0x02, 0xB7, 0xFE, 0xA0, 0x09, 0xFA, 0xFB, 0x3C] => Some((BreakTheTargets, 1542976)),
+        [0x05, 0xDB, 0xFD, 0x18, 0x0D, 0x50, 0xF9, 0x6D] => Some((BrinstarEscape, 2739968)),
         [0x0C, 0x73, 0xF9, 0xDB, 0x0F, 0x75, 0xF8, 0x3C] => Some((AllStarRestArea, 1004288)),
+        [0x02, 0xB7, 0xFE, 0xA0, 0x09, 0xFA, 0xFB, 0x3C] => Some((BreakTheTargets, 1542976)),
         _ => None,
     }
 }
@@ -138,7 +140,7 @@ pub(crate) fn get_stage_track_id(stage_id: u8) -> Option<TrackId> {
 
     // Stage IDs and their associated tracks
     let track_ids: Option<(TrackId, Option<TrackId>)> = match stage_id {
-        0x02 => Some((PeachsCastle, None)),
+        0x02 | 0x1F => Some((PeachsCastle, None)),
         0x03 => Some((RainbowCruise, None)),
         0x04 => Some((KongoJungle, None)),
         0x05 => Some((JungleJapes, None)),
@@ -171,11 +173,16 @@ pub(crate) fn get_stage_track_id(stage_id: u8) -> Option<TrackId> {
         0x26 => Some((Lottery, None)),
         // Race to the Finish
         0x27 => Some((Battlefield, None)),
+        // Adventure Mode Field Stages
+        0x20 => Some((Temple, None)),
+        0x21 => Some((BrinstarEscape, None)),
+        0x22 => Some((BigBlue, None)),
+        // All-Star Rest Area
+        0x42 => Some((AllStarRestArea, None)),
         // Break the Targets + Home Run Contest
         0x2C | 0x28 | 0x43 | 0x33 | 0x31 | 0x37 | 0x3D | 0x2B | 0x29 | 0x41 | 0x2D | 0x2E
         | 0x36 | 0x2F | 0x30 | 0x3B | 0x3E | 0x32 | 0x2A | 0x38 | 0x39 | 0x3A | 0x35 | 0x3F
         | 0x34 | 0x40 => Some((BreakTheTargets, None)),
-        0x42 => Some((AllStarRestArea, None)),
         _ => None,
     };
 
