@@ -7,6 +7,7 @@ use bus::Bus;
 use directories::BaseDirs;
 use dolphin_logger::Log;
 use hps_decode::{hps::Hps, pcm_iterator::PcmIterator};
+use itertools::Itertools;
 use process_memory::LocalMember;
 use process_memory::Memory;
 use rodio::{OutputStream, Sink};
@@ -177,24 +178,19 @@ impl Jukebox {
                         let sample_rate = hps.sample_rate;
                         let pcm: PcmIterator = hps.into();
 
-                        // Take two seconds of samples from the PCM stream
-                        let mut samples = pcm.take(128_000).collect::<Vec<_>>();
-                        samples.shrink_to_fit();
-                        // Sanity check
-                        tracing::info!(
-                            target: Log::Jukebox,
-                            "sample rate: {}, samples: {:?}",
-                            sample_rate,
-                            samples.iter().skip(64_000).take(20).collect::<Vec<_>>()
-                        );
-                        // Send the samples to Dolphin with `sampler_fn`
-                        let len = samples.len() as u32;
-                        let ptr = samples.as_ptr();
-                        std::mem::forget(samples);
-                        unsafe {
-                            set_sample_rate_fn(sample_rate);
-                            set_volume_fn(u32::MAX / 2, u32::MAX / 2);
-                            push_samples_fn(ptr, len);
+                        // Take half a second of pcm samples from the pcm stream
+                        for chunk in &pcm.chunks(3200) {
+                            let mut samples = chunk.collect::<Vec<_>>();
+                            samples.shrink_to_fit();
+                            let len = samples.len() as u32;
+                            let ptr = samples.as_ptr();
+                            std::mem::forget(samples);
+                            unsafe {
+                                set_sample_rate_fn(sample_rate);
+                                set_volume_fn(100, 100);
+                                push_samples_fn(ptr, len);
+                            }
+                            sleep(std::time::Duration::from_millis(20));
                         }
 
                         // Play song
