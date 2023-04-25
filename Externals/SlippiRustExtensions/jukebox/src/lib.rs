@@ -175,22 +175,22 @@ impl Jukebox {
 
                         // Parse data from the ISO into samples
                         let hps: Hps = bytes.try_into()?;
-                        let sample_rate = hps.sample_rate;
+                        let sample_rate = hps.sample_rate; //48000; //hps.sample_rate;
                         let pcm: PcmIterator = hps.into();
 
                         // Take half a second of pcm samples from the pcm stream
-                        for chunk in &pcm.chunks(3200) {
-                            let mut samples = chunk.collect::<Vec<_>>();
+                        for chunk in &pcm.chunks(2048) {
+                            let mut samples = chunk.map(i16::to_be).collect::<Vec<_>>();
                             samples.shrink_to_fit();
                             let len = samples.len() as u32;
                             let ptr = samples.as_ptr();
-                            std::mem::forget(samples);
+                            //std::mem::forget(samples);
                             unsafe {
                                 set_sample_rate_fn(sample_rate);
                                 set_volume_fn(100, 100);
                                 push_samples_fn(ptr, len);
                             }
-                            sleep(std::time::Duration::from_millis(20));
+                            sleep(std::time::Duration::from_millis(40));
                         }
 
                         // Play song

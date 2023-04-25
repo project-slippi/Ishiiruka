@@ -138,6 +138,18 @@ protected:
 		};
 	};
 
+	class SlippiMixerFifo: public MixerFifo
+	{
+	public:
+		SlippiMixerFifo(CMixer* mixer, u32 sample_rate): MixerFifo(mixer, sample_rate)
+		{}
+		void Interpolate(u32 left_input_index, float* left_output, float* right_output) override;
+		u32 GetWindowSize() override
+		{
+			return 8;
+		};
+	};
+
 	CubicMixerFifo m_dma_mixer;
 	CubicMixerFifo m_streaming_mixer;
 

@@ -130,21 +130,6 @@ std::string ConvertConnectCodeForGame(const std::string &input)
 	return connectCode;
 }
 
-void JukeboxSendStreamingBuffer(const short* samples, unsigned int num_samples)
-{
-  if (!g_sound_stream)
-    return;
-
-  CMixer* pMixer = g_sound_stream->GetMixer();
-
-  if (pMixer && samples)
-  {
-    pMixer->PushStreamingSamples(samples, num_samples);
-  }
-
-  g_sound_stream->Update();
-}
-
 CEXISlippi::CEXISlippi()
 {
 	INFO_LOG(SLIPPI, "EXI SLIPPI Constructor called.");
@@ -3256,6 +3241,7 @@ void CEXISlippi::ConfigureJukebox()
         // set_sample_rate_fn
         [](u32 sample_rate)
         {
+            INFO_LOG(AUDIO, "Rust setting sample rate: %i", sample_rate);
             if (!g_sound_stream)
                 return;
 
@@ -3264,11 +3250,13 @@ void CEXISlippi::ConfigureJukebox()
             {
                 pMixer->SetStreamInputSampleRate(sample_rate);
             }
+            INFO_LOG(AUDIO, "Rust sample rate set");
         },
 
         // set_volume_fn
         [](u32 left_volume, u32 right_volume)
         {
+            INFO_LOG(AUDIO, "Rust setting volume");
             if (!g_sound_stream)
                 return;
 
@@ -3277,11 +3265,13 @@ void CEXISlippi::ConfigureJukebox()
             {
                 pMixer->SetStreamingVolume(left_volume, right_volume);
             }
+            INFO_LOG(AUDIO, "Rust volume set");
         },
         
         // push_samples_fn
         [](const short* samples, unsigned int num_samples)
         {
+            INFO_LOG(AUDIO, "Rust pushing samples");
             if (!g_sound_stream)
                 return;
 
@@ -3290,6 +3280,7 @@ void CEXISlippi::ConfigureJukebox()
             if (pMixer && samples)
             {
                 pMixer->PushStreamingSamples(samples, num_samples);
+                INFO_LOG(AUDIO, "Rust samples pushed");
             }
 
             g_sound_stream->Update();
