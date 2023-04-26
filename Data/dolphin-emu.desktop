@@ -8,3 +8,4 @@ Categories=Game;Emulator;
 Name=Dolphin Emulator
 GenericName=Wii/GameCube Emulator
 Comment=A Wii/GameCube Emulator
+X-AppImage-Integrate=false
