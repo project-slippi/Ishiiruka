@@ -1,11 +1,12 @@
-#!/usr/bin/env python
-from __future__ import print_function
+#!/usr/bin/env python3
+
 import argparse
 import errno
 import os
 import re
 import shutil
 import subprocess
+from functools import reduce
 
 qtPath = None
 verbose = False
@@ -89,7 +90,7 @@ def updateMachO(bin, execPath, root):
 	global qtPath
 	otoolOutput = subprocess.check_output([otool, '-L', bin])
 	toUpdate = []
-	for line in otoolOutput.split('\n'):
+	for line in otoolOutput.decode().split('\n'):
 		oldPath, newPath, oldExecPath, newExecPath = parseOtoolLine(line, execPath, root)
 		if not newPath:
 			continue
@@ -148,13 +149,13 @@ if __name__ == '__main__':
 		fullPath = os.path.join(args.bundle, 'Contents/MacOS/', executable)
 		updateMachO(fullPath, splitPath(os.path.join(args.bundle, 'Contents/MacOS')), splitPath(args.root))
 
-        # Copy MoltenVK into the bundle frameworks folder; mainline differs here since they
-        # reworked all this some time ago, but the old wxWidgets build(s) used this script which blows away
-        # the frameworks folder and rebuilds it.
-        shutil.copy2(
-            args.bundle + '/../../../Externals/MoltenVK/libvulkan.dylib',
-            args.bundle + '/Contents/Frameworks/libvulkan.dylib'
-        )
+		# Copy MoltenVK into the bundle frameworks folder; mainline differs here since they
+		# reworked all this some time ago, but the old wxWidgets build(s) used this script which blows away
+		# the frameworks folder and rebuilds it.
+		shutil.copy2(
+			args.bundle + '/../../../Externals/MoltenVK/libvulkan.dylib',
+			args.bundle + '/Contents/Frameworks/libvulkan.dylib'
+		)
 
 	if args.qt_plugins:
 		try:

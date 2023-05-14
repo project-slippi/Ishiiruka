@@ -135,7 +135,7 @@ jobs:
             artifact_name: linux-playback
             build_config: playback
     name: "Ubuntu ${{ matrix.build_type }}"
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
       - name: "Checkout"
         uses: actions/checkout@v2
@@ -236,7 +236,7 @@ jobs:
             artifact_name: macOS-playback
             build_config: playback
     name: "macOS ${{ matrix.build_type }}"
-    runs-on: macos-10.15
+    runs-on: macos-11
     steps:
       - name: "Checkout"
         uses: actions/checkout@v2
@@ -272,7 +272,8 @@ jobs:
           pkgconfig \
           libao \
           sound-touch \
-          hidapi
+          hidapi \
+          python@3.10
       - name: "Build ${{ matrix.build_type }} Dolphin"
         if: success()
         shell: bash
