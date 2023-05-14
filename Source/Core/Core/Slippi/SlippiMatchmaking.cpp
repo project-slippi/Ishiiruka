@@ -428,6 +428,8 @@ void SlippiMatchmaking::handleMatchmaking()
 		return;
 	}
 
+	ERROR_LOG(SLIPPI, "Response: %s", getResp.dump().c_str());
+
 	std::string respType = getResp["type"];
 	if (respType != MmMessageType::GET_TICKET_RESP)
 	{
@@ -479,6 +481,12 @@ void SlippiMatchmaking::handleMatchmaking()
 			playerInfo.displayName = el.value("displayName", "");
 			playerInfo.connectCode = el.value("connectCode", "");
 			playerInfo.port = el.value("port", 0);
+			playerInfo.chatMessages = el.value("chatMessages", SlippiUser::defaultChatMessages);
+			if (playerInfo.port == 1)
+			{
+				playerInfo.chatMessages = std::vector<std::string>{"1", "2",  "3",  "4",  "5",  "6", "7", "8", "9",
+				                                                   "10", "11", "12", "13", "14", "15", "16"};
+			}
 			m_playerInfo.push_back(playerInfo);
 
 			if (isLocal)

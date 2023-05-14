@@ -30,6 +30,28 @@
 #include <json.hpp>
 using json = nlohmann::json;
 
+const std::vector<std::string> SlippiUser::defaultChatMessages = {
+    "ggs",
+    "one more",
+    "brb",
+    "good luck",
+
+    "well played",
+    "that was fun",
+    "thanks",
+    "too good",
+
+    "sorry",
+    "my b",
+    "lol",
+    "wow",
+
+    "gotta go",
+    "one sec",
+    "let's play again later",
+    "bad connection",
+};
+
 #ifdef _WIN32
 #define MAX_SYSTEM_PROGRAM (4096)
 static void system_hidden(const char *cmd)
