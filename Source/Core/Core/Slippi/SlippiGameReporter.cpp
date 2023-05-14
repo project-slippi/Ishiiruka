@@ -101,27 +101,30 @@ SlippiGameReporter::SlippiGameReporter(SlippiUser *user)
 
 	m_user = user;
 
+	runThread = true;
+	reportingThread = std::thread(&SlippiGameReporter::ReportThreadHandler, this);
+
 	// TODO: For mainline port, ISO file path can't be fetched this way. Look at the following:
 	// https://github.com/dolphin-emu/dolphin/blob/7f450f1d7e7d37bd2300f3a2134cb443d07251f9/Source/Core/Core/Movie.cpp#L246-L249
 	std::string file = SConfig::GetInstance().m_strFilename;
 	m_md5_thread = std::thread([this, file]() {
-		this->m_iso_hash = MD5::MD5Sum(file, [&](int progress) {
-			return true;
-		});
+		if (!runThread)
+			return;
+
+		this->m_iso_hash = MD5::MD5Sum(file, [&](int progress) { return true; });
+
+		if (!runThread)
+			return;
 
 		if (knownDesyncIsos.find(this->m_iso_hash) != knownDesyncIsos.end() && knownDesyncIsos.at(this->m_iso_hash))
 		{
-			OSD::AddTypedMessage(
-			    OSD::MessageType::DesyncWarning,
-			    "\n\n\n\nCAUTION: You are using an ISO that is known to cause desyncs",
-			    20000, OSD::Color::RED);
+			OSD::AddTypedMessage(OSD::MessageType::DesyncWarning,
+			                      "\n\n\n\nCAUTION: You are using an ISO that is known to cause desyncs", 20000,
+			                      OSD::Color::RED);
 		}
 		INFO_LOG(SLIPPI_ONLINE, "Md5 Hash: %s", this->m_iso_hash.c_str());
 	});
 	m_md5_thread.detach();
-
-	runThread = true;
-	reportingThread = std::thread(&SlippiGameReporter::ReportThreadHandler, this);
 }
 
 SlippiGameReporter::~SlippiGameReporter()
@@ -130,6 +133,9 @@ SlippiGameReporter::~SlippiGameReporter()
 	cv.notify_one();
 	if (reportingThread.joinable())
 		reportingThread.join();
+
+	if (m_md5_thread.joinable())
+		m_md5_thread.join();
 
 	if (m_curl)
 	{
