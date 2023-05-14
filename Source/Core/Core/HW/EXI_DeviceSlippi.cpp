@@ -1207,6 +1207,9 @@ void CEXISlippi::prepareIsFileReady()
 {
 	m_read_queue.clear();
 
+	// Hides frame index message on waiting for game screen
+	OSD::AddTypedMessage(OSD::MessageType::FrameIndex, "", 0, OSD::Color::CYAN);
+
 	auto isNewReplay = g_replayComm->isNewReplay();
 	if (!isNewReplay)
 	{

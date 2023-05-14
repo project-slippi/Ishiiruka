@@ -109,7 +109,7 @@ void SlippiPlaybackStatus::prepareSlippiPlayback(s32 &frameIndex)
 		frameDisplay << "Frame: " + std::to_string(frameIndex);
 		INFO_LOG(SLIPPI_ONLINE, "Replay Frame: %d", frameIndex);
 
-		OSD::AddTypedMessage(OSD::MessageType::FrameIndex, frameDisplay.str(), 1000, OSD::Color::CYAN);
+		OSD::AddTypedMessage(OSD::MessageType::FrameIndex, frameDisplay.str(), 100000000, OSD::Color::CYAN);
 	}
 
 	// TODO: figure out why sometimes playback frame increments past targetFrameNum
