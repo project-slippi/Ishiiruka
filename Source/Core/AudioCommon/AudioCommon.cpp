@@ -86,7 +86,7 @@ void InitSoundStream(void* hWnd)
     g_sound_stream->Start();
   }
 
-  if (SConfig::GetInstance().m_DumpAudio && !s_audio_dump_start)
+  if (!s_audio_dump_start)
     StartAudioDump();
 }
 
@@ -98,7 +98,7 @@ void ShutdownSoundStream()
   {
     g_sound_stream->Stop();
 
-    if (SConfig::GetInstance().m_DumpAudio && s_audio_dump_start)
+    if (s_audio_dump_start)
       StopAudioDump();
 
     g_sound_stream.reset();
@@ -195,12 +195,14 @@ void ClearAudioBuffer(bool mute)
 
 void SendAIBuffer(const short* samples, unsigned int num_samples)
 {
+    return;
   if (!g_sound_stream)
     return;
 
-  if (SConfig::GetInstance().m_DumpAudio && !s_audio_dump_start)
+  //if (SConfig::GetInstance().m_DumpAudio && !s_audio_dump_start)
+  if (!s_audio_dump_start)
     StartAudioDump();
-  else if (!SConfig::GetInstance().m_DumpAudio && s_audio_dump_start)
+  else if (s_audio_dump_start)
     StopAudioDump();
 
   CMixer* pMixer = g_sound_stream->GetMixer();
