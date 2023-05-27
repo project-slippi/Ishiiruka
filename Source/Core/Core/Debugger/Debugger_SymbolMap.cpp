@@ -50,7 +50,7 @@ static void WalkTheStack(const std::function<void(u32)>& stack_step)
 
 		// Walk the stack chain
 		for (int count = 0;
-			!IsStackBottom(addr + 4) && (count++ < 20);
+			!IsStackBottom(addr + 4) && (count++ < 60);
 			++count)
 		{
 			u32 func_addr = PowerPC::HostRead_U32(addr + 4);

@@ -2,6 +2,8 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include "Core/Debugger/Debugger_SymbolMap.h"
+
 #include <sstream>
 #include <string>
 #include <vector>
@@ -222,6 +224,7 @@ bool TMemCheck::Action(DebugInterface* debug_interface, u32 iValue, u32 addr, bo
 			NOTICE_LOG(MEMMAP, "MBP %08x (%s) %s%i %0*x at %08x (%s)", pc,
 				debug_interface->GetDescription(pc).c_str(), write ? "Write" : "Read", size * 8,
 				size * 2, iValue, addr, debug_interface->GetDescription(addr).c_str());
+			Dolphin_Debugger::PrintCallstack(LogTypes::MEMMAP, LogTypes::LOG_LEVELS::LERROR);
 		}
 		if (Break)
 			return true;
