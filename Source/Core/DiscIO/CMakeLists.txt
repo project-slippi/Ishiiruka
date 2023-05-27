@@ -16,7 +16,6 @@ set(SRCS	Blob.cpp
 			VolumeDirectory.cpp
 			VolumeGC.cpp
 			VolumeWad.cpp
-			VolumeWiiCrypted.cpp
 			WiiWad.cpp)
 
 add_dolphin_library(discio "${SRCS}" "")
