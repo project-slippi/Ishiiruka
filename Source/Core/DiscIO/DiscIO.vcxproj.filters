@@ -66,9 +66,6 @@
     <ClCompile Include="VolumeWad.cpp">
       <Filter>Volume</Filter>
     </ClCompile>
-    <ClCompile Include="VolumeWiiCrypted.cpp">
-      <Filter>Volume</Filter>
-    </ClCompile>
     <ClCompile Include="Enums.cpp">
       <Filter>Volume</Filter>
     </ClCompile>
@@ -129,9 +126,6 @@
       <Filter>Volume</Filter>
     </ClInclude>
     <ClInclude Include="VolumeWad.h">
-      <Filter>Volume</Filter>
-    </ClInclude>
-    <ClInclude Include="VolumeWiiCrypted.h">
       <Filter>Volume</Filter>
     </ClInclude>
     <ClInclude Include="Enums.h">
