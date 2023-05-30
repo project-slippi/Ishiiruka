@@ -63,6 +63,7 @@ namespace Slippi {
     float rTrigger;
 
     uint8_t joystickXRaw;
+    uint8_t joystickYRaw;
   } PlayerFrameData;
 
   typedef struct FrameData {
