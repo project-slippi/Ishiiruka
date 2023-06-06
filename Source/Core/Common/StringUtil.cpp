@@ -551,10 +551,13 @@ std::string CodeToWithFallbacks(const char *tocode, const char *fromcode, const 
 
 	iconv_t const conv_desc = iconv_open(tocode, fromcode);
 
+	// Only on OS X can we call iconvctl, it isn't found on Linux
+#ifdef __APPLE__
 	if (fallbacks)
 	{
 		iconvctl(conv_desc, ICONV_SET_FALLBACKS, fallbacks);
 	}
+#endif
 
 	if ((iconv_t)-1 == conv_desc)
 	{
