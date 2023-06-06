@@ -3030,6 +3030,13 @@ void CEXISlippi::handleGetPlayerSettings()
 	    SlippiUser::defaultChatMessages, SlippiUser::defaultChatMessages, SlippiUser::defaultChatMessages,
 	    SlippiUser::defaultChatMessages};
 
+	// These chat messages will be used when previewing messages
+	auto userChatMessages = user->GetUserInfo().chatMessages;
+	if (userChatMessages.size() == 16) {
+		messagesByPlayer[0] = userChatMessages;
+	}
+
+	// These chat messages will be set when we have an opponent. We load their and our messages
 	auto playerInfo = matchmaking->GetPlayerInfo();
 	for (auto &player : playerInfo)
 	{

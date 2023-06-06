@@ -319,6 +319,16 @@ SlippiUser::UserInfo SlippiUser::parseFile(std::string fileContents)
 	info.connectCode = readString(res, "connectCode");
 	info.latestVersion = readString(res, "latestVersion");
 
+	info.chatMessages = SlippiUser::defaultChatMessages;
+	if (res["chatMessages"].is_array())
+	{
+		info.chatMessages = res.value("chatMessages", SlippiUser::defaultChatMessages);
+		if (info.chatMessages.size() != 16)
+		{
+			info.chatMessages = SlippiUser::defaultChatMessages;
+		}
+	}
+
 	return info;
 }
 
@@ -344,7 +354,7 @@ void SlippiUser::overwriteFromServer()
 
 	// Perform curl request
 	std::string resp;
-	curl_easy_setopt(m_curl, CURLOPT_URL, (url + "/" + userInfo.uid).c_str());
+	curl_easy_setopt(m_curl, CURLOPT_URL, (url + "/" + userInfo.uid + "?additionalFields=chatMessages").c_str());
 	curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &resp);
 	CURLcode res = curl_easy_perform(m_curl);
 
@@ -367,4 +377,13 @@ void SlippiUser::overwriteFromServer()
 	userInfo.connectCode = r.value("connectCode", userInfo.connectCode);
 	userInfo.latestVersion = r.value("latestVersion", userInfo.latestVersion);
 	userInfo.displayName = r.value("displayName", userInfo.displayName);
+
+	if (r["chatMessages"].is_array())
+	{
+		userInfo.chatMessages = r.value("chatMessages", SlippiUser::defaultChatMessages);
+		if (userInfo.chatMessages.size() != 16)
+		{
+			userInfo.chatMessages = SlippiUser::defaultChatMessages;
+		}
+	}
 }
