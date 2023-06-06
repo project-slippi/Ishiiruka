@@ -428,8 +428,6 @@ void SlippiMatchmaking::handleMatchmaking()
 		return;
 	}
 
-	ERROR_LOG(SLIPPI, "Response: %s", getResp.dump().c_str());
-
 	std::string respType = getResp["type"];
 	if (respType != MmMessageType::GET_TICKET_RESP)
 	{

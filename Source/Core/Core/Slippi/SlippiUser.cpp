@@ -30,45 +30,23 @@
 #include <json.hpp>
 using json = nlohmann::json;
 
-//const std::vector<std::string> SlippiUser::defaultChatMessages = {
-//    "ggs",
-//    "one more",
-//    "brb",
-//    "good luck",
-//
-//    "well played",
-//    "that was fun",
-//    "thanks",
-//    "too good",
-//
-//    "sorry",
-//    "my b",
-//    "lol",
-//    "wow",
-//
-//    "gotta go",
-//    "one sec",
-//    "let's play again later",
-//    "bad connection",
-//};
-
 const std::vector<std::string> SlippiUser::defaultChatMessages = {
     "ggs",
     "one more",
     "brb",
     "good luck",
 
-		"imo should be replayed",
-    "we both played good",
-    "we both played bad",
-    "crimson blur hits that",
+    "well played",
+    "that was fun",
+    "thanks",
+    "too good",
 
-    ":3",
-    ":)",
-    ":(",
-    ">:[",
+    "sorry",
+    "my b",
+    "lol",
+    "wow",
 
-    "XD",
+    "gotta go",
     "one sec",
     "let's play again later",
     "bad connection",
