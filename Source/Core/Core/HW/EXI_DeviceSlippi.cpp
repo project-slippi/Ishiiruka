@@ -3040,7 +3040,8 @@ void CEXISlippi::handleGetPlayerSettings()
 	{
 		for (int j = 0; j < 16; j++) 
 		{
-			sprintf(resp.settings[i].chatMessages[j], "%s", messagesByPlayer[i][j].c_str());
+			auto str = ConvertStringForGame(messagesByPlayer[i][j], MAX_MESSAGE_LENGTH);
+			sprintf(resp.settings[i].chatMessages[j], "%s", str.c_str());
 		}
 	}
 

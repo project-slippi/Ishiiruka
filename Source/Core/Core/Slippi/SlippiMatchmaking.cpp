@@ -481,12 +481,16 @@ void SlippiMatchmaking::handleMatchmaking()
 			playerInfo.displayName = el.value("displayName", "");
 			playerInfo.connectCode = el.value("connectCode", "");
 			playerInfo.port = el.value("port", 0);
-			playerInfo.chatMessages = el.value("chatMessages", SlippiUser::defaultChatMessages);
-			if (playerInfo.port == 1)
+			playerInfo.chatMessages = SlippiUser::defaultChatMessages;
+			if (el["chatMessages"].is_array())
 			{
-				playerInfo.chatMessages = std::vector<std::string>{"1", "2",  "3",  "4",  "5",  "6", "7", "8", "9",
-				                                                   "10", "11", "12", "13", "14", "15", "16"};
+				playerInfo.chatMessages = el.value("chatMessages", SlippiUser::defaultChatMessages);
+				if (playerInfo.chatMessages.size() != 16)
+				{
+					playerInfo.chatMessages = SlippiUser::defaultChatMessages;
+				}
 			}
+			
 			m_playerInfo.push_back(playerInfo);
 
 			if (isLocal)

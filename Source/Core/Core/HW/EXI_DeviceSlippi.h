@@ -22,6 +22,7 @@
 
 #define ROLLBACK_MAX_FRAMES 7
 #define MAX_NAME_LENGTH 15
+#define MAX_MESSAGE_LENGTH 25
 #define CONNECT_CODE_LENGTH 8
 
 extern bool g_needInputForFrame;
