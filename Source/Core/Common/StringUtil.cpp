@@ -661,7 +661,7 @@ void uc_to_mb_fb(unsigned int code, void (*write_replacement)(const char *buf, s
 
 std::string UTF8ToSHIFTJIS(const std::string &input)
 {
-	iconv_fallbacks *fallbacks = NULL;
+	iconv_fallbacks *fallbacks = nullptr;
 #ifdef __APPLE__
 	// Set SHIFTJIS callbacks only if converting to shift jis
 	fallbacks = new iconv_fallbacks();
