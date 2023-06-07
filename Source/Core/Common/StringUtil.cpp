@@ -543,12 +543,11 @@ std::string UTF32toUTF8(const std::u32string &input)
 	return utf8Convert.to_bytes(p, p + input.size());
 }
 #else
-#ifdef __APPLE__
 template <typename T>
+#ifdef __APPLE__
 std::string CodeToWithFallbacks(const char *tocode, const char *fromcode, const std::basic_string<T> &input,
                                 iconv_fallbacks *fallbacks)
 #else
-template <typename T>
 std::string CodeTo(const char *tocode, const char *fromcode, const std::basic_string<T> &input)
 #endif
 {
