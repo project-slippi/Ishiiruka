@@ -544,8 +544,12 @@ std::string UTF32toUTF8(const std::u32string &input)
 }
 #else
 template <typename T>
+#ifdef __APPLE__
 std::string CodeToWithFallbacks(const char *tocode, const char *fromcode, const std::basic_string<T> &input,
                                 iconv_fallbacks *fallbacks)
+#elif
+std::string CodeTo(const char *tocode, const char *fromcode, const std::basic_string<T> &input)
+#endif
 {
 	std::string result;
 
@@ -609,10 +613,12 @@ std::string CodeToWithFallbacks(const char *tocode, const char *fromcode, const 
 	return result;
 }
 
+#ifdef __APPLE__
 template <typename T> std::string CodeTo(const char *tocode, const char *fromcode, const std::basic_string<T> &input)
 {
 	return CodeToWithFallbacks(tocode, fromcode, input, nullptr);
 }
+#endif
 
 template <typename T>
 std::string CodeToUTF8(const char* fromcode, const std::basic_string<T>& input)
