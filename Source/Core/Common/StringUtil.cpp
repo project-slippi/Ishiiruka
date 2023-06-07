@@ -543,11 +543,12 @@ std::string UTF32toUTF8(const std::u32string &input)
 	return utf8Convert.to_bytes(p, p + input.size());
 }
 #else
-template <typename T>
 #ifdef __APPLE__
+template <typename T>
 std::string CodeToWithFallbacks(const char *tocode, const char *fromcode, const std::basic_string<T> &input,
                                 iconv_fallbacks *fallbacks)
-#elif
+#else
+template <typename T>
 std::string CodeTo(const char *tocode, const char *fromcode, const std::basic_string<T> &input)
 #endif
 {
@@ -677,7 +678,7 @@ std::string UTF8ToSHIFTJIS(const std::string &input)
 	fallbacks->data = nullptr;
 	auto str = CodeToWithFallbacks("SJIS", "UTF-8", input, fallbacks);
 	free(fallbacks);
-#elif
+#else
 	auto str = CodeTo("SJIS", "UTF-8", input);
 #endif
 	return str;
