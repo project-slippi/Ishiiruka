@@ -21,6 +21,8 @@ class SlippiUser
 		std::string fileContents = "";
 
 		int port;
+
+		std::vector<std::string> chatMessages;
 	};
 
 	SlippiUser();
@@ -35,6 +37,8 @@ class SlippiUser
 	UserInfo GetUserInfo();
 	bool IsLoggedIn();
 	void FileListenThread();
+
+	const static std::vector<std::string> defaultChatMessages;
 
   protected:
 	UserInfo parseFile(std::string fileContents);

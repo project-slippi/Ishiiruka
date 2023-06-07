@@ -1233,13 +1233,6 @@
    "Tags": ""
   },
   {
-   "InjectionAddress": "800056AC",
-   "Name": "Required: Slippi Online",
-   "Codetype": "Auto",
-   "Annotation": "Online/Static/ChatMessages.asm",
-   "Tags": ""
-  },
-  {
    "InjectionAddress": "80005690",
    "Name": "Required: Slippi Online",
    "Codetype": "Auto",
