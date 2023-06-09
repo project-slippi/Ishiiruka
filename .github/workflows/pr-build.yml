@@ -22,6 +22,7 @@ jobs:
         with:
           components: rustfmt
       - name: Rustfmt Check
+        working-directory: ./Externals/SlippiRustExtensions
         uses: actions-rust-lang/rustfmt@v1
 
   skip_duplicates:
