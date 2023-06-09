@@ -23,7 +23,7 @@ use layer::{convert_dolphin_log_level_to_tracing_level, DolphinLoggerLayer};
 ///
 /// This should correspond to:
 ///
-/// ```
+/// ``` notest
 /// void LogFn(level, log_type, msg);
 /// ```
 pub(crate) type ForeignLoggerFn = unsafe extern "C" fn(c_int, c_int, *const c_char);
