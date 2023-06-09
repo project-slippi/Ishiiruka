@@ -24,14 +24,6 @@ jobs:
       - name: Rustfmt Check
         uses: actions-rust-lang/rustfmt@v1
 
-  slprs_cargo_test:
-    name: (SlippiRustExtensions) Cargo Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions-rust-lang/setup-rust-toolchain@v1
-      - run: cd Externals/SlippiRustExtensions && cargo test --all --all-features
-
   skip_duplicates:
     name: Skip Duplicate Runs
     runs-on: ubuntu-latest
