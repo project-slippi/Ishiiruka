@@ -17,8 +17,8 @@ jobs:
     name: (SlippiRustExtensions) Cargo Fmt
     runs-on: ubuntu-latest
     defaults:
-      - run:
-          working-directory: ./Externals/SlippiRustExtensions
+      run:
+        working-directory: ./Externals/SlippiRustExtensions
     steps:
       - uses: actions/checkout@v3
       - uses: actions-rust-lang/setup-rust-toolchain@v1
