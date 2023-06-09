@@ -13,6 +13,25 @@ on:
       - "**.md"
 
 jobs:
+  slprs_cargo_fmt:
+    name: (SlippiRustExtensions) Cargo Fmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: rustfmt
+      - name: Rustfmt Check
+        uses: actions-rust-lang/rustfmt@v1
+
+  slprs_cargo_test:
+    name: (SlippiRustExtensions) Cargo Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - run: cd Externals/SlippiRustExtensions && cargo test --all --all-features
+
   skip_duplicates:
     name: Skip Duplicate Runs
     runs-on: ubuntu-latest
@@ -26,7 +45,7 @@ jobs:
           do_not_skip: '["push", "workflow_dispatch", "schedule"]'
 
   windows:
-    needs: skip_duplicates
+    needs: [skip_duplicates, slprs_cargo_fmt]
     if: ${{ needs.skip_duplicates.outputs.should_skip != 'true' }}
     strategy:
       fail-fast: false
@@ -47,6 +66,10 @@ jobs:
     steps:
       - name: "Checkout"
         uses: actions/checkout@v2
+      - name: "Install Rust"
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: "(SlippiRustExtensions) Run cargo test"
+        run: cargo test --all --all-features --manifest-path=Externals/SlippiRustExtensions/Cargo.toml
       - name: "Remove Redistributable"
         shell: cmd
         run: |
@@ -121,7 +144,7 @@ jobs:
           path: "./artifact/"
   
   linux:
-    needs: skip_duplicates
+    needs: [skip_duplicates, slprs_cargo_fmt]
     if: ${{ needs.skip_duplicates.outputs.should_skip != 'true' }}
     strategy:
       fail-fast: false
@@ -191,6 +214,10 @@ jobs:
           qtbase5-private-dev \
           libxxf86vm-dev \
           x11proto-xinerama-dev
+      - name: "Install Rust"
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: "(SlippiRustExtensions) Run cargo test"
+        run: cargo test --all --all-features --manifest-path=Externals/SlippiRustExtensions/Cargo.toml
       - name: "Build ${{ matrix.build_type }} Dolphin"
         if: success()
         working-directory: ${{ github.workspace }}
@@ -222,7 +249,7 @@ jobs:
           path: "./artifact/"
   
   macOS:
-    needs: skip_duplicates
+    needs: [skip_duplicates, slprs_cargo_fmt]
     if: ${{ needs.skip_duplicates.outputs.should_skip != 'true' }}
     strategy:
       fail-fast: false
@@ -274,6 +301,10 @@ jobs:
           sound-touch \
           hidapi \
           python@3.10
+      - name: "Install Rust"
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: "(SlippiRustExtensions) Run cargo test"
+        run: cargo test --all --all-features --manifest-path=Externals/SlippiRustExtensions/Cargo.toml
       - name: "Build ${{ matrix.build_type }} Dolphin"
         if: success()
         shell: bash
