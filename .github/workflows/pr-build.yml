@@ -16,13 +16,15 @@ jobs:
   slprs_cargo_fmt:
     name: (SlippiRustExtensions) Cargo Fmt
     runs-on: ubuntu-latest
+    defaults:
+      - run:
+          working-directory: ./Externals/SlippiRustExtensions
     steps:
       - uses: actions/checkout@v3
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           components: rustfmt
       - name: Rustfmt Check
-        working-directory: ${{ github.workspace }}/Externals/SlippiRustExtensions
         uses: actions-rust-lang/rustfmt@v1
 
   skip_duplicates:
