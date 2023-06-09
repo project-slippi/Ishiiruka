@@ -21,10 +21,10 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           components: rustfmt
-      - name: Change into Externals/SlippiRustExtensions
-        run: cd Externals/SlippiRustExtensions
       - name: Rustfmt Check
         uses: actions-rust-lang/rustfmt@v1
+        with:
+          manifest-path: ./Externals/SlippiRustExtensions/Cargo.toml
 
   skip_duplicates:
     name: Skip Duplicate Runs
