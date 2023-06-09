@@ -19,6 +19,5 @@ std::unique_ptr<IVolume> CreateVolumeFromFilename(const std::string& filename,
 std::unique_ptr<IVolume> CreateVolumeFromDirectory(const std::string& directory, bool is_wii,
 	const std::string& apploader = "",
 	const std::string& dol = "");
-void VolumeKeyForPartition(IBlobReader& _rReader, u64 offset, u8* VolumeKey);
 
 }  // namespace

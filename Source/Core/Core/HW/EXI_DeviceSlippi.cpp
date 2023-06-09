@@ -922,7 +922,7 @@ void CEXISlippi::prepareCharacterFrameData(Slippi::FrameData *frame, u8 port, u8
 	source = isFollower ? frame->followers : frame->players;
 
 	// This must be updated if new data is added
-	int characterDataLen = 49;
+	int characterDataLen = 50;
 
 	// Check if player exists
 	if (!source.count(port))
@@ -955,6 +955,7 @@ void CEXISlippi::prepareCharacterFrameData(Slippi::FrameData *frame, u8 port, u8
 	appendWordToBuffer(&m_read_queue, *(u32 *)&data.facingDirection);
 	appendWordToBuffer(&m_read_queue, (u32)data.animation);
 	m_read_queue.push_back(data.joystickXRaw);
+	m_read_queue.push_back(data.joystickYRaw);
 	appendWordToBuffer(&m_read_queue, *(u32 *)&data.percent);
 	// NOTE TO DEV: If you add data here, make sure to increase the size above
 }
@@ -1215,6 +1216,9 @@ void CEXISlippi::prepareIsStockSteal(u8 *payload)
 void CEXISlippi::prepareIsFileReady()
 {
 	m_read_queue.clear();
+
+	// Hides frame index message on waiting for game screen
+	OSD::AddTypedMessage(OSD::MessageType::FrameIndex, "", 0, OSD::Color::CYAN);
 
 	auto isNewReplay = g_replayComm->isNewReplay();
 	if (!isNewReplay)
@@ -2075,7 +2079,7 @@ void CEXISlippi::prepareOnlineMatchState()
 	chatMessagePlayerIdx = 0;
 	localChatMessageId = 0;
 	// in CSS p1 is always current player and p2 is opponent
-	localPlayerName = p1Name = "Player 1";
+	localPlayerName = p1Name = userInfo.displayName;
 	oppName = p2Name = "Player 2";
 #endif
 
@@ -3025,6 +3029,42 @@ void CEXISlippi::handleCompleteSet(const SlippiExiTypes::ReportSetCompletionQuer
 	}
 }
 
+void CEXISlippi::handleGetPlayerSettings()
+{
+	m_read_queue.clear();
+
+	SlippiExiTypes::GetPlayerSettingsResponse resp = {};
+	
+	std::vector<std::vector<std::string>> messagesByPlayer = {
+	    SlippiUser::defaultChatMessages, SlippiUser::defaultChatMessages, SlippiUser::defaultChatMessages,
+	    SlippiUser::defaultChatMessages};
+
+	// These chat messages will be used when previewing messages
+	auto userChatMessages = user->GetUserInfo().chatMessages;
+	if (userChatMessages.size() == 16) {
+		messagesByPlayer[0] = userChatMessages;
+	}
+
+	// These chat messages will be set when we have an opponent. We load their and our messages
+	auto playerInfo = matchmaking->GetPlayerInfo();
+	for (auto &player : playerInfo)
+	{
+		messagesByPlayer[player.port - 1] = player.chatMessages;
+	}
+
+	for (int i = 0; i < 4; i++)
+	{
+		for (int j = 0; j < 16; j++) 
+		{
+			auto str = ConvertStringForGame(messagesByPlayer[i][j], MAX_MESSAGE_LENGTH);
+			sprintf(resp.settings[i].chatMessages[j], "%s", str.c_str());
+		}
+	}
+
+	auto data_ptr = (u8 *)&resp;
+	m_read_queue.insert(m_read_queue.end(), data_ptr, data_ptr + sizeof(SlippiExiTypes::GetPlayerSettingsResponse));
+}
+
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 {
 	u8 *memPtr = Memory::GetPointer(_uAddr);
@@ -3192,6 +3232,9 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_REPORT_SET_COMPLETE:
 			handleCompleteSet(SlippiExiTypes::Convert<SlippiExiTypes::ReportSetCompletionQuery>(&memPtr[bufLoc]));
+			break;
+		case CMD_GET_PLAYER_SETTINGS:
+			handleGetPlayerSettings();
 			break;
 		default:
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "");
