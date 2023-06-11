@@ -1,10 +1,9 @@
 use once_cell::sync::Lazy;
-use rand::Rng;
 
 // 25% chance upon initialization to use the
 // alternate menu theme for the rest of the session
 pub(crate) static MENU_TRACK: Lazy<TrackId> = Lazy::new(|| {
-    if rand::thread_rng().gen_range(0..4) == 0 {
+    if fastrand::u8(0..4) == 0 {
         TrackId::Menu2
     } else {
         TrackId::Menu1
@@ -14,7 +13,7 @@ pub(crate) static MENU_TRACK: Lazy<TrackId> = Lazy::new(|| {
 // 50% chance upon initialization to use the alternate tournament
 // mode track for the rest of the session
 pub(crate) static TOURNAMENT_MODE_TRACK: Lazy<TrackId> = Lazy::new(|| {
-    if rand::thread_rng().gen_range(0..2) == 0 {
+    if fastrand::u8(0..2) == 0 {
         TrackId::TournamentMode1
     } else {
         TrackId::TournamentMode2
@@ -189,7 +188,7 @@ pub(crate) fn get_stage_track_id(stage_id: u8) -> Option<TrackId> {
     // If the stage has an alternate track associated, there's a 12.5% chance it will be selected
     match track_ids {
         Some(track_ids) => match track_ids {
-            (_, Some(id)) if rand::thread_rng().gen_range(0..8) == 0 => Some(id),
+            (_, Some(id)) if fastrand::u8(0..8) == 0 => Some(id),
             (id, _) => Some(id),
         },
         None => None,

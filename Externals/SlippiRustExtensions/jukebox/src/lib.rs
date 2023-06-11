@@ -26,11 +26,6 @@ pub type ForeignSetSampleRateFn = unsafe extern "C" fn(rate: u32);
 pub type ForeignSetVolumeFn = unsafe extern "C" fn(left_volume: u32, right_volume: u32);
 pub type ForeignPushSamplesFn = unsafe extern "C" fn(samples: *const c_short, num_samples: c_uint);
 
-#[derive(Debug)]
-pub struct Jukebox {
-    bus: Bus<JukeboxEvent>,
-}
-
 const THREAD_LOOP_SLEEP_TIME_MS: u64 = 30;
 
 #[derive(Debug, PartialEq)]
@@ -78,6 +73,11 @@ enum MeleeEvent {
 #[derive(Debug, Clone)]
 enum JukeboxEvent {
     Dropped,
+}
+
+#[derive(Debug)]
+pub struct Jukebox {
+    bus: Bus<JukeboxEvent>,
 }
 
 impl Jukebox {
@@ -133,12 +133,12 @@ impl Jukebox {
                 }
 
                 // Continuously check if the dolphin state has changed
-                let state = read_dolphin_state(&m_p_ram, dolphin_volume_percent);
+                let state = Self::read_dolphin_state(&m_p_ram, dolphin_volume_percent);
 
                 // If the state has changed,
                 if prev_state != state {
                     // send an event to the music player thread
-                    let event = produce_melee_event(&prev_state, &state);
+                    let event = Self::produce_melee_event(&prev_state, &state);
                     tracing::info!(target: Log::Jukebox, "{:?}", event);
 
                     tx_melee.send(event)?;
@@ -203,7 +203,7 @@ impl Jukebox {
                         // changing the volume, updating the track and breaking
                         // the loop such that the next track starts to play,
                         // etc.
-                        match handle_melee_event(event, &sink, &mut track_id, &mut volume) {
+                        match Self::handle_melee_event(event, &sink, &mut track_id, &mut volume) {
                             Break(_) => break,
                             _ => (),
                         }
@@ -221,148 +221,148 @@ impl Jukebox {
             bus: jukebox_event_bus,
         })
     }
+
+    /// Handle a events received in the audio playback thread, by changing tracks,
+    /// adjusting volume etc.
+    fn handle_melee_event(
+        event: MeleeEvent,
+        sink: &Sink,
+        track_id: &mut Option<TrackId>,
+        volume: &mut f32,
+    ) -> ControlFlow<()> {
+        use self::MeleeEvent::*;
+
+        // TODO:
+        // - Intro movie
+        //
+        // - classic vs screen
+        // - classic victory screen
+        // - classic game over screen
+        // - classic credits
+        // - classic "congratulations movie"
+        // - Adventure mode field intro music
+
+        match event {
+            TitleScreenEntered | GameEnd => {
+                *track_id = None;
+            }
+            MenuEntered => {
+                *track_id = Some(*tracks::MENU_TRACK);
+            }
+            LotteryEntered => {
+                *track_id = Some(tracks::TrackId::Lottery);
+            }
+            VsOnlineOpponent => {
+                *track_id = Some(tracks::TrackId::VsOpponent);
+            }
+            RankedStageStrikeEntered => {
+                *track_id = Some(*tracks::TOURNAMENT_MODE_TRACK);
+            }
+            GameStart(stage_id) => {
+                *track_id = tracks::get_stage_track_id(stage_id);
+            }
+            Pause => {
+                sink.set_volume(*volume * 0.2);
+                return Continue(());
+            }
+            Unpause => {
+                sink.set_volume(*volume);
+                return Continue(());
+            }
+            SetVolume(received_volume) => {
+                sink.set_volume(received_volume);
+                *volume = received_volume;
+                return Continue(());
+            }
+            NoOp => {
+                return Continue(());
+            }
+        };
+
+        Break(())
+    }
+
+    /// Given the previous dolphin state and current dolphin state, produce an event
+    fn produce_melee_event(prev_state: &DolphinState, state: &DolphinState) -> MeleeEvent {
+        let vs_screen_1 = state.scene_major == SCENE_VS_ONLINE
+            && prev_state.scene_minor != SCENE_VS_ONLINE_VERSUS
+            && state.scene_minor == SCENE_VS_ONLINE_VERSUS;
+        let vs_screen_2 = prev_state.scene_minor == SCENE_VS_ONLINE_VERSUS && state.stage_id == 0;
+        let entered_vs_online_opponent_screen = vs_screen_1 || vs_screen_2;
+
+        if state.scene_major == SCENE_VS_ONLINE
+            && prev_state.scene_minor != SCENE_VS_ONLINE_RANKED
+            && state.scene_minor == SCENE_VS_ONLINE_RANKED
+        {
+            MeleeEvent::RankedStageStrikeEntered
+        } else if !prev_state.in_menus && state.in_menus {
+            MeleeEvent::MenuEntered
+        } else if prev_state.scene_major != SCENE_TITLE_SCREEN
+            && state.scene_major == SCENE_TITLE_SCREEN
+        {
+            MeleeEvent::TitleScreenEntered
+        } else if entered_vs_online_opponent_screen {
+            MeleeEvent::VsOnlineOpponent
+        } else if prev_state.scene_major != SCENE_TROPHY_LOTTERY
+            && state.scene_major == SCENE_TROPHY_LOTTERY
+        {
+            MeleeEvent::LotteryEntered
+        } else if (!prev_state.in_game && state.in_game) || prev_state.stage_id != state.stage_id {
+            MeleeEvent::GameStart(state.stage_id)
+        } else if prev_state.in_game && state.in_game && state.match_info == 1 {
+            MeleeEvent::GameEnd
+        } else if prev_state.volume != state.volume {
+            MeleeEvent::SetVolume(state.volume)
+        } else if !prev_state.is_paused && state.is_paused {
+            MeleeEvent::Pause
+        } else if prev_state.is_paused && !state.is_paused {
+            MeleeEvent::Unpause
+        } else {
+            MeleeEvent::NoOp
+        }
+    }
+
+    /// Create a `DolphinState` by reading Dolphin's memory
+    fn read_dolphin_state(m_p_ram: &usize, dolphin_volume_percent: f32) -> DolphinState {
+        // https://github.com/bkacjios/m-overlay/blob/d8c629d/source/modules/games/GALE01-2.lua#L8
+        // let volume = dolphin.read_i8(0x8045C384, None)?;
+        let volume: LocalMember<i8> = LocalMember::new_offset(vec![m_p_ram + 0x45C384]);
+        let volume = unsafe { volume.read().unwrap() };
+        let melee_volume_percent: f32 = ((volume as f32 - 100.0) * -1.0) / 100.0;
+        // https://github.com/bkacjios/m-overlay/blob/d8c629d/source/modules/games/GALE01-2.lua#L16
+        let scene_major: LocalMember<u8> = LocalMember::new_offset(vec![m_p_ram + 0x479D30]);
+        let scene_major = unsafe { scene_major.read().unwrap() };
+        // https://github.com/bkacjios/m-overlay/blob/d8c629d/source/modules/games/GALE01-2.lua#L19
+        let scene_minor: LocalMember<u8> = LocalMember::new_offset(vec![m_p_ram + 0x479D33]);
+        let scene_minor = unsafe { scene_minor.read().unwrap() };
+        // https://github.com/bkacjios/m-overlay/blob/d8c629d/source/modules/games/GALE01-2.lua#L357
+        let stage_id: LocalMember<u8> = LocalMember::new_offset(vec![m_p_ram + 0x49E753]);
+        let stage_id = unsafe { stage_id.read().unwrap() };
+        // https://github.com/bkacjios/m-overlay/blob/d8c629d/source/modules/games/GALE01-2.lua#L248
+        // 0 = in game, 1 = GAME! screen, 2 = Stage clear in 1p mode? (maybe also victory screen), 3 = menu
+        let match_info: LocalMember<u8> = LocalMember::new_offset(vec![m_p_ram + 0x46B6A0]);
+        let match_info = unsafe { match_info.read().unwrap() };
+        // https://github.com/bkacjios/m-overlay/blob/d8c629d/source/modules/games/GALE01-2.lua#L353
+        let is_paused: LocalMember<u8> = LocalMember::new_offset(vec![m_p_ram + 0x4D640F]);
+        let is_paused = unsafe { is_paused.read().unwrap() } == 1;
+
+        DolphinState {
+            in_game: utils::is_in_game(scene_major, scene_minor),
+            in_menus: utils::is_in_menus(scene_major, scene_minor),
+            scene_major,
+            scene_minor,
+            volume: dolphin_volume_percent * melee_volume_percent,
+            stage_id,
+            is_paused,
+            match_info,
+        }
+    }
 }
 
 impl Drop for Jukebox {
     fn drop(&mut self) {
         tracing::info!(target: Log::Jukebox, "Dropping Slippi Jukebox");
         self.bus.broadcast(JukeboxEvent::Dropped);
-    }
-}
-
-/// Given the previous dolphin state and current dolphin state, produce an event
-fn produce_melee_event(prev_state: &DolphinState, state: &DolphinState) -> MeleeEvent {
-    let vs_screen_1 = state.scene_major == SCENE_VS_ONLINE
-        && prev_state.scene_minor != SCENE_VS_ONLINE_VERSUS
-        && state.scene_minor == SCENE_VS_ONLINE_VERSUS;
-    let vs_screen_2 = prev_state.scene_minor == SCENE_VS_ONLINE_VERSUS && state.stage_id == 0;
-    let entered_vs_online_opponent_screen = vs_screen_1 || vs_screen_2;
-
-    if state.scene_major == SCENE_VS_ONLINE
-        && prev_state.scene_minor != SCENE_VS_ONLINE_RANKED
-        && state.scene_minor == SCENE_VS_ONLINE_RANKED
-    {
-        MeleeEvent::RankedStageStrikeEntered
-    } else if !prev_state.in_menus && state.in_menus {
-        MeleeEvent::MenuEntered
-    } else if prev_state.scene_major != SCENE_TITLE_SCREEN
-        && state.scene_major == SCENE_TITLE_SCREEN
-    {
-        MeleeEvent::TitleScreenEntered
-    } else if entered_vs_online_opponent_screen {
-        MeleeEvent::VsOnlineOpponent
-    } else if prev_state.scene_major != SCENE_TROPHY_LOTTERY
-        && state.scene_major == SCENE_TROPHY_LOTTERY
-    {
-        MeleeEvent::LotteryEntered
-    } else if (!prev_state.in_game && state.in_game) || prev_state.stage_id != state.stage_id {
-        MeleeEvent::GameStart(state.stage_id)
-    } else if prev_state.in_game && state.in_game && state.match_info == 1 {
-        MeleeEvent::GameEnd
-    } else if prev_state.volume != state.volume {
-        MeleeEvent::SetVolume(state.volume)
-    } else if !prev_state.is_paused && state.is_paused {
-        MeleeEvent::Pause
-    } else if prev_state.is_paused && !state.is_paused {
-        MeleeEvent::Unpause
-    } else {
-        MeleeEvent::NoOp
-    }
-}
-
-/// Handle a events received in the audio playback thread, by changing tracks,
-/// adjusting volume etc.
-fn handle_melee_event(
-    event: MeleeEvent,
-    sink: &Sink,
-    track_id: &mut Option<TrackId>,
-    volume: &mut f32,
-) -> ControlFlow<()> {
-    use self::MeleeEvent::*;
-
-    // TODO:
-    // - Intro movie
-    //
-    // - classic vs screen
-    // - classic victory screen
-    // - classic game over screen
-    // - classic credits
-    // - classic "congratulations movie"
-    // - Adventure mode field intro music
-
-    match event {
-        TitleScreenEntered | GameEnd => {
-            *track_id = None;
-        }
-        MenuEntered => {
-            *track_id = Some(*tracks::MENU_TRACK);
-        }
-        LotteryEntered => {
-            *track_id = Some(tracks::TrackId::Lottery);
-        }
-        VsOnlineOpponent => {
-            *track_id = Some(tracks::TrackId::VsOpponent);
-        }
-        RankedStageStrikeEntered => {
-            *track_id = Some(*tracks::TOURNAMENT_MODE_TRACK);
-        }
-        GameStart(stage_id) => {
-            *track_id = tracks::get_stage_track_id(stage_id);
-        }
-        Pause => {
-            sink.set_volume(*volume * 0.2);
-            return Continue(());
-        }
-        Unpause => {
-            sink.set_volume(*volume);
-            return Continue(());
-        }
-        SetVolume(received_volume) => {
-            sink.set_volume(received_volume);
-            *volume = received_volume;
-            return Continue(());
-        }
-        NoOp => {
-            return Continue(());
-        }
-    };
-
-    Break(())
-}
-
-/// Create a `DolphinState` by reading Dolphin's memory
-fn read_dolphin_state(m_p_ram: &usize, dolphin_volume_percent: f32) -> DolphinState {
-    // https://github.com/bkacjios/m-overlay/blob/d8c629d/source/modules/games/GALE01-2.lua#L8
-    // let volume = dolphin.read_i8(0x8045C384, None)?;
-    let volume: LocalMember<i8> = LocalMember::new_offset(vec![m_p_ram + 0x45C384]);
-    let volume = unsafe { volume.read().unwrap() };
-    let melee_volume_percent: f32 = ((volume as f32 - 100.0) * -1.0) / 100.0;
-    // https://github.com/bkacjios/m-overlay/blob/d8c629d/source/modules/games/GALE01-2.lua#L16
-    let scene_major: LocalMember<u8> = LocalMember::new_offset(vec![m_p_ram + 0x479D30]);
-    let scene_major = unsafe { scene_major.read().unwrap() };
-    // https://github.com/bkacjios/m-overlay/blob/d8c629d/source/modules/games/GALE01-2.lua#L19
-    let scene_minor: LocalMember<u8> = LocalMember::new_offset(vec![m_p_ram + 0x479D33]);
-    let scene_minor = unsafe { scene_minor.read().unwrap() };
-    // https://github.com/bkacjios/m-overlay/blob/d8c629d/source/modules/games/GALE01-2.lua#L357
-    let stage_id: LocalMember<u8> = LocalMember::new_offset(vec![m_p_ram + 0x49E753]);
-    let stage_id = unsafe { stage_id.read().unwrap() };
-    // https://github.com/bkacjios/m-overlay/blob/d8c629d/source/modules/games/GALE01-2.lua#L248
-    // 0 = in game, 1 = GAME! screen, 2 = Stage clear in 1p mode? (maybe also victory screen), 3 = menu
-    let match_info: LocalMember<u8> = LocalMember::new_offset(vec![m_p_ram + 0x46B6A0]);
-    let match_info = unsafe { match_info.read().unwrap() };
-    // https://github.com/bkacjios/m-overlay/blob/d8c629d/source/modules/games/GALE01-2.lua#L353
-    let is_paused: LocalMember<u8> = LocalMember::new_offset(vec![m_p_ram + 0x4D640F]);
-    let is_paused = unsafe { is_paused.read().unwrap() } == 1;
-
-    DolphinState {
-        in_game: utils::is_in_game(scene_major, scene_minor),
-        in_menus: utils::is_in_menus(scene_major, scene_minor),
-        scene_major,
-        scene_minor,
-        volume: dolphin_volume_percent * melee_volume_percent,
-        stage_id,
-        is_paused,
-        match_info,
     }
 }
 
