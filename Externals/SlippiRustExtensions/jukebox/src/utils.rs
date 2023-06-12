@@ -108,6 +108,26 @@ pub(crate) fn create_track_map(
         .collect::<HashMap<TrackId, (usize, usize)>>())
 }
 
+/// Returns a tuple containing a randomly selected menu track tournament track
+/// to play
+pub(crate) fn get_random_menu_tracks() -> (TrackId, TrackId) {
+    // 25% chance to use the alternate menu theme
+    let menu_track = if fastrand::u8(0..4) == 0 {
+        TrackId::Menu2
+    } else {
+        TrackId::Menu1
+    };
+
+    // 50% chance to use the alternate tournament mode theme
+    let tournament_track = if fastrand::u8(0..2) == 0 {
+        TrackId::TournamentMode1
+    } else {
+        TrackId::TournamentMode2
+    };
+
+    (menu_track, tournament_track)
+}
+
 /// Returns true if the user is in an actual match
 /// Sourced from M'Overlay: https://github.com/bkacjios/m-overlay/blob/d8c629d/source/melee.lua#L1177
 pub(crate) fn is_in_game(scene_major: u8, scene_minor: u8) -> bool {

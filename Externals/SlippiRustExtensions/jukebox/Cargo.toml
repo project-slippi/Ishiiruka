@@ -17,7 +17,6 @@ dolphin-logger = { path = "../logger" }
 fastrand = "2.0.0"
 hps_decode = "0.1.1"
 memchr = "2.5.0"
-once_cell = "1.17.1"
 process-memory = "0.5.0"
 rodio = "0.17.1"
 serde = { version = "1.0.157", features = ["derive"] }

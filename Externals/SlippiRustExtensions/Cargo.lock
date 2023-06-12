@@ -1120,7 +1120,6 @@ dependencies = [
  "fastrand 2.0.0",
  "hps_decode",
  "memchr",
- "once_cell",
  "process-memory",
  "rodio",
  "serde",

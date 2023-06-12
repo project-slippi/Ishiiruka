@@ -157,6 +157,10 @@ impl Jukebox {
             let (_stream, stream_handle) = OutputStream::try_default()?;
             let sink = Sink::try_new(&stream_handle)?;
 
+            // The menu track and tournament-mode track are randomly selected
+            // one time, and will be used for the rest of the session
+            let random_menu_tracks = utils::get_random_menu_tracks();
+
             // These values will get updated by the `handle_event` fn
             let mut track_id: Option<TrackId> = None;
             let mut volume = dolphin_volume_percent;
@@ -203,7 +207,13 @@ impl Jukebox {
                         // changing the volume, updating the track and breaking
                         // the loop such that the next track starts to play,
                         // etc.
-                        match Self::handle_melee_event(event, &sink, &mut track_id, &mut volume) {
+                        match Self::handle_melee_event(
+                            event,
+                            &sink,
+                            &mut track_id,
+                            &mut volume,
+                            &random_menu_tracks,
+                        ) {
                             Break(_) => break,
                             _ => (),
                         }
@@ -229,6 +239,7 @@ impl Jukebox {
         sink: &Sink,
         track_id: &mut Option<TrackId>,
         volume: &mut f32,
+        random_menu_tracks: &(TrackId, TrackId),
     ) -> ControlFlow<()> {
         use self::MeleeEvent::*;
 
@@ -242,12 +253,14 @@ impl Jukebox {
         // - classic "congratulations movie"
         // - Adventure mode field intro music
 
+        let (menu_track, tournament_track) = random_menu_tracks;
+
         match event {
             TitleScreenEntered | GameEnd => {
                 *track_id = None;
             }
             MenuEntered => {
-                *track_id = Some(*tracks::MENU_TRACK);
+                *track_id = Some(*menu_track);
             }
             LotteryEntered => {
                 *track_id = Some(tracks::TrackId::Lottery);
@@ -256,7 +269,7 @@ impl Jukebox {
                 *track_id = Some(tracks::TrackId::VsOpponent);
             }
             RankedStageStrikeEntered => {
-                *track_id = Some(*tracks::TOURNAMENT_MODE_TRACK);
+                *track_id = Some(*tournament_track);
             }
             GameStart(stage_id) => {
                 *track_id = tracks::get_stage_track_id(stage_id);
