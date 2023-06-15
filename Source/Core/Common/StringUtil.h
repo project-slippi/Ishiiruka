@@ -134,6 +134,15 @@ std::string SHIFTJISToUTF8(const std::string& str);
 std::string UTF8ToSHIFTJIS(const std::string& str);
 std::string UTF16ToUTF8(const std::wstring &str);
 
+
+#ifdef __APPLE__
+/**
+ * Callback Implementation used for iconv when a unicode character could not be automatically converted.
+ * This callback is used specifically for SHIFTJIS failures when converting some special wide characters for melee.
+ */
+void uc_to_mb_fb(unsigned int code,void (*write_replacement)(const char *buf, size_t buflen, void* callback_arg), void* callback_arg, void* data);
+#endif
+
 #ifdef _WIN32
 
 std::wstring UTF8ToUTF16(const std::string& str);

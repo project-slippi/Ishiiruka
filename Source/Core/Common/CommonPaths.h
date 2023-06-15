@@ -17,9 +17,19 @@
 #elif defined __APPLE__
 // On OS X, USERDATA_DIR exists within the .app, but *always* reference
 // the copy in Application Support instead! (Copied on first run)
-// You can use the File::GetUserPath() util for this
+//
+// You want to check the logic in
+// FileUtil::GetApplicationSupportDirectory() and `UICommon.cpp` for what the paths
+// actually end up being.
+
+// This isn't necessarily used, but is kept here as there's a check in `UICommon` for
+// loading a "local" User folder that I don't want to screw with.
 #define USERDATA_DIR "Contents/Resources/User"
-#define DOLPHIN_DATA_DIR "Library/Application Support/Dolphin"
+
+// `DOLPHIN_DATA_DIR` is commented out so that any place in 
+// the build that uses it (for macOS) produces an error, as this shouldn't collide 
+// with a mainline installation.
+// #define DOLPHIN_DATA_DIR "Library/Application Support/Dolphin"
 #elif defined ANDROID
 #define USERDATA_DIR "user"
 #define DOLPHIN_DATA_DIR "/sdcard/dolphin-emu"

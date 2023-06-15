@@ -479,6 +479,16 @@ void SlippiMatchmaking::handleMatchmaking()
 			playerInfo.displayName = el.value("displayName", "");
 			playerInfo.connectCode = el.value("connectCode", "");
 			playerInfo.port = el.value("port", 0);
+			playerInfo.chatMessages = SlippiUser::defaultChatMessages;
+			if (el["chatMessages"].is_array())
+			{
+				playerInfo.chatMessages = el.value("chatMessages", SlippiUser::defaultChatMessages);
+				if (playerInfo.chatMessages.size() != 16)
+				{
+					playerInfo.chatMessages = SlippiUser::defaultChatMessages;
+				}
+			}
+			
 			m_playerInfo.push_back(playerInfo);
 
 			if (isLocal)

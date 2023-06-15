@@ -22,6 +22,7 @@
 
 #define ROLLBACK_MAX_FRAMES 7
 #define MAX_NAME_LENGTH 15
+#define MAX_MESSAGE_LENGTH 25
 #define CONNECT_CODE_LENGTH 8
 
 extern bool g_needInputForFrame;
@@ -79,6 +80,7 @@ class CEXISlippi : public IEXIDevice
 		CMD_GP_COMPLETE_STEP = 0xC0,
 		CMD_GP_FETCH_STEP = 0xC1,
 		CMD_REPORT_SET_COMPLETE = 0xC2,
+		CMD_GET_PLAYER_SETTINGS = 0xC3,
 
 		// Misc
 		CMD_LOG_MESSAGE = 0xD0,
@@ -134,6 +136,7 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_GP_COMPLETE_STEP, static_cast<u32>(sizeof(SlippiExiTypes::GpCompleteStepQuery) - 1)},
 	    {CMD_GP_FETCH_STEP, static_cast<u32>(sizeof(SlippiExiTypes::GpFetchStepQuery) - 1)},
 	    {CMD_REPORT_SET_COMPLETE, static_cast<u32>(sizeof(SlippiExiTypes::ReportSetCompletionQuery) - 1)},
+	    {CMD_GET_PLAYER_SETTINGS, 0},
 
 	    // Misc
 	    {CMD_LOG_MESSAGE, 0xFFFF}, // Variable size... will only work if by itself
@@ -205,6 +208,7 @@ class CEXISlippi : public IEXIDevice
 	void handleGamePrepStepComplete(const SlippiExiTypes::GpCompleteStepQuery &query);
 	void prepareGamePrepOppStep(const SlippiExiTypes::GpFetchStepQuery &query);
 	void handleCompleteSet(const SlippiExiTypes::ReportSetCompletionQuery &query);
+	void handleGetPlayerSettings();
 
 	// replay playback stuff
 	void prepareGameInfo(u8 *payload);
