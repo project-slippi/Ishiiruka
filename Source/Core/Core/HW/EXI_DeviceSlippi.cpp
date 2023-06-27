@@ -7,7 +7,8 @@
 #include "Core/Slippi/SlippiPlayback.h"
 #include "Core/Slippi/SlippiPremadeText.h"
 #include "Core/Slippi/SlippiReplayComm.h"
-#include <SlippiGame.h>
+#include <SlippiLib/SlippiGame.h>
+
 #include <semver/include/semver200.h>
 #include <utility> // std::move
 
