@@ -242,6 +242,12 @@ void StopAudioDump()
   s_audio_dump_start = false;
 }
 
+// SlippiChange: Added as a hook for the Jukebox to call.
+int GetCurrentVolume()
+{
+    return SConfig::GetInstance().m_IsMuted ? 0 : SConfig::GetInstance().m_Volume;
+}
+
 void IncreaseVolume(unsigned short offset)
 {
   SConfig::GetInstance().m_IsMuted = false;

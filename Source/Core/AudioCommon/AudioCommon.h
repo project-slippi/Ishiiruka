@@ -26,6 +26,10 @@ void ClearAudioBuffer(bool mute);
 void SendAIBuffer(const short* samples, unsigned int num_samples);
 void StartAudioDump();
 void StopAudioDump();
+
+// SlippiChange: Added as a hook for the Jukebox to call.
+int GetCurrentVolume();
+
 void IncreaseVolume(unsigned short offset);
 void DecreaseVolume(unsigned short offset);
 void ToggleMuteVolume();
