@@ -20,3 +20,13 @@ There is an optional feature flag for this repository for playback-specific func
 ```
 cargo build --release --features playback
 ```
+
+### Building
+
+#### Windows
+To build out of band without having to build the entire Dolphin solution, you will need to install the [Rust toolchain](https://rustup.rs/) (1.68 or later).
+
+In the `SlippiRustExtensions` directory, run the following:
+```
+set "CARGO_TARGET_DIR=target\x86_64-pc-windows-msvc" && cargo build --release
+```
