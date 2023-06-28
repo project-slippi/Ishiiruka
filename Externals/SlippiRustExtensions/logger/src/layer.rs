@@ -63,11 +63,7 @@ where
     ///
     /// At the moment, this is somewhat "dumb" and may allocate more than we want to. Consider
     /// it a hook for safely improving performance later. ;P
-    fn on_event(
-        &self,
-        event: &tracing::Event<'_>,
-        _ctx: tracing_subscriber::layer::Context<'_, S>,
-    ) {
+    fn on_event(&self, event: &tracing::Event<'_>, _ctx: tracing_subscriber::layer::Context<'_, S>) {
         let metadata = event.metadata();
         let target = metadata.target();
 
@@ -75,9 +71,9 @@ where
             .get()
             .expect("[DolphinLoggerLayer::on_event]: Unable to acquire `LOG_CONTAINERS`?");
 
-        let reader = log_containers.read().expect(
-            "[DolphinLoggerLayer::on_event]: Unable to acquire readlock on `LOG_CONTAINERS`?",
-        );
+        let reader = log_containers
+            .read()
+            .expect("[DolphinLoggerLayer::on_event]: Unable to acquire readlock on `LOG_CONTAINERS`?");
 
         let log_container = reader.iter().find(|container| container.kind == target);
 
@@ -119,19 +115,15 @@ where
                 // the passed over c_str, nor should it attempt to free anything. Rust owns
                 // this and will handle any cleanup after the logger_fn has dispatched.
                 unsafe {
-                    (self.logger_fn)(
-                        log_level,
-                        container.log_type,
-                        c_str_msg.as_ptr() as *const c_char,
-                    );
+                    (self.logger_fn)(log_level, container.log_type, c_str_msg.as_ptr() as *const c_char);
                 }
-            }
+            },
 
             // This should never happen, but on the off chance it does, I guess
             // just dump it to stderr?
             Err(e) => {
                 eprintln!("Failed to convert info msg to CString: {:?}", e);
-            }
+            },
         }
     }
 }
@@ -155,10 +147,7 @@ impl DolphinLoggerVisitor {
 
         // Dolphin logs in the format of {Minutes}:{Seconds}:{Milliseconds}.
         let time = OffsetDateTime::now_local().unwrap_or_else(|e| {
-            eprintln!(
-                "[dolphin_logger/layer.rs] Failed to get local time: {:?}",
-                e
-            );
+            eprintln!("[dolphin_logger/layer.rs] Failed to get local time: {:?}", e);
 
             // This will only happen if, for whatever reason, the timezone offset
             // on the current system cannot be determined. Frankly there's bigger issues
@@ -241,11 +230,7 @@ impl tracing::field::Visit for DolphinLoggerVisitor {
         }
     }
 
-    fn record_error(
-        &mut self,
-        field: &tracing::field::Field,
-        value: &(dyn std::error::Error + 'static),
-    ) {
+    fn record_error(&mut self, field: &tracing::field::Field, value: &(dyn std::error::Error + 'static)) {
         if let Err(e) = write!(&mut self.0, "{}={} ", field.name(), value) {
             eprintln!("Failed to record_error: {:?}", e);
         }

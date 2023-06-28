@@ -79,9 +79,7 @@ pub fn init(logger_fn: ForeignLoggerFn) {
     // We don't use `try_init` here because we do want to
     // know if something else, somehow, registered before us.
     LOGGER.call_once(|| {
-        tracing_subscriber::registry()
-            .with(DolphinLoggerLayer::new(logger_fn))
-            .init();
+        tracing_subscriber::registry().with(DolphinLoggerLayer::new(logger_fn)).init();
     });
 }
 
@@ -90,12 +88,7 @@ pub fn init(logger_fn: ForeignLoggerFn) {
 /// This enables passing a configured log level and/or enabled status across the boundary from
 /// Dolphin to our tracing subscriber setup. This is important as we want to short-circuit any
 /// allocations during log handling that aren't necessary (e.g if a log is outright disabled).
-pub fn register_container(
-    kind: *const c_char,
-    log_type: c_int,
-    is_enabled: bool,
-    default_log_level: c_int,
-) {
+pub fn register_container(kind: *const c_char, log_type: c_int, is_enabled: bool, default_log_level: c_int) {
     // We control the other end of the registration flow, so we can ensure this ptr's valid UTF-8.
     let c_kind_str = unsafe { CStr::from_ptr(kind) };
 
@@ -104,13 +97,13 @@ pub fn register_container(
         .expect("[dolphin_logger::register_container]: Failed to convert kind c_char to str")
         .to_string();
 
-    let containers = LOG_CONTAINERS.get().expect(
-        "[dolphin_logger::register_container]: Attempting to get `LOG_CONTAINERS` before init",
-    );
+    let containers = LOG_CONTAINERS
+        .get()
+        .expect("[dolphin_logger::register_container]: Attempting to get `LOG_CONTAINERS` before init");
 
-    let mut writer = containers.write().expect(
-        "[dolphin_logger::register_container]: Unable to acquire write lock on `LOG_CONTAINERS`?",
-    );
+    let mut writer = containers
+        .write()
+        .expect("[dolphin_logger::register_container]: Unable to acquire write lock on `LOG_CONTAINERS`?");
 
     (*writer).push(LogContainer {
         kind,
@@ -130,13 +123,13 @@ pub fn update_container(kind: *const c_char, enabled: bool, level: c_int) {
         .to_str()
         .expect("[dolphin_logger::update_container]: Failed to convert kind c_char to str");
 
-    let containers = LOG_CONTAINERS.get().expect(
-        "[dolphin_logger::update_container]: Attempting to get `LOG_CONTAINERS` before init",
-    );
+    let containers = LOG_CONTAINERS
+        .get()
+        .expect("[dolphin_logger::update_container]: Attempting to get `LOG_CONTAINERS` before init");
 
-    let mut writer = containers.write().expect(
-        "[dolphin_logger::update_container]: Unable to acquire write lock on `LOG_CONTAINERS`?",
-    );
+    let mut writer = containers
+        .write()
+        .expect("[dolphin_logger::update_container]: Unable to acquire write lock on `LOG_CONTAINERS`?");
 
     for container in (*writer).iter_mut() {
         if container.kind == kind {

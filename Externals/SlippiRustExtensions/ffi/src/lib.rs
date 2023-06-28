@@ -22,11 +22,7 @@ pub extern "C" fn slprs_exi_device_create() -> usize {
     let exi_device = Box::new(SlippiEXIDevice::new());
     let exi_device_instance_ptr = Box::into_raw(exi_device) as usize;
 
-    tracing::warn!(
-        target: Log::EXI,
-        ptr = exi_device_instance_ptr,
-        "Creating Device"
-    );
+    tracing::warn!(target: Log::EXI, ptr = exi_device_instance_ptr, "Creating Device");
 
     exi_device_instance_ptr
 }
@@ -35,11 +31,7 @@ pub extern "C" fn slprs_exi_device_create() -> usize {
 /// can safely shut down and clean up.
 #[no_mangle]
 pub extern "C" fn slprs_exi_device_destroy(exi_device_instance_ptr: usize) {
-    tracing::warn!(
-        target: Log::EXI,
-        ptr = exi_device_instance_ptr,
-        "Destroying Device"
-    );
+    tracing::warn!(target: Log::EXI, ptr = exi_device_instance_ptr, "Destroying Device");
 
     // Coerce the instance from the pointer. This is theoretically safe since we control
     // the C++ side and can guarantee that the `exi_device_instance_ptr` is only owned
@@ -55,11 +47,7 @@ pub extern "C" fn slprs_exi_device_destroy(exi_device_instance_ptr: usize) {
 ///
 /// `virtual void DMAWrite(u32 _uAddr, u32 _uSize);`
 #[no_mangle]
-pub extern "C" fn slprs_exi_device_dma_write(
-    exi_device_instance_ptr: usize,
-    address: *const u8,
-    size: *const u8,
-) {
+pub extern "C" fn slprs_exi_device_dma_write(exi_device_instance_ptr: usize, address: *const u8, size: *const u8) {
     // Coerce the instance back from the pointer. This is theoretically safe since we control
     // the C++ side and can guarantee that the `exi_device_instance_ptr` pointer is only owned
     // by the C++ EXI device, and is created/destroyed with the corresponding lifetimes.
@@ -76,11 +64,7 @@ pub extern "C" fn slprs_exi_device_dma_write(
 ///
 /// `virtual void DMARead(u32 _uAddr, u32 _uSize);`
 #[no_mangle]
-pub extern "C" fn slprs_exi_device_dma_read(
-    exi_device_instance_ptr: usize,
-    address: *const u8,
-    size: *const u8,
-) {
+pub extern "C" fn slprs_exi_device_dma_read(exi_device_instance_ptr: usize, address: *const u8, size: *const u8) {
     // Coerce the instance from the pointer. This is theoretically safe since we control
     // the C++ side and can guarantee that the `exi_device_instance_ptr` pointer is only owned
     // by the C++ EXI device, and is created/destroyed with the corresponding lifetimes.
@@ -101,7 +85,7 @@ pub extern "C" fn slprs_exi_device_configure_jukebox(
     is_enabled: bool,
     m_p_ram: *const u8,
     iso_path: *const c_char,
-    get_dolphin_volume_fn: unsafe extern "C" fn() -> c_int
+    get_dolphin_volume_fn: unsafe extern "C" fn() -> c_int,
 ) {
     // Convert the provided ISO path to an owned Rust string.
     // This is theoretically safe since we control the C++ side and can can mostly guarantee
@@ -112,14 +96,12 @@ pub extern "C" fn slprs_exi_device_configure_jukebox(
     // Rust String, then we'll just avoid running the Jukebox entirely and log an error message
     // for people to debug with.
     let iso_path = match slice.to_str() {
-        Ok(path) => {
-            path.to_string()
-        },
+        Ok(path) => path.to_string(),
 
         Err(e) => {
             tracing::error!(error = ?e, "Failed to bridge iso_path, jukebox not initializing");
             return;
-        }
+        },
     };
 
     // Coerce the instance from the pointer. This is theoretically safe since we control
@@ -127,12 +109,7 @@ pub extern "C" fn slprs_exi_device_configure_jukebox(
     // by the C++ EXI device, and is created/destroyed with the corresponding lifetimes.
     let mut device = unsafe { Box::from_raw(exi_device_instance_ptr as *mut SlippiEXIDevice) };
 
-    device.configure_jukebox(
-        is_enabled,
-        m_p_ram,
-        iso_path,
-        get_dolphin_volume_fn
-    );
+    device.configure_jukebox(is_enabled, m_p_ram, iso_path, get_dolphin_volume_fn);
 
     // Fall back into a raw pointer so Rust doesn't obliterate the object.
     let _leak = Box::into_raw(device);

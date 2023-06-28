@@ -80,18 +80,13 @@ pub struct Jukebox {
 
 impl Jukebox {
     /// Returns a new configured Jukebox, ready to play.
-    pub fn new(
-        m_p_ram: *const u8,
-        iso_path: String,
-        get_dolphin_volume_fn: ForeignGetVolumeFn
-    ) -> Result<Self, Box<dyn Error>> {
+    pub fn new(m_p_ram: *const u8, iso_path: String, get_dolphin_volume_fn: ForeignGetVolumeFn) -> Result<Self, Box<dyn Error>> {
         let m_p_ram = m_p_ram as usize;
 
         tracing::info!(target: Log::Jukebox, m_p_ram, "Initializing Slippi Jukebox");
 
-        let base_dirs = BaseDirs::new().context(
-            "Home directory path could not be retrieved from the OS. Unable to locate Slippi.",
-        )?;
+        let base_dirs =
+            BaseDirs::new().context("Home directory path could not be retrieved from the OS. Unable to locate Slippi.")?;
 
         //let iso_path = utils::get_iso_path(&base_dirs)?;
         //let dolphin_volume_percent = utils::get_dolphin_volume(&base_dirs);
@@ -110,8 +105,7 @@ impl Jukebox {
         // The jukebox bus will be used to notify child threads when the object is
         // about to be dropped
         let mut jukebox_event_bus: Bus<JukeboxEvent> = Bus::new(1);
-        let (mut rx_jukebox_1, mut rx_jukebox_2) =
-            (jukebox_event_bus.add_rx(), jukebox_event_bus.add_rx());
+        let (mut rx_jukebox_1, mut rx_jukebox_2) = (jukebox_event_bus.add_rx(), jukebox_event_bus.add_rx());
 
         // This thread hooks into Dolphin's memory and listens for relevant
         // events
@@ -205,13 +199,7 @@ impl Jukebox {
                         // changing the volume, updating the track and breaking
                         // the loop such that the next track starts to play,
                         // etc.
-                        match Self::handle_melee_event(
-                            event,
-                            &sink,
-                            &mut track_id,
-                            &mut volume,
-                            &random_menu_tracks,
-                        ) {
+                        match Self::handle_melee_event(event, &sink, &mut track_id, &mut volume, &random_menu_tracks) {
                             Break(_) => break,
                             _ => (),
                         }
@@ -225,9 +213,7 @@ impl Jukebox {
             Ok(())
         });
 
-        Ok(Self {
-            bus: jukebox_event_bus,
-        })
+        Ok(Self { bus: jukebox_event_bus })
     }
 
     /// Handle a events received in the audio playback thread, by changing tracks,
@@ -256,38 +242,38 @@ impl Jukebox {
         match event {
             TitleScreenEntered | GameEnd => {
                 *track_id = None;
-            }
+            },
             MenuEntered => {
                 *track_id = Some(*menu_track);
-            }
+            },
             LotteryEntered => {
                 *track_id = Some(tracks::TrackId::Lottery);
-            }
+            },
             VsOnlineOpponent => {
                 *track_id = Some(tracks::TrackId::VsOpponent);
-            }
+            },
             RankedStageStrikeEntered => {
                 *track_id = Some(*tournament_track);
-            }
+            },
             GameStart(stage_id) => {
                 *track_id = tracks::get_stage_track_id(stage_id);
-            }
+            },
             Pause => {
                 sink.set_volume(*volume * 0.2);
                 return Continue(());
-            }
+            },
             Unpause => {
                 sink.set_volume(*volume);
                 return Continue(());
-            }
+            },
             SetVolume(received_volume) => {
                 sink.set_volume(received_volume);
                 *volume = received_volume;
                 return Continue(());
-            }
+            },
             NoOp => {
                 return Continue(());
-            }
+            },
         };
 
         Break(())
@@ -308,15 +294,11 @@ impl Jukebox {
             MeleeEvent::RankedStageStrikeEntered
         } else if !prev_state.in_menus && state.in_menus {
             MeleeEvent::MenuEntered
-        } else if prev_state.scene_major != SCENE_TITLE_SCREEN
-            && state.scene_major == SCENE_TITLE_SCREEN
-        {
+        } else if prev_state.scene_major != SCENE_TITLE_SCREEN && state.scene_major == SCENE_TITLE_SCREEN {
             MeleeEvent::TitleScreenEntered
         } else if entered_vs_online_opponent_screen {
             MeleeEvent::VsOnlineOpponent
-        } else if prev_state.scene_major != SCENE_TROPHY_LOTTERY
-            && state.scene_major == SCENE_TROPHY_LOTTERY
-        {
+        } else if prev_state.scene_major != SCENE_TROPHY_LOTTERY && state.scene_major == SCENE_TROPHY_LOTTERY {
             MeleeEvent::LotteryEntered
         } else if (!prev_state.in_game && state.in_game) || prev_state.stage_id != state.stage_id {
             MeleeEvent::GameStart(state.stage_id)

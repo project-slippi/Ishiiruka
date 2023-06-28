@@ -36,7 +36,7 @@ impl SlippiEXIDevice {
         is_enabled: bool,
         m_p_ram: *const u8,
         iso_path: String,
-        get_dolphin_volume_fn: slippi_jukebox::ForeignGetVolumeFn
+        get_dolphin_volume_fn: slippi_jukebox::ForeignGetVolumeFn,
     ) {
         if !is_enabled {
             self.jukebox = None;
@@ -46,7 +46,7 @@ impl SlippiEXIDevice {
         match Jukebox::new(m_p_ram, iso_path, get_dolphin_volume_fn) {
             Ok(jukebox) => {
                 self.jukebox = Some(jukebox);
-            }
+            },
 
             Err(e) => {
                 tracing::error!(
@@ -54,7 +54,7 @@ impl SlippiEXIDevice {
                     error = ?e,
                     "Failed to start Jukebox"
                 );
-            }
+            },
         }
     }
 }

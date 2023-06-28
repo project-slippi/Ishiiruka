@@ -27,27 +27,17 @@ pub(crate) struct DolphinConfig {
 pub(crate) fn get_iso_path(base_dirs: &BaseDirs) -> Result<String> {
     let slippi_config_file = base_dirs.config_dir().join("Slippi Launcher/Settings");
     let slippi_config = std::fs::read_to_string(slippi_config_file)?;
-    Ok(serde_json::from_str::<SlippiConfig>(&slippi_config)?
-        .settings
-        .iso_path)
+    Ok(serde_json::from_str::<SlippiConfig>(&slippi_config)?.settings.iso_path)
 }
 
 /// Get the volume from Dolphin -> Config -> Audio as a value from 0 - 100
 pub(crate) fn get_dolphin_volume(base_dirs: &BaseDirs) -> f32 {
     let default_volume = 100;
-    let dolphin_config_file = base_dirs
-        .config_dir()
-        .join("Slippi Launcher/netplay/User/Config/Dolphin.ini");
-    let dolphin_config =
-        std::fs::read_to_string(dolphin_config_file).unwrap_or_else(|_| String::new());
+    let dolphin_config_file = base_dirs.config_dir().join("Slippi Launcher/netplay/User/Config/Dolphin.ini");
+    let dolphin_config = std::fs::read_to_string(dolphin_config_file).unwrap_or_else(|_| String::new());
     let volume = serde_ini::from_str::<DolphinConfig>(&dolphin_config)
         .ok()
-        .and_then(|config| {
-            config
-                .dsp
-                .get("Volume")
-                .and_then(|volume| volume.parse::<u8>().ok())
-        })
+        .and_then(|config| config.dsp.get("Volume").and_then(|volume| volume.parse::<u8>().ok()))
         .unwrap_or(default_volume);
 
     volume as f32 / 100.0
@@ -55,9 +45,7 @@ pub(crate) fn get_dolphin_volume(base_dirs: &BaseDirs) -> f32 {
 
 /// Produces a hashmap containing offsets and lengths of .hps files contained within the iso
 /// These can be looked up by TrackId
-pub(crate) fn create_track_map(
-    iso: &mut std::fs::File,
-) -> Result<HashMap<TrackId, (usize, usize)>> {
+pub(crate) fn create_track_map(iso: &mut std::fs::File) -> Result<HashMap<TrackId, (usize, usize)>> {
     let file_size = iso.metadata()?.len();
 
     // Locate .hps sections of the iso by scanning it 60mb at a time
@@ -96,8 +84,7 @@ pub(crate) fn create_track_map(
                 // read the first 8 bytes of the left channel coefficients for
                 // the .hps file at `location`
                 let coef_offset = 0x20;
-                iso.seek(std::io::SeekFrom::Start((location as u64) + coef_offset))
-                    .ok()?;
+                iso.seek(std::io::SeekFrom::Start((location as u64) + coef_offset)).ok()?;
                 let mut buf = [0; 8];
                 iso.read_exact(&mut buf).ok()?;
                 // Identify which TrackId is associated and populate the hashmap
@@ -137,9 +124,7 @@ pub(crate) fn is_in_game(scene_major: u8, scene_minor: u8) -> bool {
     if scene_major == SCENE_VS_MODE || scene_major == SCENE_VS_ONLINE {
         return scene_minor == SCENE_VS_INGAME;
     }
-    if (SCENE_TRAINING_MODE..=SCENE_STAMINA_MODE).contains(&scene_major)
-        || scene_major == SCENE_FIXED_CAMERA_MODE
-    {
+    if (SCENE_TRAINING_MODE..=SCENE_STAMINA_MODE).contains(&scene_major) || scene_major == SCENE_FIXED_CAMERA_MODE {
         return scene_minor == SCENE_TRAINING_INGAME;
     }
     if scene_major == SCENE_EVENT_MATCH {
@@ -182,8 +167,7 @@ pub(crate) fn is_in_game(scene_major: u8, scene_minor: u8) -> bool {
         return scene_minor == SCENE_HOME_RUN_CONTEST_INGAME;
     }
     if scene_major == SCENE_TITLE_SCREEN_IDLE {
-        return scene_minor == SCENE_TITLE_SCREEN_IDLE_FIGHT_1
-            || scene_minor == SCENE_TITLE_SCREEN_IDLE_FIGHT_2;
+        return scene_minor == SCENE_TITLE_SCREEN_IDLE_FIGHT_1 || scene_minor == SCENE_TITLE_SCREEN_IDLE_FIGHT_2;
     }
 
     false
@@ -199,22 +183,15 @@ pub(crate) fn is_in_menus(scene_major: u8, scene_minor: u8) -> bool {
         return scene_minor == SCENE_VS_CSS || scene_minor == SCENE_VS_SSS;
     }
     if scene_major == SCENE_VS_ONLINE {
-        return scene_minor == SCENE_VS_ONLINE_CSS
-            || scene_minor == SCENE_VS_ONLINE_SSS
-            || scene_minor == SCENE_VS_ONLINE_RANKED;
+        return scene_minor == SCENE_VS_ONLINE_CSS || scene_minor == SCENE_VS_ONLINE_SSS || scene_minor == SCENE_VS_ONLINE_RANKED;
     }
-    if (SCENE_TRAINING_MODE..=SCENE_STAMINA_MODE).contains(&scene_major)
-        || scene_major == SCENE_FIXED_CAMERA_MODE
-    {
+    if (SCENE_TRAINING_MODE..=SCENE_STAMINA_MODE).contains(&scene_major) || scene_major == SCENE_FIXED_CAMERA_MODE {
         return scene_minor == SCENE_TRAINING_CSS || scene_minor == SCENE_TRAINING_SSS;
     }
     if scene_major == SCENE_EVENT_MATCH {
         return scene_minor == SCENE_EVENT_MATCH_SELECT;
     }
-    if scene_major == SCENE_CLASSIC_MODE
-        || scene_major == SCENE_ADVENTURE_MODE
-        || scene_major == SCENE_ALL_STAR_MODE
-    {
+    if scene_major == SCENE_CLASSIC_MODE || scene_major == SCENE_ADVENTURE_MODE || scene_major == SCENE_ALL_STAR_MODE {
         return scene_minor == SCENE_CLASSIC_CSS;
     }
     if scene_major == SCENE_TARGET_TEST {
