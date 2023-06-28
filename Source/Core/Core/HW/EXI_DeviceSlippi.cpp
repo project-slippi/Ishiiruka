@@ -3282,7 +3282,7 @@ void CEXISlippi::ConfigureJukebox()
     // possible to play it?
 #ifdef _WIN32
     std::string backend = SConfig::GetInstance().sBackend;
-    if(backend.find(BACKEND_EXCLUSIVE_WASAPI) != std::string::npos && WASAPIStream::isValid())
+    if(backend.find(BACKEND_EXCLUSIVE_WASAPI) != std::string::npos)
     {
         return;
     }
