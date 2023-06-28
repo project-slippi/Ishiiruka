@@ -28,5 +28,5 @@ To build out of band without having to build the entire Dolphin solution, you wi
 
 In the `SlippiRustExtensions` directory, run the following:
 ```
-set "CARGO_TARGET_DIR=target\x86_64-pc-windows-msvc" && cargo build --release
+cargo build --release --target=x86_64-pc-windows-msvc
 ```
