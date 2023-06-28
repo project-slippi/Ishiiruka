@@ -1,47 +1,8 @@
 use crate::scenes::scene_ids::*;
 use crate::tracks::{identify_coefficients, TrackId};
 use anyhow::Result;
-use directories::BaseDirs;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io::prelude::*;
-
-#[derive(Serialize, Deserialize, Debug)]
-pub(crate) struct SlippiConfig {
-    settings: SlippiSettings,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub(crate) struct SlippiSettings {
-    #[serde(rename = "isoPath")]
-    iso_path: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub(crate) struct DolphinConfig {
-    #[serde(rename = "DSP")]
-    dsp: std::collections::HashMap<String, String>,
-}
-
-/// Get the path of the Melee ISO configured in Slippi
-pub(crate) fn get_iso_path(base_dirs: &BaseDirs) -> Result<String> {
-    let slippi_config_file = base_dirs.config_dir().join("Slippi Launcher/Settings");
-    let slippi_config = std::fs::read_to_string(slippi_config_file)?;
-    Ok(serde_json::from_str::<SlippiConfig>(&slippi_config)?.settings.iso_path)
-}
-
-/// Get the volume from Dolphin -> Config -> Audio as a value from 0 - 100
-pub(crate) fn get_dolphin_volume(base_dirs: &BaseDirs) -> f32 {
-    let default_volume = 100;
-    let dolphin_config_file = base_dirs.config_dir().join("Slippi Launcher/netplay/User/Config/Dolphin.ini");
-    let dolphin_config = std::fs::read_to_string(dolphin_config_file).unwrap_or_else(|_| String::new());
-    let volume = serde_ini::from_str::<DolphinConfig>(&dolphin_config)
-        .ok()
-        .and_then(|config| config.dsp.get("Volume").and_then(|volume| volume.parse::<u8>().ok()))
-        .unwrap_or(default_volume);
-
-    volume as f32 / 100.0
-}
 
 /// Produces a hashmap containing offsets and lengths of .hps files contained within the iso
 /// These can be looked up by TrackId

@@ -2,9 +2,8 @@ mod scenes;
 mod tracks;
 mod utils;
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use bus::Bus;
-use directories::BaseDirs;
 use dolphin_logger::Log;
 use hps_decode::{hps::Hps, pcm_iterator::PcmIterator};
 use process_memory::LocalMember;
@@ -13,7 +12,6 @@ use rodio::{OutputStream, Sink};
 use scenes::scene_ids::*;
 use std::convert::TryInto;
 use std::error::Error;
-use std::ffi::{c_short, c_uint};
 use std::io::prelude::*;
 use std::ops::ControlFlow::{self, Break, Continue};
 use std::sync::mpsc;
@@ -85,13 +83,6 @@ impl Jukebox {
 
         tracing::info!(target: Log::Jukebox, m_p_ram, "Initializing Slippi Jukebox");
 
-        let base_dirs =
-            BaseDirs::new().context("Home directory path could not be retrieved from the OS. Unable to locate Slippi.")?;
-
-        //let iso_path = utils::get_iso_path(&base_dirs)?;
-        //let dolphin_volume_percent = utils::get_dolphin_volume(&base_dirs);
-        let dolphin_volume_percent = unsafe { get_dolphin_volume_fn() } as f32;
-
         let mut iso = std::fs::File::open(iso_path)?;
 
         tracing::info!(target: Log::Jukebox, "Scanning disc for tracks...");
@@ -111,10 +102,7 @@ impl Jukebox {
         // events
         std::thread::spawn(move || -> Result<()> {
             // Initial state that will get updated over time
-            let mut prev_state = DolphinState {
-                volume: dolphin_volume_percent,
-                ..Default::default()
-            };
+            let mut prev_state = DolphinState::default();
 
             loop {
                 // Break loop if jukebox has been dropped
@@ -125,6 +113,7 @@ impl Jukebox {
                 }
 
                 // Continuously check if the dolphin state has changed
+                let dolphin_volume_percent = unsafe { get_dolphin_volume_fn() } as f32 / 100.0;
                 let state = Self::read_dolphin_state(&m_p_ram, dolphin_volume_percent);
 
                 // If the state has changed,
@@ -153,9 +142,9 @@ impl Jukebox {
             // one time, and will be used for the rest of the session
             let random_menu_tracks = utils::get_random_menu_tracks();
 
-            // These values will get updated by the `handle_event` fn
+            // These values will get updated by the `handle_melee_event` fn
             let mut track_id: Option<TrackId> = None;
-            let mut volume = dolphin_volume_percent;
+            let mut volume = unsafe { get_dolphin_volume_fn() } as f32 / 100.0;
 
             'outer: loop {
                 if let Some(track_id) = track_id {
