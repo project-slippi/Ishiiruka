@@ -3277,6 +3277,17 @@ void CEXISlippi::ConfigureJukebox()
 	// https://github.com/dolphin-emu/dolphin/blob/7f450f1d7e7d37bd2300f3a2134cb443d07251f9/Source/Core/Core/Movie.cpp#L246-L249
 	std::string iso_path = SConfig::GetInstance().m_strFilename;
 
+    // Exclusive WASAPI and the Jukebox do not play nicely, so we just don't bother enabling
+    // the Jukebox in that scenario - why bother doing the processing work when it's not even
+    // possible to play it?
+#ifdef _WIN32
+    std::string backend = SConfig::GetInstance().sBackend;
+    if(backend.find(BACKEND_EXCLUSIVE_WASAPI) != std::string::npos && WASAPIStream::isValid())
+    {
+        return;
+    }
+#endif
+
     slprs_exi_device_configure_jukebox(
         slprs_exi_device_ptr,
         SConfig::GetInstance().bSlippiJukeboxEnabled,
