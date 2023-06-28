@@ -35,16 +35,15 @@ impl SlippiEXIDevice {
         &mut self,
         is_enabled: bool,
         m_p_ram: *const u8,
-        set_sample_rate_fn: slippi_jukebox::ForeignSetSampleRateFn,
-        set_volume_fn: slippi_jukebox::ForeignSetVolumeFn,
-        push_samples_fn: slippi_jukebox::ForeignPushSamplesFn,
+        iso_path: String,
+        get_dolphin_volume_fn: slippi_jukebox::ForeignGetVolumeFn
     ) {
         if !is_enabled {
             self.jukebox = None;
             return;
         }
 
-        match Jukebox::new(m_p_ram, set_sample_rate_fn, set_volume_fn, push_samples_fn) {
+        match Jukebox::new(m_p_ram, iso_path, get_dolphin_volume_fn) {
             Ok(jukebox) => {
                 self.jukebox = Some(jukebox);
             }

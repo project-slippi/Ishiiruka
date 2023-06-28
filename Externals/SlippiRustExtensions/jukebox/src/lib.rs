@@ -20,11 +20,9 @@ use std::sync::mpsc;
 use std::{thread::sleep, time::Duration};
 use tracks::TrackId;
 
-/// This handler definition represents a passed-in function for pushing audio samples
-/// into the current Dolphin SoundStream interface.
-pub type ForeignSetSampleRateFn = unsafe extern "C" fn(rate: u32);
-pub type ForeignSetVolumeFn = unsafe extern "C" fn(left_volume: u32, right_volume: u32);
-pub type ForeignPushSamplesFn = unsafe extern "C" fn(samples: *const c_short, num_samples: c_uint);
+/// Represents a foreign method from the Dolphin side for grabbing the current volume.
+/// Dolphin represents this as a number from 0 - 100; 0 being mute.
+pub type ForeignGetVolumeFn = unsafe extern "C" fn() -> std::ffi::c_int;
 
 const THREAD_LOOP_SLEEP_TIME_MS: u64 = 30;
 
@@ -84,9 +82,8 @@ impl Jukebox {
     /// Returns a new configured Jukebox, ready to play.
     pub fn new(
         m_p_ram: *const u8,
-        set_sample_rate_fn: ForeignSetSampleRateFn,
-        set_volume_fn: ForeignSetVolumeFn,
-        push_samples_fn: ForeignPushSamplesFn,
+        iso_path: String,
+        get_dolphin_volume_fn: ForeignGetVolumeFn
     ) -> Result<Self, Box<dyn Error>> {
         let m_p_ram = m_p_ram as usize;
 
@@ -96,8 +93,9 @@ impl Jukebox {
             "Home directory path could not be retrieved from the OS. Unable to locate Slippi.",
         )?;
 
-        let iso_path = utils::get_iso_path(&base_dirs)?;
-        let dolphin_volume_percent = utils::get_dolphin_volume(&base_dirs);
+        //let iso_path = utils::get_iso_path(&base_dirs)?;
+        //let dolphin_volume_percent = utils::get_dolphin_volume(&base_dirs);
+        let dolphin_volume_percent = unsafe { get_dolphin_volume_fn() } as f32;
 
         let mut iso = std::fs::File::open(iso_path)?;
 

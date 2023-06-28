@@ -3267,69 +3267,24 @@ void CEXISlippi::DMARead(u32 addr, u32 size)
 	Memory::CopyToEmu(addr, queueAddr, size);
 }
 
-// We utilize the unused DTK stream for the Jukebox, and there's (at least in Ishiiruka)
-// no global method for pushing those samples. As this is Slippi-specific code I'm throwing it
-// here to avoid altering Dolphin more than necessary.
-//
-// One important note: this does rely on `DVDInterface.cpp` having its streaming samples push
-// commented out, otherwise null data will be getting mixed in.
+// Configures (or reconfigures) the Jukebox by calling over the C FFI boundary.
 //
 // This method can also be called, indirectly, from the Settings panel.
 void CEXISlippi::ConfigureJukebox()
 {
+#ifndef IS_PLAYBACK
+    // TODO: For mainline port, ISO file path can't be fetched this way. Look at the following:
+	// https://github.com/dolphin-emu/dolphin/blob/7f450f1d7e7d37bd2300f3a2134cb443d07251f9/Source/Core/Core/Movie.cpp#L246-L249
+	std::string iso_path = SConfig::GetInstance().m_strFilename;
+
     slprs_exi_device_configure_jukebox(
         slprs_exi_device_ptr,
         SConfig::GetInstance().bSlippiJukeboxEnabled,
         Memory::m_pRAM,
-
-        // set_sample_rate_fn
-        [](u32 sample_rate)
-        {
-            INFO_LOG(AUDIO, "Rust setting sample rate: %i", sample_rate);
-            if (!g_sound_stream)
-                return;
-
-            CMixer* pMixer = g_sound_stream->GetMixer();
-            if (pMixer)
-            {
-                pMixer->SetStreamInputSampleRate(sample_rate);
-            }
-            INFO_LOG(AUDIO, "Rust sample rate set");
-        },
-
-        // set_volume_fn
-        [](u32 left_volume, u32 right_volume)
-        {
-            INFO_LOG(AUDIO, "Rust setting volume");
-            if (!g_sound_stream)
-                return;
-
-            CMixer* pMixer = g_sound_stream->GetMixer();
-            if (pMixer)
-            {
-                pMixer->SetStreamingVolume(left_volume, right_volume);
-            }
-            INFO_LOG(AUDIO, "Rust volume set");
-        },
-        
-        // push_samples_fn
-        [](const short* samples, unsigned int num_samples)
-        {
-            INFO_LOG(AUDIO, "Rust pushing samples");
-            if (!g_sound_stream)
-                return;
-
-            CMixer* pMixer = g_sound_stream->GetMixer();
-
-            if (pMixer && samples)
-            {
-                pMixer->PushStreamingSamples(samples, num_samples);
-                INFO_LOG(AUDIO, "Rust samples pushed");
-            }
-
-            g_sound_stream->Update();
-        }
+        iso_path.c_str(),
+        AudioCommon::GetCurrentVolume
     );
+#endif
 }
 
 bool CEXISlippi::IsPresent() const

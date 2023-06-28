@@ -5,7 +5,7 @@
 //! This library auto-generates C headers on build, and Slippi Dolphin is pre-configured
 //! to locate these headers and link the entire dylib.
 
-use std::ffi::{c_char, c_int, c_short, c_uint};
+use std::ffi::{c_char, c_int, c_short, c_uint, CStr};
 
 use dolphin_logger::Log;
 use slippi_exi_device::SlippiEXIDevice;
@@ -100,10 +100,28 @@ pub extern "C" fn slprs_exi_device_configure_jukebox(
     exi_device_instance_ptr: usize,
     is_enabled: bool,
     m_p_ram: *const u8,
-    set_sample_rate_fn: unsafe extern "C" fn(rate: u32),
-    set_volume_fn: unsafe extern "C" fn(left_volume: u32, right_volume: u32),
-    push_samples_fn: unsafe extern "C" fn(samples: *const c_short, num_samples: u32),
+    iso_path: *const c_char,
+    get_dolphin_volume_fn: unsafe extern "C" fn() -> c_int
 ) {
+    // Convert the provided ISO path to an owned Rust string.
+    // This is theoretically safe since we control the C++ side and can can mostly guarantee
+    // the validity of what is being passed in.
+    let slice = unsafe { CStr::from_ptr(iso_path) };
+
+    // What we *can't* guarantee is that it's proper UTF-8 etc. If we can't parse it into a
+    // Rust String, then we'll just avoid running the Jukebox entirely and log an error message
+    // for people to debug with.
+    let iso_path = match slice.to_str() {
+        Ok(path) => {
+            path.to_string()
+        },
+
+        Err(e) => {
+            tracing::error!(error = ?e, "Failed to bridge iso_path, jukebox not initializing");
+            return;
+        }
+    };
+
     // Coerce the instance from the pointer. This is theoretically safe since we control
     // the C++ side and can guarantee that the `exi_device_instance_ptr` is only owned
     // by the C++ EXI device, and is created/destroyed with the corresponding lifetimes.
@@ -112,9 +130,8 @@ pub extern "C" fn slprs_exi_device_configure_jukebox(
     device.configure_jukebox(
         is_enabled,
         m_p_ram,
-        set_sample_rate_fn,
-        set_volume_fn,
-        push_samples_fn,
+        iso_path,
+        get_dolphin_volume_fn
     );
 
     // Fall back into a raw pointer so Rust doesn't obliterate the object.
