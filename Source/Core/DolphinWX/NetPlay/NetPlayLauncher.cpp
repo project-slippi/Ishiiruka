@@ -8,6 +8,7 @@
 #include "Common/FileUtil.h"
 #include "Common/IniFile.h"
 #include "Common/StringUtil.h"
+#include "Common/UPnP.h"
 #include "DolphinWX/NetPlay/NetPlayLauncher.h"
 #include "DolphinWX/NetPlay/NetWindow.h"
 #include "DolphinWX/WxUtils.h"
@@ -38,7 +39,7 @@ bool NetPlayLauncher::Host(const NetPlayHostConfig& config)
 #ifdef USE_UPNP
 	if (config.forward_port)
 	{
-		netplay_server->TryPortmapping(config.listen_port);
+		UPnP::TryPortmapping(config.listen_port);
 	}
 #endif
 
