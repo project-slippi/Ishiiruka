@@ -173,6 +173,7 @@
     <ClInclude Include="Timer.h" />
     <ClInclude Include="TraversalClient.h" />
     <ClInclude Include="TraversalProto.h" />
+    <ClInclude Include="UPnP.h" />
     <ClInclude Include="x64ABI.h" />
     <ClInclude Include="x64Analyzer.h" />
     <ClInclude Include="x64Emitter.h" />
@@ -220,6 +221,7 @@
     <ClCompile Include="Timer.cpp" />
     <ClCompile Include="TraversalClient.cpp" />
     <ClCompile Include="ucrtFreadWorkaround.cpp" />
+    <ClCompile Include="UPnP.cpp" />
     <ClCompile Include="Version.cpp" />
     <ClCompile Include="x64ABI.cpp" />
     <ClCompile Include="x64Analyzer.cpp" />
