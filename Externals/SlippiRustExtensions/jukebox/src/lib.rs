@@ -304,27 +304,23 @@ impl Jukebox {
 
     /// Create a `DolphinState` by reading Dolphin's memory
     fn read_dolphin_state(m_p_ram: &usize, dolphin_volume_percent: f32) -> DolphinState {
+        #[inline(always)]
+        fn read<T: Copy>(offset: usize) -> T {
+            unsafe { LocalMember::<T>::new_offset(vec![offset]).read().unwrap() }
+        }
         // https://github.com/bkacjios/m-overlay/blob/d8c629d/source/modules/games/GALE01-2.lua#L8
-        // let volume = dolphin.read_i8(0x8045C384, None)?;
-        let volume: LocalMember<i8> = LocalMember::new_offset(vec![m_p_ram + 0x45C384]);
-        let volume = unsafe { volume.read().unwrap() };
-        let melee_volume_percent: f32 = ((volume as f32 - 100.0) * -1.0) / 100.0;
+        let melee_volume_percent = ((read::<i8>(m_p_ram + 0x45C384) as f32 - 100.0) * -1.0) / 100.0;
         // https://github.com/bkacjios/m-overlay/blob/d8c629d/source/modules/games/GALE01-2.lua#L16
-        let scene_major: LocalMember<u8> = LocalMember::new_offset(vec![m_p_ram + 0x479D30]);
-        let scene_major = unsafe { scene_major.read().unwrap() };
+        let scene_major = read::<u8>(m_p_ram + 0x479D30);
         // https://github.com/bkacjios/m-overlay/blob/d8c629d/source/modules/games/GALE01-2.lua#L19
-        let scene_minor: LocalMember<u8> = LocalMember::new_offset(vec![m_p_ram + 0x479D33]);
-        let scene_minor = unsafe { scene_minor.read().unwrap() };
+        let scene_minor = read::<u8>(m_p_ram + 0x479D33);
         // https://github.com/bkacjios/m-overlay/blob/d8c629d/source/modules/games/GALE01-2.lua#L357
-        let stage_id: LocalMember<u8> = LocalMember::new_offset(vec![m_p_ram + 0x49E753]);
-        let stage_id = unsafe { stage_id.read().unwrap() };
+        let stage_id = read::<u8>(m_p_ram + 0x49E753);
         // https://github.com/bkacjios/m-overlay/blob/d8c629d/source/modules/games/GALE01-2.lua#L248
         // 0 = in game, 1 = GAME! screen, 2 = Stage clear in 1p mode? (maybe also victory screen), 3 = menu
-        let match_info: LocalMember<u8> = LocalMember::new_offset(vec![m_p_ram + 0x46B6A0]);
-        let match_info = unsafe { match_info.read().unwrap() };
+        let match_info = read::<u8>(m_p_ram + 0x46B6A0);
         // https://github.com/bkacjios/m-overlay/blob/d8c629d/source/modules/games/GALE01-2.lua#L353
-        let is_paused: LocalMember<u8> = LocalMember::new_offset(vec![m_p_ram + 0x4D640F]);
-        let is_paused = unsafe { is_paused.read().unwrap() } == 1;
+        let is_paused = read::<u8>(m_p_ram + 0x4D640F) == 1;
 
         DolphinState {
             in_game: utils::is_in_game(scene_major, scene_minor),
