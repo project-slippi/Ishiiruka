@@ -1,6 +1,6 @@
 [package]
 name = "slippi-jukebox"
-description = ""
+description = "A built-in solution to play melee's OST in a manner that's effectively detached from emulation."
 version = "0.1.0"
 authors = [
     "Slippi Team",
