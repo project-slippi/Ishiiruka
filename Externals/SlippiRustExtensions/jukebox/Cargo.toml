@@ -10,7 +10,6 @@ edition = "2021"
 publish = false
 
 [dependencies]
-bus = "2.4.0"
 dolphin-logger = { path = "../logger" }
 fastrand = "2.0.0"
 hps_decode = "0.1.1"

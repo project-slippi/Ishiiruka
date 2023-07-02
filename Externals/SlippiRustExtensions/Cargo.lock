@@ -80,17 +80,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0d261e256854913907f67ed06efbc3338dfe6179796deefc1ff763fc1aee5535"
 
 [[package]]
-name = "bus"
-version = "2.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "34701d821c19736317bc716b8eb6153a78b431b06fbd3950716cedc705a6c811"
-dependencies = [
- "crossbeam-channel",
- "num_cpus",
- "parking_lot_core",
-]
-
-[[package]]
 name = "bytemuck"
 version = "1.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1048,7 +1037,6 @@ dependencies = [
 name = "slippi-jukebox"
 version = "0.1.0"
 dependencies = [
- "bus",
  "dolphin-logger",
  "fastrand 2.0.0",
  "hps_decode",
