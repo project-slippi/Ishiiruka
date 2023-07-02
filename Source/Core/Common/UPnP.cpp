@@ -55,7 +55,7 @@ static bool InitUPnP()
 		}
 		else
 		{
-			WARN_LOG(NETPLAY, "An error occurred trying to discover UPnP devices: {}", strupnperror(upnperror));
+			WARN_LOG(NETPLAY, "An error occurred trying to discover UPnP devices: %s", strupnperror(upnperror));
 		}
 
 		s_error = true;
@@ -86,12 +86,12 @@ static bool InitUPnP()
 			GetUPNPUrls(&s_urls, &s_data, dev->descURL, 0);
 
 			found_valid_igd = true;
-			NOTICE_LOG(NETPLAY, "Got info from IGD at {}.", dev->descURL);
+			NOTICE_LOG(NETPLAY, "Got info from IGD at %s.", dev->descURL);
 			break;
 		}
 		else
 		{
-			WARN_LOG(NETPLAY, "Error getting info from IGD at {}.", dev->descURL);
+			WARN_LOG(NETPLAY, "Error getting info from IGD at %s.", dev->descURL);
 		}
 	}
 
@@ -115,7 +115,7 @@ static bool UnmapPort(const u16 port)
 {
 	std::string port_str = std::to_string(port);
 	UPNP_DeletePortMapping(s_urls.controlURL, s_data.first.servicetype, port_str.c_str(), "UDP", nullptr);
-
+	s_mapped = 0;
 	return true;
 }
 
@@ -123,19 +123,17 @@ static bool UnmapPort(const u16 port)
 // Attempt to portforward!
 static bool MapPort(const char *addr, const u16 port)
 {
-	if (s_mapped > 0)
+	if (s_mapped > 0 && s_mapped != port)
 		UnmapPort(s_mapped);
 
 	std::string port_str = std::to_string(port);
 	int result =
 	    UPNP_AddPortMapping(s_urls.controlURL, s_data.first.servicetype, port_str.c_str(), port_str.c_str(), addr,
 	                        (std::string("dolphin-emu UDP on ") + addr).c_str(), "UDP", nullptr, nullptr);
-
 	if (result != 0)
 		return false;
 
 	s_mapped = port;
-
 	return true;
 }
 
@@ -144,18 +142,22 @@ static void MapPortThread(const u16 port)
 {
 	if (InitUPnP() && MapPort(s_our_ip.data(), port))
 	{
-		NOTICE_LOG(NETPLAY, "Successfully mapped port {} to {}.", port, s_our_ip.data());
+		NOTICE_LOG(NETPLAY, "Successfully mapped port %d to %s.", port, s_our_ip.data());
 		return;
 	}
 
-	WARN_LOG(NETPLAY, "Failed to map port {} to {}.", port, s_our_ip.data());
+	WARN_LOG(NETPLAY, "Failed to map port %d to %s.", port, s_our_ip.data());
 }
 
 // UPnP thread: try to unmap a port
 static void UnmapPortThread()
 {
 	if (s_mapped > 0)
+	{
+		u16 port = s_mapped;
 		UnmapPort(s_mapped);
+		NOTICE_LOG(NETPLAY, "Successfully unmapped port %d to %s.", port, s_our_ip.data());
+	}
 }
 
 void UPnP::TryPortmapping(u16 port)
@@ -163,6 +165,14 @@ void UPnP::TryPortmapping(u16 port)
 	if (s_thread.joinable())
 		s_thread.join();
 	s_thread = std::thread(&MapPortThread, port);
+}
+
+void UPnP::TryPortmappingBlocking(u16 port)
+{
+	if (s_thread.joinable())
+		s_thread.join();
+	s_thread = std::thread(&MapPortThread, port);
+	s_thread.join();
 }
 
 void UPnP::StopPortmapping()

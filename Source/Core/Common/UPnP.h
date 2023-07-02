@@ -7,6 +7,7 @@
 namespace UPnP
 {
 void TryPortmapping(u16 port);
+void TryPortmappingBlocking(u16 port);
 void StopPortmapping();
 } // namespace UPnP
 
