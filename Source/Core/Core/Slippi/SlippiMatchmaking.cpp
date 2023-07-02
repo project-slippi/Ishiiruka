@@ -3,6 +3,7 @@
 #include "Common/ENetUtil.h"
 #include "Common/Logging/Log.h"
 #include "Common/StringUtil.h"
+#include "Common/UPnP.h"
 #include <string>
 #include <vector>
 
@@ -248,6 +249,9 @@ void SlippiMatchmaking::startMatchmaking()
 		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Failed to create client...");
 		return;
 	}
+
+	if (SConfig::GetInstance().m_slippiEnableUpnp)
+		UPnP::TryPortmappingBlocking(m_hostPort);
 
 	ENetAddress addr;
 	enet_address_set_host(&addr, MM_HOST.c_str());

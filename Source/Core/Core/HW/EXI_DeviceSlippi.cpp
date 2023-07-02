@@ -19,6 +19,7 @@
 #include "Common/MsgHandler.h"
 #include "Common/StringUtil.h"
 #include "Common/Thread.h"
+#include "Common/UPnP.h"
 #include "Core/HW/Memmap.h"
 
 #include "VideoCommon/OnScreenDisplay.h"
@@ -298,6 +299,9 @@ CEXISlippi::~CEXISlippi()
 	// you'd have to be kinda dumb to do that sequence of stuff anyway so maybe it's nbd
 	if (isEnetInitialized)
 		enet_deinitialize();
+
+	if (SConfig::GetInstance().m_slippiEnableUpnp)
+		UPnP::StopPortmapping();
 }
 
 void CEXISlippi::configureCommands(u8 *payload, u8 length)

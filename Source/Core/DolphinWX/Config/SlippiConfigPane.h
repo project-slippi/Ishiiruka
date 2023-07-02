@@ -33,6 +33,7 @@ class SlippiNetplayConfigPane final : public wxPanel
 	void OnReplayMonthFoldersToggle(wxCommandEvent &event);
 	void OnReplayDirChanged(wxCommandEvent &event);
 	void OnDelayFramesChanged(wxCommandEvent &event);
+	void OnEnableUpnpToggle(wxCommandEvent &event);
 	void OnForceNetplayPortToggle(wxCommandEvent &event);
 	void OnNetplayPortChanged(wxCommandEvent &event);
 	void OnForceNetplayLanIpToggle(wxCommandEvent &event);
@@ -47,7 +48,8 @@ class SlippiNetplayConfigPane final : public wxPanel
 	wxDirPickerCtrl *m_replay_directory_picker;
 	wxCheckBox *m_replay_month_folders_checkbox;
 	wxStaticText *m_slippi_delay_frames_txt;
-	wxSpinCtrl *m_slippi_delay_frames_ctrl;
+	wxSpinCtrl *m_slippi_delay_frames_ctrl;	
+	wxCheckBox *m_slippi_enable_upnp_checkbox;
 	wxCheckBox *m_slippi_force_netplay_port_checkbox;
 	wxSpinCtrl *m_slippi_force_netplay_port_ctrl;
 	wxCheckBox *m_slippi_force_netplay_lan_ip_checkbox;

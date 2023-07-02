@@ -167,6 +167,7 @@ struct SConfig : NonCopyable
 	bool m_meleeUserIniBootstrapped = false;
 	bool m_blockingPipes = false;
 	bool m_coutEnabled = false;
+	bool m_slippiEnableUpnp = false;
 
 	// Slippi Playback
 	bool m_slippiEnableFrameIndex = false;
