@@ -2,7 +2,6 @@ mod scenes;
 mod tracks;
 mod utils;
 
-use anyhow::Result;
 use bus::Bus;
 use dolphin_logger::Log;
 use hps_decode::{hps::Hps, pcm_iterator::PcmIterator};
@@ -11,7 +10,6 @@ use process_memory::Memory;
 use rodio::{OutputStream, Sink};
 use scenes::scene_ids::*;
 use std::convert::TryInto;
-use std::error::Error;
 use std::io::prelude::*;
 use std::ops::ControlFlow::{self, Break, Continue};
 use std::sync::mpsc;
@@ -21,6 +19,8 @@ use tracks::TrackId;
 /// Represents a foreign method from the Dolphin side for grabbing the current volume.
 /// Dolphin represents this as a number from 0 - 100; 0 being mute.
 pub type ForeignGetVolumeFn = unsafe extern "C" fn() -> std::ffi::c_int;
+
+pub(crate) type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 const THREAD_LOOP_SLEEP_TIME_MS: u64 = 30;
 
@@ -78,7 +78,7 @@ pub struct Jukebox {
 
 impl Jukebox {
     /// Returns a new configured Jukebox, ready to play.
-    pub fn new(m_p_ram: *const u8, iso_path: String, get_dolphin_volume_fn: ForeignGetVolumeFn) -> Result<Self, Box<dyn Error>> {
+    pub fn new(m_p_ram: *const u8, iso_path: String, get_dolphin_volume_fn: ForeignGetVolumeFn) -> Result<Self> {
         let m_p_ram = m_p_ram as usize;
 
         tracing::info!(target: Log::Jukebox, m_p_ram, "Initializing Slippi Jukebox");
@@ -100,7 +100,7 @@ impl Jukebox {
 
         // This thread hooks into Dolphin's memory and listens for relevant
         // events
-        std::thread::spawn(move || -> Result<()> {
+        std::thread::spawn(move || {
             // Initial state that will get updated over time
             let mut prev_state = DolphinState::default();
 
@@ -122,21 +122,19 @@ impl Jukebox {
                     let event = Self::produce_melee_event(&prev_state, &state);
                     tracing::info!(target: Log::Jukebox, "{:?}", event);
 
-                    tx_melee.send(event)?;
+                    tx_melee.send(event).unwrap();
                     prev_state = state;
                 }
                 sleep(Duration::from_millis(THREAD_LOOP_SLEEP_TIME_MS));
             }
-
-            Ok(())
         });
 
         // This thread handles events sent by the dolphin-hooked thread and
         // manages audio playback
-        std::thread::spawn(move || -> Result<()> {
+        std::thread::spawn(move || {
             // TODO: Figure out what to do if we can't get a handle to the audio device
-            let (_stream, stream_handle) = OutputStream::try_default()?;
-            let sink = Sink::try_new(&stream_handle)?;
+            let (_stream, stream_handle) = OutputStream::try_default().unwrap();
+            let sink = Sink::try_new(&stream_handle).unwrap();
 
             // The menu track and tournament-mode track are randomly selected
             // one time, and will be used for the rest of the session
@@ -154,12 +152,14 @@ impl Jukebox {
                     let track = tracks.get(&track_id);
                     if let Some(&(offset, size)) = track {
                         // Seek the location of the track on the ISO
-                        iso.seek(std::io::SeekFrom::Start(offset as u64))?;
+                        iso.seek(std::io::SeekFrom::Start(offset as u64)).unwrap();
                         let mut bytes = vec![0; size];
-                        iso.read_exact(&mut bytes)?;
+                        iso.read_exact(&mut bytes).unwrap();
 
                         // Parse data from the ISO into samples
-                        let hps: Hps = bytes.as_slice().try_into()?;
+                        let hps: Hps = bytes.try_into().expect(&format!(
+                            "The {size} bytes at offset 0x{offset:x?} could not be decoded into an Hps"
+                        ));
                         let padding_length = hps.channel_count * hps.sample_rate / 4;
                         let audio_source = HpsAudioSource {
                             pcm: hps.into(),
@@ -198,8 +198,6 @@ impl Jukebox {
 
                 sink.stop();
             }
-
-            Ok(())
         });
 
         Ok(Self { bus: jukebox_event_bus })

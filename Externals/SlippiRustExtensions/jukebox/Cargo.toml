@@ -10,7 +10,6 @@ edition = "2021"
 publish = false
 
 [dependencies]
-anyhow = "1.0.70"
 bus = "2.4.0"
 dolphin-logger = { path = "../logger" }
 fastrand = "2.0.0"
