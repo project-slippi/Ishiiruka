@@ -14,6 +14,9 @@ An EXI device that receives forwarded calls from the Dolphin EXI device.
 #### logger
 A library that connects Dolphin `LogContainer`s and `tracing`.
 
+#### jukebox
+Melee music player library. See the [Slippi Jukebox readme](jukebox/README.md) for more info.
+
 ### The _playback_ feature
 There is an optional feature flag for this repository for playback-specific functionality. This will automatically be set via either CMake or Visual Studio if you're building a Playback-enabled project, but if you're building and testing out of band you may need to enable this flag, e.g:
 
@@ -21,10 +24,10 @@ There is an optional feature flag for this repository for playback-specific func
 cargo build --release --features playback
 ```
 
-### Building
+### Building out of band
 
 #### Windows
-To build out of band without having to build the entire Dolphin solution, you will need to install the [Rust toolchain](https://rustup.rs/) (1.68 or later).
+To compile changes made to the Rust extensions without having to rebuild the entire Dolphin solution, you will need to install the [Rust toolchain](https://rustup.rs/) (1.68 or later).
 
 In the `SlippiRustExtensions` directory, run the following:
 ```
