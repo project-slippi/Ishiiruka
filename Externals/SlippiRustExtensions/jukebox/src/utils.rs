@@ -46,7 +46,7 @@ pub(crate) fn create_track_map(iso: &mut std::fs::File) -> Result<HashMap<TrackI
                 // the .hps file at `location`
                 let coef_offset = 0x20;
                 iso.seek(std::io::SeekFrom::Start((location as u64) + coef_offset)).ok()?;
-                let mut buf = [0; 8];
+                let mut buf = [0; 4];
                 iso.read_exact(&mut buf).ok()?;
                 // Identify which TrackId is associated and populate the hashmap
                 let (id, size) = identify_coefficients(buf)?;
