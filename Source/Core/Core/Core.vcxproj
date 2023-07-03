@@ -55,6 +55,7 @@
     </ClCompile>
     <PreBuildEvent>
       <Message>Compile SlippiRustExtensions</Message>
+      <!-- Note that we need to cd into the directory proper, otherwise the Rust toolchain configuration file will not be picked up -->
       <Command>
         cd $(ExternalsDir)SlippiRustExtensions
         cargo build --target x86_64-pc-windows-msvc --release
@@ -67,8 +68,11 @@
       <PreprocessorDefinitions>IS_PLAYBACK;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <PreBuildEvent>
-      <Message>Compile SlippiRustExtensions</Message>
-      <Command>cargo build --manifest-path=$(ExternalsDir)SlippiRustExtensions/Cargo.toml --target x86_64-pc-windows-msvc --release --features playback</Command>
+      <Message>Compile SlippiRustExtensions (w/ playback feature)</Message>
+      <Command>
+        cd $(ExternalsDir)SlippiRustExtensions
+        cargo build --target x86_64-pc-windows-msvc --release --features playback
+      </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugFast|x64'">
@@ -79,7 +83,10 @@
     <PreBuildEvent>
       <Message>Compile SlippiRustExtensions</Message>
       <!-- This could be tweaked to not be release mode, but would need corresponding tweaks in Dolphin.vcproj -->
-      <Command>cargo build --manifest-path=$(ExternalsDir)SlippiRustExtensions/Cargo.toml --target x86_64-pc-windows-msvc --release</Command>
+      <Command>
+        cd $(ExternalsDir)SlippiRustExtensions
+        cargo build --target x86_64-pc-windows-msvc --release
+      </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -89,7 +96,10 @@
     <PreBuildEvent>
       <Message>Compile SlippiRustExtensions</Message>
       <!-- This could be tweaked to not be release mode, but would need corresponding tweaks in Dolphin.vcproj -->
-      <Command>cargo build --manifest-path=$(ExternalsDir)SlippiRustExtensions/Cargo.toml --target x86_64-pc-windows-msvc --release</Command>
+      <Command>
+        cd $(ExternalsDir)SlippiRustExtensions
+        cargo build --target x86_64-pc-windows-msvc --release
+      </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
