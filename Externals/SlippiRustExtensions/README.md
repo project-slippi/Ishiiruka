@@ -7,7 +7,6 @@ This workspace currently targets Rust `1.70.0`. As long as you have Rust install
 
 - [Project Module Structure Overview](#project-module-structure-overview)
 - [Adding a new workspace module](#adding-a-new-workspace-module)
-- [Adding a new LogContainer](#adding-a-new-logcontainer)
 - [Feature Flags](#feature-flags)
 - [Building out of band](#building-out-of-band)
 
@@ -34,44 +33,6 @@ Some important aspects of the project structure to understand:
 If you're adding a new workspace module, simply create it (`cargo new --lib my_module`), add it to the root `Cargo.toml`, and setup/link it/call it elsewhere accordingly.
 
 If this is code that Dolphin needs to call (via the C FFI), then it belongs in the `ffi` module. Your exposed method in the `ffi` module can/should forward on to wherever your code actually lives.
-
-## Adding a new LogContainer
-If you need to add a new log to the Dolphin codebase, you will need to add a few lines to the log definitions on the C++ side. This enables using the Dolphin logs viewer to monitor Rust `tracing` events.
-
-First, head to [`Source/Core/Common/Logging/Log.h`](../../Source/Core/Common/Logging/Log.h) and define a new `LogTypes::LOG_TYPE` variant.
-
-Next, head to [`Source/Core/Common/Logging/LogManager.cpp`](../../Source/Core/Common/Logging/LogManager.cpp) and add a new `LogContainer` in `LogManager::LogManager()`. For example, let's say that we created `LogTypes::SLIPPI_RUST_EXI` - we'd now add:
-
-``` c++
-// This LogContainer will register with the Rust side under the "SLIPPI_RUST_EXI" target.
-m_Log[LogTypes::SLIPPI_RUST_EXI] = new LogContainer(
-    "SLIPPI_RUST_EXI",  // Internal identifier, Rust will need to match
-    "Slippi EXI (Rust)",  // User-visible log label
-    LogTypes::SLIPPI_RUST_EXI,  // The C++ LogTypes variant we created
-    true  // Instructs the initializer that this is a Rust-sourced log
-);
-```
-
-Finally, add an associated `const` declaration with your `LogContainer` name in `logger/src/lib.rs`:
-
-``` rust
-pub mod Log {
-    // ...other logs etc
-    
-    // Our logger name
-    pub const EXI: &'static str = "SLIPPI_RUST_EXI";
-}
-```
-
-Now your Rust module can specify that it should log to this container via the tracing module:
-
-``` rust
-use dolphin_logger::Log;
-
-fn do_stuff() {
-    tracing::info!(target: Log::EXI, "Hello from the Rust side");
-}
-```
 
 ## Feature Flags
 

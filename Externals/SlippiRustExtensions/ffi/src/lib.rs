@@ -133,7 +133,7 @@ pub extern "C" fn slprs_logging_init(logger_fn: unsafe extern "C" fn(c_int, c_in
 
 /// Registers a log container, which mirrors a Dolphin `LogContainer` (`RustLogContainer`).
 ///
-/// See `dolphin_loger::register_container` for more information.
+/// See `dolphin_logger::register_container` for more information.
 #[no_mangle]
 pub extern "C" fn slprs_logging_register_container(
     kind: *const c_char,

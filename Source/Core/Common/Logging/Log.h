@@ -89,11 +89,6 @@ static const char LOG_LEVEL_TO_CHAR[7] = "-NEWID";
 // If you are calling this from another language and you need to log any form of structured
 // data, you should do the formatting *on your side* and pass it over here. You are also
 // responsible for ensuring that the msg string lives for an appropriate lifetime.
-//
-// Due to the way that the LOG_TYPES enum works, this is currently hardcoded to be the 
-// specific necessary type in the function body. If a new log is added and the number changes,
-// it would require changing out the entire generated definition on the Rust side, so it's 
-// just... simpler, for now, to do this.
 void SlippiRustLogger(int level, int slp_log_type, const char* file, int line, const char *msg);
 
 void GenericLog(LogTypes::LOG_LEVELS level, LogTypes::LOG_TYPE type, const char* file, int line,
