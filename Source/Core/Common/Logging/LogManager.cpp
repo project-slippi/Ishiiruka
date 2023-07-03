@@ -91,7 +91,7 @@ LogManager::LogManager()
     // This LogContainer will register with the Rust side under the "SLIPPI_RUST_DEPENDENCIES" target.
     // This is intended to be a catch-all for situations where we want to inspect logs from dependencies
     // we pull in.
-    m_log[LogTypes::SLIPPI_RUST_DEPENDENCIES] = new LogContainer(
+    m_Log[LogTypes::SLIPPI_RUST_DEPENDENCIES] = new LogContainer(
         "SLIPPI_RUST_DEPENDENCIES",
         "[Rust] Slippi Dependencies",
         LogTypes::SLIPPI_RUST_DEPENDENCIES,
