@@ -3293,7 +3293,7 @@ void CEXISlippi::ConfigureJukebox()
         SConfig::GetInstance().bSlippiJukeboxEnabled,
         Memory::m_pRAM,
         iso_path.c_str(),
-        AudioCommon::GetCurrentVolume
+        AudioCommonGetCurrentVolume
     );
 #endif
 }

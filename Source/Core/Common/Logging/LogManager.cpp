@@ -33,7 +33,8 @@ void GenericLog(LogTypes::LOG_LEVELS level, LogTypes::LOG_TYPE type, const char*
 }
 
 // See the notes in the header definition for why this exists.
-void SlippiRustExtensionsLogger(int level, int slp_log_type, const char *msg) {
+void SlippiRustExtensionsLogger(int level, int slp_log_type, const char *msg)
+{
     LogTypes::LOG_LEVELS log_level = static_cast<LogTypes::LOG_LEVELS>(level);
     LogTypes::LOG_TYPE log_type = static_cast<LogTypes::LOG_TYPE>(slp_log_type);
 	

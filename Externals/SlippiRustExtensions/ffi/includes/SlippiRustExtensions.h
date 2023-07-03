@@ -59,7 +59,7 @@ void slprs_logging_init(void (*logger_fn)(int, int, const char*));
 
 /// Registers a log container, which mirrors a Dolphin `LogContainer` (`RustLogContainer`).
 ///
-/// See `dolphin_loger::register_container` for more information.
+/// See `dolphin_logger::register_container` for more information.
 void slprs_logging_register_container(const char *kind,
                                       int log_type,
                                       bool is_enabled,
