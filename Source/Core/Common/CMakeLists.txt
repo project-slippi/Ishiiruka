@@ -27,6 +27,7 @@ set(SRCS Analytics.cpp
          Thread.cpp
          Timer.cpp
          TraversalClient.cpp
+         UPnP.cpp
          Version.cpp
          x64ABI.cpp
          x64Analyzer.cpp
