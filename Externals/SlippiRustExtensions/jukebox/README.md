@@ -1,6 +1,6 @@
 # Slippi Jukebox
 
-Slippi Jukebox is a built-in solution to play melee's OST in a manner that's effectively detached from emulation.
+Slippi Jukebox is a built-in solution to play Melee's OST in a manner that's effectively detached from emulation.
 
 ## Features
 
@@ -27,7 +27,7 @@ Slippi Jukebox is a built-in solution to play melee's OST in a manner that's eff
 
 ## How it works
 
-When a `Jukebox` instance is created, it scans the iso for music files and stores their locations + file sizes in a hashmap.
+When a `Jukebox` instance is created (generally from an EXI Device), it scans the iso for music files and stores their locations + file sizes in a hashmap.
 
 Two child threads are immediately spawned: `JukeboxMessageDispatcher` and `JukeboxMusicPlayer`. Together these threads form an event loop.
 
