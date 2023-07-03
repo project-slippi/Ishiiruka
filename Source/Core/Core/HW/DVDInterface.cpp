@@ -386,12 +386,8 @@ static void DTKStreamingCallback(const std::vector<u8>& audio_data, s64 cycles_l
 	{
 		std::memset(temp_pcm.data(), 0, samples_processed * 2 * sizeof(s16));
 	}
-
-    // Slippi change: We use the DTK streaming channel for the Jukebox, since Melee isn't
-    // using it anyway. I did test outright never calling this entire function, but it seemed
-    // like that may cause a memory leak somewhere and this feels less invasive anyway.
-	//if (bStreaming || !bTimeStretching)
-	//	g_sound_stream->GetMixer()->PushStreamingSamples(temp_pcm.data(), samples_processed);
+	if (bStreaming || !bTimeStretching)
+		g_sound_stream->GetMixer()->PushStreamingSamples(temp_pcm.data(), samples_processed);
 
 	// Determine which audio data to read next.
 	static const int MAXIMUM_SAMPLES = 48000 / 2000 * 7;  // 3.5ms of 48kHz samples
