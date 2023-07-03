@@ -42,9 +42,6 @@ void CMixer::LinearMixerFifo::Interpolate(u32 left_input_index, float* left_outp
 		+ m_fraction * m_float_buffer[(left_input_index + 3) & INDEX_MASK];
 }
 
-void CMixer::SlippiMixerFifo::Interpolate(u32 left_input_index, float* left_output, float* right_output)
-{}
-
 void CMixer::CubicMixerFifo::Interpolate(u32 left_input_index, float* left_output, float* right_output)
 {
 	static const float cubic_coef[] =
@@ -197,7 +194,12 @@ void CMixer::MixerFifo::PushSamples(const s16* samples, u32 num_samples)
 	// indexW == m_indexR results in empty buffer, so indexR must always be smaller than indexW
 	if (num_samples * 2 + ((current_write_index - m_read_index.load()) & INDEX_MASK) >= MAX_SAMPLES * 2)
     {
-		NOTICE_LOG(AUDIO, "PushSamples exiting early");
+        // @TODO: We would ideally like to be able to push Jukebox audio samples through Dolphin's mixer,
+        // however attempts at doing so seem to conflict with some expected logic regarding sample submission.
+        //
+        // For whoever chooses to try and debug this, you may want to uncomment the following line to examine
+        // why some samples get dropped and not pushed into the buffer.
+		// NOTICE_LOG(AUDIO, "PushSamples exiting early");
 		return;
     }
 
@@ -222,13 +224,6 @@ void CMixer::PushSamples(const s16 *samples, u32 num_samples)
 
 void CMixer::PushStreamingSamples(const s16 *samples, u32 num_samples)
 {
-    // Uncomment if you want to log audio sample values @DRL
-    /*for (u32 i = 0; i < num_samples; ++i)
-    {
-        NOTICE_LOG(AUDIO, "Sample %hd", samples[i]);
-        if(i > 20) break;
-    }*/
-
 	m_streaming_mixer.PushSamples(samples, num_samples);
 	int sample_rate = m_streaming_mixer.GetInputSampleRate();
 	if (m_log_dtk_audio)
