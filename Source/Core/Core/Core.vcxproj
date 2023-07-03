@@ -55,7 +55,10 @@
     </ClCompile>
     <PreBuildEvent>
       <Message>Compile SlippiRustExtensions</Message>
-      <Command>cargo build --manifest-path=$(ExternalsDir)SlippiRustExtensions/Cargo.toml --target x86_64-pc-windows-msvc --release</Command>
+      <Command>
+        cd $(ExternalsDir)SlippiRustExtensions
+        cargo build --target x86_64-pc-windows-msvc --release
+      </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleasePlayback|x64'">
