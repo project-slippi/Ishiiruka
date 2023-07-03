@@ -25,7 +25,7 @@ const THREAD_LOOP_SLEEP_TIME_MS: u64 = 30;
 const CHILD_THREAD_COUNT: usize = 2;
 
 #[derive(Debug, PartialEq)]
-struct DolphinState {
+struct DolphinGameState {
     in_game: bool,
     in_menus: bool,
     scene_major: u8,
@@ -36,7 +36,7 @@ struct DolphinState {
     match_info: u8,
 }
 
-impl Default for DolphinState {
+impl Default for DolphinGameState {
     fn default() -> Self {
         Self {
             in_game: false,
@@ -112,7 +112,7 @@ impl Jukebox {
             .name("JukeboxMessageDispatcher".to_string())
             .spawn(move || {
                 // Initial "dolphin state" that will get updated over time
-                let mut prev_state = DolphinState::default();
+                let mut prev_state = DolphinGameState::default();
 
                 loop {
                     // Stop the thread if the jukebox instance will be been dropped
@@ -123,7 +123,7 @@ impl Jukebox {
                     }
 
                     // Continuously check if the dolphin state has changed
-                    let state = Self::read_dolphin_state(&m_p_ram, get_dolphin_volume());
+                    let state = Self::read_dolphin_game_state(&m_p_ram, get_dolphin_volume());
 
                     // If the state has changed,
                     if prev_state != state {
@@ -282,7 +282,7 @@ impl Jukebox {
     }
 
     /// Given the previous dolphin state and current dolphin state, produce an event
-    fn produce_melee_event(prev_state: &DolphinState, state: &DolphinState) -> MeleeEvent {
+    fn produce_melee_event(prev_state: &DolphinGameState, state: &DolphinGameState) -> MeleeEvent {
         let vs_screen_1 = state.scene_major == SCENE_VS_ONLINE
             && prev_state.scene_minor != SCENE_VS_ONLINE_VERSUS
             && state.scene_minor == SCENE_VS_ONLINE_VERSUS;
@@ -317,8 +317,8 @@ impl Jukebox {
         }
     }
 
-    /// Create a `DolphinState` by reading Dolphin's memory
-    fn read_dolphin_state(m_p_ram: &usize, dolphin_volume_percent: f32) -> DolphinState {
+    /// Create a `DolphinGameState` by reading Dolphin's memory
+    fn read_dolphin_game_state(m_p_ram: &usize, dolphin_volume_percent: f32) -> DolphinGameState {
         #[inline(always)]
         fn read<T: Copy>(offset: usize) -> T {
             unsafe { LocalMember::<T>::new_offset(vec![offset]).read().unwrap() }
@@ -337,7 +337,7 @@ impl Jukebox {
         // https://github.com/bkacjios/m-overlay/blob/d8c629d/source/modules/games/GALE01-2.lua#L353
         let is_paused = read::<u8>(m_p_ram + 0x4D640F) == 1;
 
-        DolphinState {
+        DolphinGameState {
             in_game: utils::is_in_game(scene_major, scene_minor),
             in_menus: utils::is_in_menus(scene_major, scene_minor),
             scene_major,
