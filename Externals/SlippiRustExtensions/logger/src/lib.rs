@@ -8,9 +8,8 @@
 //! Ultimately this should mean no log fragmentation or confusion.
 
 use std::ffi::{c_char, c_int, CStr};
-use std::sync::{Arc, Once, RwLock};
+use std::sync::{Arc, Once, OnceLock, RwLock};
 
-use once_cell::sync::OnceCell;
 use tracing::Level;
 use tracing_subscriber::prelude::*;
 
@@ -42,6 +41,11 @@ pub(crate) type ForeignLoggerFn = unsafe extern "C" fn(c_int, c_int, *const c_ch
 #[allow(non_snake_case)]
 #[allow(non_upper_case_globals)]
 pub mod Log {
+    /// Used for dumping logs from dependencies that we may need to inspect.
+    /// This may also get logs that are not properly tagged! If that happens, you need
+    /// to fix your logging calls. :)
+    pub const DEPENDENCIES: &'static str = "SLIPPI_RUST_DEPENDENCIES";
+
     /// The default target for EXI tracing.
     pub const EXI: &'static str = "SLIPPI_RUST_EXI";
 
@@ -62,7 +66,7 @@ struct LogContainer {
 ///
 /// All logger registrations (which require `write`) should happen up-front due to how
 /// Dolphin itself works. RwLock here should provide us parallel reader access after.
-static LOG_CONTAINERS: OnceCell<Arc<RwLock<Vec<LogContainer>>>> = OnceCell::new();
+static LOG_CONTAINERS: OnceLock<Arc<RwLock<Vec<LogContainer>>>> = OnceLock::new();
 
 /// This should be called from the Dolphin LogManager initialization to ensure that
 /// all logging needs on the Rust side are configured appropriately.
@@ -73,7 +77,7 @@ static LOG_CONTAINERS: OnceCell<Arc<RwLock<Vec<LogContainer>>>> = OnceCell::new(
 pub fn init(logger_fn: ForeignLoggerFn) {
     let _containers = LOG_CONTAINERS.get_or_init(|| Arc::new(RwLock::new(Vec::new())));
 
-    // A guard so that we don't double-init logging layers.
+    // A guard so that we can't double-init logging layers.
     static LOGGER: Once = Once::new();
 
     // We don't use `try_init` here because we do want to

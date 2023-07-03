@@ -15,10 +15,12 @@ extern std::unique_ptr<SoundStream> g_sound_stream;
 
 // SlippiChange: Added as a hook for the Jukebox to call.
 //
-// Note that this must exist outside of the C++ namespace to ensure that
-// there's no issues passing it to the Rust side of things.
+// I've intentionally kept this outside of the C++ namespace as I am unsure of the risks
+// of having this inside there with regards to how Rust receives it.
 //
-// The naming is unfortunate, yes - but it at least "fits" with the namespacing.
+// If someone can prove that it's safe, then feel free to move it back into the namespace
+// proper. For now, I've just prefixed the method name with the namespace name
+// for grep-ability.
 int AudioCommonGetCurrentVolume();
 
 namespace AudioCommon

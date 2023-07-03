@@ -87,11 +87,21 @@ LogManager::LogManager()
 	m_Log[LogTypes::EXPANSIONINTERFACE] = new LogContainer("EXI", "Expansion Interface", LogTypes::EXPANSIONINTERFACE);
 	m_Log[LogTypes::SLIPPI] = new LogContainer("SLIPPI", "Slippi", LogTypes::SLIPPI);
     m_Log[LogTypes::SLIPPI_ONLINE] = new LogContainer("SLIPPI_ONLINE", "Slippi Online", LogTypes::SLIPPI_ONLINE);
+
+    // This LogContainer will register with the Rust side under the "SLIPPI_RUST_DEPENDENCIES" target.
+    // This is intended to be a catch-all for situations where we want to inspect logs from dependencies
+    // we pull in.
+    m_log[LogTypes::SLIPPI_RUST_DEPENDENCIES] = new LogContainer(
+        "SLIPPI_RUST_DEPENDENCIES",
+        "[Rust] Slippi Dependencies",
+        LogTypes::SLIPPI_RUST_DEPENDENCIES,
+        true
+    );
 	
     // This LogContainer will register with the Rust side under the "SLIPPI_RUST_EXI" target.
     m_Log[LogTypes::SLIPPI_RUST_EXI] = new LogContainer(
         "SLIPPI_RUST_EXI",
-        "Slippi EXI (Rust)",
+        "[Rust] Slippi EXI",
         LogTypes::SLIPPI_RUST_EXI,
         true
     );
@@ -99,7 +109,7 @@ LogManager::LogManager()
     // This LogContainer will register with the Rust side under the "SLIPPI_RUST_JUKEBOX" target.
 	m_Log[LogTypes::SLIPPI_RUST_JUKEBOX] = new LogContainer(
         "SLIPPI_RUST_JUKEBOX",
-        "Slippi Jukebox (Rust)",
+        "[Rust] Slippi Jukebox",
         LogTypes::SLIPPI_RUST_JUKEBOX,
         true
     );

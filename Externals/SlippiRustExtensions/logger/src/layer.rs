@@ -9,7 +9,7 @@ use time::OffsetDateTime;
 use tracing::{Level, Metadata};
 use tracing_subscriber::Layer;
 
-use super::{ForeignLoggerFn, LOG_CONTAINERS};
+use super::{ForeignLoggerFn, Log, LOG_CONTAINERS};
 
 /// Corresponds to Dolphin's `LogTypes::LOG_LEVELS::LNOTICE` value.
 #[allow(dead_code)]
@@ -75,7 +75,14 @@ where
             .read()
             .expect("[DolphinLoggerLayer::on_event]: Unable to acquire readlock on `LOG_CONTAINERS`?");
 
-        let log_container = reader.iter().find(|container| container.kind == target);
+        let mut log_container = reader.iter().find(|container| container.kind == target);
+
+        // If we can't find the requested container, then go ahead and see if we can dump it
+        // into the dependencies container. This also allows us to grab any logs that *aren't*
+        // tagged that may be of interest (i.e, from dependencies - hence the container name).
+        if log_container.is_none() {
+            log_container = reader.iter().find(|container| container.kind == Log::DEPENDENCIES);
+        }
 
         if log_container.is_none() {
             // We want to still dump errors to the console if no log handler is set at all,
