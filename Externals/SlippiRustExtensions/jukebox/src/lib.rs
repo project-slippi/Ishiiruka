@@ -24,6 +24,11 @@ pub(crate) type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 const THREAD_LOOP_SLEEP_TIME_MS: u64 = 30;
 const CHILD_THREAD_COUNT: usize = 2;
 
+/// By default Slippi Jukebox plays music slightly louder than vanilla melee
+/// does. This reduces the overall music volume output to 80%. Not totally sure
+/// if that's the correct amount, but it sounds about right.
+const VOLUME_REDUCTION_MULTIPLIER: f32 = 0.8;
+
 #[derive(Debug, PartialEq)]
 struct DolphinGameState {
     in_game: bool,
@@ -156,7 +161,7 @@ impl Jukebox {
                 // updated by the `handle_melee_event` fn whenever a message is
                 // received from the other thread.
                 let mut track_id: Option<TrackId> = None;
-                let mut volume = get_dolphin_volume();
+                let mut volume = get_dolphin_volume() * VOLUME_REDUCTION_MULTIPLIER;
 
                 'outer: loop {
                     if let Some(track_id) = track_id {
@@ -342,7 +347,7 @@ impl Jukebox {
             in_menus: utils::is_in_menus(scene_major, scene_minor),
             scene_major,
             scene_minor,
-            volume: dolphin_volume_percent * melee_volume_percent,
+            volume: dolphin_volume_percent * melee_volume_percent * VOLUME_REDUCTION_MULTIPLIER,
             stage_id,
             is_paused,
             match_info,
