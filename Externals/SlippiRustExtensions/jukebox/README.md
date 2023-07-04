@@ -34,3 +34,7 @@ Two child threads are immediately spawned: `JukeboxMessageDispatcher` and `Jukeb
 The message dispatcher continuously reads from dolphin's game memory and dispatches relevant events. The music player thread listens to the events and handles them by decoding the appropriate music files and playing them with the default audio device.
 
 When the `Jukebox` instance is dropped, the child threads are instructed to terminate, the event loop breaks, and the music stops.
+
+## Decoding Melee's Music
+
+The logic for decoding Melee's music has been split out into a public library. See the [`hps_decode`](https://crates.io/crates/hps_decode) crate for more. For general information about the `.hps` file format, [see here.](https://github.com/DarylPinto/hps_decode/blob/main/HPS-LAYOUT.md)

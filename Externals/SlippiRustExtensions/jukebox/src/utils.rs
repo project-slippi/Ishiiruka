@@ -34,7 +34,7 @@ pub(crate) fn create_track_map(iso: &mut std::fs::File) -> Result<HashMap<TrackI
         })
         .collect::<Result<Vec<_>>>()?;
 
-    // Using known 8-byte sequences from .hps files in the OST, identify each of
+    // Using known 4-byte sequences from .hps files in the OST, identify each of
     // the locations, and insert them into a hashmap so we can look them up
     // using TrackIds later on
     Ok(locations
