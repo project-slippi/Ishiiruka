@@ -16,10 +16,15 @@ jobs:
   slprs_cargo_fmt:
     name: (SlippiRustExtensions) Cargo Format
     runs-on: ubuntu-latest
+    outputs:
+      rust_ver: ${{ steps.rust_ver.outputs.rust_ver }}
     steps:
       - uses: actions/checkout@v3
+      - name: rust_ver
+        run: echo "rust_ver=$(sed -rn 's/^channel = "(.*)"/\1/p' ./Externals/SlippiRustExtensions/rust-toolchain.toml)" >> "$GITHUB_OUTPUT"
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
+          toolchain: ${{ steps.rust_ver.outputs.rust_ver }}
           components: rustfmt
       - name: Rustfmt Check
         uses: actions-rust-lang/rustfmt@v1
@@ -63,7 +68,7 @@ jobs:
       - name: "Install Rust"
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          toolchain: "1.70.0"  # Pin to our specific Rust version.
+          toolchain: ${{ needs.slprs_cargo_fmt.outputs.rust_ver }}  # Pin to our specific Rust version.
           rustflags: ""  # Disable default injection of warnings = errors.
       - name: "(SlippiRustExtensions) Run cargo test"
         run: cargo test --all --all-features --manifest-path=Externals/SlippiRustExtensions/Cargo.toml
@@ -214,7 +219,7 @@ jobs:
       - name: "Install Rust"
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          toolchain: "1.70.0"  # Pin to our specific Rust version.
+          toolchain: ${{ needs.slprs_cargo_fmt.outputs.rust_ver }}  # Pin to our specific Rust version.
           rustflags: ""  # Disable default injection of warnings = errors.
       - name: "(SlippiRustExtensions) Run cargo test"
         run: cargo test --all --all-features --manifest-path=Externals/SlippiRustExtensions/Cargo.toml
@@ -304,7 +309,7 @@ jobs:
       - name: "Install Rust"
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          toolchain: "1.70.0"  # Pin to our specific Rust version.
+          toolchain: ${{ needs.slprs_cargo_fmt.outputs.rust_ver }}  # Pin to our specific Rust version.
           rustflags: ""  # Disable default injection of warnings = errors.
       - name: "(SlippiRustExtensions) Run cargo test"
         run: cargo test --all --all-features --manifest-path=Externals/SlippiRustExtensions/Cargo.toml
