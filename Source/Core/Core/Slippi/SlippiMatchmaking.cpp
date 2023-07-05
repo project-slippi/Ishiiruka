@@ -211,10 +211,36 @@ void SlippiMatchmaking::terminateMmConnection()
 	}
 }
 
+// Fallback: arbitrarily choose the last available local IP address listed. They seem to be listed in decreasing order
+// IE. 192.168.0.100 > 192.168.0.10 > 10.0.0.2
+static char *getLocalAddressFallback()
+{
+	char host[256];
+	int hostname = gethostname(host, sizeof(host)); // find the host name
+	if (hostname == -1)
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Error finding LAN address");
+		return nullptr;
+	}
+
+	struct hostent *host_entry = gethostbyname(host); // find host information
+	if (host_entry == NULL || host_entry->h_addrtype != AF_INET || host_entry->h_addr_list[0] == 0)
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Error finding LAN host");
+		return nullptr;
+	}
+
+	// Fetch the last IP (because that was correct for me, not sure if it will be for all)
+	for (int i = 0; host_entry->h_addr_list[i] != 0; i++)
+		if (host_entry->h_addr_list[i + 1] == 0)
+			return host_entry->h_addr_list[i];
+	return nullptr;
+}
+
 // Set up and connect a socket (UDP, so "connect" doesn't actually send any
 // packets) so that the OS will determine what device/local IP address we will
 // actually use.
-static enet_uint32 getLocalAddress(ENetAddress *mm_address)
+static enet_uint32 getLocalAddressNew(ENetAddress *mm_address)
 {
 	ENetSocket socket = enet_socket_create(ENET_SOCKET_TYPE_DATAGRAM);
 	if (socket == -1)
@@ -341,42 +367,16 @@ void SlippiMatchmaking::startMatchmaking()
 	}
 	else
 	{
-		enet_uint32 localAddress = getLocalAddress(&addr);
+		enet_uint32 localAddress = getLocalAddressNew(&addr);
 		if (localAddress != 0)
+		{
 			sprintf(lanAddr, "%s:%d", inet_ntoa(*(struct in_addr *)&localAddress), m_hostPort);
+		}
 		else
 		{
-			// Fallback: just try the last local IP address listed. They seem to be
-			// listed in decreasing order IE. 192.168.0.100 > 192.168.0.10 > 10.0.0.2
-			char host[256];
-			char *IP;
-			struct hostent *host_entry;
-			int hostname;
-			hostname = gethostname(host, sizeof(host)); // find the host name
-			if (hostname == -1)
-			{
-				ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Error finding LAN address");
-			}
-			else
-			{
-				host_entry = gethostbyname(host); // find host information
-				if (host_entry == NULL || host_entry->h_addrtype != AF_INET)
-				{
-					ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Error finding LAN host");
-				}
-				else
-				{
-					// Fetch the last IP (because that was correct for me, not sure if it will be for all)
-					int i = 0;
-					while (host_entry->h_addr_list[i] != 0)
-					{
-						IP = inet_ntoa(*((struct in_addr *)host_entry->h_addr_list[i]));
-						WARN_LOG(SLIPPI_ONLINE, "[Matchmaking] IP at idx %d: %s", i, IP);
-						i++;
-					}
-					sprintf(lanAddr, "%s:%d", IP, m_hostPort);
-				}
-			}
+			char *fallbackAddress = getLocalAddressFallback();
+			if (fallbackAddress != nullptr)
+				sprintf(lanAddr, "%s:%d", inet_ntoa(*(struct in_addr *)fallbackAddress), m_hostPort);
 		}
 	}
 	WARN_LOG(SLIPPI_ONLINE, "[Matchmaking] Sending LAN address: %s", lanAddr);
