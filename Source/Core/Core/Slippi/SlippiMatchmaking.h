@@ -91,16 +91,15 @@ class SlippiMatchmaking
 
 	SlippiUser *m_user;
 
-	int m_isSwapAttempt = false;
-
 	int m_hostPort;
-	int m_localPlayerIndex;
-	std::vector<std::string> m_remoteIps;
+	u8 m_localPlayerIndex;
+	std::vector<struct RemotePlayer> m_remotePlayers;
 	MatchmakeResult m_mmResult;
 	std::vector<SlippiUser::UserInfo> m_playerInfo;
 	std::vector<u16> m_allowedStages;
 	bool m_joinedLobby;
 	bool m_isHost;
+	enet_uint32 m_ownExternalAddress;
 
 	std::unique_ptr<SlippiNetplayClient> m_netplayClient;
 
@@ -114,8 +113,6 @@ class SlippiMatchmaking
 	void terminateMmConnection();
 	void sendMessage(json msg);
 	int receiveMessage(json &msg, int maxAttempts);
-
-	void sendHolePunchMsg(std::string remoteIp, u16 remotePort, u16 localPort);
 
 	void startMatchmaking();
 	void handleMatchmaking();
