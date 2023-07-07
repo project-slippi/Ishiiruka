@@ -28,7 +28,7 @@ pub(crate) fn create_track_map(iso: &mut std::fs::File) -> Result<HashMap<TrackI
             iso.seek(std::io::SeekFrom::Start(chunk_start_address))?;
             iso.read(&mut buffer)?;
 
-            Ok(memchr::memmem::find_iter(buffer.as_slice(), b" HALPST\0")
+            Ok(memchr::memmem::find_iter(&buffer, b" HALPST\0")
                 .map(|address| chunk_start_address as usize + address)
                 .collect::<Vec<_>>())
         })

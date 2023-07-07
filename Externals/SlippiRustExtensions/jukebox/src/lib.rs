@@ -20,8 +20,6 @@ use tracks::TrackId;
 /// Dolphin represents this as a number from 0 - 100; 0 being mute.
 pub type ForeignGetVolumeFn = unsafe extern "C" fn() -> std::ffi::c_int;
 
-// pub(crate) type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
-
 const THREAD_LOOP_SLEEP_TIME_MS: u64 = 30;
 const CHILD_THREAD_COUNT: usize = 2;
 
@@ -160,11 +158,12 @@ impl Jukebox {
                     // one time, and will be used for the rest of the session
                     let random_menu_tracks = utils::get_random_menu_tracks();
 
-                    // Initial track id and music volume. These values will get
+                    // Initial music volume and track id. These values will get
                     // updated by the `handle_melee_event` fn whenever a message is
                     // received from the other thread.
+                    let initial_state = Self::read_dolphin_game_state(&m_p_ram, get_dolphin_volume())?;
+                    let mut volume = initial_state.volume;
                     let mut track_id: Option<TrackId> = None;
-                    let mut volume = get_dolphin_volume() * VOLUME_REDUCTION_MULTIPLIER;
 
                     'outer: loop {
                         if let Some(track_id) = track_id {
