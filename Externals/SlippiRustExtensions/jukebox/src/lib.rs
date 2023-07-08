@@ -12,7 +12,7 @@ use scenes::scene_ids::*;
 use std::convert::TryInto;
 use std::io::prelude::*;
 use std::ops::ControlFlow::{self, Break, Continue};
-use std::sync::mpsc::{channel, Sender};
+use std::sync::mpsc::{channel, Receiver, Sender};
 use std::{thread::sleep, time::Duration};
 use tracks::TrackId;
 
@@ -91,6 +91,10 @@ impl Jukebox {
         let m_p_ram = m_p_ram as usize;
         let get_dolphin_volume = move || unsafe { get_dolphin_volume_fn() } as f32 / 100.0;
 
+        // This channel is used for the `JukeboxMessageDispatcher` thread to send
+        // messages to the `JukeboxMusicPlayer` thread
+        let (melee_event_tx, melee_event_rx) = channel::<MeleeEvent>();
+
         // These channels allow the jukebox instance to notify both child
         // threads when something important happens. Currently its only purpose
         // is to notify them that the instance is about to be dropped so they
@@ -98,137 +102,141 @@ impl Jukebox {
         let (message_dispatcher_thread_tx, message_dispatcher_thread_rx) = channel::<JukeboxEvent>();
         let (music_thread_tx, music_thread_rx) = channel::<JukeboxEvent>();
 
-        std::thread::spawn(move || -> Result<()> {
-            let mut iso = std::fs::File::open(iso_path)?;
+        std::thread::Builder::new()
+            .name("JukeboxMessageDispatcher".to_string())
+            .spawn(move || Self::dispatch_messages(m_p_ram, get_dolphin_volume, message_dispatcher_thread_rx, melee_event_tx))?;
 
-            tracing::info!(target: Log::Jukebox, "Scanning disc for tracks...");
-            let tracks = utils::create_track_map(&mut iso)?;
-            tracing::info!(target: Log::Jukebox, "Loaded {} tracks!", tracks.len());
-
-            // This channel is used for the `JukeboxMessageDispatcher` thread to send
-            // messages to the `JukeboxMusicPlayer` thread
-            let (melee_event_tx, melee_event_rx) = channel::<MeleeEvent>();
-
-            // This thread continuously reads select values from game memory as well
-            // as the current `volume` value in the dolphin configuration. If it
-            // notices anything change, it will dispatch a message to the
-            // `JukeboxMusicPlayer` thread.
-            std::thread::Builder::new()
-                .name("JukeboxMessageDispatcher".to_string())
-                .spawn(move || -> Result<()> {
-                    // Initial "dolphin state" that will get updated over time
-                    let mut prev_state = DolphinGameState::default();
-
-                    loop {
-                        // Stop the thread if the jukebox instance will be been dropped
-                        if let Ok(event) = message_dispatcher_thread_rx.try_recv() {
-                            if matches!(event, JukeboxEvent::Dropped) {
-                                break;
-                            }
-                        }
-
-                        // Continuously check if the dolphin state has changed
-                        let state = Self::read_dolphin_game_state(&m_p_ram, get_dolphin_volume())?;
-
-                        // If the state has changed,
-                        if prev_state != state {
-                            // dispatch a message to the music player thread
-                            let event = Self::produce_melee_event(&prev_state, &state);
-                            tracing::info!(target: Log::Jukebox, "{:?}", event);
-
-                            melee_event_tx.send(event)?;
-                            prev_state = state;
-                        }
-                        sleep(Duration::from_millis(THREAD_LOOP_SLEEP_TIME_MS));
-                    }
-
-                    Ok(())
-                })?;
-
-            // This thread listens for incoming messages from the
-            // `JukeboxMessageDispatcher` thread and handles music playback
-            // accordingly.
-            std::thread::Builder::new()
-                .name("JukeboxMusicPlayer".to_string())
-                .spawn(move || -> Result<()> {
-                    let (_stream, stream_handle) = OutputStream::try_default()?;
-                    let sink = Sink::try_new(&stream_handle)?;
-
-                    // The menu track and tournament-mode track are randomly selected
-                    // one time, and will be used for the rest of the session
-                    let random_menu_tracks = utils::get_random_menu_tracks();
-
-                    // Initial music volume and track id. These values will get
-                    // updated by the `handle_melee_event` fn whenever a message is
-                    // received from the other thread.
-                    let initial_state = Self::read_dolphin_game_state(&m_p_ram, get_dolphin_volume())?;
-                    let mut volume = initial_state.volume;
-                    let mut track_id: Option<TrackId> = None;
-
-                    'outer: loop {
-                        if let Some(track_id) = track_id {
-                            // Lookup the current track_id in the `tracks` hashmap,
-                            // and if it's present, then play it. If not, there will
-                            // be silence until a new track_id is set
-                            let track = tracks.get(&track_id);
-                            if let Some(&(offset, size)) = track {
-                                // Seek the location of the track on the ISO
-                                iso.seek(std::io::SeekFrom::Start(offset as u64))?;
-                                let mut bytes = vec![0; size];
-                                iso.read_exact(&mut bytes)?;
-
-                                // Parse data from the ISO into pcm samples
-                                let hps: Hps = bytes.try_into().with_context(|| {
-                                    format!("The {size} bytes at offset 0x{offset:x?} could not be decoded into an Hps")
-                                })?;
-
-                                let padding_length = hps.channel_count * hps.sample_rate / 4;
-                                let audio_source = HpsAudioSource {
-                                    pcm: hps.into(),
-                                    padding_length,
-                                };
-
-                                // Play song
-                                sink.append(audio_source);
-                                sink.play();
-                                sink.set_volume(volume);
-                            }
-                        }
-
-                        // Continue to play the song indefinitely while regularly checking
-                        // for new messages from the `JukeboxMessageDispatcher` thread
-                        loop {
-                            // Stop the thread if the jukebox instance will be been dropped
-                            if let Ok(event) = music_thread_rx.try_recv() {
-                                if matches!(event, JukeboxEvent::Dropped) {
-                                    break 'outer;
-                                }
-                            }
-
-                            if let Ok(event) = melee_event_rx.try_recv() {
-                                // When we receive an event, handle it. This can include
-                                // changing the volume or updating the track and breaking
-                                // the inner loop such that the next track starts to play
-                                match Self::handle_melee_event(event, &sink, &mut track_id, &mut volume, &random_menu_tracks) {
-                                    Break(_) => break,
-                                    _ => (),
-                                }
-                            }
-                            sleep(Duration::from_millis(THREAD_LOOP_SLEEP_TIME_MS));
-                        }
-
-                        sink.stop();
-                    }
-
-                    Ok(())
-                })?;
-
-            Ok(())
-        });
+        std::thread::Builder::new()
+            .name("JukeboxMusicPlayer".to_string())
+            .spawn(move || Self::play_music(m_p_ram, iso_path, get_dolphin_volume, music_thread_rx, melee_event_rx))?;
 
         Ok(Self {
             channel_senders: [message_dispatcher_thread_tx, music_thread_tx],
         })
+    }
+
+    /// This thread continuously reads select values from game memory as well
+    /// as the current `volume` value in the dolphin configuration. If it
+    /// notices anything change, it will dispatch a message to the
+    /// `JukeboxMusicPlayer` thread.
+    fn dispatch_messages(
+        m_p_ram: usize,
+        get_dolphin_volume: impl Fn() -> f32,
+        message_dispatcher_thread_rx: Receiver<JukeboxEvent>,
+        melee_event_tx: Sender<MeleeEvent>,
+    ) -> Result<()> {
+        // Initial "dolphin state" that will get updated over time
+        let mut prev_state = DolphinGameState::default();
+
+        loop {
+            // Stop the thread if the jukebox instance will be been dropped
+            if let Ok(event) = message_dispatcher_thread_rx.try_recv() {
+                if matches!(event, JukeboxEvent::Dropped) {
+                    return Ok(());
+                }
+            }
+
+            // Continuously check if the dolphin state has changed
+            let state = Self::read_dolphin_game_state(&m_p_ram, get_dolphin_volume())?;
+
+            // If the state has changed,
+            if prev_state != state {
+                // dispatch a message to the music player thread
+                let event = Self::produce_melee_event(&prev_state, &state);
+                tracing::info!(target: Log::Jukebox, "{:?}", event);
+
+                melee_event_tx.send(event)?;
+                prev_state = state;
+            }
+
+            sleep(Duration::from_millis(THREAD_LOOP_SLEEP_TIME_MS));
+        }
+    }
+
+    /// This thread listens for incoming messages from the
+    /// `JukeboxMessageDispatcher` thread and handles music playback
+    /// accordingly.
+    fn play_music(
+        m_p_ram: usize,
+        iso_path: String,
+        get_dolphin_volume: impl Fn() -> f32,
+        music_thread_rx: Receiver<JukeboxEvent>,
+        melee_event_rx: Receiver<MeleeEvent>,
+    ) -> Result<()> {
+        let mut iso = std::fs::File::open(iso_path)?;
+
+        tracing::info!(target: Log::Jukebox, "Scanning disc for tracks...");
+        let tracks = utils::create_track_map(&mut iso)?;
+        tracing::info!(target: Log::Jukebox, "Loaded {} tracks!", tracks.len());
+
+        let (_stream, stream_handle) = OutputStream::try_default()?;
+        let sink = Sink::try_new(&stream_handle)?;
+
+        // The menu track and tournament-mode track are randomly selected
+        // one time, and will be used for the rest of the session
+        let random_menu_tracks = utils::get_random_menu_tracks();
+
+        // Initial music volume and track id. These values will get
+        // updated by the `handle_melee_event` fn whenever a message is
+        // received from the other thread.
+        let initial_state = Self::read_dolphin_game_state(&m_p_ram, get_dolphin_volume())?;
+        let mut volume = initial_state.volume;
+        let mut track_id: Option<TrackId> = None;
+
+        loop {
+            if let Some(track_id) = track_id {
+                // Lookup the current track_id in the `tracks` hashmap,
+                // and if it's present, then play it. If not, there will
+                // be silence until a new track_id is set
+                let track = tracks.get(&track_id);
+                if let Some(&(offset, size)) = track {
+                    // Seek the location of the track on the ISO
+                    iso.seek(std::io::SeekFrom::Start(offset as u64))?;
+                    let mut bytes = vec![0; size];
+                    iso.read_exact(&mut bytes)?;
+
+                    // Parse data from the ISO into pcm samples
+                    let hps: Hps = bytes
+                        .try_into()
+                        .with_context(|| format!("The {size} bytes at offset 0x{offset:x?} could not be decoded into an Hps"))?;
+
+                    let padding_length = hps.channel_count * hps.sample_rate / 4;
+                    let audio_source = HpsAudioSource {
+                        pcm: hps.into(),
+                        padding_length,
+                    };
+
+                    // Play song
+                    sink.append(audio_source);
+                    sink.play();
+                    sink.set_volume(volume);
+                }
+            }
+
+            // Continue to play the song indefinitely while regularly checking
+            // for new messages from the `JukeboxMessageDispatcher` thread
+            loop {
+                // Stop the thread if the jukebox instance will be been dropped
+                if let Ok(event) = music_thread_rx.try_recv() {
+                    if matches!(event, JukeboxEvent::Dropped) {
+                        return Ok(());
+                    }
+                }
+
+                // When we receive an event, handle it. This can include
+                // changing the volume or updating the track and breaking
+                // the inner loop such that the next track starts to play
+                if let Ok(event) = melee_event_rx.try_recv() {
+                    if let Break(_) = Self::handle_melee_event(event, &sink, &mut track_id, &mut volume, &random_menu_tracks) {
+                        break;
+                    }
+                }
+
+                sleep(Duration::from_millis(THREAD_LOOP_SLEEP_TIME_MS));
+            }
+
+            sink.stop();
+        }
     }
 
     /// Handle a events received in the audio playback thread, by changing tracks,
