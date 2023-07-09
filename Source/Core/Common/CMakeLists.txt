@@ -17,6 +17,7 @@ set(SRCS Analytics.cpp
          NandPaths.cpp
          Network.cpp
          PcapFile.cpp
+         PortMapping.cpp
          PerformanceCounter.cpp
          Profiler.cpp
          SettingsHandler.cpp

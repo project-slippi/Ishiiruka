@@ -161,6 +161,7 @@
     <ClInclude Include="Network.h" />
     <ClInclude Include="NonCopyable.h" />
     <ClInclude Include="PcapFile.h" />
+    <ClInclude Include="PortMapping.h" />
     <ClInclude Include="Profiler.h" />
     <ClInclude Include="ScopeGuard.h" />
     <ClInclude Include="SDCardUtil.h" />
@@ -209,6 +210,7 @@
     <ClCompile Include="NandPaths.cpp" />
     <ClCompile Include="Network.cpp" />
     <ClCompile Include="PcapFile.cpp" />
+    <ClCompile Include="PortMapping.cpp" />
     <ClCompile Include="Profiler.cpp" />
     <ClCompile Include="SDCardUtil.cpp" />
     <ClCompile Include="SettingsHandler.cpp" />
