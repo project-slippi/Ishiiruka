@@ -100,5 +100,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 	set(LIBS ${LIBS} dl)
 endif()
 
+list(APPEND LIBS natpmp)
+
 add_dolphin_library(common "${SRCS}" "${LIBS}")
 add_executable(traversal_server TraversalServer.cpp)

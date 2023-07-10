@@ -689,6 +689,9 @@ include_directories(Externals/semver/include)
 add_subdirectory(Externals/open-vcdiff)
 include_directories(Externals/open-vcdiff)
 
+add_subdirectory(Externals/libnatpmp)
+include_directories(Externals/libnatpmp)
+
 if(USE_SHARED_ENET)
 	check_lib(ENET libenet enet enet/enet.h QUIET)
 	include(CheckSymbolExists)
