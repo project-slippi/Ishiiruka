@@ -37,7 +37,7 @@ bool NetPlayLauncher::Host(const NetPlayHostConfig& config)
 	netplay_server->ChangeGame(config.game_name);
 
 #ifdef USE_UPNP
-	if (config.forward_port)
+	if (config.forward_port && !config.use_traversal)
 	{
 		Common::TryPortmapping(config.listen_port);
 	}
