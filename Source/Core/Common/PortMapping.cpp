@@ -7,31 +7,140 @@
 #include <cstring>
 #include <miniupnpc.h>
 #include <miniwget.h>
+#include <natpmp.h>
 #include <string>
 #include <thread>
 #include <upnpcommands.h>
 #include <upnperrors.h>
 #include <vector>
 
-static UPNPUrls s_upnpUrls;
-static IGDdatas s_igdDatas;
+#ifndef _WIN32
+#include <arpa/inet.h>
+#endif
+
 static std::array<char, 20> s_our_ip;
 static u16 s_mapped = 0;
 static std::thread s_thread;
+
+static natpmp_t s_natpmp;
+
+// called from ---Portmapping--- thread
+static int GetNatpmpResponse(natpmpresp_t *response)
+{
+	int result;
+	int i = 0;
+	do
+	{
+		fd_set fds;
+		struct timeval timeout;
+		FD_ZERO(&fds);
+		FD_SET(s_natpmp.s, &fds);
+		result = getnatpmprequesttimeout(&s_natpmp, &timeout);
+		if (result != 0)
+			break;
+
+		select(FD_SETSIZE, &fds, NULL, NULL, &timeout);
+		result = readnatpmpresponseorretry(&s_natpmp, response);
+		i++;
+	} while (i < 2 && result == NATPMP_TRYAGAIN);
+	// 2 tries takes 750ms. Doesn't seem good to wait longer than that.
+
+	return result;
+}
+
+// called from ---Portmapping--- thread
+// discovers the NAT-PMP/PCP gateway
+static bool InitNatpmp()
+{
+	static bool s_natpmpInited = false;
+	static bool s_natpmpError = false;
+
+	// Don't init if already inited
+	if (s_natpmpInited)
+		return true;
+
+	// Don't init if it failed before
+	if (s_natpmpError)
+		return false;
+
+	int result = initnatpmp(&s_natpmp, /* forcegw */ 0, /* forcedgw */ 0);
+	if (result != 0)
+	{
+		WARN_LOG(NETPLAY, "[NAT-PMP] initnatpmp failed: %d", result);
+		s_natpmpError = true;
+		return false;
+	}
+	result = sendpublicaddressrequest(&s_natpmp);
+	if (result != 2)
+	{
+		WARN_LOG(NETPLAY, "[NAT-PMP] sendpublicaddressrequest failed: %d", result);
+		s_natpmpError = true;
+		return false;
+	}
+	natpmpresp_t response;
+	result = GetNatpmpResponse(&response);
+	if (result != 0)
+	{
+		WARN_LOG(NETPLAY, "[NAT-PMP] publicaddress error: %d", result);
+		s_natpmpError = true;
+		return false;
+	}
+
+	WARN_LOG(NETPLAY, "[NAT-PMP] Inited, publicaddress: %s", inet_ntoa(response.pnu.publicaddress.addr));
+	s_natpmpInited = true;
+	return true;
+}
+
+// called from ---Portmapping--- thread
+static bool UnmapPortNatpmp()
+{
+	sendnewportmappingrequest(&s_natpmp, NATPMP_PROTOCOL_UDP, s_mapped, s_mapped, 0);
+	natpmpresp_t response;
+	GetNatpmpResponse(&response);
+	s_mapped = 0;
+	return true;
+}
+
+// called from ---Portmapping--- thread
+static bool MapPortNatpmp(const u16 port)
+{
+	if (s_mapped > 0 && s_mapped != port)
+		UnmapPortNatpmp();
+
+	int result = sendnewportmappingrequest(&s_natpmp, NATPMP_PROTOCOL_UDP, port, port, 604800);
+	if (result != 12)
+	{
+		WARN_LOG(NETPLAY, "[NAT-PMP] sendnewportmappingrequest failed: %d", result);
+		return false;
+	}
+	natpmpresp_t response;
+	result = GetNatpmpResponse(&response);
+	if (result != 0)
+	{
+		WARN_LOG(NETPLAY, "[NAT-PMP] portmapping error: %d", result);
+		return false;
+	}
+
+	s_mapped = port;
+	return true;
+}
+
+static UPNPUrls s_upnpUrls;
+static IGDdatas s_igdDatas;
 
 // called from ---Portmapping--- thread
 // discovers the UPnP IGD
 static bool InitUPnP()
 {
-	static bool s_inited = false;
-	static bool s_error = false;
+	static bool s_upnpInited = false;
+	static bool s_upnpError = false;
 
 	// Don't init if already inited
-	if (s_inited)
+	if (s_upnpInited)
 		return true;
 
 	// Don't init if it failed before
-	if (s_error)
+	if (s_upnpError)
 		return false;
 
 	s_upnpUrls = {};
@@ -48,16 +157,10 @@ static bool InitUPnP()
 	if (!devlist)
 	{
 		if (upnperror == UPNPDISCOVER_SUCCESS)
-		{
-			WARN_LOG(NETPLAY, "No UPnP devices could be found.");
-		}
+			WARN_LOG(NETPLAY, "[UPnP] No UPnP devices found");
 		else
-		{
-			WARN_LOG(NETPLAY, "An error occurred trying to discover UPnP devices: %s", strupnperror(upnperror));
-		}
-
-		s_error = true;
-
+			WARN_LOG(NETPLAY, "[UPnP] Error while discovering UPnP devices: %s", strupnperror(upnperror));
+		s_upnpError = true;
 		return false;
 	}
 
@@ -84,20 +187,24 @@ static bool InitUPnP()
 			GetUPNPUrls(&s_upnpUrls, &s_igdDatas, dev->descURL, 0);
 
 			found_valid_igd = true;
-			NOTICE_LOG(NETPLAY, "Got info from IGD at %s.", dev->descURL);
+			WARN_LOG(NETPLAY, "[UPnP] Got info from IGD at %s.", dev->descURL);
 			break;
 		}
 		else
 		{
-			WARN_LOG(NETPLAY, "Error getting info from IGD at %s.", dev->descURL);
+			WARN_LOG(NETPLAY, "[UPnP] Error getting info from IGD at %s.", dev->descURL);
 		}
 	}
 
 	if (!found_valid_igd)
-		WARN_LOG(NETPLAY, "Could not find a valid IGD in the discovered UPnP devices.");
+	{
+		WARN_LOG(NETPLAY, "[UPnP] Could not find IGD.");
+		s_upnpError = true;
+		return false;
+	}
 
-	s_inited = true;
-
+	WARN_LOG(NETPLAY, "[UPnP] Inited");
+	s_upnpInited = true;
 	return true;
 }
 
@@ -109,9 +216,9 @@ static bool InitUPnP()
 // hanging, the NVRAM will fill with portmappings, and eventually all UPnP
 // requests will fail silently, with the only recourse being a factory reset.
 // --
-static bool UnmapPort(const u16 port)
+static bool UnmapPortUPnP()
 {
-	std::string port_str = std::to_string(port);
+	std::string port_str = std::to_string(s_mapped);
 	UPNP_DeletePortMapping(s_upnpUrls.controlURL, s_igdDatas.first.servicetype, port_str.c_str(), "UDP", nullptr);
 	s_mapped = 0;
 	return true;
@@ -119,17 +226,20 @@ static bool UnmapPort(const u16 port)
 
 // called from ---Portmapping--- thread
 // Attempt to portforward!
-static bool MapPort(const char *addr, const u16 port)
+static bool MapPortUPnP(const char *addr, const u16 port)
 {
 	if (s_mapped > 0 && s_mapped != port)
-		UnmapPort(s_mapped);
+		UnmapPortUPnP();
 
 	std::string port_str = std::to_string(port);
 	int result =
 	    UPNP_AddPortMapping(s_upnpUrls.controlURL, s_igdDatas.first.servicetype, port_str.c_str(), port_str.c_str(), addr,
 	                        (std::string("dolphin-emu UDP on ") + addr).c_str(), "UDP", nullptr, nullptr);
 	if (result != 0)
+	{
+		WARN_LOG(NETPLAY, "[UPnP] Failed to map port %d: %d", port, result);
 		return false;
+	}
 
 	s_mapped = port;
 	return true;
@@ -138,13 +248,23 @@ static bool MapPort(const char *addr, const u16 port)
 // Portmapping thread: try to map a port
 static void MapPortThread(const u16 port)
 {
-	if (InitUPnP() && MapPort(s_our_ip.data(), port))
+	bool mapped = false;
+	if (InitNatpmp())
 	{
-		NOTICE_LOG(NETPLAY, "Successfully mapped port %d to %s.", port, s_our_ip.data());
-		return;
+		if (MapPortNatpmp(port))
+			mapped = true;
+	}
+	else if (InitUPnP())
+	{
+		if (MapPortUPnP(s_our_ip.data(), port))
+			mapped = true;
 	}
 
-	WARN_LOG(NETPLAY, "Failed to map port %d to %s.", port, s_our_ip.data());
+	if (mapped)
+	{
+		NOTICE_LOG(NETPLAY, "Successfully mapped port %d", port);
+		return;
+	}
 }
 
 // Portmapping thread: try to unmap a port
@@ -153,8 +273,11 @@ static void UnmapPortThread()
 	if (s_mapped > 0)
 	{
 		u16 port = s_mapped;
-		UnmapPort(s_mapped);
-		NOTICE_LOG(NETPLAY, "Successfully unmapped port %d to %s.", port, s_our_ip.data());
+		if (InitNatpmp())
+			UnmapPortNatpmp();
+		else if (InitUPnP())
+			UnmapPortUPnP();
+		NOTICE_LOG(NETPLAY, "Successfully unmapped port %d", port);
 	}
 }
 
