@@ -1,59 +1,84 @@
 use crate::scenes::scene_ids::*;
-use crate::tracks::{identify_coefficients, TrackId};
+use crate::tracks::{get_track_id_by_filename, TrackId};
 use crate::Result;
+use anyhow::anyhow;
 use std::collections::HashMap;
-use std::io::prelude::*;
+use std::ffi::CStr;
+use std::io::{Read, Seek};
 
-/// Produces a hashmap containing offsets and lengths of .hps files contained within the iso
+/// Get an unsigned 24 bit integer from a byte slice
+fn read_u24(bytes: &[u8], offset: usize) -> u32 {
+    let size = 3;
+    let end = offset + size;
+    let mut padded_bytes = [0; 4];
+    padded_bytes[1..4].copy_from_slice(&bytes[offset..end]);
+    u32::from_be_bytes(padded_bytes)
+}
+
+/// Get an unsigned 32 bit integer from a byte slice
+fn read_u32(bytes: &[u8], offset: usize) -> u32 {
+    let size = (u32::BITS / 8) as usize;
+    let end: usize = offset + size;
+    // unwrap_or_else block is unreachable because u32::BITS / 8 == 4
+    u32::from_be_bytes(bytes[offset..end].try_into().unwrap_or_else(|_| unreachable!()))
+}
+
+/// Get a copy of the `size` bytes in `file` at `offset`
+pub(crate) fn read_from_file(file: &mut std::fs::File, offset: u64, size: usize) -> Result<Vec<u8>> {
+    file.seek(std::io::SeekFrom::Start(offset))?;
+    let mut bytes = vec![0; size];
+    file.read_exact(&mut bytes)?;
+    Ok(bytes)
+}
+
+/// Produces a hashmap containing offsets and sizes of .hps files contained within the iso
 /// These can be looked up by TrackId
-pub(crate) fn create_track_map(iso: &mut std::fs::File) -> Result<HashMap<TrackId, (usize, usize)>> {
-    let file_size = iso.metadata()?.len();
+pub(crate) fn create_track_map(iso: &mut std::fs::File) -> Result<HashMap<TrackId, (u32, u32)>> {
+    const FST_LOCATION_OFFSET: u64 = 0x424;
+    const FST_SIZE_OFFSET: u64 = 0x0428;
+    const FST_ENTRY_SIZE: u32 = 0xC;
 
-    // Locate .hps sections of the iso by scanning it 60mb at a time
-    let chunk_size = 1024 * 1024 * 60;
-    let chunk_count = file_size / chunk_size + 1;
-    let mut buffer = vec![0; chunk_size as usize];
+    // Filesystem Table (FST)
+    let fst_location = u32::from_be_bytes(
+        read_from_file(iso, FST_LOCATION_OFFSET, 0x4)?
+            .try_into()
+            .map_err(|_| anyhow!("Unable to read FST offset as u32"))?,
+    );
+    let full_fst_size = u32::from_be_bytes(
+        read_from_file(iso, FST_SIZE_OFFSET, 0x4)?
+            .try_into()
+            .map_err(|_| anyhow!("Unable to read FST size as u32"))?,
+    );
+    let fst = read_from_file(iso, fst_location as u64, full_fst_size as usize)?;
 
-    // Locations (offsets) of all .hps files on the iso
-    let locations = (0..chunk_count)
-        .map(|chunk_index| {
-            // Since the last chunk won't have as many bytes as the rest of
-            // them, we need to clear the buffer before we load data into it off
-            // the disk
-            if chunk_index == chunk_count - 1 {
-                buffer.fill(0);
+    // String table info
+    let str_table_offset = read_u32(&fst, 0x8) * FST_ENTRY_SIZE;
+    let str_table_len = fst.len() - str_table_offset as usize;
+
+    // Length of the FST excluding the string table
+    let fst_len = fst.len() - str_table_len;
+
+    // Collect the .hps file metadata in the FST into a hash map
+    Ok(fst[..fst_len]
+        .chunks(FST_ENTRY_SIZE as usize)
+        .filter_map(|entry| {
+            let is_file = entry[0] == 0;
+            let name_offset = (str_table_offset + read_u24(entry, 0x1)) as usize;
+            let offset = read_u32(entry, 0x4);
+            let size = read_u32(entry, 0x8);
+
+            let name = CStr::from_bytes_until_nul(&fst[name_offset..]).ok()?.to_str().ok()?;
+
+            if is_file && name.ends_with(".hps") {
+                match get_track_id_by_filename(&name) {
+                    Some(track_id) => Some((track_id, (offset, size))),
+                    None => None,
+                }
+            } else {
+                None
             }
-
-            let chunk_start_address = chunk_size * chunk_index;
-            iso.seek(std::io::SeekFrom::Start(chunk_start_address))?;
-            iso.read(&mut buffer)?;
-
-            Ok(memchr::memmem::find_iter(&buffer, b" HALPST\0")
-                .map(|address| chunk_start_address as usize + address)
-                .collect::<Vec<_>>())
         })
-        .collect::<Result<Vec<_>>>()?;
-
-    // Using known 4-byte sequences from .hps files in the OST, identify each of
-    // the locations, and insert them into a hashmap so we can look them up
-    // using TrackIds later on
-    Ok(locations
-        .into_iter()
-        .flatten()
-        .filter_map(|location| {
-            Some({
-                // read the first 8 bytes of the left channel coefficients for
-                // the .hps file at `location`
-                let coef_offset = 0x20;
-                iso.seek(std::io::SeekFrom::Start((location as u64) + coef_offset)).ok()?;
-                let mut buf = [0; 4];
-                iso.read_exact(&mut buf).ok()?;
-                // Identify which TrackId is associated and populate the hashmap
-                let (id, size) = identify_coefficients(buf)?;
-                (id, (location, size))
-            })
-        })
-        .collect::<HashMap<TrackId, (usize, usize)>>())
+        .collect())
 }
 
 /// Returns a tuple containing a randomly selected menu track tournament track

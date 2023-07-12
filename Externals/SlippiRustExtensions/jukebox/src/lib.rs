@@ -10,7 +10,6 @@ use process_memory::Memory;
 use rodio::{OutputStream, Sink};
 use scenes::scene_ids::*;
 use std::convert::TryInto;
-use std::io::prelude::*;
 use std::ops::ControlFlow::{self, Break, Continue};
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::{thread::sleep, time::Duration};
@@ -108,7 +107,7 @@ impl Jukebox {
 
         std::thread::Builder::new()
             .name("JukeboxMusicPlayer".to_string())
-            .spawn(move || Self::play_music(m_p_ram, iso_path, get_dolphin_volume, music_thread_rx, melee_event_rx))?;
+            .spawn(move || Self::play_music(m_p_ram, &iso_path, get_dolphin_volume, music_thread_rx, melee_event_rx))?;
 
         Ok(Self {
             channel_senders: [message_dispatcher_thread_tx, music_thread_tx],
@@ -158,16 +157,16 @@ impl Jukebox {
     /// accordingly.
     fn play_music(
         m_p_ram: usize,
-        iso_path: String,
+        iso_path: &str,
         get_dolphin_volume: impl Fn() -> f32,
         music_thread_rx: Receiver<JukeboxEvent>,
         melee_event_rx: Receiver<MeleeEvent>,
     ) -> Result<()> {
         let mut iso = std::fs::File::open(iso_path)?;
 
-        tracing::info!(target: Log::Jukebox, "Scanning disc for tracks...");
+        tracing::info!(target: Log::Jukebox, "Loading track metadata...");
         let tracks = utils::create_track_map(&mut iso)?;
-        tracing::info!(target: Log::Jukebox, "Loaded {} tracks!", tracks.len());
+        tracing::info!(target: Log::Jukebox, "Loaded metadata for {} tracks!", tracks.len());
 
         let (_stream, stream_handle) = OutputStream::try_default()?;
         let sink = Sink::try_new(&stream_handle)?;
@@ -190,13 +189,11 @@ impl Jukebox {
                 // be silence until a new track_id is set
                 let track = tracks.get(&track_id);
                 if let Some(&(offset, size)) = track {
-                    // Seek the location of the track on the ISO
-                    iso.seek(std::io::SeekFrom::Start(offset as u64))?;
-                    let mut bytes = vec![0; size];
-                    iso.read_exact(&mut bytes)?;
+                    let offset = offset as u64;
+                    let size = size as usize;
 
                     // Parse data from the ISO into pcm samples
-                    let hps: Hps = bytes
+                    let hps: Hps = utils::read_from_file(&mut iso, offset, size)?
                         .try_into()
                         .with_context(|| format!("The {size} bytes at offset 0x{offset:x?} could not be decoded into an Hps"))?;
 

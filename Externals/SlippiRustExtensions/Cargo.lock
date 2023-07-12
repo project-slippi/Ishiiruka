@@ -1046,7 +1046,6 @@ dependencies = [
  "dolphin-logger",
  "fastrand 2.0.0",
  "hps_decode",
- "memchr",
  "process-memory",
  "rodio",
  "tracing",
