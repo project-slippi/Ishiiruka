@@ -161,6 +161,7 @@
     <ClInclude Include="Network.h" />
     <ClInclude Include="NonCopyable.h" />
     <ClInclude Include="PcapFile.h" />
+    <ClInclude Include="PortMapping.h" />
     <ClInclude Include="Profiler.h" />
     <ClInclude Include="ScopeGuard.h" />
     <ClInclude Include="SDCardUtil.h" />
@@ -209,6 +210,7 @@
     <ClCompile Include="NandPaths.cpp" />
     <ClCompile Include="Network.cpp" />
     <ClCompile Include="PcapFile.cpp" />
+    <ClCompile Include="PortMapping.cpp" />
     <ClCompile Include="Profiler.cpp" />
     <ClCompile Include="SDCardUtil.cpp" />
     <ClCompile Include="SettingsHandler.cpp" />
@@ -245,6 +247,9 @@
     </ProjectReference>
     <ProjectReference Include="..\..\..\Externals\curl\curl.vcxproj">
       <Project>{bb00605c-125f-4a21-b33b-7bf418322dcb}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\Externals\libnatpmp\msvc\libnatpmp.vcxproj">
+      <Project>{d59b6527-f3de-4d26-a08d-52f1ee989301}</Project>
     </ProjectReference>
     <ProjectReference Include="SCMRevGen.vcxproj">
       <Project>{41279555-f94f-4ebc-99de-af863c10c5c4}</Project>

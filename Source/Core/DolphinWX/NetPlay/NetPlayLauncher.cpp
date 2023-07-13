@@ -7,6 +7,7 @@
 #include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
 #include "Common/IniFile.h"
+#include "Common/PortMapping.h"
 #include "Common/StringUtil.h"
 #include "DolphinWX/NetPlay/NetPlayLauncher.h"
 #include "DolphinWX/NetPlay/NetWindow.h"
@@ -36,9 +37,9 @@ bool NetPlayLauncher::Host(const NetPlayHostConfig& config)
 	netplay_server->ChangeGame(config.game_name);
 
 #ifdef USE_UPNP
-	if (config.forward_port)
+	if (config.forward_port && !config.use_traversal)
 	{
-		netplay_server->TryPortmapping(config.listen_port);
+		Common::TryPortmapping(config.listen_port);
 	}
 #endif
 

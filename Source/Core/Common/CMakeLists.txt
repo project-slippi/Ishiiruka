@@ -17,6 +17,7 @@ set(SRCS Analytics.cpp
          NandPaths.cpp
          Network.cpp
          PcapFile.cpp
+         PortMapping.cpp
          PerformanceCounter.cpp
          Profiler.cpp
          SettingsHandler.cpp
@@ -98,6 +99,8 @@ endif()
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 	set(LIBS ${LIBS} dl)
 endif()
+
+list(APPEND LIBS natpmp)
 
 add_dolphin_library(common "${SRCS}" "${LIBS}")
 add_executable(traversal_server TraversalServer.cpp)

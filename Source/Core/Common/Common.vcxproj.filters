@@ -244,6 +244,7 @@
     <ClInclude Include="GL\GLExtensions\NV_depth_buffer_float.h">
       <Filter>GL\GLExtensions</Filter>
     </ClInclude>
+    <ClInclude Include="PortMapping.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BreakPoints.cpp" />
@@ -307,6 +308,7 @@
     <ClCompile Include="ucrtFreadWorkaround.cpp" />
     <ClCompile Include="Analytics.cpp" />
     <ClCompile Include="MD5.cpp" />
+    <ClCompile Include="PortMapping.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="CMakeLists.txt" />

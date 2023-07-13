@@ -62,10 +62,6 @@ public:
 
 	bool is_connected = false;
 
-#ifdef USE_UPNP
-	void TryPortmapping(u16 port);
-#endif
-
 private:
 	class Client
 	{
@@ -135,21 +131,4 @@ private:
 	ENetHost* m_server = nullptr;
 	TraversalClient* m_traversal_client = nullptr;
 	NetPlayUI* m_dialog = nullptr;
-
-#ifdef USE_UPNP
-	static void mapPortThread(const u16 port);
-	static void unmapPortThread();
-
-	static bool initUPnP();
-	static bool UPnPMapPort(const std::string& addr, const u16 port);
-	static bool UPnPUnmapPort(const u16 port);
-
-	static struct UPNPUrls m_upnp_urls;
-	static struct IGDdatas m_upnp_data;
-	static std::string m_upnp_ourip;
-	static u16 m_upnp_mapped;
-	static bool m_upnp_inited;
-	static bool m_upnp_error;
-	static std::thread m_upnp_thread;
-#endif
 };
