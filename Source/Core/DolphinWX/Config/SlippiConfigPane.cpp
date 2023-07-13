@@ -72,7 +72,7 @@ void SlippiNetplayConfigPane::InitializeGUI()
 	m_slippi_enable_quick_chat_choice->SetToolTip(
 	    _("Enable this to send and receive Quick Chat Messages when online."));
 
-	m_slippi_enable_port_mapping_checkbox = new wxCheckBox(this, wxID_ANY, _("Enable Port Mapping"));
+	m_slippi_enable_port_mapping_checkbox = new wxCheckBox(this, wxID_ANY, _("Enable Port Mapping (UPnP/NAT-PMP)"));
 	m_slippi_enable_port_mapping_checkbox->SetToolTip(
 	    _("Enabling this may improve connecting to other players while behind a strict/symmetric NAT. "
 	      "Do not use if you've already configured DMZ or port forwarding on your router. "

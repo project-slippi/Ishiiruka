@@ -43,7 +43,7 @@ static int GetNatpmpResponse(natpmpresp_t *response)
 		result = readnatpmpresponseorretry(&s_natpmp, response);
 		i++;
 	} while (i < 2 && result == NATPMP_TRYAGAIN);
-	// 2 tries takes 750ms. Doesn't seem good to wait longer than that.
+	// 2 tries takes up to 750ms. Doesn't seem good to wait longer than that.
 
 	return result;
 }
