@@ -19,8 +19,11 @@ fn read_u24(bytes: &[u8], offset: usize) -> u32 {
 fn read_u32(bytes: &[u8], offset: usize) -> u32 {
     let size = (u32::BITS / 8) as usize;
     let end: usize = offset + size;
-    // unwrap_or_else block is unreachable because u32::BITS / 8 == 4
-    u32::from_be_bytes(bytes[offset..end].try_into().unwrap_or_else(|_| unreachable!()))
+    u32::from_be_bytes(
+        bytes[offset..end]
+            .try_into()
+            .unwrap_or_else(|_| unreachable!("u32::BITS / 8 is always 4")),
+    )
 }
 
 /// Get a copy of the `size` bytes in `file` at `offset`
@@ -36,7 +39,7 @@ pub(crate) fn read_from_file(file: &mut std::fs::File, offset: u64, size: usize)
 pub(crate) fn create_track_map(iso: &mut std::fs::File) -> Result<HashMap<TrackId, (u32, u32)>> {
     const FST_LOCATION_OFFSET: u64 = 0x424;
     const FST_SIZE_OFFSET: u64 = 0x0428;
-    const FST_ENTRY_SIZE: u32 = 0xC;
+    const FST_ENTRY_SIZE: usize = 0xC;
 
     // Filesystem Table (FST)
     let fst_location = u32::from_be_bytes(
@@ -44,26 +47,22 @@ pub(crate) fn create_track_map(iso: &mut std::fs::File) -> Result<HashMap<TrackI
             .try_into()
             .map_err(|_| anyhow!("Unable to read FST offset as u32"))?,
     );
-    let full_fst_size = u32::from_be_bytes(
+    let fst_size = u32::from_be_bytes(
         read_from_file(iso, FST_SIZE_OFFSET, 0x4)?
             .try_into()
             .map_err(|_| anyhow!("Unable to read FST size as u32"))?,
     );
-    let fst = read_from_file(iso, fst_location as u64, full_fst_size as usize)?;
+    let fst = read_from_file(iso, fst_location as u64, fst_size as usize)?;
 
-    // String table info
-    let str_table_offset = read_u32(&fst, 0x8) * FST_ENTRY_SIZE;
-    let str_table_len = fst.len() - str_table_offset as usize;
-
-    // Length of the FST excluding the string table
-    let fst_len = fst.len() - str_table_len;
+    // FST String Table
+    let str_table_offset = read_u32(&fst, 0x8) as usize * FST_ENTRY_SIZE;
 
     // Collect the .hps file metadata in the FST into a hash map
-    Ok(fst[..fst_len]
-        .chunks(FST_ENTRY_SIZE as usize)
+    Ok(fst[..str_table_offset]
+        .chunks(FST_ENTRY_SIZE)
         .filter_map(|entry| {
             let is_file = entry[0] == 0;
-            let name_offset = (str_table_offset + read_u24(entry, 0x1)) as usize;
+            let name_offset = str_table_offset + read_u24(entry, 0x1) as usize;
             let offset = read_u32(entry, 0x4);
             let size = read_u32(entry, 0x8);
 
