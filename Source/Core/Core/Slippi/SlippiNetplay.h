@@ -213,22 +213,24 @@ class SlippiNetplayClient
 		ENDPOINT_TYPE_EXTERNAL,
 	};
 
-	class ConnectionManager
+	class PeerManager
 	{
 	  public:
-		ConnectionManager();
-		ConnectionManager(EndpointType highestPriority);
-		bool HasAnyConnection();
-		void InsertConnection(EndpointType endpointType, ENetPeer *peer);
+		PeerManager(EndpointType highestPriority);
+		bool HasAnyPeers();
+		void AddPeer(EndpointType endpointType, ENetPeer *peer);
+
+		// Default constructor to satisfy use as std::map key. Do not use!
+		PeerManager();
 
 		// Whether there are any connections of the highest priority type
-		bool HasHighestPriorityConnection();
+		bool HasAnyHighestPriorityPeers();
 
 		// Add all connections to the input vector
-		void SelectAllConnections(std::vector<ENetPeer *> &connections);
+		void SelectAllPeers(std::vector<ENetPeer *> &connections);
 
 		// Add the most preferred connection to the input vector, disconnect any others
-		void SelectOneConnection(std::vector<ENetPeer *> &connections);
+		void SelectOnePeer(std::vector<ENetPeer *> &connections);
 
 	  protected:
 		EndpointType m_highestPriority;
@@ -279,7 +281,7 @@ class SlippiNetplayClient
 	u8 playerIdx = 0;
 
 	std::unordered_map<slippi_endpoint, std::pair<u8, EndpointType>> endpointToIndexAndType;
-	std::unordered_map<u8, ConnectionManager> indexToConnectionManager;
+	std::unordered_map<u8, PeerManager> indexToPeerManager;
 	std::vector<ENetPeer *> unexpectedPeers;
 
 	std::deque<std::unique_ptr<SlippiPad>> localPadQueue; // most recent inputs at start of deque
