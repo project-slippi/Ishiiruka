@@ -155,7 +155,7 @@ SlippiNetplayClient::SlippiNetplayClient(std::vector<struct RemotePlayer> remote
 			if (peer == nullptr)
 				PanicAlertT("Couldn't create peer.");
 			endpointToIndexAndType[toSlippiEndpoint(remotePlayer.localAddress)] = {
-			    remotePlayer.index, SlippiConnectionManager::SlippiEndpointType::ENDPOINT_TYPE_LOCAL};
+			    remotePlayer.index, EndpointType::ENDPOINT_TYPE_LOCAL};
 			WARN_LOG(SLIPPI_ONLINE, "[Netplay] Connecting to peer (local): %s:%d, %X",
 			         inet_ntoa(*(in_addr *)&peer->address.host), peer->address.port, peer);
 		}
@@ -165,15 +165,13 @@ SlippiNetplayClient::SlippiNetplayClient(std::vector<struct RemotePlayer> remote
 			if (peer == nullptr)
 				PanicAlertT("Couldn't create peer.");
 			endpointToIndexAndType[toSlippiEndpoint(remotePlayer.externalAddress)] = {
-			    remotePlayer.index, SlippiConnectionManager::SlippiEndpointType::ENDPOINT_TYPE_EXTERNAL};
+			    remotePlayer.index, EndpointType::ENDPOINT_TYPE_EXTERNAL};
 			WARN_LOG(SLIPPI_ONLINE, "[Netplay] Connecting to peer (external): %s:%d, %X",
 			         inet_ntoa(*(in_addr *)&peer->address.host), peer->address.port, peer);
 		}
 		indexToConnectionManager.insert(
-		    {remotePlayer.index,
-		     SlippiConnectionManager(useLocalEndpoint
-		                                 ? SlippiConnectionManager::SlippiEndpointType::ENDPOINT_TYPE_LOCAL
-		                                 : SlippiConnectionManager::SlippiEndpointType::ENDPOINT_TYPE_EXTERNAL)});
+		    {remotePlayer.index, ConnectionManager(useLocalEndpoint ? EndpointType::ENDPOINT_TYPE_LOCAL
+		                                                            : EndpointType::ENDPOINT_TYPE_EXTERNAL)});
 	}
 
 	slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_INITIATED;
@@ -709,7 +707,7 @@ void SlippiNetplayClient::SelectConnectedPeers()
 
 	for (auto indexAndConnectionManager : indexToConnectionManager)
 	{
-		SlippiConnectionManager connectionManager = indexAndConnectionManager.second;
+		ConnectionManager connectionManager = indexAndConnectionManager.second;
 		// By convention, the lower number port disconnects any superfluous connections. Connections will be initially
 		// duplicate most of the time since the connection should always be attempted from both ends.
 		if (playerIdx >= indexAndConnectionManager.first)
@@ -792,7 +790,7 @@ void SlippiNetplayClient::ThreadFunc()
 					// It's possible (ie. symmetric NAT + permissive firewall) for connections from remote players to
 					// originate from a different port than we expect, so let's check if we're expecting remote players
 					// at this address
-					std::vector<std::pair<u8, SlippiConnectionManager::SlippiEndpointType>> potentialMatches;
+					std::vector<std::pair<u8, EndpointType>> potentialMatches;
 					for (auto endpointAndIndexAndType : endpointToIndexAndType)
 						if (getHost(endpointAndIndexAndType.first) == host)
 							potentialMatches.push_back(endpointAndIndexAndType.second);
@@ -811,7 +809,7 @@ void SlippiNetplayClient::ThreadFunc()
 						// It's clear which remote player this new port corresponds to
 						endpointToIndexAndType.insert({endpoint, potentialMatches[0]});
 						indexToConnectionManager[potentialMatches[0].first].InsertConnection(
-						    SlippiConnectionManager::SlippiEndpointType::ENDPOINT_TYPE_EXTERNAL, peer);
+						    EndpointType::ENDPOINT_TYPE_EXTERNAL, peer);
 						WARN_LOG(SLIPPI_ONLINE, "[Netplay] Matched unexpected endpoint %s:%d, %X to player index %d",
 						         addressStr, port, peer, potentialMatches[0].first);
 					}
@@ -1565,17 +1563,17 @@ SlippiDesyncRecoveryResp SlippiNetplayClient::GetDesyncRecoveryState()
 	return result;
 }
 
-SlippiConnectionManager::SlippiConnectionManager() 
+SlippiNetplayClient::ConnectionManager::ConnectionManager()
 {
-	m_highestPriority = SlippiConnectionManager::SlippiEndpointType::ENDPOINT_TYPE_EXTERNAL;
+	m_highestPriority = EndpointType::ENDPOINT_TYPE_EXTERNAL;
 }
 
-SlippiConnectionManager::SlippiConnectionManager(SlippiConnectionManager::SlippiEndpointType highestPriority)
+SlippiNetplayClient::ConnectionManager::ConnectionManager(EndpointType highestPriority)
 {
 	m_highestPriority = highestPriority;
 }
 
-bool SlippiConnectionManager::HasAnyConnection()
+bool SlippiNetplayClient::ConnectionManager::HasAnyConnection()
 {
 	for (auto peer : m_localPeers)
 		if (peer->state == ENET_PEER_STATE_CONNECTED)
@@ -1586,16 +1584,16 @@ bool SlippiConnectionManager::HasAnyConnection()
 	return false;
 }
 
-bool SlippiConnectionManager::HasHighestPriorityConnection()
+bool SlippiNetplayClient::ConnectionManager::HasHighestPriorityConnection()
 {
 	switch (m_highestPriority)
 	{
-	case SlippiConnectionManager::SlippiEndpointType::ENDPOINT_TYPE_LOCAL:
+	case EndpointType::ENDPOINT_TYPE_LOCAL:
 		for (auto peer : m_localPeers)
 			if (peer->state == ENET_PEER_STATE_CONNECTED)
 				return true;
 		break;
-	case SlippiConnectionManager::SlippiEndpointType::ENDPOINT_TYPE_EXTERNAL:
+	case EndpointType::ENDPOINT_TYPE_EXTERNAL:
 		for (auto peer : m_externalPeers)
 			if (peer->state == ENET_PEER_STATE_CONNECTED)
 				return true;
@@ -1604,16 +1602,16 @@ bool SlippiConnectionManager::HasHighestPriorityConnection()
 	return false;
 }
 
-void SlippiConnectionManager::InsertConnection(SlippiConnectionManager::SlippiEndpointType endpointType, ENetPeer* peer)
+void SlippiNetplayClient::ConnectionManager::InsertConnection(EndpointType endpointType, ENetPeer *peer)
 {
 	switch (endpointType)
 	{
-	case SlippiConnectionManager::SlippiEndpointType::ENDPOINT_TYPE_LOCAL:
+	case EndpointType::ENDPOINT_TYPE_LOCAL:
 	{
 		m_localPeers.push_back(peer);
 		break;
 	}
-	case SlippiConnectionManager::SlippiEndpointType::ENDPOINT_TYPE_EXTERNAL:
+	case EndpointType::ENDPOINT_TYPE_EXTERNAL:
 	{
 		m_externalPeers.push_back(peer);
 		break;
@@ -1621,7 +1619,7 @@ void SlippiConnectionManager::InsertConnection(SlippiConnectionManager::SlippiEn
 	}
 }
 
-void SlippiConnectionManager::SelectAllConnections(std::vector<ENetPeer*>& connections)
+void SlippiNetplayClient::ConnectionManager::SelectAllConnections(std::vector<ENetPeer *> &connections)
 {
 	for (auto peer : m_localPeers)
 		if (peer->state == ENET_PEER_STATE_CONNECTED)
@@ -1631,7 +1629,8 @@ void SlippiConnectionManager::SelectAllConnections(std::vector<ENetPeer*>& conne
 			connections.push_back(peer);
 }
 
-void SlippiConnectionManager::SelectOneConnection(std::vector<ENetPeer*>& connections) {
+void SlippiNetplayClient::ConnectionManager::SelectOneConnection(std::vector<ENetPeer *> &connections)
+{
 	bool found = false;
 	for (auto peer : m_localPeers)
 	{
