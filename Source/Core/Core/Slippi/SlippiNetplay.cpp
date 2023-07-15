@@ -1577,7 +1577,13 @@ SlippiConnectionManager::SlippiConnectionManager(SlippiConnectionManager::Slippi
 
 bool SlippiConnectionManager::HasAnyConnection()
 {
-	return !m_localPeers.empty() || !m_externalPeers.empty();
+	for (auto peer : m_localPeers)
+		if (peer->state == ENET_PEER_STATE_CONNECTED)
+			return true;
+	for (auto peer : m_externalPeers)
+		if (peer->state == ENET_PEER_STATE_CONNECTED)
+			return true;
+	return false;
 }
 
 bool SlippiConnectionManager::HasHighestPriorityConnection()
@@ -1585,12 +1591,17 @@ bool SlippiConnectionManager::HasHighestPriorityConnection()
 	switch (m_highestPriority)
 	{
 	case SlippiConnectionManager::SlippiEndpointType::ENDPOINT_TYPE_LOCAL:
-		return !m_localPeers.empty();
+		for (auto peer : m_localPeers)
+			if (peer->state == ENET_PEER_STATE_CONNECTED)
+				return true;
+		break;
 	case SlippiConnectionManager::SlippiEndpointType::ENDPOINT_TYPE_EXTERNAL:
-		return !m_externalPeers.empty();
-	default:
-		return false;
+		for (auto peer : m_externalPeers)
+			if (peer->state == ENET_PEER_STATE_CONNECTED)
+				return true;
+		break;
 	}
+	return false;
 }
 
 void SlippiConnectionManager::InsertConnection(SlippiConnectionManager::SlippiEndpointType endpointType, ENetPeer* peer)
@@ -1612,14 +1623,20 @@ void SlippiConnectionManager::InsertConnection(SlippiConnectionManager::SlippiEn
 
 void SlippiConnectionManager::SelectAllConnections(std::vector<ENetPeer*>& connections)
 {
-	connections.insert(connections.end(), m_localPeers.begin(), m_localPeers.end());
-	connections.insert(connections.end(), m_externalPeers.begin(), m_externalPeers.end());
+	for (auto peer : m_localPeers)
+		if (peer->state == ENET_PEER_STATE_CONNECTED)
+			connections.push_back(peer);
+	for (auto peer : m_externalPeers)
+		if (peer->state == ENET_PEER_STATE_CONNECTED)
+			connections.push_back(peer);
 }
 
 void SlippiConnectionManager::SelectOneConnection(std::vector<ENetPeer*>& connections) {
 	bool found = false;
 	for (auto peer : m_localPeers)
 	{
+		if (peer->state != ENET_PEER_STATE_CONNECTED)
+			continue;
 		if (found)
 		{
 			enet_peer_disconnect(peer, 0);
@@ -1632,6 +1649,8 @@ void SlippiConnectionManager::SelectOneConnection(std::vector<ENetPeer*>& connec
 	}
 	for (auto peer : m_externalPeers)
 	{
+		if (peer->state != ENET_PEER_STATE_CONNECTED)
+			continue;
 		if (found)
 		{
 			enet_peer_disconnect(peer, 0);
