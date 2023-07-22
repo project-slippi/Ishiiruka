@@ -372,7 +372,12 @@ impl Drop for Jukebox {
     fn drop(&mut self) {
         tracing::info!(target: Log::Jukebox, "Dropping Slippi Jukebox");
         for sender in &self.channel_senders {
-            sender.send(JukeboxEvent::Dropped).unwrap();
+            if let Err(e) = sender.send(JukeboxEvent::Dropped) {
+                tracing::error!(
+                    target: Log::Jukebox,
+                    "Failed to notify child thread that Jukebox is dropping: {e}"
+                );
+            }
         }
     }
 }
