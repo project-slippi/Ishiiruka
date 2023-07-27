@@ -174,6 +174,7 @@ SlippiUser::SlippiRank SlippiUser::GetRank(float ratingOrdinal, int globalPlacin
 		return RANK_MASTER_2;
 	if (ratingOrdinal > 2350)
 		return RANK_MASTER_3;
+	return RANK_UNRANKED;
 }
 
 SlippiUser::RankInfo SlippiUser::GetRankInfo(std::string connectCode)
