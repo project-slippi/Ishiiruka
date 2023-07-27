@@ -45,6 +45,8 @@ class SlippiUser
 		std::string fileContents = "";
 
 		int port;
+
+		std::vector<std::string> chatMessages;
 	};
 
 	struct RankInfo
@@ -53,6 +55,7 @@ class SlippiUser
 		float ratingOrdinal;
 		int globalPlacing;
 		int regionalPlacing;
+		int ratingUpdateCount;
 	};
 
 	SlippiUser();
@@ -69,7 +72,9 @@ class SlippiUser
 	void FileListenThread();
 
 	RankInfo GetRankInfo(std::string connectCode);
-	SlippiRank GetRank(float ratingOrdinal, int globalPlacing, int regionalPlacing);
+	SlippiRank GetRank(float ratingOrdinal, int globalPlacing, int regionalPlacing, int ratingUpdateCount);
+
+	const static std::vector<std::string> defaultChatMessages;
 
   protected:
 	UserInfo parseFile(std::string fileContents);

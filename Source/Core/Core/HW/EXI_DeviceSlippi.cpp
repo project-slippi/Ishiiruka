@@ -43,7 +43,7 @@
 #define SLEEP_TIME_MS 8
 #define WRITE_FILE_SLEEP_TIME_MS 85
 
-#define LOCAL_TESTING
+//#define LOCAL_TESTING
 //#define CREATE_DIFF_FILES
 
 static std::unordered_map<u8, std::string> slippi_names;
@@ -913,7 +913,7 @@ void CEXISlippi::prepareCharacterFrameData(Slippi::FrameData *frame, u8 port, u8
 	source = isFollower ? frame->followers : frame->players;
 
 	// This must be updated if new data is added
-	int characterDataLen = 49;
+	int characterDataLen = 50;
 
 	// Check if player exists
 	if (!source.count(port))
@@ -946,6 +946,7 @@ void CEXISlippi::prepareCharacterFrameData(Slippi::FrameData *frame, u8 port, u8
 	appendWordToBuffer(&m_read_queue, *(u32 *)&data.facingDirection);
 	appendWordToBuffer(&m_read_queue, (u32)data.animation);
 	m_read_queue.push_back(data.joystickXRaw);
+	m_read_queue.push_back(data.joystickYRaw);
 	appendWordToBuffer(&m_read_queue, *(u32 *)&data.percent);
 	// NOTE TO DEV: If you add data here, make sure to increase the size above
 }
@@ -1206,6 +1207,9 @@ void CEXISlippi::prepareIsStockSteal(u8 *payload)
 void CEXISlippi::prepareIsFileReady()
 {
 	m_read_queue.clear();
+
+	// Hides frame index message on waiting for game screen
+	OSD::AddTypedMessage(OSD::MessageType::FrameIndex, "", 0, OSD::Color::CYAN);
 
 	auto isNewReplay = g_replayComm->isNewReplay();
 	if (!isNewReplay)
@@ -1578,8 +1582,7 @@ void CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)
 		results[i] = slippi_netplay->GetSlippiRemotePad(i, ROLLBACK_MAX_FRAMES);
 		// results[i] = slippi_netplay->GetFakePadOutput(frame);
 
-		// INFO_LOG(SLIPPI_ONLINE, "Sending checksum values: [%d] %08x", results[i]->checksumFrame,
-		// results[i]->checksum);
+		//INFO_LOG(SLIPPI_ONLINE, "Sending checksum values: [%d] %08x", results[i]->checksumFrame, results[i]->checksum);
 		appendWordToBuffer(&m_read_queue, static_cast<u32>(results[i]->checksumFrame));
 		appendWordToBuffer(&m_read_queue, results[i]->checksum);
 	}
@@ -2067,7 +2070,7 @@ void CEXISlippi::prepareOnlineMatchState()
 	chatMessagePlayerIdx = 0;
 	localChatMessageId = 0;
 	// in CSS p1 is always current player and p2 is opponent
-	localPlayerName = p1Name = "Player 1";
+	localPlayerName = p1Name = userInfo.displayName;
 	oppName = p2Name = "Player 2";
 #endif
 
@@ -2186,8 +2189,7 @@ void CEXISlippi::prepareOnlineMatchState()
 
 		// Here we are storing pointers to the player selections. That means that we can technically modify
 		// the values from here, which is probably not the cleanest thing since they're coming from the netplay class.
-		// Unfortunately, I think it might be required for the overwrite stuff to work correctly though, maybe on a
-		// tiebreak in ranked?
+		// Unfortunately, I think it might be required for the overwrite stuff to work correctly though, maybe on a tiebreak in ranked?
 		std::vector<SlippiPlayerSelections *> orderedSelections(remotePlayerCount + 1);
 		orderedSelections[lps.playerIdx] = &lps;
 		for (int i = 0; i < remotePlayerCount; i++)
@@ -2199,7 +2201,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		for (int i = 0; i < overwrite_selections.size(); i++)
 		{
 			const auto &ow = overwrite_selections[i];
-
+			
 			orderedSelections[i]->characterId = ow.characterId;
 			orderedSelections[i]->characterColor = ow.characterColor;
 			orderedSelections[i]->stageId = ow.stageId;
@@ -2272,8 +2274,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		bool areAllSameTeam = true;
 		for (const auto &s : orderedSelections)
 		{
-			// ERROR_LOG(SLIPPI_ONLINE, "[%d] First team: %d. Team: %d. LocalPlayer: %d", s->playerIdx, color,
-			// s->teamId, localPlayerIndex);
+			// ERROR_LOG(SLIPPI_ONLINE, "[%d] First team: %d. Team: %d. LocalPlayer: %d", s->playerIdx, color, s->teamId, localPlayerIndex);
 			if (s->teamId != color)
 			{
 				areAllSameTeam = false;
@@ -2869,11 +2870,8 @@ void CEXISlippi::handleReportGame(const SlippiExiTypes::ReportGameQuery &query)
 	r.gameEndMethod = query.gameEndMethod;
 	r.lrasInitiator = query.lrasInitiator;
 
-	ERROR_LOG(SLIPPI_ONLINE,
-	          "Mode: %d / %d, Frames: %d, GameIdx: %d, TiebreakIdx: %d, WinnerIdx: %d, StageId: %d, GameEndMethod: %d, "
-	          "LRASInitiator: %d",
-	          r.onlineMode, query.onlineMode, r.durationFrames, r.gameIndex, r.tiebreakIndex, r.winnerIdx, r.stageId,
-	          r.gameEndMethod, r.lrasInitiator);
+	ERROR_LOG(SLIPPI_ONLINE, "Mode: %d / %d, Frames: %d, GameIdx: %d, TiebreakIdx: %d, WinnerIdx: %d, StageId: %d, GameEndMethod: %d, LRASInitiator: %d",
+	          r.onlineMode, query.onlineMode, r.durationFrames, r.gameIndex, r.tiebreakIndex, r.winnerIdx, r.stageId, r.gameEndMethod, r.lrasInitiator);
 
 	auto mmPlayers = recentMmResult.players;
 
@@ -2950,7 +2948,7 @@ void CEXISlippi::handleOverwriteSelections(const SlippiExiTypes::OverwriteSelect
 		// TODO: wrong players I think
 		if (!query.chars[i].is_set)
 			continue;
-
+		
 		SlippiPlayerSelections s;
 		s.isCharacterSelected = true;
 		s.characterId = query.chars[i].char_id;
@@ -2970,7 +2968,7 @@ void CEXISlippi::handleGamePrepStepComplete(const SlippiExiTypes::GpCompleteStep
 	res.char_selection = query.char_selection;
 	res.char_color_selection = query.char_color_selection;
 	memcpy(res.stage_selections, query.stage_selections, 2);
-
+	
 	if (slippi_netplay)
 		slippi_netplay->SendGamePrepStep(res);
 }
@@ -3022,6 +3020,42 @@ void CEXISlippi::handleCompleteSet(const SlippiExiTypes::ReportSetCompletionQuer
 	}
 }
 
+void CEXISlippi::handleGetPlayerSettings()
+{
+	m_read_queue.clear();
+
+	SlippiExiTypes::GetPlayerSettingsResponse resp = {};
+	
+	std::vector<std::vector<std::string>> messagesByPlayer = {
+	    SlippiUser::defaultChatMessages, SlippiUser::defaultChatMessages, SlippiUser::defaultChatMessages,
+	    SlippiUser::defaultChatMessages};
+
+	// These chat messages will be used when previewing messages
+	auto userChatMessages = user->GetUserInfo().chatMessages;
+	if (userChatMessages.size() == 16) {
+		messagesByPlayer[0] = userChatMessages;
+	}
+
+	// These chat messages will be set when we have an opponent. We load their and our messages
+	auto playerInfo = matchmaking->GetPlayerInfo();
+	for (auto &player : playerInfo)
+	{
+		messagesByPlayer[player.port - 1] = player.chatMessages;
+	}
+
+	for (int i = 0; i < 4; i++)
+	{
+		for (int j = 0; j < 16; j++) 
+		{
+			auto str = ConvertStringForGame(messagesByPlayer[i][j], MAX_MESSAGE_LENGTH);
+			sprintf(resp.settings[i].chatMessages[j], "%s", str.c_str());
+		}
+	}
+
+	auto data_ptr = (u8 *)&resp;
+	m_read_queue.insert(m_read_queue.end(), data_ptr, data_ptr + sizeof(SlippiExiTypes::GetPlayerSettingsResponse));
+}
+
 void CEXISlippi::handleGetRank()
 {
 	// INFO_LOG(SLIPPI, "handleGetRank()");
@@ -3032,6 +3066,7 @@ void CEXISlippi::handleGetRank()
 	float ratingOrdinal = rankInfo.ratingOrdinal;
 	u8 global = rankInfo.globalPlacing;
 	u8 regional = rankInfo.regionalPlacing;
+	u8 ratingUpdateCount = rankInfo.ratingUpdateCount;
 
 	m_read_queue.clear();
 	m_read_queue.push_back(rank);
@@ -3043,12 +3078,13 @@ void CEXISlippi::handleGetRank()
 
 	m_read_queue.push_back(global);
 	m_read_queue.push_back(regional);
+	m_read_queue.push_back(ratingUpdateCount);
 }
 
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 {
 	u8 *memPtr = Memory::GetPointer(_uAddr);
-	// INFO_LOG(SLIPPI, "DMA Write: %x, Size: %d", _uAddr, _uSize);
+	//INFO_LOG(SLIPPI, "DMA Write: %x, Size: %d", _uAddr, _uSize);
 
 	u32 bufLoc = 0;
 
@@ -3201,8 +3237,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			prepareDelayResponse();
 			break;
 		case CMD_OVERWRITE_SELECTIONS:
-			handleOverwriteSelections(
-			    SlippiExiTypes::Convert<SlippiExiTypes::OverwriteSelectionsQuery>(&memPtr[bufLoc]));
+			handleOverwriteSelections(SlippiExiTypes::Convert<SlippiExiTypes::OverwriteSelectionsQuery>(&memPtr[bufLoc]));
 			break;
 		case CMD_GP_FETCH_STEP:
 			prepareGamePrepOppStep(SlippiExiTypes::Convert<SlippiExiTypes::GpFetchStepQuery>(&memPtr[bufLoc]));
@@ -3212,6 +3247,9 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_REPORT_SET_COMPLETE:
 			handleCompleteSet(SlippiExiTypes::Convert<SlippiExiTypes::ReportSetCompletionQuery>(&memPtr[bufLoc]));
+			break;
+		case CMD_GET_PLAYER_SETTINGS:
+			handleGetPlayerSettings();
 			break;
 		case CMD_GET_RANK:
 			handleGetRank();

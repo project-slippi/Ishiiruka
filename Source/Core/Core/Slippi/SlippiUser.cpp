@@ -30,6 +30,28 @@
 #include <json.hpp>
 using json = nlohmann::json;
 
+const std::vector<std::string> SlippiUser::defaultChatMessages = {
+    "ggs",
+    "one more",
+    "brb",
+    "good luck",
+
+    "well played",
+    "that was fun",
+    "thanks",
+    "too good",
+
+    "sorry",
+    "my b",
+    "lol",
+    "wow",
+
+    "gotta go",
+    "one sec",
+    "let's play again later",
+    "bad connection",
+};
+
 #ifdef _WIN32
 #define MAX_SYSTEM_PROGRAM (4096)
 static void system_hidden(const char *cmd)
@@ -108,6 +130,113 @@ SlippiUser::~SlippiUser()
 		curl_slist_free_all(m_curlHeaderList);
 		curl_easy_cleanup(m_curl);
 	}
+}
+
+SlippiUser::SlippiRank SlippiUser::GetRank(float ratingOrdinal, int globalPlacing, int regionalPlacing, int ratingUpdateCount)
+{
+	if (ratingUpdateCount < 5)
+		return RANK_UNRANKED;
+	else if (ratingOrdinal > 0 && ratingOrdinal <= 765.42)
+		return RANK_BRONZE_1;
+	else if (ratingOrdinal > 765.43 && ratingOrdinal <= 913.71)
+		return RANK_BRONZE_2;
+	else if (ratingOrdinal > 913.72 && ratingOrdinal <= 1054.86)
+		return RANK_BRONZE_3;
+	else if (ratingOrdinal > 1054.87 && ratingOrdinal <= 1188.87)
+		return RANK_SILVER_1;
+	else if (ratingOrdinal > 1188.88 && ratingOrdinal <= 1315.74)
+		return RANK_SILVER_2;
+	else if (ratingOrdinal > 1315.75 && ratingOrdinal <= 1435.47)
+		return RANK_SILVER_3;
+	else if (ratingOrdinal > 1435.48 && ratingOrdinal <= 1548.06)
+		return RANK_GOLD_1;
+	else if (ratingOrdinal > 1548.07 && ratingOrdinal <= 1653.51)
+		return RANK_GOLD_2;
+	else if (ratingOrdinal > 1653.52 && ratingOrdinal <= 1751.82)
+		return RANK_GOLD_3;
+	else if (ratingOrdinal > 1751.83 && ratingOrdinal <= 1842.99)
+		return RANK_PLATINUM_1;
+	else if (ratingOrdinal > 1843 && ratingOrdinal <= 1927.02)
+		return RANK_PLATINUM_2;
+	else if (ratingOrdinal > 1927.03 && ratingOrdinal <= 2003.91)
+		return RANK_PLATINUM_3;
+	else if (ratingOrdinal > 2003.92 && ratingOrdinal <= 2073.66)
+		return RANK_DIAMOND_1;
+	else if (ratingOrdinal > 2073.67 && ratingOrdinal <= 2136.27)
+		return RANK_DIAMOND_2;
+	else if (ratingOrdinal > 2136.28 && ratingOrdinal <= 2191.74)
+		return RANK_DIAMOND_3;
+	else if (ratingOrdinal >= 2191.75 && globalPlacing && regionalPlacing)
+		return RANK_GRANDMASTER;
+	else if (ratingOrdinal > 2191.75 && ratingOrdinal <= 2274.99)
+		return RANK_MASTER_1;
+	else if (ratingOrdinal > 2275 && ratingOrdinal <= 2350)
+		return RANK_MASTER_2;
+	else if (ratingOrdinal > 2350)
+		return RANK_MASTER_3;
+	else
+		return RANK_UNRANKED;
+}
+
+SlippiUser::RankInfo SlippiUser::GetRankInfo(std::string connectCode)
+{
+	RankInfo info;
+
+	std::string url = "https://gql-gateway-dot-slippi.uc.r.appspot.com/graphql";
+	json body = {{"operationName", "AccountManagementPageQuery"},
+		{"variables", {{"cc", connectCode}, {"uid", connectCode}}},
+	    {"query", "fragment profileFields on NetplayProfile {\n  id\n  ratingOrdinal\n  ratingUpdateCount\n  wins\n  losses\n  dailyGlobalPlacement\n  dailyRegionalPlacement\n  continent\n  characters {\n    id\n    character\n    gameCount\n    __typename\n  }\n  __typename\n}\n\nfragment userProfilePage on User {\n  fbUid\n  displayName\n  connectCode {\n    code\n    __typename\n  }\n  status\n  activeSubscription {\n    level\n    hasGiftSub\n    __typename\n  }\n  rankedNetplayProfile {\n    ...profileFields\n    __typename\n  }\n  netplayProfiles {\n    ...profileFields\n    season {\n      id\n      startedAt\n      endedAt\n      name\n      status\n      __typename\n    }\n    __typename\n  }\n  __typename\n}\n\nquery AccountManagementPageQuery($cc: String!, $uid: String!) {\n  getUser(fbUid: $uid) {\n    ...userProfilePage\n    __typename\n  }\n  getConnectCode(code: $cc) {\n    user {\n      ...userProfilePage\n      __typename\n    }\n    __typename\n  }\n}\n"}};
+
+	// INFO_LOG(SLIPPI_ONLINE, "Preparing request...");
+	// Perform curl request
+	std::string resp;
+	curl_easy_setopt(m_curl, CURLOPT_URL, (url).c_str());
+	curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &resp);
+	curl_easy_setopt(m_curl, CURLOPT_POSTFIELDS, (body.dump()).c_str());
+	curl_easy_setopt(m_curl, CURLOPT_CUSTOMREQUEST, "POST");
+
+	CURLcode res = curl_easy_perform(m_curl);
+
+	// INFO_LOG(SLIPPI_ONLINE, "Request sent");
+	if (res != 0)
+	{
+	    ERROR_LOG(SLIPPI, "[User] Error fetching user info from server, code: %d", res);
+	    //return info;
+	}
+
+	long responseCode;
+	curl_easy_getinfo(m_curl, CURLINFO_RESPONSE_CODE, &responseCode);
+	if (responseCode != 200)
+	{
+	    ERROR_LOG(SLIPPI, "[User] Server responded with non-success status: %d", responseCode);
+	    //return info;
+	}
+
+	auto r = json::parse(resp);
+	auto rankedObject = r["data"]["getConnectCode"]["user"]["rankedNetplayProfile"];
+
+	float ratingOrdinal = rankedObject["ratingOrdinal"];
+	INFO_LOG(SLIPPI_ONLINE, "Rating: %0000.00f", ratingOrdinal);
+
+	int global = (rankedObject["dailyGlobalPlacement"]).is_null() ? 0 : rankedObject["dailyGlobalPlacement"];
+	INFO_LOG(SLIPPI_ONLINE, "Global Placing: %d", global);
+
+	int regional = (rankedObject["dailyRegionalPlacement"]).is_null() ? 0 : rankedObject["dailyRegionalPlacement"];
+	INFO_LOG(SLIPPI_ONLINE, "Regional Placing: %d", regional);
+
+	int ratingUpdateCount = (rankedObject["ratingUpdateCount"]).is_null() ? 0 : rankedObject["ratingUpdateCount"];
+	INFO_LOG(SLIPPI_ONLINE, "Rating Update Count: %d", ratingUpdateCount);
+
+	SlippiRank rank = GetRank(ratingOrdinal, global, regional, ratingUpdateCount);
+	INFO_LOG(SLIPPI_ONLINE, "Rank: %d", rank);
+
+	info.ratingOrdinal = ratingOrdinal;
+	info.rank = rank;
+	info.globalPlacing = global;
+	info.regionalPlacing = regional;
+	info.ratingUpdateCount = ratingUpdateCount;
+
+	return info;
 }
 
 bool SlippiUser::AttemptLogin()
@@ -227,108 +356,6 @@ SlippiUser::UserInfo SlippiUser::GetUserInfo()
 	return userInfo;
 }
 
-SlippiUser::SlippiRank SlippiUser::GetRank(float ratingOrdinal, int globalPlacing, int regionalPlacing)
-{
-	if (ratingOrdinal > 0 && ratingOrdinal <= 765.42)
-		return RANK_BRONZE_1;
-	else if (ratingOrdinal > 765.43 && ratingOrdinal <= 913.71)
-		return RANK_BRONZE_2;
-	else if (ratingOrdinal > 913.72 && ratingOrdinal <= 1054.86)
-		return RANK_BRONZE_3;
-	else if (ratingOrdinal > 1054.87 && ratingOrdinal <= 1188.87)
-		return RANK_SILVER_1;
-	else if (ratingOrdinal > 1188.88 && ratingOrdinal <= 1315.74)
-		return RANK_SILVER_2;
-	else if (ratingOrdinal > 1315.75 && ratingOrdinal <= 1435.47)
-		return RANK_SILVER_3;
-	else if (ratingOrdinal > 1435.48 && ratingOrdinal <= 1548.06)
-		return RANK_GOLD_1;
-	else if (ratingOrdinal > 1548.07 && ratingOrdinal <= 1653.51)
-		return RANK_GOLD_2;
-	else if (ratingOrdinal > 1653.52 && ratingOrdinal <= 1751.82)
-		return RANK_GOLD_3;
-	else if (ratingOrdinal > 1751.83 && ratingOrdinal <= 1842.99)
-		return RANK_PLATINUM_1;
-	else if (ratingOrdinal > 1843 && ratingOrdinal <= 1927.02)
-		return RANK_PLATINUM_2;
-	else if (ratingOrdinal > 1927.03 && ratingOrdinal <= 2003.91)
-		return RANK_PLATINUM_3;
-	else if (ratingOrdinal > 2003.92 && ratingOrdinal <= 2073.66)
-		return RANK_DIAMOND_1;
-	else if (ratingOrdinal > 2073.67 && ratingOrdinal <= 2136.27)
-		return RANK_DIAMOND_2;
-	else if (ratingOrdinal > 2136.28 && ratingOrdinal <= 2191.74)
-		return RANK_DIAMOND_3;
-	else if (ratingOrdinal >= 2191.75 && globalPlacing && regionalPlacing)
-		return RANK_GRANDMASTER;
-	else if (ratingOrdinal > 2191.75 && ratingOrdinal <= 2274.99)
-		return RANK_MASTER_1;
-	else if (ratingOrdinal > 2275 && ratingOrdinal <= 2350)
-		return RANK_MASTER_2;
-	else if (ratingOrdinal > 2350)
-		return RANK_MASTER_3;
-	else
-		return RANK_UNRANKED;
-}
-
-SlippiUser::RankInfo SlippiUser::GetRankInfo(std::string connectCode)
-{
-	RankInfo info;
-
-	std::string url = "https://gql-gateway-dot-slippi.uc.r.appspot.com/graphql";
-	json body = {{"operationName", "AccountManagementPageQuery"},
-		{"variables", {{"cc", connectCode}, {"uid", connectCode}}},
-	    {"query", "fragment userProfilePage on User {\n  fbUid\n  displayName\n    rankedNetplayProfile {\n    id\n    "
-	              "ratingOrdinal\n    wins\n    losses\n    dailyGlobalPlacement\n    dailyRegionalPlacement\n    "
-	              "__typename\n  }\n  __typename\n}\n\nquery AccountManagementPageQuery($cc: String!, $uid: String!) "
-	              "{\n  getUser(fbUid: $uid) {\n    ...userProfilePage\n    __typename\n  }\n  getConnectCode(code: "
-	              "$cc) {\n    user {\n      ...userProfilePage\n      __typename\n    }\n    __typename\n  }\n}\n"}};
-
-	// INFO_LOG(SLIPPI_ONLINE, "Preparing request...");
-	// Perform curl request
-	std::string resp;
-	curl_easy_setopt(m_curl, CURLOPT_URL, (url).c_str());
-	curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &resp);
-	curl_easy_setopt(m_curl, CURLOPT_POSTFIELDS, (body.dump()).c_str());
-	curl_easy_setopt(m_curl, CURLOPT_CUSTOMREQUEST, "POST");
-
-	CURLcode res = curl_easy_perform(m_curl);
-
-	// INFO_LOG(SLIPPI_ONLINE, "Request sent");
-	if (res != 0)
-	{
-	    ERROR_LOG(SLIPPI, "[User] Error fetching user info from server, code: %d", res);
-	    //return info;
-	}
-
-	long responseCode;
-	curl_easy_getinfo(m_curl, CURLINFO_RESPONSE_CODE, &responseCode);
-	if (responseCode != 200)
-	{
-	    ERROR_LOG(SLIPPI, "[User] Server responded with non-success status: %d", responseCode);
-	    //return info;
-	}
-
-	auto r = json::parse(resp);
-	auto rankedObject = r["data"]["getConnectCode"]["user"]["rankedNetplayProfile"];
-	float ratingOrdinal = rankedObject["ratingOrdinal"];
-	INFO_LOG(SLIPPI_ONLINE, "Rating: %0000.00f", ratingOrdinal);
-	int global = (rankedObject["dailyGlobalPlacement"]).is_null() ? 0 : rankedObject["dailyGlobalPlacement"];
-	INFO_LOG(SLIPPI_ONLINE, "Global Placing: %d", global);
-	int regional = (rankedObject["dailyRegionalPlacement"]).is_null() ? 0 : rankedObject["dailyRegionalPlacement"];
-	INFO_LOG(SLIPPI_ONLINE, "Regional Placing: %d", regional);
-
-	SlippiRank rank = GetRank(ratingOrdinal, global, regional);
-	INFO_LOG(SLIPPI_ONLINE, "Rank: %d", rank);
-
-	info.ratingOrdinal = ratingOrdinal;
-	info.rank = rank;
-	info.globalPlacing = global;
-	info.regionalPlacing = regional;
-
-	return info;
-}
-
 bool SlippiUser::IsLoggedIn()
 {
 	return isLoggedIn;
@@ -377,6 +404,16 @@ SlippiUser::UserInfo SlippiUser::parseFile(std::string fileContents)
 	info.connectCode = readString(res, "connectCode");
 	info.latestVersion = readString(res, "latestVersion");
 
+	info.chatMessages = SlippiUser::defaultChatMessages;
+	if (res["chatMessages"].is_array())
+	{
+		info.chatMessages = res.value("chatMessages", SlippiUser::defaultChatMessages);
+		if (info.chatMessages.size() != 16)
+		{
+			info.chatMessages = SlippiUser::defaultChatMessages;
+		}
+	}
+
 	return info;
 }
 
@@ -402,7 +439,7 @@ void SlippiUser::overwriteFromServer()
 
 	// Perform curl request
 	std::string resp;
-	curl_easy_setopt(m_curl, CURLOPT_URL, (url + "/" + userInfo.uid).c_str());
+	curl_easy_setopt(m_curl, CURLOPT_URL, (url + "/" + userInfo.uid + "?additionalFields=chatMessages").c_str());
 	curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &resp);
 	CURLcode res = curl_easy_perform(m_curl);
 
@@ -420,10 +457,18 @@ void SlippiUser::overwriteFromServer()
 		return;
 	}
 
-	INFO_LOG(SLIPPI, "%s", resp);
 	// Overwrite userInfo with data from server
 	auto r = json::parse(resp);
 	userInfo.connectCode = r.value("connectCode", userInfo.connectCode);
 	userInfo.latestVersion = r.value("latestVersion", userInfo.latestVersion);
 	userInfo.displayName = r.value("displayName", userInfo.displayName);
+
+	if (r["chatMessages"].is_array())
+	{
+		userInfo.chatMessages = r.value("chatMessages", SlippiUser::defaultChatMessages);
+		if (userInfo.chatMessages.size() != 16)
+		{
+			userInfo.chatMessages = SlippiUser::defaultChatMessages;
+		}
+	}
 }
