@@ -1,13 +1,7 @@
 {
  "Details": [
   {
-   "InjectionAddress": "800DB880",
-   "Codetype": "Auto",
-   "Annotation": "",
-   "Tags": "[affects-gameplay]"
-  },
-  {
-   "InjectionAddress": "800DBBD4",
+   "InjectionAddress": "800DA9DC",
    "Codetype": "Auto",
    "Annotation": "",
    "Tags": "[affects-gameplay]"
