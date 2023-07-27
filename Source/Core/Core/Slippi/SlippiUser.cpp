@@ -136,46 +136,44 @@ SlippiUser::SlippiRank SlippiUser::GetRank(float ratingOrdinal, int globalPlacin
 {
 	if (ratingUpdateCount < 5)
 		return RANK_UNRANKED;
-	else if (ratingOrdinal > 0 && ratingOrdinal <= 765.42)
+	if (ratingOrdinal > 0 && ratingOrdinal <= 765.42)
 		return RANK_BRONZE_1;
-	else if (ratingOrdinal > 765.43 && ratingOrdinal <= 913.71)
+	if (ratingOrdinal > 765.43 && ratingOrdinal <= 913.71)
 		return RANK_BRONZE_2;
-	else if (ratingOrdinal > 913.72 && ratingOrdinal <= 1054.86)
+	if (ratingOrdinal > 913.72 && ratingOrdinal <= 1054.86)
 		return RANK_BRONZE_3;
-	else if (ratingOrdinal > 1054.87 && ratingOrdinal <= 1188.87)
+	if (ratingOrdinal > 1054.87 && ratingOrdinal <= 1188.87)
 		return RANK_SILVER_1;
-	else if (ratingOrdinal > 1188.88 && ratingOrdinal <= 1315.74)
+	if (ratingOrdinal > 1188.88 && ratingOrdinal <= 1315.74)
 		return RANK_SILVER_2;
-	else if (ratingOrdinal > 1315.75 && ratingOrdinal <= 1435.47)
+	if (ratingOrdinal > 1315.75 && ratingOrdinal <= 1435.47)
 		return RANK_SILVER_3;
-	else if (ratingOrdinal > 1435.48 && ratingOrdinal <= 1548.06)
+	if (ratingOrdinal > 1435.48 && ratingOrdinal <= 1548.06)
 		return RANK_GOLD_1;
-	else if (ratingOrdinal > 1548.07 && ratingOrdinal <= 1653.51)
+	if (ratingOrdinal > 1548.07 && ratingOrdinal <= 1653.51)
 		return RANK_GOLD_2;
-	else if (ratingOrdinal > 1653.52 && ratingOrdinal <= 1751.82)
+	if (ratingOrdinal > 1653.52 && ratingOrdinal <= 1751.82)
 		return RANK_GOLD_3;
-	else if (ratingOrdinal > 1751.83 && ratingOrdinal <= 1842.99)
+	if (ratingOrdinal > 1751.83 && ratingOrdinal <= 1842.99)
 		return RANK_PLATINUM_1;
-	else if (ratingOrdinal > 1843 && ratingOrdinal <= 1927.02)
+	if (ratingOrdinal > 1843 && ratingOrdinal <= 1927.02)
 		return RANK_PLATINUM_2;
-	else if (ratingOrdinal > 1927.03 && ratingOrdinal <= 2003.91)
+	if (ratingOrdinal > 1927.03 && ratingOrdinal <= 2003.91)
 		return RANK_PLATINUM_3;
-	else if (ratingOrdinal > 2003.92 && ratingOrdinal <= 2073.66)
+	if (ratingOrdinal > 2003.92 && ratingOrdinal <= 2073.66)
 		return RANK_DIAMOND_1;
-	else if (ratingOrdinal > 2073.67 && ratingOrdinal <= 2136.27)
+	if (ratingOrdinal > 2073.67 && ratingOrdinal <= 2136.27)
 		return RANK_DIAMOND_2;
-	else if (ratingOrdinal > 2136.28 && ratingOrdinal <= 2191.74)
+	if (ratingOrdinal > 2136.28 && ratingOrdinal <= 2191.74)
 		return RANK_DIAMOND_3;
-	else if (ratingOrdinal >= 2191.75 && globalPlacing && regionalPlacing)
+	if (ratingOrdinal >= 2191.75 && globalPlacing && regionalPlacing)
 		return RANK_GRANDMASTER;
-	else if (ratingOrdinal > 2191.75 && ratingOrdinal <= 2274.99)
+	if (ratingOrdinal > 2191.75 && ratingOrdinal <= 2274.99)
 		return RANK_MASTER_1;
-	else if (ratingOrdinal > 2275 && ratingOrdinal <= 2350)
+	if (ratingOrdinal > 2275 && ratingOrdinal <= 2350)
 		return RANK_MASTER_2;
-	else if (ratingOrdinal > 2350)
+	if (ratingOrdinal > 2350)
 		return RANK_MASTER_3;
-	else
-		return RANK_UNRANKED;
 }
 
 SlippiUser::RankInfo SlippiUser::GetRankInfo(std::string connectCode)
