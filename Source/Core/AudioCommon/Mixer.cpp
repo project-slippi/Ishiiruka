@@ -193,7 +193,16 @@ void CMixer::MixerFifo::PushSamples(const s16* samples, u32 num_samples)
 	// Check if we have enough free space
 	// indexW == m_indexR results in empty buffer, so indexR must always be smaller than indexW
 	if (num_samples * 2 + ((current_write_index - m_read_index.load()) & INDEX_MASK) >= MAX_SAMPLES * 2)
+    {
+        // @TODO: We would ideally like to be able to push Jukebox audio samples through Dolphin's mixer,
+        // however attempts at doing so seem to conflict with some expected logic regarding sample submission.
+        //
+        // For whoever chooses to try and debug this, you may want to uncomment the following line to examine
+        // why some samples get dropped and not pushed into the buffer.
+		// NOTICE_LOG(AUDIO, "PushSamples exiting early");
 		return;
+    }
+
 	// AyuanX: Actual re-sampling work has been moved to sound thread
 	// to alleviate the workload on main thread
 	// convert to float while copying to buffer

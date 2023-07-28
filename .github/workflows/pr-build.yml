@@ -13,6 +13,25 @@ on:
       - "**.md"
 
 jobs:
+  slprs_cargo_fmt:
+    name: (SlippiRustExtensions) Cargo Format
+    runs-on: ubuntu-latest
+    outputs:
+      rust_ver: ${{ steps.rust_ver.outputs.rust_ver }}
+    steps:
+      - uses: actions/checkout@v3
+      - id: rust_ver
+        name: Grab Rust Version
+        run: echo "rust_ver=$(sed -rn 's/^channel = "(.*)"/\1/p' ./Externals/SlippiRustExtensions/rust-toolchain.toml)" >> "$GITHUB_OUTPUT"
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: ${{ steps.rust_ver.outputs.rust_ver }}
+          components: rustfmt
+      - name: Rustfmt Check
+        uses: actions-rust-lang/rustfmt@v1
+        with:
+          manifest-path: ./Externals/SlippiRustExtensions/Cargo.toml
+
   skip_duplicates:
     name: Skip Duplicate Runs
     runs-on: ubuntu-latest
@@ -26,7 +45,7 @@ jobs:
           do_not_skip: '["push", "workflow_dispatch", "schedule"]'
 
   windows:
-    needs: skip_duplicates
+    needs: [skip_duplicates, slprs_cargo_fmt]
     if: ${{ needs.skip_duplicates.outputs.should_skip != 'true' }}
     strategy:
       fail-fast: false
@@ -47,6 +66,13 @@ jobs:
     steps:
       - name: "Checkout"
         uses: actions/checkout@v2
+      - name: "Install Rust"
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: ${{ needs.slprs_cargo_fmt.outputs.rust_ver }}  # Pin to our specific Rust version.
+          rustflags: ""  # Disable default injection of warnings = errors.
+      - name: "(SlippiRustExtensions) Run cargo test"
+        run: cargo test --all --all-features --manifest-path=Externals/SlippiRustExtensions/Cargo.toml
       - name: "Remove Redistributable"
         shell: cmd
         run: |
@@ -121,7 +147,7 @@ jobs:
           path: "./artifact/"
   
   linux:
-    needs: skip_duplicates
+    needs: [skip_duplicates, slprs_cargo_fmt]
     if: ${{ needs.skip_duplicates.outputs.should_skip != 'true' }}
     strategy:
       fail-fast: false
@@ -191,6 +217,13 @@ jobs:
           qtbase5-private-dev \
           libxxf86vm-dev \
           x11proto-xinerama-dev
+      - name: "Install Rust"
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: ${{ needs.slprs_cargo_fmt.outputs.rust_ver }}  # Pin to our specific Rust version.
+          rustflags: ""  # Disable default injection of warnings = errors.
+      - name: "(SlippiRustExtensions) Run cargo test"
+        run: cargo test --all --all-features --manifest-path=Externals/SlippiRustExtensions/Cargo.toml
       - name: "Build ${{ matrix.build_type }} Dolphin"
         if: success()
         working-directory: ${{ github.workspace }}
@@ -222,7 +255,7 @@ jobs:
           path: "./artifact/"
   
   macOS:
-    needs: skip_duplicates
+    needs: [skip_duplicates, slprs_cargo_fmt]
     if: ${{ needs.skip_duplicates.outputs.should_skip != 'true' }}
     strategy:
       fail-fast: false
@@ -274,6 +307,13 @@ jobs:
           sound-touch \
           hidapi \
           python@3.10
+      - name: "Install Rust"
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: ${{ needs.slprs_cargo_fmt.outputs.rust_ver }}  # Pin to our specific Rust version.
+          rustflags: ""  # Disable default injection of warnings = errors.
+      - name: "(SlippiRustExtensions) Run cargo test"
+        run: cargo test --all --all-features --manifest-path=Externals/SlippiRustExtensions/Cargo.toml
       - name: "Build ${{ matrix.build_type }} Dolphin"
         if: success()
         shell: bash
@@ -298,14 +338,10 @@ jobs:
           mkdir -p ~/private_keys/
           echo '${{ secrets.APPLE_CONNECT_API_KEY }}' > ~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
           /usr/bin/codesign -f -s "${{ secrets.APPLE_IDENTITY_HASH }}" --deep --options runtime --entitlements Source/Core/DolphinWX/Entitlements.plist ./build/Binaries/Slippi\ Dolphin.app
-      - name: "Package, Sign and Notarize Netplay Release DMG"
-        if: success() && env.CERTIFICATE_MACOS_APPLICATION != null
+      - name: "Package ${{ matrix.build_type }} Release DMG"
+        if: success()
         shell: bash
         working-directory: ${{ github.workspace }}
-        env:
-          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY_ID }}
-          APPLE_ISSUER_ID: ${{ secrets.APPLE_ISSUER_ID }}
-          CERTIFICATE_MACOS_APPLICATION: ${{ secrets.CERTIFICATE_MACOS_APPLICATION }}
         run: |
           rm build/Binaries/traversal_server
           chmod +x Tools/create-dmg/run.sh 
@@ -323,6 +359,15 @@ jobs:
             "${{ env.FILE_NAME }}.dmg" \
             "./build/Binaries/"
           mv "${{ env.FILE_NAME }}.dmg" artifact/
+      - name: "Sign and Notarize ${{ matrix.build_type }} Release DMG"
+        if: success() && env.CERTIFICATE_MACOS_APPLICATION != null
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        env:
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_ISSUER_ID: ${{ secrets.APPLE_ISSUER_ID }}
+          CERTIFICATE_MACOS_APPLICATION: ${{ secrets.CERTIFICATE_MACOS_APPLICATION }}
+        run: |
           /usr/bin/codesign -f -s "${{ secrets.APPLE_IDENTITY_HASH }}" --deep --options runtime ./artifact/${{ env.FILE_NAME }}.dmg
           chmod +x Tools/notarize_netplay.sh && ./Tools/notarize_netplay.sh ./artifact/${{ env.FILE_NAME }}.dmg
       - name: "Publish"

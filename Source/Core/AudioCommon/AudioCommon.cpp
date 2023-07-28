@@ -30,6 +30,12 @@ std::unique_ptr<SoundStream> g_sound_stream;
 
 static bool s_audio_dump_start = false;
 
+// SlippiChange: Added as a hook for the Jukebox to call.
+int AudioCommonGetCurrentVolume()
+{
+    return SConfig::GetInstance().m_IsMuted ? 0 : SConfig::GetInstance().m_Volume;
+}
+
 namespace AudioCommon
 {
 static const int AUDIO_VOLUME_MIN = 0;
