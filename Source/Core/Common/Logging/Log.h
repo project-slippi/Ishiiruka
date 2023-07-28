@@ -40,6 +40,9 @@ enum LOG_TYPE
 	SERIALINTERFACE,
 	SLIPPI,
 	SLIPPI_ONLINE,
+    SLIPPI_RUST_DEPENDENCIES,
+	SLIPPI_RUST_EXI,
+	SLIPPI_RUST_JUKEBOX,
 	SP1,
 	VIDEO,
 	VIDEOINTERFACE,
@@ -72,6 +75,22 @@ enum LOG_LEVELS
 static const char LOG_LEVEL_TO_CHAR[7] = "-NEWID";
 
 }  // namespace
+
+// A "simple" logger that doesn't actually do any formatting at all, simply
+// taking in a `level`, `file` name, `line` number, and the `msg` to log.
+//
+// The reason for this is that we now have some modules written in other languages
+// that need to hop the boundary for logging, and we explicitly *do not* want to
+// attempt to deal with who owns what and/or how to format with variable-length args
+// from another language. Offering this just makes logging easier on some 
+// platforms (e.g, Windows). We also avoid needing to expose the LOG_LEVELS enum into
+// other languages by just accepting an integer, which is shuffled into the correct type
+// in the implementation.
+//
+// If you are calling this from another language and you need to log any form of structured
+// data, you should do the formatting *on your side* and pass it over here. You are also
+// responsible for ensuring that the msg string lives for an appropriate lifetime.
+void SlippiRustLogger(int level, int slp_log_type, const char* file, int line, const char *msg);
 
 void GenericLog(LogTypes::LOG_LEVELS level, LogTypes::LOG_TYPE type, const char* file, int line,
 	const char* fmt, ...)

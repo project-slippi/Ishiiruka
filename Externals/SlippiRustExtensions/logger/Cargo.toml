@@ -1,0 +1,18 @@
+[package]
+name = "dolphin-logger"
+description = "A shim for Dolphin's LogContainer with a custom tracing subscriber layer."
+version = "0.1.0"
+authors = [
+    "Slippi Team",
+    "Ryan McGrath <ryan@rymc.io>"
+]
+edition = "2021"
+publish = false
+
+[dependencies]
+time = { workspace = true }
+
+# We disable the "attributes" feature as we don't currently need it and it brings
+# in extra dependencies.
+tracing = { workspace = true }
+tracing-subscriber = "0.3"

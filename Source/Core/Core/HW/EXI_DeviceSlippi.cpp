@@ -7,7 +7,8 @@
 #include "Core/Slippi/SlippiPlayback.h"
 #include "Core/Slippi/SlippiPremadeText.h"
 #include "Core/Slippi/SlippiReplayComm.h"
-#include <SlippiGame.h>
+#include <SlippiLib/SlippiGame.h>
+
 #include <semver/include/semver200.h>
 #include <utility> // std::move
 
@@ -21,6 +22,7 @@
 #include "Common/Thread.h"
 #include "Core/HW/Memmap.h"
 
+#include "AudioCommon/AudioCommon.h"
 #include "VideoCommon/OnScreenDisplay.h"
 
 #include "Core/Core.h"
@@ -38,6 +40,9 @@
 // Not clean but idk a better way atm
 #include "DolphinWX/Frame.h"
 #include "DolphinWX/Main.h"
+
+// The Rust library that houses a "shadow" EXI Device that we can call into.
+#include "SlippiRustExtensions.h"
 
 #define FRAME_INTERVAL 900
 #define SLEEP_TIME_MS 8
@@ -129,6 +134,8 @@ std::string ConvertConnectCodeForGame(const std::string &input)
 CEXISlippi::CEXISlippi()
 {
 	INFO_LOG(SLIPPI, "EXI SLIPPI Constructor called.");
+    
+    slprs_exi_device_ptr = slprs_exi_device_create();
 
 	m_slippiserver = SlippiSpectateServer::getInstance();
 	user = std::make_unique<SlippiUser>();
@@ -263,6 +270,9 @@ CEXISlippi::CEXISlippi()
 CEXISlippi::~CEXISlippi()
 {
 	u8 empty[1];
+	
+    // Instruct the Rust EXI device to shut down/drop everything.
+    slprs_exi_device_destroy(slprs_exi_device_ptr);
 
 	// Closes file gracefully to prevent file corruption when emulation
 	// suddenly stops. This would happen often on netplay when the opponent
@@ -3207,6 +3217,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_GCT_LOAD:
 			prepareGctLoad(&memPtr[bufLoc + 1]);
+            ConfigureJukebox();
 			break;
 		case CMD_GET_DELAY:
 			prepareDelayResponse();
@@ -3254,6 +3265,37 @@ void CEXISlippi::DMARead(u32 addr, u32 size)
 
 	// Copy buffer data to memory
 	Memory::CopyToEmu(addr, queueAddr, size);
+}
+
+// Configures (or reconfigures) the Jukebox by calling over the C FFI boundary.
+//
+// This method can also be called, indirectly, from the Settings panel.
+void CEXISlippi::ConfigureJukebox()
+{
+#ifndef IS_PLAYBACK
+    // TODO: For mainline port, ISO file path can't be fetched this way. Look at the following:
+	// https://github.com/dolphin-emu/dolphin/blob/7f450f1d7e7d37bd2300f3a2134cb443d07251f9/Source/Core/Core/Movie.cpp#L246-L249
+	std::string iso_path = SConfig::GetInstance().m_strFilename;
+
+    // Exclusive WASAPI and the Jukebox do not play nicely, so we just don't bother enabling
+    // the Jukebox in that scenario - why bother doing the processing work when it's not even
+    // possible to play it?
+#ifdef _WIN32
+    std::string backend = SConfig::GetInstance().sBackend;
+    if(backend.find(BACKEND_EXCLUSIVE_WASAPI) != std::string::npos)
+    {
+        return;
+    }
+#endif
+
+    slprs_exi_device_configure_jukebox(
+        slprs_exi_device_ptr,
+        SConfig::GetInstance().bSlippiJukeboxEnabled,
+        Memory::m_pRAM,
+        iso_path.c_str(),
+        AudioCommonGetCurrentVolume
+    );
+#endif
 }
 
 bool CEXISlippi::IsPresent() const

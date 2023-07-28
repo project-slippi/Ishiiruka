@@ -1,0 +1,19 @@
+[workspace]
+resolver = "2"
+
+# Always build the ffi interface as the default project.
+default-members = ["ffi"]
+
+members = [
+    "exi",
+    "ffi",
+    "jukebox",
+    "logger"
+]
+
+[workspace.dependencies]
+time = { version = "0.3.20", default-features = false, features = ["std", "local-offset"] }
+
+# We disable the "attributes" feature as we don't currently need it and it brings
+# in extra dependencies.
+tracing = { version = "0.1", default-features = false, features = ["std"] }
