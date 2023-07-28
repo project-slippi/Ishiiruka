@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <SlippiGame.h>
+#include <SlippiLib/SlippiGame.h>
 
 #include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
