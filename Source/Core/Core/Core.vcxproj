@@ -77,7 +77,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugFast|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ExternalsDir)base64;$(ExternalsDir)nlohmann;${ExternalsDir}open-vcdiff;$(ExternalsDir)SlippiLib;$(ExternalsDir)SlippiRustExtensions/ffi/includes;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ExternalsDir)base64;$(ExternalsDir)nlohmann;$(ExternalsDir)SlippiLib;$(ExternalsDir)SlippiRustExtensions/ffi/includes;$(ExternalsDir)HDiffPatch;$(ExternalsDir)semver;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>DEBUGFAST;_WIN32_WINNT=0x0602;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <PreBuildEvent>
