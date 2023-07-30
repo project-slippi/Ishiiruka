@@ -22,5 +22,6 @@ playback = []
 
 [dependencies]
 dolphin-logger = { path = "../logger" }
+slippi-game-reporter = { path = "../game-reporter" }
 slippi-exi-device = { path = "../exi" }
 tracing = { workspace = true }

@@ -44,6 +44,80 @@ void slprs_exi_device_configure_jukebox(uintptr_t exi_device_instance_ptr,
                                         const char *iso_path,
                                         int (*get_dolphin_volume_fn)());
 
+/// Initializes a new SlippiGameReporter and leaks it, returning the instance
+/// pointer after doing so.
+uintptr_t slprs_game_reporter_create(const char *uid, const char *play_key, const char *iso_path);
+
+/// Moves ownership of the `GameReport` at the specified address to the
+/// `SlippiGameReporter` at the corresponding address.
+///
+/// The reporter will manage the actual... reporting.
+void slprs_game_reporter_start_report(uintptr_t instance_ptr, uintptr_t game_report_instance_ptr);
+
+/// Initializes a new GameReport and leaks it, returning the instance pointer
+/// after doing so.
+///
+/// This is expected to ultimately be passed to the game reporter, which will handle
+/// destruction and cleanup.
+uintptr_t slprs_game_report_create();
+
+/// Takes ownership of the `PlayerReport` at the specified address, adding it to the
+/// `GameReport` at the corresponding address.
+void slprs_game_report_add_player_report(uintptr_t instance_ptr,
+                                         uintptr_t player_report_instance_ptr);
+
+/// Sets the `match_id` on the game report at the address of `instance_ptr`.
+void slprs_game_report_set_match_id(uintptr_t instance_ptr, const char *match_id);
+
+/// Sets the `duration_frames` on the game report at the address of `instance_ptr`.
+void slprs_game_report_set_duration_frames(uintptr_t instance_ptr, uint32_t duration);
+
+/// Sets the `game_index` on the game report at the address of `instance_ptr`.
+void slprs_game_report_set_game_index(uintptr_t instance_ptr, uint32_t index);
+
+/// Sets the `tie_break_index` on the game report at the address of `instance_ptr`.
+void slprs_game_report_set_tie_break_index(uintptr_t instance_ptr, uint32_t index);
+
+/// Sets the `winner_index` on the game report at the address of `instance_ptr`.
+void slprs_game_report_set_winner_index(uintptr_t instance_ptr, int8_t index);
+
+/// Sets the `game_end_method` on the game report at the address of `instance_ptr`.
+void slprs_game_report_set_game_end_method(uintptr_t instance_ptr, uint8_t method);
+
+/// Sets the `lras_initiator` on the game report at the address of `instance_ptr`.
+void slprs_game_report_set_lras_initiator(uintptr_t instance_ptr, int8_t initiator);
+
+/// Sets the `stage_id` on the game report at the address of `instance_ptr`.
+void slprs_game_report_set_stage_id(uintptr_t instance_ptr, int32_t stage_id);
+
+/// Initializes a new PlayerReport and leaks it, returning the instance pointer
+/// after doing so.
+uintptr_t slprs_player_report_create();
+
+/// Sets the `uid` on the player report at the address of `instance_ptr`.
+void slprs_player_report_set_uid(uintptr_t instance_ptr, const char *uid);
+
+/// Sets the `slot_type` on the player report at the address of `instance_ptr`.
+void slprs_player_report_set_slot_type(uintptr_t instance_ptr, uint8_t slot_type);
+
+/// Sets the `damage_done` on the player report at the address of `instance_ptr`.
+void slprs_player_report_set_damage_done(uintptr_t instance_ptr, double damage);
+
+/// Sets the `stocks_remaining` on the player report at the address of `instance_ptr`.
+void slprs_player_report_set_stocks_remaining(uintptr_t instance_ptr, uint8_t stocks);
+
+/// Sets the `character_id` on the player report at the address of `instance_ptr`.
+void slprs_player_report_set_character_id(uintptr_t instance_ptr, uint8_t character_id);
+
+/// Sets the `color_id` on the player report at the address of `instance_ptr`.
+void slprs_player_report_set_color_id(uintptr_t instance_ptr, uint8_t color_id);
+
+/// Sets the `starting_stocks` on the player report at the address of `instance_ptr`.
+void slprs_player_report_set_starting_stocks(uintptr_t instance_ptr, int64_t stocks);
+
+/// Sets the `starting_percent` on the player report at the address of `instance_ptr`.
+void slprs_player_report_set_starting_percent(uintptr_t instance_ptr, int64_t percent);
+
 /// This should be called from the Dolphin LogManager initialization to ensure that
 /// all logging needs on the Rust side are configured appropriately.
 ///

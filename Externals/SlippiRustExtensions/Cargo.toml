@@ -7,6 +7,7 @@ default-members = ["ffi"]
 members = [
     "exi",
     "ffi",
+    "game-reporter",
     "jukebox",
     "logger"
 ]
