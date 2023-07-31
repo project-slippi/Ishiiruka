@@ -21,19 +21,15 @@ impl SlippiEXIDevice {
     /// Creates and returns a new `SlippiEXIDevice` with default values.
     ///
     /// At the moment you should never need to call this yourself.
-    pub fn new(
-        user_id: String,
-        play_key: String,
-        iso_path: String
-    ) -> Self {
+    pub fn new(user_id: String, play_key: String, iso_path: String) -> Self {
         tracing::info!(target: Log::EXI, "Starting SlippiEXIDevice");
-        
+
         let game_reporter = SlippiGameReporter::new(user_id, play_key, iso_path.clone());
 
         Self {
             iso_path,
             game_reporter,
-            jukebox: None
+            jukebox: None,
         }
     }
 

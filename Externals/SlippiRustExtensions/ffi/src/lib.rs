@@ -35,18 +35,14 @@ where
 ///
 /// This will panic if the strings being passed over cannot be converted, as
 /// we need the game reporter to be able to run without question.
-pub(crate) fn unpack_str(
-    string: *const c_char,
-    fn_label: &str,
-    err_label: &str
-) -> String {
-    // This is theoretically safe as we control the strings being passed from 
+pub(crate) fn unpack_str(string: *const c_char, fn_label: &str, err_label: &str) -> String {
+    // This is theoretically safe as we control the strings being passed from
     // the C++ side, and can mostly guarantee that we know what we're getting.
     //
     // As more things get converted to pure Rust, this will probably go away.
     let slice = unsafe { CStr::from_ptr(string) };
 
-    // What we *can't* guarantee is that it's proper UTF-8 etc. 
+    // What we *can't* guarantee is that it's proper UTF-8 etc.
     //
     // If we can't parse it into a Rust String, then we'll go ahead and dump
     // some logs and then just... panic.

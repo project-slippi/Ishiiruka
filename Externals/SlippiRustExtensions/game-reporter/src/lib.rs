@@ -13,7 +13,7 @@ const KNOWN_DESYNC_ISOS: [&'static str; 4] = [
     "23d6baef06bd65989585096915da20f2",
     "27a5668769a54cd3515af47b8d9982f3",
     "5805fa9f1407aedc8804d0472346fc5f",
-    "9bb3e275e77bb1a160276f2330f93931"
+    "9bb3e275e77bb1a160276f2330f93931",
 ];
 
 #[derive(Debug)]
@@ -25,7 +25,7 @@ pub struct PlayerReport {
     pub character_id: u8,
     pub color_id: u8,
     pub starting_stocks: i64,
-    pub starting_percent: i64
+    pub starting_percent: i64,
 }
 
 #[derive(Debug)]
@@ -34,7 +34,7 @@ pub enum OnlinePlayMode {
     Ranked = 0,
     Unranked = 1,
     Direct = 2,
-    Teams = 3
+    Teams = 3,
 }
 
 #[derive(Debug)]
@@ -49,13 +49,13 @@ pub struct GameReport {
     pub game_end_method: u8,
     pub lras_initiator: i8,
     pub stage_id: i32,
-    pub players: Vec<PlayerReport>
+    pub players: Vec<PlayerReport>,
 }
 
 #[derive(Debug)]
 struct UserInfo {
     uid: String,
-    play_key: String
+    play_key: String,
 }
 
 /// A GameReporter etc.
@@ -70,19 +70,15 @@ pub struct SlippiGameReporter {
     report_queue: VecDeque<GameReport>,
     replay_data: BTreeMap<i64, Vec<u8>>,
     replay_write_index: i64,
-    replay_last_completed_index: i64
+    replay_last_completed_index: i64,
 }
 
 impl SlippiGameReporter {
     /// Initializes and returns new game reporter.
     pub fn new(uid: String, play_key: String, iso_path: String) -> Self {
-        let http_client = AgentBuilder::new()
-            .build();
+        let http_client = AgentBuilder::new().build();
 
-        let user_info = Arc::new(UserInfo {
-            uid,
-            play_key
-        });
+        let user_info = Arc::new(UserInfo { uid, play_key });
 
         let reporter_user_info = user_info.clone();
         let reporter_http_client = http_client.clone();
@@ -93,7 +89,7 @@ impl SlippiGameReporter {
                 handle_reports(reporter_user_info, reporter_http_client);
             })
             .expect("Ruh roh");
-        
+
         let iso_hash = Arc::new(Mutex::new(String::new()));
         let md5_hash = iso_hash.clone();
 
@@ -114,7 +110,7 @@ impl SlippiGameReporter {
             report_queue: VecDeque::new(),
             replay_data: BTreeMap::new(),
             replay_write_index: 0,
-            replay_last_completed_index: -1
+            replay_last_completed_index: -1,
         }
     }
 
@@ -125,18 +121,17 @@ impl SlippiGameReporter {
 
     /// Currently unused.
     pub fn start_new_session(&mut self) {
-        // Maybe we could do stuff here? We used to initialize gameIndex but 
+        // Maybe we could do stuff here? We used to initialize gameIndex but
         // that isn't required anymore
     }
 
     /// Report an abandoned match.
     pub fn report_abandonment(&mut self, match_id: String) {
-        let res = self.http_client.post(ABANDON_URL)
-            .send_json(json!({
-                "matchId": match_id,
-                "uid": self.user_info.uid,
-                "playKey": self.user_info.play_key
-            }));
+        let res = self.http_client.post(ABANDON_URL).send_json(json!({
+            "matchId": match_id,
+            "uid": self.user_info.uid,
+            "playKey": self.user_info.play_key
+        }));
 
         if let Err(e) = res {
             eprintln!("[GameReport] Got error executing abandonment request: {:?}", e);
@@ -145,32 +140,25 @@ impl SlippiGameReporter {
 
     /// Report a completed match.
     pub fn report_completion(&mut self, match_id: String, end_mode: u8) {
-        let res = self.http_client.post(COMPLETE_URL)
-            .send_json(json!({
-                "matchId": match_id,
-                "uid": self.user_info.uid,
-                "playKey": self.user_info.play_key,
-                "endMode": end_mode
-            }));
+        let res = self.http_client.post(COMPLETE_URL).send_json(json!({
+            "matchId": match_id,
+            "uid": self.user_info.uid,
+            "playKey": self.user_info.play_key,
+            "endMode": end_mode
+        }));
 
         if let Err(e) = res {
             eprintln!("[GameReport] Got error executing completion request: {:?}", e);
         }
     }
 
-    pub fn push_replay_data(&mut self, data: *const u8, length: u32, action: String) {
+    pub fn push_replay_data(&mut self, data: *const u8, length: u32, action: String) {}
 
-    }
-
-    pub fn upload_replay_data(&mut self, index: i32, url: String) {
-
-    }
+    pub fn upload_replay_data(&mut self, index: i32, url: String) {}
 }
 
 impl Drop for SlippiGameReporter {
-    fn drop(&mut self) {
-
-    }
+    fn drop(&mut self) {}
 }
 
 fn handle_reports(user_info: Arc<UserInfo>, http_client: Agent) {
@@ -199,7 +187,7 @@ fn run_md5(iso_hash: Arc<Mutex<String>>, iso_path: String) {
         println!("Desync warning!");
     }
 
-    println!("MD5 Hash: {}", hash); 
+    println!("MD5 Hash: {}", hash);
     let mut lock = iso_hash.lock().expect("This should not fail");
     *lock = hash;
 }
