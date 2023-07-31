@@ -134,11 +134,17 @@ std::string ConvertConnectCodeForGame(const std::string &input)
 CEXISlippi::CEXISlippi()
 {
 	INFO_LOG(SLIPPI, "EXI SLIPPI Constructor called.");
-    
-    slprs_exi_device_ptr = slprs_exi_device_create();
+
+    // TODO: For mainline port, ISO file path can't be fetched this way. Look at the following:
+	// https://github.com/dolphin-emu/dolphin/blob/7f450f1d7e7d37bd2300f3a2134cb443d07251f9/Source/Core/Core/Movie.cpp#L246-L249
+	std::string isoPath = SConfig::GetInstance().m_strFilename;
 
 	m_slippiserver = SlippiSpectateServer::getInstance();
 	user = std::make_unique<SlippiUser>();
+
+    SlippiUser::UserInfo userInfo = user->GetUserInfo();
+    slprs_exi_device_ptr = slprs_exi_device_create(userInfo.uid.c_str(), userInfo.playKey.c_str(), isoPath.c_str());
+
 	g_playbackStatus = std::make_unique<SlippiPlaybackStatus>();
 	matchmaking = std::make_unique<SlippiMatchmaking>(user.get());
 	gameFileLoader = std::make_unique<SlippiGameFileLoader>();
@@ -2928,12 +2934,12 @@ void CEXISlippi::handleReportGame(const SlippiExiTypes::ReportGameQuery &query)
 
 	// If ranked mode and the game ended with a quit out, this is either a desync or an interrupted game,
 	// attempt to send synced values to opponents in order to restart the match where it was left off
-	if (r.onlineMode == SlippiMatchmaking::OnlinePlayMode::RANKED && r.gameEndMethod == 7)
+	if (onlineMode == SlippiMatchmaking::OnlinePlayMode::RANKED && gameEndMethod == 7)
 	{
 		SlippiSyncedGameState s;
-		s.match_id = r.matchId;
-		s.game_index = r.gameIndex;
-		s.tiebreak_index = r.tiebreakIndex;
+		s.match_id = matchId;
+		s.game_index = gameIndex;
+		s.tiebreak_index = tiebreakIndex;
 		s.seconds_remaining = query.syncedTimer;
 		for (int i = 0; i < 4; i++)
 		{
@@ -3293,10 +3299,6 @@ void CEXISlippi::DMARead(u32 addr, u32 size)
 void CEXISlippi::ConfigureJukebox()
 {
 #ifndef IS_PLAYBACK
-    // TODO: For mainline port, ISO file path can't be fetched this way. Look at the following:
-	// https://github.com/dolphin-emu/dolphin/blob/7f450f1d7e7d37bd2300f3a2134cb443d07251f9/Source/Core/Core/Movie.cpp#L246-L249
-	std::string iso_path = SConfig::GetInstance().m_strFilename;
-
     // Exclusive WASAPI and the Jukebox do not play nicely, so we just don't bother enabling
     // the Jukebox in that scenario - why bother doing the processing work when it's not even
     // possible to play it?
@@ -3312,7 +3314,6 @@ void CEXISlippi::ConfigureJukebox()
         slprs_exi_device_ptr,
         SConfig::GetInstance().bSlippiJukeboxEnabled,
         Memory::m_pRAM,
-        iso_path.c_str(),
         AudioCommonGetCurrentVolume
     );
 #endif
