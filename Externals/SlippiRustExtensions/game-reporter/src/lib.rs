@@ -16,6 +16,15 @@ const KNOWN_DESYNC_ISOS: [&'static str; 4] = [
     "9bb3e275e77bb1a160276f2330f93931",
 ];
 
+/// Different actions that we branch on when replay data is pushed
+/// to a `SlippiGameReporter`.
+#[derive(Debug)]
+pub enum ReplayDataAction {
+    Blank,
+    Create,
+    Close,
+}
+
 #[derive(Debug)]
 pub struct PlayerReport {
     pub uid: String,
@@ -152,7 +161,7 @@ impl SlippiGameReporter {
         }
     }
 
-    pub fn push_replay_data(&mut self, data: *const u8, length: u32, action: String) {}
+    pub fn push_replay_data(&mut self, data: *const u8, length: u32, action: ReplayDataAction) {}
 
     pub fn upload_replay_data(&mut self, index: i32, url: String) {}
 }

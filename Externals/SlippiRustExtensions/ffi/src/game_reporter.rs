@@ -2,7 +2,7 @@ use std::ffi::c_char;
 
 use slippi_game_reporter::{GameReport, OnlinePlayMode as ReporterOnlinePlayMode, PlayerReport};
 
-use crate::{set, unpack_str};
+use crate::{c_str_to_string, set};
 
 /// This enum is duplicated from `slippi_game_reporter::OnlinePlayMode` in order
 /// to appease cbindgen, which cannot see the type from the other module for
@@ -33,7 +33,7 @@ pub extern "C" fn slprs_player_report_create(
     starting_stocks: i64,
     starting_percent: i64,
 ) -> usize {
-    let uid = unpack_str(uid, "slprs_player_report_create", "uid");
+    let uid = c_str_to_string(uid, "slprs_player_report_create", "uid");
 
     let report = Box::new(PlayerReport {
         uid,
@@ -68,7 +68,7 @@ pub extern "C" fn slprs_game_report_create(
     lras_initiator: i8,
     stage_id: i32,
 ) -> usize {
-    let match_id = unpack_str(match_id, "slprs_game_report_create", "match_id");
+    let match_id = c_str_to_string(match_id, "slprs_game_report_create", "match_id");
 
     let report = Box::new(GameReport {
         online_mode: match online_mode {

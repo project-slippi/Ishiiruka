@@ -1,10 +1,10 @@
-use std::ffi::{c_char, c_int};
+use std::ffi::{c_char, c_int, CStr};
 
 use dolphin_logger::Log;
 use slippi_exi_device::SlippiEXIDevice;
-use slippi_game_reporter::GameReport;
+use slippi_game_reporter::{GameReport, ReplayDataAction};
 
-use crate::unpack_str;
+use crate::c_str_to_string;
 
 /// Creates and leaks a shadow EXI device.
 ///
@@ -17,9 +17,9 @@ use crate::unpack_str;
 pub extern "C" fn slprs_exi_device_create(user_id: *const c_char, play_key: *const c_char, iso_path: *const c_char) -> usize {
     let fn_name = "slprs_exi_device_create";
 
-    let iso_path = unpack_str(iso_path, fn_name, "iso_path");
-    let user_id = unpack_str(user_id, fn_name, "user_id");
-    let play_key = unpack_str(play_key, fn_name, "play_key");
+    let iso_path = c_str_to_string(iso_path, fn_name, "iso_path");
+    let user_id = c_str_to_string(user_id, fn_name, "user_id");
+    let play_key = c_str_to_string(play_key, fn_name, "play_key");
 
     let exi_device = Box::new(SlippiEXIDevice::new(user_id, play_key, iso_path));
     let exi_device_instance_ptr = Box::into_raw(exi_device) as usize;
@@ -123,7 +123,7 @@ pub extern "C" fn slprs_exi_device_report_match_completion(instance_ptr: usize, 
     // by us, and are created/destroyed with the corresponding lifetimes.
     let mut device = unsafe { Box::from_raw(instance_ptr as *mut SlippiEXIDevice) };
 
-    let match_id = unpack_str(match_id, "slprs_exi_device_report_match_completion", "match_id");
+    let match_id = c_str_to_string(match_id, "slprs_exi_device_report_match_completion", "match_id");
 
     device.game_reporter.report_completion(match_id, end_mode);
 
@@ -140,9 +140,53 @@ pub extern "C" fn slprs_exi_device_report_match_abandonment(instance_ptr: usize,
     // by us, and are created/destroyed with the corresponding lifetimes.
     let mut device = unsafe { Box::from_raw(instance_ptr as *mut SlippiEXIDevice) };
 
-    let match_id = unpack_str(match_id, "slprs_exi_device_report_match_abandonment", "match_id");
+    let match_id = c_str_to_string(match_id, "slprs_exi_device_report_match_abandonment", "match_id");
 
     device.game_reporter.report_abandonment(match_id);
+
+    // Fall back into a raw pointer so Rust doesn't obliterate the object.
+    let _leak = Box::into_raw(device);
+}
+
+/// Calls through to `SlippiGameReporter::push_replay_data`.
+#[no_mangle]
+pub extern "C" fn slprs_exi_device_reporter_push_replay_data(
+    instance_ptr: usize,
+    data: *const u8,
+    length: u32,
+    action: *const c_char,
+) {
+    // Coerce the action string from C++ to a Rust enum so we don't actually
+    // have to clone and allocate.
+    let action = {
+        // This is theoretically safe as we control the strings being passed from
+        // the C++ side, and can mostly guarantee that we know what we're getting.
+        let slice = unsafe { CStr::from_ptr(action) };
+
+        match slice.to_str() {
+            Ok(s) => match s {
+                "create" => ReplayDataAction::Create,
+                "close" => ReplayDataAction::Close,
+                _ => ReplayDataAction::Blank,
+            },
+
+            Err(e) => {
+                tracing::error!(
+                    error = ?e,
+                    "[slprs_exi_device_reporter_push_replay_data]: Unable to convert action string",
+                );
+
+                panic!("[slprs_exi_device_reporter_push_replay_data]: Unable to convert action string");
+            },
+        }
+    };
+
+    // Coerce the instances from the pointers. This is theoretically safe since we control
+    // the C++ side and can guarantee that the pointers are only owned
+    // by us, and are created/destroyed with the corresponding lifetimes.
+    let mut device = unsafe { Box::from_raw(instance_ptr as *mut SlippiEXIDevice) };
+
+    device.game_reporter.push_replay_data(data, length, action);
 
     // Fall back into a raw pointer so Rust doesn't obliterate the object.
     let _leak = Box::into_raw(device);

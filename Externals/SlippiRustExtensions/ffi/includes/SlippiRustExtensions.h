@@ -67,6 +67,12 @@ void slprs_exi_device_report_match_completion(uintptr_t instance_ptr,
 /// match abandon event.
 void slprs_exi_device_report_match_abandonment(uintptr_t instance_ptr, const char *match_id);
 
+/// Calls through to `SlippiGameReporter::push_replay_data`.
+void slprs_exi_device_reporter_push_replay_data(uintptr_t instance_ptr,
+                                                const uint8_t *data,
+                                                uint32_t length,
+                                                const char *action);
+
 /// Configures the Jukebox process. This needs to be called after the EXI device is created
 /// in order for certain pieces of Dolphin to be properly initalized; this may change down
 /// the road though and is not set in stone.

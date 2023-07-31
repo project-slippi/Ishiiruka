@@ -3120,7 +3120,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		m_slippiserver->startGame();
 		m_slippiserver->write(&memPtr[0], receiveCommandsLen + 1);
 
-		//gameReporter->PushReplayData(&memPtr[0], receiveCommandsLen + 1, "create");
+        slprs_exi_device_reporter_push_replay_data(slprs_exi_device_ptr, &memPtr[0], receiveCommandsLen + 1, "create");
 	}
 
 	if (byte == CMD_MENU_FRAME)
@@ -3153,7 +3153,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "close");
 			m_slippiserver->write(&memPtr[bufLoc], payloadLen + 1);
 			m_slippiserver->endGame();
-			//gameReporter->PushReplayData(&memPtr[bufLoc], payloadLen + 1, "close");
+            slprs_exi_device_reporter_push_replay_data(slprs_exi_device_ptr, &memPtr[bufLoc], payloadLen + 1, "close");
 			break;
 		case CMD_PREPARE_REPLAY:
 			// log.open("log.txt");
@@ -3166,7 +3166,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			g_needInputForFrame = true;
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "");
 			m_slippiserver->write(&memPtr[bufLoc], payloadLen + 1);
-			//gameReporter->PushReplayData(&memPtr[bufLoc], payloadLen + 1, "");
+            slprs_exi_device_reporter_push_replay_data(slprs_exi_device_ptr, &memPtr[bufLoc], payloadLen + 1, "");
 			break;
 		case CMD_IS_STOCK_STEAL:
 			prepareIsStockSteal(&memPtr[bufLoc + 1]);
@@ -3266,7 +3266,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		default:
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "");
 			m_slippiserver->write(&memPtr[bufLoc], payloadLen + 1);
-			//gameReporter->PushReplayData(&memPtr[bufLoc], payloadLen + 1, "");
+            slprs_exi_device_reporter_push_replay_data(slprs_exi_device_ptr, &memPtr[bufLoc], payloadLen + 1, "");
 			break;
 		}
 
