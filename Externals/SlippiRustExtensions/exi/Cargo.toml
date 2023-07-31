@@ -11,5 +11,6 @@ publish = false
 
 [dependencies]
 dolphin-logger = { path = "../logger" }
+slippi-game-reporter = { path = "../game-reporter" }
 slippi-jukebox = { path = "../jukebox" }
 tracing = { workspace = true }

@@ -142,7 +142,6 @@ CEXISlippi::CEXISlippi()
 	g_playbackStatus = std::make_unique<SlippiPlaybackStatus>();
 	matchmaking = std::make_unique<SlippiMatchmaking>(user.get());
 	gameFileLoader = std::make_unique<SlippiGameFileLoader>();
-	gameReporter = std::make_unique<SlippiGameReporter>(user.get());
 	g_replayComm = std::make_unique<SlippiReplayComm>();
 	directCodes = std::make_unique<SlippiDirectCodes>("direct-codes.json");
 	teamsCodes = std::make_unique<SlippiDirectCodes>("teams-codes.json");
@@ -271,9 +270,6 @@ CEXISlippi::~CEXISlippi()
 {
 	u8 empty[1];
 	
-    // Instruct the Rust EXI device to shut down/drop everything.
-    slprs_exi_device_destroy(slprs_exi_device_ptr);
-
 	// Closes file gracefully to prevent file corruption when emulation
 	// suddenly stops. This would happen often on netplay when the opponent
 	// would close the emulation before the file successfully finished writing
@@ -292,7 +288,7 @@ CEXISlippi::~CEXISlippi()
 	if (activeMatchId.find("mode.ranked") != std::string::npos)
 	{
 		ERROR_LOG(SLIPPI_ONLINE, "Exit during in-progress ranked game: %s", activeMatchId.c_str());
-		gameReporter->ReportAbandonment(activeMatchId);
+		slprs_exi_device_report_match_abandonment(slprs_exi_device_ptr, activeMatchId.c_str());
 	}
 	handleConnectionCleanup();
 
@@ -300,6 +296,9 @@ CEXISlippi::~CEXISlippi()
 
 	// Kill threads to prevent cleanup crash
 	g_playbackStatus->resetPlayback();
+    
+    // Instruct the Rust EXI device to shut down/drop everything.
+    slprs_exi_device_destroy(slprs_exi_device_ptr);
 
 	// TODO: ENET shutdown should maybe be done at app shutdown instead.
 	// Right now this might be problematic in the case where someone starts a netplay client
@@ -2056,7 +2055,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		// Here we are connected, check to see if we should init play session
 		if (!isPlaySessionActive)
 		{
-			gameReporter->StartNewSession();
+            slprs_exi_device_start_new_reporter_session(slprs_exi_device_ptr);
 			isPlaySessionActive = true;
 		}
 	}
@@ -2869,41 +2868,62 @@ void CEXISlippi::prepareNewSeed()
 
 void CEXISlippi::handleReportGame(const SlippiExiTypes::ReportGameQuery &query)
 {
-	SlippiGameReporter::GameReport r;
-	r.matchId = recentMmResult.id;
-	r.onlineMode = static_cast<SlippiMatchmaking::OnlinePlayMode>(query.onlineMode);
-	r.durationFrames = query.frameLength;
-	r.gameIndex = query.gameIndex;
-	r.tiebreakIndex = query.tiebreakIndex;
-	r.winnerIdx = query.winnerIdx;
-	r.stageId = Common::FromBigEndian(*(u16 *)&query.gameInfoBlock[0xE]);
-	r.gameEndMethod = query.gameEndMethod;
-	r.lrasInitiator = query.lrasInitiator;
+    std::string matchId = recentMmResult.id;
+	SlippiMatchmakingOnlinePlayMode onlineMode = static_cast<SlippiMatchmakingOnlinePlayMode>(query.onlineMode);
+	u32 durationFrames = query.frameLength;
+	u32 gameIndex = query.gameIndex;
+	u32 tiebreakIndex = query.tiebreakIndex;
+	s8 winnerIdx = query.winnerIdx;
+	int stageId = Common::FromBigEndian(*(u16 *)&query.gameInfoBlock[0xE]);
+	u8 gameEndMethod = query.gameEndMethod;
+	s8 lrasInitiator = query.lrasInitiator;
 
 	ERROR_LOG(SLIPPI_ONLINE, "Mode: %d / %d, Frames: %d, GameIdx: %d, TiebreakIdx: %d, WinnerIdx: %d, StageId: %d, GameEndMethod: %d, LRASInitiator: %d",
-	          r.onlineMode, query.onlineMode, r.durationFrames, r.gameIndex, r.tiebreakIndex, r.winnerIdx, r.stageId, r.gameEndMethod, r.lrasInitiator);
+	          onlineMode, query.onlineMode, durationFrames, gameIndex, tiebreakIndex, winnerIdx, stageId, gameEndMethod, lrasInitiator);
+
+	uintptr_t gameReport = slprs_game_report_create(
+        onlineMode,
+        matchId.c_str(),
+        durationFrames,
+        gameIndex,
+        tiebreakIndex,
+        winnerIdx,
+        gameEndMethod,
+        lrasInitiator,
+        stageId
+    );
 
 	auto mmPlayers = recentMmResult.players;
 
 	for (auto i = 0; i < 4; ++i)
 	{
-		SlippiGameReporter::PlayerReport p;
-		p.uid = mmPlayers.size() > i ? mmPlayers[i].uid : "";
-		p.slotType = query.players[i].slotType;
-		p.stocksRemaining = query.players[i].stocksRemaining;
-		p.damageDone = query.players[i].damageDone;
-		p.charId = query.gameInfoBlock[0x60 + 0x24 * i];
-		p.colorId = query.gameInfoBlock[0x63 + 0x24 * i];
-		p.startingStocks = query.gameInfoBlock[0x62 + 0x24 * i];
-		p.startingPercent = Common::FromBigEndian(*(u16 *)&query.gameInfoBlock[0x70 + 0x24 * i]);
+        std::string uid = mmPlayers.size() > i ? mmPlayers[i].uid : "";
+		u8 slotType = query.players[i].slotType;
+		u8 stocksRemaining = query.players[i].stocksRemaining;
+		float damageDone = query.players[i].damageDone;
+		u8 charId = query.gameInfoBlock[0x60 + 0x24 * i];
+		u8 colorId = query.gameInfoBlock[0x63 + 0x24 * i];
+		int startingStocks = query.gameInfoBlock[0x62 + 0x24 * i];
+		int startingPercent = Common::FromBigEndian(*(u16 *)&query.gameInfoBlock[0x70 + 0x24 * i]);
 
 		ERROR_LOG(SLIPPI_ONLINE,
 		          "UID: %s, Port Type: %d, Stocks: %d, DamageDone: %f, CharId: %d, ColorId: %d, StartStocks: %d, "
 		          "StartPercent: %d",
-		          p.uid.c_str(), p.slotType, p.stocksRemaining, p.damageDone, p.charId, p.colorId, p.startingStocks,
-		          p.startingPercent);
+		          uid.c_str(), slotType, stocksRemaining, damageDone, charId, colorId, startingStocks,
+		          startingPercent);
 
-		r.players.push_back(p);
+        uintptr_t playerReport = slprs_player_report_create(
+            uid.c_str(),
+            slotType,
+            damageDone,
+            stocksRemaining,
+            charId,
+            colorId,
+            startingStocks,
+            startingPercent
+        );
+
+        slprs_game_report_add_player_report(gameReport, playerReport);
 	}
 
 	// If ranked mode and the game ended with a quit out, this is either a desync or an interrupted game,
@@ -2926,7 +2946,7 @@ void CEXISlippi::handleReportGame(const SlippiExiTypes::ReportGameQuery &query)
 	}
 
 #ifndef LOCAL_TESTING
-	gameReporter->StartReport(r);
+    slprs_exi_device_start_game_report(slprs_exi_device_ptr, gameReport);
 #endif
 }
 
@@ -3026,7 +3046,7 @@ void CEXISlippi::handleCompleteSet(const SlippiExiTypes::ReportSetCompletionQuer
 	if (lastMatchId.find("mode.ranked") != std::string::npos)
 	{
 		INFO_LOG(SLIPPI_ONLINE, "Reporting set completion: %s", lastMatchId.c_str());
-		gameReporter->ReportCompletion(lastMatchId, query.endMode);
+        slprs_exi_device_report_match_completion(slprs_exi_device_ptr, lastMatchId.c_str(), query.endMode);
 	}
 }
 
@@ -3094,7 +3114,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		m_slippiserver->startGame();
 		m_slippiserver->write(&memPtr[0], receiveCommandsLen + 1);
 
-		gameReporter->PushReplayData(&memPtr[0], receiveCommandsLen + 1, "create");
+		//gameReporter->PushReplayData(&memPtr[0], receiveCommandsLen + 1, "create");
 	}
 
 	if (byte == CMD_MENU_FRAME)
@@ -3127,7 +3147,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "close");
 			m_slippiserver->write(&memPtr[bufLoc], payloadLen + 1);
 			m_slippiserver->endGame();
-			gameReporter->PushReplayData(&memPtr[bufLoc], payloadLen + 1, "close");
+			//gameReporter->PushReplayData(&memPtr[bufLoc], payloadLen + 1, "close");
 			break;
 		case CMD_PREPARE_REPLAY:
 			// log.open("log.txt");
@@ -3140,7 +3160,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			g_needInputForFrame = true;
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "");
 			m_slippiserver->write(&memPtr[bufLoc], payloadLen + 1);
-			gameReporter->PushReplayData(&memPtr[bufLoc], payloadLen + 1, "");
+			//gameReporter->PushReplayData(&memPtr[bufLoc], payloadLen + 1, "");
 			break;
 		case CMD_IS_STOCK_STEAL:
 			prepareIsStockSteal(&memPtr[bufLoc + 1]);
@@ -3240,7 +3260,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		default:
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "");
 			m_slippiserver->write(&memPtr[bufLoc], payloadLen + 1);
-			gameReporter->PushReplayData(&memPtr[bufLoc], payloadLen + 1, "");
+			//gameReporter->PushReplayData(&memPtr[bufLoc], payloadLen + 1, "");
 			break;
 		}
 

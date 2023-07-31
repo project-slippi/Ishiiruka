@@ -1166,6 +1166,7 @@ name = "slippi-exi-device"
 version = "0.1.0"
 dependencies = [
  "dolphin-logger",
+ "slippi-game-reporter",
  "slippi-jukebox",
  "tracing",
 ]

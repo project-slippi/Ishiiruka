@@ -200,7 +200,6 @@ set(SRCS	ActionReplay.cpp
 			Slippi/SlippiSpectate.cpp
 			Slippi/SlippiTimer.cpp
 			Slippi/SlippiUser.cpp
-			Slippi/SlippiGameReporter.cpp
 			Slippi/SlippiDirectCodes.cpp
 			)
 

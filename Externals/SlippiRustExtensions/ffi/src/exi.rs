@@ -1,7 +1,10 @@
-use std::ffi::{c_char, c_int, CStr};
+use std::ffi::{c_char, c_int};
 
 use dolphin_logger::Log;
 use slippi_exi_device::SlippiEXIDevice;
+use slippi_game_reporter::GameReport;
+
+use crate::unpack_str;
 
 /// Creates and leaks a shadow EXI device.
 ///
@@ -11,8 +14,18 @@ use slippi_exi_device::SlippiEXIDevice;
 ///
 /// The returned pointer from this should *not* be used after calling `slprs_exi_device_destroy`.
 #[no_mangle]
-pub extern "C" fn slprs_exi_device_create() -> usize {
-    let exi_device = Box::new(SlippiEXIDevice::new());
+pub extern "C" fn slprs_exi_device_create(
+    user_id: *const c_char,
+    play_key: *const c_char,
+    iso_path: *const c_char
+) -> usize {
+    let fn_name = "slprs_exi_device_create";
+
+    let iso_path = unpack_str(iso_path, fn_name, "iso_path");
+    let user_id = unpack_str(user_id, fn_name, "user_id");
+    let play_key = unpack_str(play_key, fn_name, "play_key");
+
+    let exi_device = Box::new(SlippiEXIDevice::new(user_id, play_key, iso_path));
     let exi_device_instance_ptr = Box::into_raw(exi_device) as usize;
 
     tracing::warn!(target: Log::EXI, ptr = exi_device_instance_ptr, "Creating Device");
@@ -69,6 +82,100 @@ pub extern "C" fn slprs_exi_device_dma_read(exi_device_instance_ptr: usize, addr
     let _leak = Box::into_raw(device);
 }
 
+/// Moves ownership of the `GameReport` at the specified address to the
+/// `SlippiGameReporter` on the EXI Device the corresponding address.
+///
+/// The reporter will manage the actual... reporting.
+#[no_mangle]
+pub extern "C" fn slprs_exi_device_start_game_report(
+    instance_ptr: usize,
+    game_report_instance_ptr: usize
+) {
+    // Coerce the instances from the pointers. This is theoretically safe since we control
+    // the C++ side and can guarantee that the pointers are only owned
+    // by us, and are created/destroyed with the corresponding lifetimes.
+    let (mut device, game_report) = unsafe {
+        (
+            Box::from_raw(instance_ptr as *mut SlippiEXIDevice),
+            Box::from_raw(game_report_instance_ptr as *mut GameReport)
+        )
+    };
+
+    device.game_reporter.start_report(*game_report);
+
+    // Fall back into a raw pointer so Rust doesn't obliterate the object.
+    let _leak = Box::into_raw(device);
+}
+
+/// Calls through to `SlippiGameReporter::start_new_session`.
+#[no_mangle]
+pub extern "C" fn slprs_exi_device_start_new_reporter_session(instance_ptr: usize) {
+    // Coerce the instances from the pointers. This is theoretically safe since we control
+    // the C++ side and can guarantee that the pointers are only owned
+    // by us, and are created/destroyed with the corresponding lifetimes.
+    let mut device = unsafe {
+        Box::from_raw(instance_ptr as *mut SlippiEXIDevice)
+    };
+
+    device.game_reporter.start_new_session();
+
+    // Fall back into a raw pointer so Rust doesn't obliterate the object.
+    let _leak = Box::into_raw(device);
+}
+
+/// Calls through to the `SlippiGameReporter` on the EXI device to report a
+/// match completion event.
+#[no_mangle]
+pub extern "C" fn slprs_exi_device_report_match_completion(
+    instance_ptr: usize,
+    match_id: *const c_char,
+    end_mode: u8
+) {
+    // Coerce the instances from the pointers. This is theoretically safe since we control
+    // the C++ side and can guarantee that the pointers are only owned
+    // by us, and are created/destroyed with the corresponding lifetimes.
+    let mut device = unsafe {
+        Box::from_raw(instance_ptr as *mut SlippiEXIDevice)
+    };
+
+    let match_id = unpack_str(
+        match_id,
+        "slprs_exi_device_report_match_completion",
+        "match_id"
+    );
+
+    device.game_reporter.report_completion(match_id, end_mode);
+
+    // Fall back into a raw pointer so Rust doesn't obliterate the object.
+    let _leak = Box::into_raw(device);
+}
+
+/// Calls through to the `SlippiGameReporter` on the EXI device to report a
+/// match abandon event.
+#[no_mangle]
+pub extern "C" fn slprs_exi_device_report_match_abandonment(
+    instance_ptr: usize,
+    match_id: *const c_char
+) {
+    // Coerce the instances from the pointers. This is theoretically safe since we control
+    // the C++ side and can guarantee that the pointers are only owned
+    // by us, and are created/destroyed with the corresponding lifetimes.
+    let mut device = unsafe {
+        Box::from_raw(instance_ptr as *mut SlippiEXIDevice)
+    };
+
+    let match_id = unpack_str(
+        match_id,
+        "slprs_exi_device_report_match_abandonment",
+        "match_id"
+    );
+
+    device.game_reporter.report_abandonment(match_id);
+
+    // Fall back into a raw pointer so Rust doesn't obliterate the object.
+    let _leak = Box::into_raw(device);
+}
+
 /// Configures the Jukebox process. This needs to be called after the EXI device is created
 /// in order for certain pieces of Dolphin to be properly initalized; this may change down
 /// the road though and is not set in stone.
@@ -77,32 +184,16 @@ pub extern "C" fn slprs_exi_device_configure_jukebox(
     exi_device_instance_ptr: usize,
     is_enabled: bool,
     m_p_ram: *const u8,
-    iso_path: *const c_char,
     get_dolphin_volume_fn: unsafe extern "C" fn() -> c_int,
 ) {
-    // Convert the provided ISO path to an owned Rust string.
-    // This is theoretically safe since we control the C++ side and can can mostly guarantee
-    // the validity of what is being passed in.
-    let slice = unsafe { CStr::from_ptr(iso_path) };
-
-    // What we *can't* guarantee is that it's proper UTF-8 etc. If we can't parse it into a
-    // Rust String, then we'll just avoid running the Jukebox entirely and log an error message
-    // for people to debug with.
-    let iso_path = match slice.to_str() {
-        Ok(path) => path.to_string(),
-
-        Err(e) => {
-            tracing::error!(error = ?e, "Failed to bridge iso_path, jukebox not initializing");
-            return;
-        },
-    };
-
     // Coerce the instance from the pointer. This is theoretically safe since we control
     // the C++ side and can guarantee that the `exi_device_instance_ptr` is only owned
     // by the C++ EXI device, and is created/destroyed with the corresponding lifetimes.
-    let mut device = unsafe { Box::from_raw(exi_device_instance_ptr as *mut SlippiEXIDevice) };
+    let mut device = unsafe {
+        Box::from_raw(exi_device_instance_ptr as *mut SlippiEXIDevice)
+    };
 
-    device.configure_jukebox(is_enabled, m_p_ram, iso_path, get_dolphin_volume_fn);
+    device.configure_jukebox(is_enabled, m_p_ram, get_dolphin_volume_fn);
 
     // Fall back into a raw pointer so Rust doesn't obliterate the object.
     let _leak = Box::into_raw(device);

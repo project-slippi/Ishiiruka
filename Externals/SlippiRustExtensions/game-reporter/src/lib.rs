@@ -16,16 +16,16 @@ const KNOWN_DESYNC_ISOS: [&'static str; 4] = [
     "9bb3e275e77bb1a160276f2330f93931"
 ];
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct PlayerReport {
-    pub uid: Option<String>,
-    pub slot_type: Option<u8>,
-    pub damage_done: Option<f64>,
-    pub stocks_remaining: Option<u8>,
-    pub character_id: Option<u8>,
-    pub color_id: Option<u8>,
-    pub starting_stocks: Option<i64>,
-    pub starting_percent: Option<i64>
+    pub uid: String,
+    pub slot_type: u8,
+    pub damage_done: f64,
+    pub stocks_remaining: u8,
+    pub character_id: u8,
+    pub color_id: u8,
+    pub starting_stocks: i64,
+    pub starting_percent: i64
 }
 
 #[derive(Debug)]
@@ -37,18 +37,18 @@ pub enum OnlinePlayMode {
     Teams = 3
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct GameReport {
-    pub online_mode: Option<OnlinePlayMode>,
-    pub match_id: Option<String>,
+    pub online_mode: OnlinePlayMode,
+    pub match_id: String,
     pub report_attempts: Option<i32>,
-    pub duration_frames: Option<u32>,
-    pub game_index: Option<u32>,
-    pub tie_break_index: Option<u32>,
-    pub winner_index: Option<i8>,
-    pub game_end_method: Option<u8>,
-    pub lras_initiator: Option<i8>,
-    pub stage_id: Option<i32>,
+    pub duration_frames: u32,
+    pub game_index: u32,
+    pub tie_break_index: u32,
+    pub winner_index: i8,
+    pub game_end_method: u8,
+    pub lras_initiator: i8,
+    pub stage_id: i32,
     pub players: Vec<PlayerReport>
 }
 
