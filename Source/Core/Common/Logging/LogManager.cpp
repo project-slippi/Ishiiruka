@@ -105,6 +105,14 @@ LogManager::LogManager()
         LogTypes::SLIPPI_RUST_EXI,
         true
     );
+	
+    // This LogContainer will register with the Rust side under the "SLIPPI_RUST_GAME_REPORTER" target.
+    m_Log[LogTypes::SLIPPI_RUST_GAME_REPORTER] = new LogContainer(
+        "SLIPPI_RUST_GAME_REPORTER",
+        "[Rust] Slippi Game Reporter",
+        LogTypes::SLIPPI_RUST_GAME_REPORTER,
+        true
+    );
 
     // This LogContainer will register with the Rust side under the "SLIPPI_RUST_JUKEBOX" target.
 	m_Log[LogTypes::SLIPPI_RUST_JUKEBOX] = new LogContainer(
