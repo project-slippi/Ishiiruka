@@ -156,6 +156,10 @@ pub extern "C" fn slprs_exi_device_reporter_push_replay_data(
     length: u32,
     action: *const c_char,
 ) {
+    // Convert our pointer to a Rust slice so that the game reporter
+    // doesn't need to deal with anything C-ish.
+    let slice = unsafe { std::slice::from_raw_parts(data, length as usize) };
+
     // Coerce the action string from C++ to a Rust enum so we don't actually
     // have to clone and allocate.
     let action = {
@@ -186,7 +190,7 @@ pub extern "C" fn slprs_exi_device_reporter_push_replay_data(
     // by us, and are created/destroyed with the corresponding lifetimes.
     let mut device = unsafe { Box::from_raw(instance_ptr as *mut SlippiEXIDevice) };
 
-    device.game_reporter.push_replay_data(data, length, action);
+    device.game_reporter.push_replay_data(slice, action);
 
     // Fall back into a raw pointer so Rust doesn't obliterate the object.
     let _leak = Box::into_raw(device);
