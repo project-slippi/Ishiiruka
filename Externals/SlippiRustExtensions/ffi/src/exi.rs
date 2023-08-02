@@ -1,8 +1,8 @@
-use std::ffi::{c_char, c_int, CStr};
+use std::ffi::{c_char, c_int};
 
 use dolphin_logger::Log;
 use slippi_exi_device::SlippiEXIDevice;
-use slippi_game_reporter::{GameReport, ReplayDataAction};
+use slippi_game_reporter::GameReport;
 
 use crate::c_str_to_string;
 
@@ -79,11 +79,12 @@ pub extern "C" fn slprs_exi_device_dma_read(exi_device_instance_ptr: usize, addr
 }
 
 /// Moves ownership of the `GameReport` at the specified address to the
-/// `SlippiGameReporter` on the EXI Device the corresponding address.
+/// `SlippiGameReporter` on the EXI Device the corresponding address. This
+/// will then add it to the processing pipeline.
 ///
 /// The reporter will manage the actual... reporting.
 #[no_mangle]
-pub extern "C" fn slprs_exi_device_start_game_report(instance_ptr: usize, game_report_instance_ptr: usize) {
+pub extern "C" fn slprs_exi_device_log_game_report(instance_ptr: usize, game_report_instance_ptr: usize) {
     // Coerce the instances from the pointers. This is theoretically safe since we control
     // the C++ side and can guarantee that the pointers are only owned
     // by us, and are created/destroyed with the corresponding lifetimes.
@@ -94,7 +95,7 @@ pub extern "C" fn slprs_exi_device_start_game_report(instance_ptr: usize, game_r
         )
     };
 
-    device.game_reporter.start_report(*game_report);
+    device.game_reporter.log_report(*game_report);
 
     // Fall back into a raw pointer so Rust doesn't obliterate the object.
     let _leak = Box::into_raw(device);
@@ -121,7 +122,7 @@ pub extern "C" fn slprs_exi_device_report_match_completion(instance_ptr: usize, 
     // Coerce the instances from the pointers. This is theoretically safe since we control
     // the C++ side and can guarantee that the pointers are only owned
     // by us, and are created/destroyed with the corresponding lifetimes.
-    let mut device = unsafe { Box::from_raw(instance_ptr as *mut SlippiEXIDevice) };
+    let device = unsafe { Box::from_raw(instance_ptr as *mut SlippiEXIDevice) };
 
     let match_id = c_str_to_string(match_id, "slprs_exi_device_report_match_completion", "match_id");
 
@@ -138,7 +139,7 @@ pub extern "C" fn slprs_exi_device_report_match_abandonment(instance_ptr: usize,
     // Coerce the instances from the pointers. This is theoretically safe since we control
     // the C++ side and can guarantee that the pointers are only owned
     // by us, and are created/destroyed with the corresponding lifetimes.
-    let mut device = unsafe { Box::from_raw(instance_ptr as *mut SlippiEXIDevice) };
+    let device = unsafe { Box::from_raw(instance_ptr as *mut SlippiEXIDevice) };
 
     let match_id = c_str_to_string(match_id, "slprs_exi_device_report_match_abandonment", "match_id");
 
@@ -153,44 +154,18 @@ pub extern "C" fn slprs_exi_device_report_match_abandonment(instance_ptr: usize,
 pub extern "C" fn slprs_exi_device_reporter_push_replay_data(
     instance_ptr: usize,
     data: *const u8,
-    length: u32,
-    action: *const c_char,
+    length: u32
 ) {
     // Convert our pointer to a Rust slice so that the game reporter
     // doesn't need to deal with anything C-ish.
     let slice = unsafe { std::slice::from_raw_parts(data, length as usize) };
-
-    // Coerce the action string from C++ to a Rust enum so we don't actually
-    // have to clone and allocate.
-    let action = {
-        // This is theoretically safe as we control the strings being passed from
-        // the C++ side, and can mostly guarantee that we know what we're getting.
-        let slice = unsafe { CStr::from_ptr(action) };
-
-        match slice.to_str() {
-            Ok(s) => match s {
-                "create" => ReplayDataAction::Create,
-                "close" => ReplayDataAction::Close,
-                _ => ReplayDataAction::Blank,
-            },
-
-            Err(e) => {
-                tracing::error!(
-                    error = ?e,
-                    "[slprs_exi_device_reporter_push_replay_data]: Unable to convert action string",
-                );
-
-                panic!("[slprs_exi_device_reporter_push_replay_data]: Unable to convert action string");
-            },
-        }
-    };
 
     // Coerce the instances from the pointers. This is theoretically safe since we control
     // the C++ side and can guarantee that the pointers are only owned
     // by us, and are created/destroyed with the corresponding lifetimes.
     let mut device = unsafe { Box::from_raw(instance_ptr as *mut SlippiEXIDevice) };
 
-    device.game_reporter.push_replay_data(slice, action);
+    device.game_reporter.push_replay_data(slice);
 
     // Fall back into a raw pointer so Rust doesn't obliterate the object.
     let _leak = Box::into_raw(device);

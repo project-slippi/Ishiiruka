@@ -49,10 +49,11 @@ void slprs_exi_device_dma_read(uintptr_t exi_device_instance_ptr,
                                const uint8_t *size);
 
 /// Moves ownership of the `GameReport` at the specified address to the
-/// `SlippiGameReporter` on the EXI Device the corresponding address.
+/// `SlippiGameReporter` on the EXI Device the corresponding address. This
+/// will then add it to the processing pipeline.
 ///
 /// The reporter will manage the actual... reporting.
-void slprs_exi_device_start_game_report(uintptr_t instance_ptr, uintptr_t game_report_instance_ptr);
+void slprs_exi_device_log_game_report(uintptr_t instance_ptr, uintptr_t game_report_instance_ptr);
 
 /// Calls through to `SlippiGameReporter::start_new_session`.
 void slprs_exi_device_start_new_reporter_session(uintptr_t instance_ptr);
@@ -70,8 +71,7 @@ void slprs_exi_device_report_match_abandonment(uintptr_t instance_ptr, const cha
 /// Calls through to `SlippiGameReporter::push_replay_data`.
 void slprs_exi_device_reporter_push_replay_data(uintptr_t instance_ptr,
                                                 const uint8_t *data,
-                                                uint32_t length,
-                                                const char *action);
+                                                uint32_t length);
 
 /// Configures the Jukebox process. This needs to be called after the EXI device is created
 /// in order for certain pieces of Dolphin to be properly initalized; this may change down

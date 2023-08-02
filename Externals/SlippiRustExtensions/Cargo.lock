@@ -1177,6 +1177,7 @@ version = "0.1.0"
 dependencies = [
  "chksum",
  "dolphin-logger",
+ "flate2",
  "serde",
  "serde_json",
  "tracing",

@@ -79,7 +79,7 @@ pub extern "C" fn slprs_game_report_create(
         },
 
         match_id,
-        report_attempts: None,
+        attempts: 0,
         duration_frames,
         game_index,
         tie_break_index,
@@ -88,6 +88,7 @@ pub extern "C" fn slprs_game_report_create(
         lras_initiator,
         stage_id,
         players: Vec::new(),
+        replay_data: Vec::new()
     });
 
     let report_instance_ptr = Box::into_raw(report) as usize;

@@ -1,192 +1,83 @@
-use std::collections::VecDeque;
-use std::sync::{Arc, Mutex, OnceLock};
-use std::thread;
+//! This could be rewritten down the road, but the goal is a 1:1 port right now,
+//! not to rewrite the universe.
 
-use serde_json::json;
-use ureq::{Agent, AgentBuilder};
+use std::ops::Deref;
+use std::sync::mpsc::{self, Sender};
+use std::thread;
 
 use dolphin_logger::Log;
 
-const REPORT_URL: &str = "https://rankings-dot-slippi.uc.r.appspot.com/report";
-const ABANDON_URL: &str = "https://rankings-dot-slippi.uc.r.appspot.com/abandon";
-const COMPLETE_URL: &str = "https://rankings-dot-slippi.uc.r.appspot.com/complete";
+mod iso_md5_hasher;
 
-/// ISO hashes that are known to cause problems. We alert the player
-/// if we detect that they're running one.
-const KNOWN_DESYNC_ISOS: [&'static str; 4] = [
-    "23d6baef06bd65989585096915da20f2",
-    "27a5668769a54cd3515af47b8d9982f3",
-    "5805fa9f1407aedc8804d0472346fc5f",
-    "9bb3e275e77bb1a160276f2330f93931",
-];
+mod queue;
+use queue::GameReporterQueue;
 
-/// The different modes that a player could be in.
-#[derive(Debug)]
-pub enum OnlinePlayMode {
-    Ranked = 0,
-    Unranked = 1,
-    Direct = 2,
-    Teams = 3,
+mod types;
+pub use types::{OnlinePlayMode, GameReport, PlayerReport};
+
+/// Events that we dispatch into the processing thread.
+#[derive(Copy, Clone, Debug)]
+pub(crate) enum ProcessingEvent {
+    ReportAvailable,
+    Shutdown
 }
 
-/// Game metadata payload that we log to the server.
-#[derive(Debug)]
-pub struct GameReport {
-    pub online_mode: OnlinePlayMode,
-    pub match_id: String,
-    pub report_attempts: Option<i32>,
-    pub duration_frames: u32,
-    pub game_index: u32,
-    pub tie_break_index: u32,
-    pub winner_index: i8,
-    pub game_end_method: u8,
-    pub lras_initiator: i8,
-    pub stage_id: i32,
-    pub players: Vec<PlayerReport>,
-}
-
-/// Player metadata payload that's logged with game info.
-#[derive(Debug)]
-pub struct PlayerReport {
-    pub uid: String,
-    pub slot_type: u8,
-    pub damage_done: f64,
-    pub stocks_remaining: u8,
-    pub character_id: u8,
-    pub color_id: u8,
-    pub starting_stocks: i64,
-    pub starting_percent: i64,
-}
-
-/// Trimmed-down user information - if more things move in to the Rust side,
-/// this will likely move and/or get expanded.
-#[derive(Debug)]
-struct UserInfo {
-    uid: String,
-    play_key: String,
-}
-
-/// Different actions that we branch on when replay data is pushed
-/// to a `SlippiGameReporter`.
-#[derive(Debug)]
-pub enum ReplayDataAction {
-    /// Just push the data, nothing special.
-    Blank,
-
-    /// Start writing a new Replay.
-    Create,
-
-    /// Finish the current Replay.
-    Close,
-}
-
-/// Tracks replay data that gets passed over during gameplay.
+/// The public interface for the game reporter service. This handles managing any
+/// necessary background threads and provides hooks for instrumenting the reporting
+/// process.
 ///
-/// This holds replay data in an increasing stack of entries. If
-/// `ReplayDataAction` is passed to `push`, then this will add a new
-/// entry in the underlying data stack and begin writing data there.
-#[derive(Debug)]
-struct ReplayData {
-    // This was an `std::map<int, std::vector<u8>>` in C++ and I'm unsure why.
-    // @Fizzi or @Nikki - is there some nuance I'm missing? Maybe avoiding something
-    // expensive during cleanup...?
-    pub data: Vec<Vec<u8>>,
-    pub write_index: usize,
-    pub last_completed_index: Option<usize>,
-}
-
-impl ReplayData {
-    /// Creates a new `ReplayData` instance.
-    pub fn new() -> Self {
-        Self {
-            data: vec![Vec::new()],
-            write_index: 0,
-            last_completed_index: None,
-        }
-    }
-
-    /// Copies data from the provided slice into the proper bucket.
-    pub fn push(&mut self, data: &[u8], action: ReplayDataAction) {
-        if let ReplayDataAction::Create = action {
-            self.write_index += 1;
-        }
-
-        self.data[self.write_index].extend_from_slice(data);
-
-        if let ReplayDataAction::Close = action {
-            self.last_completed_index = Some(self.write_index);
-        }
-    }
-}
-
-/// Implements multi-threaded queues and handlers for saving game reports
-/// and replays.
+/// The inner `GameReporter` is shared between threads and manages field access via
+/// internal Mutexes. We supply a channel to the processing thread in order to notify
+/// it of new reports to process.
 #[derive(Debug)]
 pub struct SlippiGameReporter {
-    http_client: Agent,
-    user_info: Arc<UserInfo>,
-    iso_hash: Arc<OnceLock<String>>,
-    reporting_thread: Option<thread::JoinHandle<()>>,
-    md5_thread: Option<thread::JoinHandle<()>>,
-    player_uids: Vec<String>,
-    report_queue: Arc<Mutex<VecDeque<GameReport>>>,
-    replay_data: ReplayData,
+    queue: GameReporterQueue,
+    replay_data: Vec<u8>,
+    processing_thread_notifier: Sender<ProcessingEvent>,
+    processing_thread: Option<thread::JoinHandle<()>>,
+    iso_md5_hasher_thread: Option<thread::JoinHandle<()>>,
 }
 
 impl SlippiGameReporter {
-    /// Initializes and returns a new game reporter.
+    /// Initializes and returns a new `SlippiGameReporter`.
     ///
-    /// This spawns a few background threads to handle things like report and
-    /// upload processing, along with checking for troublesome ISOs.
+    /// This spawns and manages a few background threads to handle things like 
+    /// report and upload processing, along with checking for troublesome ISOs.
+    /// The core logic surrounding reports themselves lives a layer deeper in `GameReporter`.
+    ///
+    /// Currently, failure to spawn any thread should result in a crash - i.e, if we can't
+    /// spawn an OS thread, then there are probably far bigger issues at work here.
     pub fn new(uid: String, play_key: String, iso_path: String) -> Self {
-        let http_client = AgentBuilder::new()
-            .https_only(true)
-            .max_idle_connections(5)
-            .user_agent("SlippiGameReporter/Rust v0.1")
-            .build();
+        let queue = GameReporterQueue::new(uid, play_key);
 
-        let user_info = Arc::new(UserInfo { uid, play_key });
+        // This is a thread-safe "one time" setter that the MD5 hasher thread
+        // will set when it's done computing.
+        let iso_hash_setter = queue.iso_hash.clone();
 
-        let reporter_user_info = user_info.clone();
-        let reporter_http_client = http_client.clone();
-
-        let reporting_thread = thread::Builder::new()
-            .name("SlippiGameReporter".into())
+        let iso_md5_hasher_thread = thread::Builder::new()
+            .name("SlippiGameReporterISOHasherThread".into())
             .spawn(move || {
-                // Temporary appeasement of the compiler while scaffolding, ignore.
-                let mut xxx = VecDeque::new();
-                handle_reports(&mut xxx, reporter_user_info, reporter_http_client);
+                iso_md5_hasher::run(iso_hash_setter, iso_path);
             })
-            .expect("Ruh roh");
+            .expect("Failed to spawn SlippiGameReporterISOHasherThread.");
 
-        let iso_hash = Arc::new(OnceLock::new());
-        let md5_hash = iso_hash.clone();
+        let (sender, receiver) = mpsc::channel();
+        let processing_thread_queue_handle = queue.clone();
 
-        let md5_thread = thread::Builder::new()
-            .name("SlippiGameReporterMD5".into())
+        let processing_thread = thread::Builder::new()
+            .name("SlippiGameReporterProcessingThread".into())
             .spawn(move || {
-                run_md5(md5_hash, iso_path);
+                queue::run(processing_thread_queue_handle, receiver);
             })
-            .expect("Ruh roh");
+            .expect("Failed to spawn SlippiGameReporterProcessingThread.");
 
         Self {
-            http_client,
-            user_info,
-            iso_hash,
-            reporting_thread: Some(reporting_thread),
-            md5_thread: Some(md5_thread),
-            player_uids: Vec::new(),
-            report_queue: Arc::new(Mutex::new(VecDeque::new())),
-            replay_data: ReplayData::new(),
+            queue,
+            replay_data: Vec::new(),
+            processing_thread_notifier: sender,
+            processing_thread: Some(processing_thread),
+            iso_md5_hasher_thread: Some(iso_md5_hasher_thread),
         }
-    }
-
-    /// Adds a new report to the queue and notifies the background thread that
-    /// there's work to be done.
-    pub fn start_report(&mut self, report: GameReport) {
-        let mut lock = self.report_queue.lock().expect("Ruh roh");
-        (*lock).push_front(report);
-        // notify
     }
 
     /// Currently unused.
@@ -194,92 +85,72 @@ impl SlippiGameReporter {
         // Maybe we could do stuff here? We used to initialize gameIndex but
         // that isn't required anymore
     }
-
-    /// Logs replay data that's passed to it. The background processing thread
-    /// will pick it up when ready.
-    pub fn push_replay_data(&mut self, data: &[u8], action: ReplayDataAction) {
-        self.replay_data.push(data, action);
+    
+    /// Logs replay data that's passed to it.
+    pub fn push_replay_data(&mut self, data: &[u8]) {
+        self.replay_data.extend_from_slice(data);
     }
 
-    /// Report a completed match.
-    pub fn report_completion(&mut self, match_id: String, end_mode: u8) {
-        let res = self.http_client.post(COMPLETE_URL).send_json(json!({
-            "matchId": match_id,
-            "uid": self.user_info.uid,
-            "playKey": self.user_info.play_key,
-            "endMode": end_mode
-        }));
+    /// Adds a report for processing and signals to the processing thread that there's
+    /// work to be done.
+    ///
+    /// Note that when a new report is added, we transfer ownership of all current replay data
+    /// to the game report itself. By doing this, we avoid needing to have a Mutex controlling
+    /// access and pushing replay data as it comes in requires no locking.
+    pub fn log_report(&mut self, mut report: GameReport) {
+        report.replay_data = std::mem::replace(&mut self.replay_data, Vec::new());
+        self.queue.add_report(report);
 
-        if let Err(e) = res {
+        if let Err(e) = self.processing_thread_notifier.send(ProcessingEvent::ReportAvailable) {
             tracing::error!(
                 target: Log::GameReporter,
                 error = ?e,
-                "Error executing completion request"
+                "Unable to dispatch ReportAvailable notification"
             );
         }
     }
+}
 
-    /// Report an abandoned match.
-    pub fn report_abandonment(&mut self, match_id: String) {
-        let res = self.http_client.post(ABANDON_URL).send_json(json!({
-            "matchId": match_id,
-            "uid": self.user_info.uid,
-            "playKey": self.user_info.play_key
-        }));
+impl Deref for SlippiGameReporter {
+    type Target = GameReporterQueue;
 
-        if let Err(e) = res {
-            tracing::error!(
-                target: Log::GameReporter,
-                error = ?e,
-                "Error executing abandonment request"
-            );
-        }
+    /// Support dereferencing to the inner game reporter. This has a "subclass"-like
+    /// effect wherein we don't need to duplicate methods on this layer.
+    fn deref(&self) -> &Self::Target {
+        &self.queue
     }
 }
 
 impl Drop for SlippiGameReporter {
-    /// Cleans up background threads and does some last minute cleanup attempts.
-    fn drop(&mut self) {}
-}
+    /// Joins the background threads when we're done, logging if 
+    /// any errors are encountered.
+    fn drop(&mut self) {
+        if let Some(processing_thread) = self.processing_thread.take() {
+            if let Err(e) = self.processing_thread_notifier.send(ProcessingEvent::Shutdown) {
+                tracing::error!(
+                    target: Log::GameReporter,
+                    error = ?e,
+                    "Failed to send shutdown notification to report processing thread, may hang"
+                );
+            }
 
-/// The main loop that processes reports.
-fn handle_reports(queue: &mut VecDeque<GameReport>, user_info: Arc<UserInfo>, http_client: Agent) {
-    loop {
-        let has_data = queue.len() > 0;
+            if let Err(e) = processing_thread.join() {
+                tracing::error!(
+                    target: Log::GameReporter,
+                    error = ?e,
+                    "Processing thread failure"
+                );
+            }
+        }
 
-        // Process all reports currently in the queue.
-        while let Some(mut report) = queue.pop_front() {}
-
-        // If we had data, do any cleanup
-
-        std::thread::sleep_ms(0);
+        if let Some(iso_md5_hasher_thread) = self.iso_md5_hasher_thread.take() {
+            if let Err(e) = iso_md5_hasher_thread.join() {
+                tracing::error!(
+                    target: Log::GameReporter,
+                    error = ?e,
+                    "ISO MD5 hasher thread failure"
+                );
+            }
+        }
     }
-}
-
-/// Uploads.
-fn upload_replay_data(index: i32, url: String) {
-    //X-Goog-Content-Length-Range: 0,10000000
-}
-
-/// Computes an MD5 hash of the ISO at `iso_path` and writes it back to the value
-/// behind `iso_hash`.
-fn run_md5(iso_hash: Arc<OnceLock<String>>, iso_path: String) {
-    use chksum::prelude::*;
-
-    use std::fs::File;
-
-    let digest = File::open(&iso_path)
-        .expect("Dolphin would crash if this was invalid")
-        .chksum(HashAlgorithm::MD5)
-        .expect("This might be worth handling later");
-
-    let hash = format!("{:x}", digest);
-
-    if KNOWN_DESYNC_ISOS.contains(&hash.as_str()) {
-        // This should be an OSD message but that can be handled later
-        println!("Desync warning!");
-    }
-
-    println!("MD5 Hash: {}", hash);
-    iso_hash.set(hash).expect("This should not fail");
 }

@@ -2952,7 +2952,7 @@ void CEXISlippi::handleReportGame(const SlippiExiTypes::ReportGameQuery &query)
 	}
 
 #ifndef LOCAL_TESTING
-    slprs_exi_device_start_game_report(slprs_exi_device_ptr, gameReport);
+    slprs_exi_device_log_game_report(slprs_exi_device_ptr, gameReport);
 #endif
 }
 
