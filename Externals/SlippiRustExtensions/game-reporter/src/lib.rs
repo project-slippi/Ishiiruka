@@ -1,5 +1,5 @@
 use std::collections::VecDeque;
-use std::sync::{Arc, OnceLock, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::thread;
 
 use serde_json::json;
@@ -92,7 +92,7 @@ struct ReplayData {
     // expensive during cleanup...?
     pub data: Vec<Vec<u8>>,
     pub write_index: usize,
-    pub last_completed_index: Option<usize>
+    pub last_completed_index: Option<usize>,
 }
 
 impl ReplayData {
@@ -101,7 +101,7 @@ impl ReplayData {
         Self {
             data: vec![Vec::new()],
             write_index: 0,
-            last_completed_index: None
+            last_completed_index: None,
         }
     }
 
@@ -119,7 +119,7 @@ impl ReplayData {
     }
 }
 
-/// Implements multi-threaded queues and handlers for saving game reports 
+/// Implements multi-threaded queues and handlers for saving game reports
 /// and replays.
 #[derive(Debug)]
 pub struct SlippiGameReporter {
@@ -130,7 +130,7 @@ pub struct SlippiGameReporter {
     md5_thread: Option<thread::JoinHandle<()>>,
     player_uids: Vec<String>,
     report_queue: Arc<Mutex<VecDeque<GameReport>>>,
-    replay_data: ReplayData
+    replay_data: ReplayData,
 }
 
 impl SlippiGameReporter {
@@ -177,7 +177,7 @@ impl SlippiGameReporter {
             md5_thread: Some(md5_thread),
             player_uids: Vec::new(),
             report_queue: Arc::new(Mutex::new(VecDeque::new())),
-            replay_data: ReplayData::new()
+            replay_data: ReplayData::new(),
         }
     }
 
@@ -221,12 +221,11 @@ impl SlippiGameReporter {
 
     /// Report an abandoned match.
     pub fn report_abandonment(&mut self, match_id: String) {
-        let res = self.http_client.post(ABANDON_URL)
-            .send_json(json!({
-                "matchId": match_id,
-                "uid": self.user_info.uid,
-                "playKey": self.user_info.play_key
-            }));
+        let res = self.http_client.post(ABANDON_URL).send_json(json!({
+            "matchId": match_id,
+            "uid": self.user_info.uid,
+            "playKey": self.user_info.play_key
+        }));
 
         if let Err(e) = res {
             tracing::error!(
@@ -244,19 +243,14 @@ impl Drop for SlippiGameReporter {
 }
 
 /// The main loop that processes reports.
-fn handle_reports(
-    queue: &mut VecDeque<GameReport>,
-    user_info: Arc<UserInfo>, 
-    http_client: Agent
-) {
+fn handle_reports(queue: &mut VecDeque<GameReport>, user_info: Arc<UserInfo>, http_client: Agent) {
     loop {
         let has_data = queue.len() > 0;
 
         // Process all reports currently in the queue.
-        while let Some(mut report) = queue.pop_front() {
-        }
+        while let Some(mut report) = queue.pop_front() {}
 
-        // If we had data, do any cleanup 
+        // If we had data, do any cleanup
 
         std::thread::sleep_ms(0);
     }
