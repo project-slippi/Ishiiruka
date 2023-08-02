@@ -451,13 +451,13 @@ void VideoBackend::PrepareWindow(void* window_handle) {
 
 	auto rect = (CGRect){{0, 0}, {frame.size.width, frame.size.height}};
 	id metal_view = reinterpret_cast<id (*)(id, SEL, CGRect)>(objc_msgSend)(alloc, sel_getUid("initWithFrame:"), rect);
-	objc_msgSend(metal_view, sel_getUid("setWantsLayer:"), YES);
+	reinterpret_cast<id (*)(id, SEL, BOOL)>(objc_msgSend)(metal_view, sel_getUid("setWantsLayer:"), YES);
 
 	// The below does: objc_msgSend(view, sel_getUid("setAutoresizingMask"), NSViewWidthSizable | NSViewHeightSizable);
 	// All this is doing is telling the view/layer to resize when the parent does.
-	objc_msgSend(metal_view, sel_getUid("setAutoresizingMask:"), 18);
+	reinterpret_cast<id (*)(id, SEL, unsigned long)>(objc_msgSend)(metal_view, sel_getUid("setAutoresizingMask:"), 18);
 
-	objc_msgSend(view, sel_getUid("addSubview:"), metal_view);
+	reinterpret_cast<id (*)(id, SEL, id)>(objc_msgSend)(view, sel_getUid("addSubview:"), metal_view);
 	s_metal_view_handle = metal_view;
 #endif
 }
