@@ -151,11 +151,7 @@ pub extern "C" fn slprs_exi_device_report_match_abandonment(instance_ptr: usize,
 
 /// Calls through to `SlippiGameReporter::push_replay_data`.
 #[no_mangle]
-pub extern "C" fn slprs_exi_device_reporter_push_replay_data(
-    instance_ptr: usize,
-    data: *const u8,
-    length: u32
-) {
+pub extern "C" fn slprs_exi_device_reporter_push_replay_data(instance_ptr: usize, data: *const u8, length: u32) {
     // Convert our pointer to a Rust slice so that the game reporter
     // doesn't need to deal with anything C-ish.
     let slice = unsafe { std::slice::from_raw_parts(data, length as usize) };

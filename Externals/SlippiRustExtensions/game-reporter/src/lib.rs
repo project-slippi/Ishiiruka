@@ -13,13 +13,13 @@ mod queue;
 use queue::GameReporterQueue;
 
 mod types;
-pub use types::{OnlinePlayMode, GameReport, PlayerReport};
+pub use types::{GameReport, OnlinePlayMode, PlayerReport};
 
 /// Events that we dispatch into the processing thread.
 #[derive(Copy, Clone, Debug)]
 pub(crate) enum ProcessingEvent {
     ReportAvailable,
-    Shutdown
+    Shutdown,
 }
 
 /// The public interface for the game reporter service. This handles managing any
@@ -41,7 +41,7 @@ pub struct SlippiGameReporter {
 impl SlippiGameReporter {
     /// Initializes and returns a new `SlippiGameReporter`.
     ///
-    /// This spawns and manages a few background threads to handle things like 
+    /// This spawns and manages a few background threads to handle things like
     /// report and upload processing, along with checking for troublesome ISOs.
     /// The core logic surrounding reports themselves lives a layer deeper in `GameReporter`.
     ///
@@ -85,7 +85,7 @@ impl SlippiGameReporter {
         // Maybe we could do stuff here? We used to initialize gameIndex but
         // that isn't required anymore
     }
-    
+
     /// Logs replay data that's passed to it.
     pub fn push_replay_data(&mut self, data: &[u8]) {
         self.replay_data.extend_from_slice(data);
@@ -122,7 +122,7 @@ impl Deref for SlippiGameReporter {
 }
 
 impl Drop for SlippiGameReporter {
-    /// Joins the background threads when we're done, logging if 
+    /// Joins the background threads when we're done, logging if
     /// any errors are encountered.
     fn drop(&mut self) {
         if let Some(processing_thread) = self.processing_thread.take() {

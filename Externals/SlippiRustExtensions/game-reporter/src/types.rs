@@ -1,4 +1,3 @@
-
 /// The different modes that a player could be in.
 #[derive(Copy, Clone, Debug, serde::Serialize)]
 pub enum OnlinePlayMode {
@@ -25,7 +24,7 @@ pub struct GameReport {
 
     // This is set when we log the report. Anything before then
     // is a non-allocated `Vec<u8>` to just be a placeholder.
-    pub replay_data: Vec<u8>
+    pub replay_data: Vec<u8>,
 }
 
 /// Player metadata payload that's logged with game info.
@@ -67,28 +66,28 @@ pub struct GameReportRequestPayload<'a> {
 
     #[serde(rename = "matchId")]
     pub match_id: &'a str,
-   
+
     #[serde(rename = "playKey")]
     pub play_key: &'a str,
 
     #[serde(rename = "gameDurationFrames")]
     pub duration_frames: u32,
-    
+
     #[serde(rename = "gameIndex")]
     pub game_index: u32,
-    
+
     #[serde(rename = "tiebreakIndex")]
     pub tie_break_index: u32,
-    
+
     #[serde(rename = "winnerIdx")]
     pub winner_index: i8,
-    
+
     #[serde(rename = "gameEndMethod")]
     pub game_end_method: u8,
-    
+
     #[serde(rename = "lrasInitiator")]
     pub lras_initiator: i8,
-    
+
     #[serde(rename = "stageId")]
     pub stage_id: i32,
 }
@@ -96,12 +95,7 @@ pub struct GameReportRequestPayload<'a> {
 impl<'a> GameReportRequestPayload<'a> {
     /// Builds a report request payload that can be serialized for POSTing
     /// to the server.
-    pub fn with(
-        uid: &'a str,
-        play_key: &'a str,
-        iso_hash: &'a str,
-        report: &'a GameReport
-    ) -> Self {
+    pub fn with(uid: &'a str, play_key: &'a str, iso_hash: &'a str, report: &'a GameReport) -> Self {
         Self {
             uid,
             iso_hash,
