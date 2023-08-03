@@ -14,14 +14,12 @@ use crate::c_str_to_string;
 ///
 /// The returned pointer from this should *not* be used after calling `slprs_exi_device_destroy`.
 #[no_mangle]
-pub extern "C" fn slprs_exi_device_create(user_id: *const c_char, play_key: *const c_char, iso_path: *const c_char) -> usize {
+pub extern "C" fn slprs_exi_device_create(iso_path: *const c_char) -> usize {
     let fn_name = "slprs_exi_device_create";
 
     let iso_path = c_str_to_string(iso_path, fn_name, "iso_path");
-    let user_id = c_str_to_string(user_id, fn_name, "user_id");
-    let play_key = c_str_to_string(play_key, fn_name, "play_key");
 
-    let exi_device = Box::new(SlippiEXIDevice::new(user_id, play_key, iso_path));
+    let exi_device = Box::new(SlippiEXIDevice::new(iso_path));
     let exi_device_instance_ptr = Box::into_raw(exi_device) as usize;
 
     tracing::warn!(target: Log::EXI, ptr = exi_device_instance_ptr, "Creating Device");
@@ -118,15 +116,24 @@ pub extern "C" fn slprs_exi_device_start_new_reporter_session(instance_ptr: usiz
 /// Calls through to the `SlippiGameReporter` on the EXI device to report a
 /// match completion event.
 #[no_mangle]
-pub extern "C" fn slprs_exi_device_report_match_completion(instance_ptr: usize, match_id: *const c_char, end_mode: u8) {
+pub extern "C" fn slprs_exi_device_report_match_completion(
+    instance_ptr: usize,
+    uid: *const c_char,
+    play_key: *const c_char,
+    match_id: *const c_char,
+    end_mode: u8,
+) {
     // Coerce the instances from the pointers. This is theoretically safe since we control
     // the C++ side and can guarantee that the pointers are only owned
     // by us, and are created/destroyed with the corresponding lifetimes.
     let device = unsafe { Box::from_raw(instance_ptr as *mut SlippiEXIDevice) };
 
-    let match_id = c_str_to_string(match_id, "slprs_exi_device_report_match_completion", "match_id");
+    let fn_name = "slprs_exi_device_report_match_completion";
+    let uid = c_str_to_string(uid, fn_name, "uid");
+    let play_key = c_str_to_string(play_key, fn_name, "play_key");
+    let match_id = c_str_to_string(match_id, fn_name, "match_id");
 
-    device.game_reporter.report_completion(match_id, end_mode);
+    device.game_reporter.report_completion(uid, play_key, match_id, end_mode);
 
     // Fall back into a raw pointer so Rust doesn't obliterate the object.
     let _leak = Box::into_raw(device);
@@ -135,15 +142,23 @@ pub extern "C" fn slprs_exi_device_report_match_completion(instance_ptr: usize, 
 /// Calls through to the `SlippiGameReporter` on the EXI device to report a
 /// match abandon event.
 #[no_mangle]
-pub extern "C" fn slprs_exi_device_report_match_abandonment(instance_ptr: usize, match_id: *const c_char) {
+pub extern "C" fn slprs_exi_device_report_match_abandonment(
+    instance_ptr: usize,
+    uid: *const c_char,
+    play_key: *const c_char,
+    match_id: *const c_char,
+) {
     // Coerce the instances from the pointers. This is theoretically safe since we control
     // the C++ side and can guarantee that the pointers are only owned
     // by us, and are created/destroyed with the corresponding lifetimes.
     let device = unsafe { Box::from_raw(instance_ptr as *mut SlippiEXIDevice) };
 
-    let match_id = c_str_to_string(match_id, "slprs_exi_device_report_match_abandonment", "match_id");
+    let fn_name = "slprs_exi_device_report_match_abandonment";
+    let uid = c_str_to_string(uid, fn_name, "uid");
+    let play_key = c_str_to_string(play_key, fn_name, "play_key");
+    let match_id = c_str_to_string(match_id, fn_name, "match_id");
 
-    device.game_reporter.report_abandonment(match_id);
+    device.game_reporter.report_abandonment(uid, play_key, match_id);
 
     // Fall back into a raw pointer so Rust doesn't obliterate the object.
     let _leak = Box::into_raw(device);

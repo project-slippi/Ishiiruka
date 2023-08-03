@@ -47,8 +47,8 @@ impl SlippiGameReporter {
     ///
     /// Currently, failure to spawn any thread should result in a crash - i.e, if we can't
     /// spawn an OS thread, then there are probably far bigger issues at work here.
-    pub fn new(uid: String, play_key: String, iso_path: String) -> Self {
-        let queue = GameReporterQueue::new(uid, play_key);
+    pub fn new(iso_path: String) -> Self {
+        let queue = GameReporterQueue::new();
 
         // This is a thread-safe "one time" setter that the MD5 hasher thread
         // will set when it's done computing.

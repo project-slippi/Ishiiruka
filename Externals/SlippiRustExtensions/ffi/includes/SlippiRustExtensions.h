@@ -26,7 +26,7 @@ extern "C" {
 /// down (at whatever point) via the corresponding `slprs_exi_device_destroy` function.
 ///
 /// The returned pointer from this should *not* be used after calling `slprs_exi_device_destroy`.
-uintptr_t slprs_exi_device_create(const char *user_id, const char *play_key, const char *iso_path);
+uintptr_t slprs_exi_device_create(const char *iso_path);
 
 /// The C++ (Dolphin) side of things should call this to notify the Rust side that it
 /// can safely shut down and clean up.
@@ -61,12 +61,17 @@ void slprs_exi_device_start_new_reporter_session(uintptr_t instance_ptr);
 /// Calls through to the `SlippiGameReporter` on the EXI device to report a
 /// match completion event.
 void slprs_exi_device_report_match_completion(uintptr_t instance_ptr,
+                                              const char *uid,
+                                              const char *play_key,
                                               const char *match_id,
                                               uint8_t end_mode);
 
 /// Calls through to the `SlippiGameReporter` on the EXI device to report a
 /// match abandon event.
-void slprs_exi_device_report_match_abandonment(uintptr_t instance_ptr, const char *match_id);
+void slprs_exi_device_report_match_abandonment(uintptr_t instance_ptr,
+                                               const char *uid,
+                                               const char *play_key,
+                                               const char *match_id);
 
 /// Calls through to `SlippiGameReporter::push_replay_data`.
 void slprs_exi_device_reporter_push_replay_data(uintptr_t instance_ptr,
@@ -98,7 +103,9 @@ uintptr_t slprs_player_report_create(const char *uid,
 ///
 /// This is expected to ultimately be passed to the game reporter, which will handle
 /// destruction and cleanup.
-uintptr_t slprs_game_report_create(SlippiMatchmakingOnlinePlayMode online_mode,
+uintptr_t slprs_game_report_create(const char *uid,
+                                   const char *play_key,
+                                   SlippiMatchmakingOnlinePlayMode online_mode,
                                    const char *match_id,
                                    uint32_t duration_frames,
                                    uint32_t game_index,

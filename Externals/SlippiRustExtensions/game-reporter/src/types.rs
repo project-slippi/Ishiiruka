@@ -14,6 +14,8 @@ pub enum OnlinePlayMode {
 /// Describes metadata about a game that we need to log to the server.
 #[derive(Debug)]
 pub struct GameReport {
+    pub uid: String,
+    pub play_key: String,
     pub online_mode: OnlinePlayMode,
     pub match_id: String,
     pub attempts: i32,
@@ -99,11 +101,11 @@ pub struct GameReportRequestPayload<'a> {
 impl<'a> GameReportRequestPayload<'a> {
     /// Builds a report request payload that can be serialized for POSTing
     /// to the server.
-    pub fn with(uid: &'a str, play_key: &'a str, iso_hash: &'a str, report: &'a GameReport) -> Self {
+    pub fn with(report: &'a GameReport, iso_hash: &'a str) -> Self {
         Self {
-            uid,
+            uid: &report.uid,
+            play_key: &report.play_key,
             iso_hash,
-            play_key,
             players: &report.players,
             match_id: &report.match_id,
             mode: report.online_mode,

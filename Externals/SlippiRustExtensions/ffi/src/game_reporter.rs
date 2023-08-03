@@ -58,6 +58,8 @@ pub extern "C" fn slprs_player_report_create(
 /// destruction and cleanup.
 #[no_mangle]
 pub extern "C" fn slprs_game_report_create(
+    uid: *const c_char,
+    play_key: *const c_char,
     online_mode: SlippiMatchmakingOnlinePlayMode,
     match_id: *const c_char,
     duration_frames: u32,
@@ -68,9 +70,15 @@ pub extern "C" fn slprs_game_report_create(
     lras_initiator: i8,
     stage_id: i32,
 ) -> usize {
-    let match_id = c_str_to_string(match_id, "slprs_game_report_create", "match_id");
+    let fn_name = "slprs_game_report_create";
+    let uid = c_str_to_string(uid, fn_name, "user_id");
+    let play_key = c_str_to_string(play_key, fn_name, "play_key");
+    let match_id = c_str_to_string(match_id, fn_name, "match_id");
 
     let report = Box::new(GameReport {
+        uid,
+        play_key,
+
         online_mode: match online_mode {
             SlippiMatchmakingOnlinePlayMode::Ranked => ReporterOnlinePlayMode::Ranked,
             SlippiMatchmakingOnlinePlayMode::Unranked => ReporterOnlinePlayMode::Unranked,

@@ -11,14 +11,6 @@ use dolphin_logger::Log;
 use crate::types::{GameReport, GameReportRequestPayload};
 use crate::ProcessingEvent;
 
-/// Trimmed-down user information - if more things move in to the Rust side,
-/// this will likely move and/or get expanded.
-#[derive(Debug)]
-pub struct UserInfo {
-    pub uid: String,
-    pub play_key: String,
-}
-
 const REPORT_URL: &str = "https://rankings-dot-slippi.uc.r.appspot.com/report";
 const ABANDON_URL: &str = "https://rankings-dot-slippi.uc.r.appspot.com/abandon";
 const COMPLETE_URL: &str = "https://rankings-dot-slippi.uc.r.appspot.com/complete";
@@ -42,14 +34,13 @@ struct ReportResponse {
 #[derive(Clone, Debug)]
 pub struct GameReporterQueue {
     pub http_client: ureq::Agent,
-    pub user: Arc<UserInfo>,
     pub iso_hash: Arc<OnceLock<String>>,
     inner: Arc<Mutex<VecDeque<GameReport>>>,
 }
 
 impl GameReporterQueue {
     /// Initializes and returns a new game reporter.
-    pub(crate) fn new(uid: String, play_key: String) -> Self {
+    pub(crate) fn new() -> Self {
         // `max_idle_connections` is set to `0` to mimic how the CURL setup in the
         // C++ version was done - i.e, I don't want to introduce connection pooling
         // without Fizzi/Nikki opting in to it.
@@ -61,9 +52,6 @@ impl GameReporterQueue {
 
         Self {
             http_client,
-
-            user: Arc::new(UserInfo { uid, play_key }),
-
             iso_hash: Arc::new(OnceLock::new()),
             inner: Arc::new(Mutex::new(VecDeque::new())),
         }
@@ -93,11 +81,11 @@ impl GameReporterQueue {
     ///
     /// This doesn't necessarily need to be here, but it's easier to grok the codebase
     /// if we keep all reporting network calls in one module.
-    pub fn report_completion(&self, match_id: String, end_mode: u8) {
+    pub fn report_completion(&self, uid: String, play_key: String, match_id: String, end_mode: u8) {
         let res = self.http_client.post(COMPLETE_URL).send_json(json!({
             "matchId": match_id,
-            "uid": self.user.uid,
-            "playKey": self.user.play_key,
+            "uid": uid,
+            "playKey": play_key,
             "endMode": end_mode
         }));
 
@@ -114,11 +102,11 @@ impl GameReporterQueue {
     ///
     /// This doesn't necessarily need to be here, but it's easier to grok the codebase
     /// if we keep all reporting network calls in one module.
-    pub fn report_abandonment(&self, match_id: String) {
+    pub fn report_abandonment(&self, uid: String, play_key: String, match_id: String) {
         let res = self.http_client.post(ABANDON_URL).send_json(json!({
             "matchId": match_id,
-            "uid": self.user.uid,
-            "playKey": self.user.play_key
+            "uid": uid,
+            "playKey": play_key
         }));
 
         if let Err(e) = res {
@@ -179,7 +167,7 @@ fn process_reports(queue: &GameReporterQueue, event: ProcessingEvent) {
         // (e.g, max attempts). We pass the locked queue over to work with the borrow checker
         // here, since otherwise we can't pop without some ugly block work to coerce letting
         // a mutable borrow drop.
-        match try_send_next_report(&mut *report_queue, event, &queue.http_client, &queue.user, &iso_hash) {
+        match try_send_next_report(&mut *report_queue, event, &queue.http_client, &iso_hash) {
             Ok(upload_url) => {
                 // Pop the front of the queue. If we have a URL, chuck it all over
                 // to the replay uploader.
@@ -236,7 +224,6 @@ fn try_send_next_report(
     queue: &mut VecDeque<GameReport>,
     event: ProcessingEvent,
     http_client: &ureq::Agent,
-    user: &UserInfo,
     iso_hash: &str,
 ) -> Result<Option<String>, ReportSendError> {
     let report = (*queue).front_mut().expect("Reporter queue is empty yet it shouldn't be");
@@ -251,7 +238,7 @@ fn try_send_next_report(
 
     let is_last_attempt = report.attempts >= max_attempts;
 
-    let payload = GameReportRequestPayload::with(&user.uid, &user.play_key, iso_hash, &report);
+    let payload = GameReportRequestPayload::with(&report, iso_hash);
 
     let error_sleep_ms = match is_last_attempt {
         true => Duration::ZERO,
