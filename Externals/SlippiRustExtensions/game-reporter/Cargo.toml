@@ -15,5 +15,6 @@ dolphin-logger = { path = "../logger" }
 flate2 = "1.0"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1" }
+serde_repr = { version = "0.1" }
 tracing = { workspace = true }
 ureq = { version = "2.7.1", features = ["json"] }

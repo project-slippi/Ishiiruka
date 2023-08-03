@@ -50,10 +50,13 @@ pub struct GameReporterQueue {
 impl GameReporterQueue {
     /// Initializes and returns a new game reporter.
     pub(crate) fn new(uid: String, play_key: String) -> Self {
+        // `max_idle_connections` is set to `0` to mimic how the CURL setup in the
+        // C++ version was done - i.e, I don't want to introduce connection pooling
+        // without Fizzi/Nikki opting in to it.
         let http_client = ureq::AgentBuilder::new()
-            .https_only(true)
-            .max_idle_connections(5)
-            .user_agent("SlippiGameReporterContext/Rust v0.1")
+            //.https_only(true)
+            .max_idle_connections(0)
+            .user_agent("SlippiGameReporter/Rust v0.1")
             .build();
 
         Self {
@@ -70,8 +73,20 @@ impl GameReporterQueue {
     ///
     /// (The processing thread pulls from the front)
     pub(crate) fn add_report(&self, report: GameReport) {
-        let mut lock = self.inner.lock().expect("Ruh roh");
-        (*lock).push_back(report);
+        match self.inner.lock() {
+            Ok(mut lock) => {
+                (*lock).push_back(report);
+            },
+
+            Err(e) => {
+                // This should never happen.
+                tracing::error!(
+                    target: Log::GameReporter,
+                    error = ?e,
+                    "Unable to lock queue, dropping report"
+                );
+            },
+        }
     }
 
     /// Report a completed match.
@@ -149,30 +164,14 @@ pub(crate) fn run(reporter: GameReporterQueue, receiver: Receiver<ProcessingEven
     }
 }
 
-/// The true inner error, minus any metadata.
-#[derive(Debug)]
-enum ReportSendErrorKind {
-    Net(ureq::Error),
-    IO(std::io::Error),
-    NotSuccessful,
-}
-
-/// Wraps errors that can occur during report sending.
-#[derive(Debug)]
-struct ReportSendError {
-    is_last_attempt: bool,
-    sleep_ms: Duration,
-    kind: ReportSendErrorKind,
-}
-
 /// Process jobs from the queue.
 fn process_reports(queue: &GameReporterQueue, event: ProcessingEvent) {
     // This `.expect()` should realistically never trigger, as we'd need
     // some real odd cases to occur (can't read the file, etc) which are
     // unlikely to happen given the nature of the application itself.
-    let iso_hash = queue.iso_hash.get().expect("ISO md5 hash is somehow missing");
+    let iso_hash = queue.iso_hash.get().expect("ISO MD5 hash is somehow missing");
 
-    let mut report_queue = queue.inner.lock().expect("If this fails we have bigger issues");
+    let mut report_queue = queue.inner.lock().expect("Failed to lock queue for game report processing");
 
     // Process all reports currently in the queue.
     while !report_queue.is_empty() {
@@ -197,6 +196,7 @@ fn process_reports(queue: &GameReporterQueue, event: ProcessingEvent) {
                 tracing::error!(
                     target: Log::GameReporter,
                     error = ?e.kind,
+                    backoff = ?e.sleep_ms,
                     "Failed to send report"
                 );
 
@@ -211,6 +211,23 @@ fn process_reports(queue: &GameReporterQueue, event: ProcessingEvent) {
     }
 }
 
+/// The true inner error, minus any metadata.
+#[derive(Debug)]
+enum ReportSendErrorKind {
+    Net(ureq::Error),
+    IO(std::io::Error),
+    JSON(serde_json::Error),
+    NotSuccessful(String),
+}
+
+/// Wraps errors that can occur during report sending.
+#[derive(Debug)]
+struct ReportSendError {
+    is_last_attempt: bool,
+    sleep_ms: Duration,
+    kind: ReportSendErrorKind,
+}
+
 /// Builds a request payload and sends it.
 ///
 /// If this is successful, it yields back an upload URL endpoint. This can be
@@ -222,9 +239,7 @@ fn try_send_next_report(
     user: &UserInfo,
     iso_hash: &str,
 ) -> Result<Option<String>, ReportSendError> {
-    let report = (*queue)
-        .front_mut()
-        .expect("We checked if it's empty, this should never fail");
+    let report = (*queue).front_mut().expect("Reporter queue is empty yet it shouldn't be");
 
     report.attempts += 1;
 
@@ -243,7 +258,7 @@ fn try_send_next_report(
         false => Duration::from_millis((report.attempts as u64) * 100),
     };
 
-    let response: ReportResponse = http_client
+    let response_body = http_client
         .post(REPORT_URL)
         .send_json(payload)
         .map_err(|e| ReportSendError {
@@ -251,18 +266,24 @@ fn try_send_next_report(
             sleep_ms: error_sleep_ms,
             kind: ReportSendErrorKind::Net(e),
         })?
-        .into_json()
+        .into_string()
         .map_err(|e| ReportSendError {
             is_last_attempt,
             sleep_ms: error_sleep_ms,
             kind: ReportSendErrorKind::IO(e),
         })?;
 
+    let response: ReportResponse = serde_json::from_str(&response_body).map_err(|e| ReportSendError {
+        is_last_attempt,
+        sleep_ms: error_sleep_ms,
+        kind: ReportSendErrorKind::JSON(e),
+    })?;
+
     if !response.success {
         return Err(ReportSendError {
             is_last_attempt,
             sleep_ms: error_sleep_ms,
-            kind: ReportSendErrorKind::NotSuccessful,
+            kind: ReportSendErrorKind::NotSuccessful(response_body),
         });
     }
 

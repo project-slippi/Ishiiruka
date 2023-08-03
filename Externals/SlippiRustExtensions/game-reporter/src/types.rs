@@ -1,5 +1,9 @@
 /// The different modes that a player could be in.
-#[derive(Copy, Clone, Debug, serde::Serialize)]
+///
+/// Note that this type uses `serde_repr` to ensure we serialize the value (C-style)
+/// and not the name itself.
+#[derive(Copy, Clone, Debug, serde_repr::Serialize_repr)]
+#[repr(u8)]
 pub enum OnlinePlayMode {
     Ranked = 0,
     Unranked = 1,
