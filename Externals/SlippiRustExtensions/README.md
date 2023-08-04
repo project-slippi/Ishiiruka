@@ -62,3 +62,9 @@ Simply rebuild with the release flag.
 ```
 cargo build --release
 ```
+
+## Code Formatting
+The following line will format the entire project
+```
+cargo fmt --all --manifest-path=./Cargo.toml
+```
