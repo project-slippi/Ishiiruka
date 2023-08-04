@@ -98,26 +98,15 @@ impl GameReporterQueue {
         let res = execute_graphql_query(&self.http_client, mutation, variables, Some("completeOnlineGame".to_string()));
 
         match res {
-            Ok(value) => {
-                if value != "true" {
-                    tracing::error!(
-                        target: Log::GameReporter,
-                        "Error executing completion request"
-                    );
-                } else {
-                    tracing::info!(
-                        target: Log::GameReporter,
-                        "Successfully reported completion"
-                    );
-                }
-            }
-            Err(e) => {
-                tracing::error!(
-                    target: Log::GameReporter,
-                    error = ?e,
-                    "Error executing completion request"
-                );
-            }
+            Ok(value) if value == "true" => {
+                tracing::info!(target: Log::GameReporter, "Successfully executed abandonment request")
+            },
+            Ok(value) => tracing::error!(target: Log::GameReporter, ?value, "Error executing abandonment request",),
+            Err(e) => tracing::error!(
+                target: Log::GameReporter,
+                error = ?e,
+                "Error executing abandonment request"
+            ),
         }
     }
 
@@ -142,28 +131,16 @@ impl GameReporterQueue {
 
         let res = execute_graphql_query(&self.http_client, mutation, variables, Some("abandonOnlineGame".to_string()));
 
-        // TODO: This seems unnecessarily verbose and shitty. How to fix?
         match res {
-            Ok(value) => {
-                if value != "true" {
-                    tracing::error!(
-                        target: Log::GameReporter,
-                        "Error executing abandonment request"
-                    );
-                } else {
-                    tracing::info!(
-                        target: Log::GameReporter,
-                        "Successfully reported abandonment"
-                    );
-                }
-            }
-            Err(e) => {
-                tracing::error!(
-                    target: Log::GameReporter,
-                    error = ?e,
-                    "Error executing abandonment request"
-                );
-            }
+            Ok(value) if value == "true" => {
+                tracing::info!(target: Log::GameReporter, "Successfully executed abandonment request")
+            },
+            Ok(value) => tracing::error!(target: Log::GameReporter, ?value, "Error executing abandonment request",),
+            Err(e) => tracing::error!(
+                target: Log::GameReporter,
+                error = ?e,
+                "Error executing abandonment request"
+            ),
         }
     }
 }
@@ -281,8 +258,8 @@ fn execute_graphql_query(
         .map_err(ReportSendErrorKind::Net)?;
 
     // Parse the response JSON
-    let response_json: Value = serde_json::from_str(&response.into_string().unwrap_or_default())
-        .map_err(ReportSendErrorKind::JSON)?;
+    let response_json: Value =
+        serde_json::from_str(&response.into_string().unwrap_or_default()).map_err(ReportSendErrorKind::JSON)?;
 
     // Check for GraphQL errors
     if let Some(errors) = response_json.get("errors") {
@@ -300,7 +277,9 @@ fn execute_graphql_query(
         };
         Ok(result.to_string())
     } else {
-        Err(ReportSendErrorKind::GraphQL("No 'data' field in the GraphQL response.".to_string()))
+        Err(ReportSendErrorKind::GraphQL(
+            "No 'data' field in the GraphQL response.".to_string(),
+        ))
     }
 }
 
@@ -353,24 +332,25 @@ fn try_send_next_report(
     let variables = Some(json!({
         "report": payload,
     }));
-   
+
     // Call execute_graphql_query and get the response body as a String.
-    let response_body = execute_graphql_query(http_client, mutation, variables, Some("reportOnlineGame".to_string()))
-        .map_err(|e| ReportSendError {
-            is_last_attempt,
-            sleep_ms: error_sleep_ms,
-            kind: e,
+    let response_body =
+        execute_graphql_query(http_client, mutation, variables, Some("reportOnlineGame".to_string())).map_err(|e| {
+            ReportSendError {
+                is_last_attempt,
+                sleep_ms: error_sleep_ms,
+                kind: e,
+            }
         })?;
 
     // tracing::error!(target: Log::GameReporter, "Response {}", response_body);
 
     // Now, parse the response JSON to get the data you need.
-    let response: ReportResponse = serde_json::from_str(&response_body)
-        .map_err(|e| ReportSendError {
-            is_last_attempt,
-            sleep_ms: error_sleep_ms,
-            kind: ReportSendErrorKind::JSON(e),
-        })?;
+    let response: ReportResponse = serde_json::from_str(&response_body).map_err(|e| ReportSendError {
+        is_last_attempt,
+        sleep_ms: error_sleep_ms,
+        kind: ReportSendErrorKind::JSON(e),
+    })?;
 
     if !response.success {
         return Err(ReportSendError {
