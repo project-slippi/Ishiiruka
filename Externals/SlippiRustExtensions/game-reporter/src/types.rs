@@ -36,6 +36,7 @@ pub struct GameReport {
 /// Player metadata payload that's logged with game info.
 #[derive(Debug, serde::Serialize)]
 pub struct PlayerReport {
+    #[serde(rename = "fbUid")]
     pub uid: String,
 
     #[serde(rename = "slotType")]
@@ -63,6 +64,7 @@ pub struct PlayerReport {
 /// The core report payload that's posted to the server.
 #[derive(Debug, serde::Serialize)]
 pub struct GameReportRequestPayload<'a> {
+    #[serde(rename = "fbUid")]
     pub uid: &'a str,
     pub mode: OnlinePlayMode,
     pub players: &'a [PlayerReport],
