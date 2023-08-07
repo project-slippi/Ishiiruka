@@ -1,3 +1,5 @@
+//! This module implements the background queue for the Game Reporter.
+
 use std::collections::VecDeque;
 use std::sync::mpsc::Receiver;
 use std::sync::{Arc, Mutex, OnceLock};
@@ -70,13 +72,9 @@ impl GameReporterQueue {
                 (*lock).push_back(report);
             },
 
-            Err(e) => {
+            Err(error) => {
                 // This should never happen.
-                tracing::error!(
-                    target: Log::GameReporter,
-                    error = ?e,
-                    "Unable to lock queue, dropping report"
-                );
+                tracing::error!(target: Log::GameReporter, ?error, "Unable to lock queue, dropping report");
             },
         }
     }
@@ -108,11 +106,7 @@ impl GameReporterQueue {
                 tracing::info!(target: Log::GameReporter, "Successfully executed abandonment request")
             },
             Ok(value) => tracing::error!(target: Log::GameReporter, ?value, "Error executing abandonment request",),
-            Err(e) => tracing::error!(
-                target: Log::GameReporter,
-                error = ?e,
-                "Error executing abandonment request"
-            ),
+            Err(error) => tracing::error!(target: Log::GameReporter, ?error, "Error executing abandonment request"),
         }
     }
 
@@ -142,11 +136,7 @@ impl GameReporterQueue {
                 tracing::info!(target: Log::GameReporter, "Successfully executed abandonment request")
             },
             Ok(value) => tracing::error!(target: Log::GameReporter, ?value, "Error executing abandonment request",),
-            Err(e) => tracing::error!(
-                target: Log::GameReporter,
-                error = ?e,
-                "Error executing abandonment request"
-            ),
+            Err(error) => tracing::error!(target: Log::GameReporter, ?error, "Error executing abandonment request"),
         }
     }
 }
@@ -171,10 +161,10 @@ pub(crate) fn run(reporter: GameReporterQueue, receiver: Receiver<ProcessingEven
             // This should realistically never happen, since it means the Sender
             // that's held a level up has been dropped entirely - but we'll log
             // for the hell of it in case anyone's tweaking the logic.
-            Err(e) => {
+            Err(error) => {
                 tracing::error!(
                     target: Log::GameReporter,
-                    error = ?e,
+                    ?error,
                     "Failed to receive ProcessingEvent, thread will exit"
                 );
 
@@ -219,20 +209,20 @@ fn process_reports(queue: &GameReporterQueue, event: ProcessingEvent) {
                 thread::sleep(Duration::ZERO)
             },
 
-            Err(e) => {
+            Err(error) => {
                 tracing::error!(
                     target: Log::GameReporter,
-                    error = ?e.kind,
-                    backoff = ?e.sleep_ms,
+                    error = ?error.kind,
+                    backoff = ?error.sleep_ms,
                     "Failed to send report"
                 );
 
-                if e.is_last_attempt {
+                if error.is_last_attempt {
                     tracing::error!(target: Log::GameReporter, "Hit max retry limit, dropping report");
                     let _ = report_queue.pop_front();
                 }
 
-                thread::sleep(e.sleep_ms)
+                thread::sleep(error.sleep_ms)
             },
         }
     }
@@ -245,55 +235,6 @@ enum ReportSendErrorKind {
     JSON(serde_json::Error),
     GraphQL(String),
     NotSuccessful(String),
-}
-
-fn execute_graphql_query(
-    http_client: &ureq::Agent,
-    query: &str,
-    variables: Option<Value>,
-    field: Option<String>,
-) -> Result<String, ReportSendErrorKind> {
-    // Prepare the GraphQL request payload
-    let request_body = match variables {
-        Some(vars) => json!({
-            "query": query,
-            "variables": vars,
-        }),
-        None => json!({
-            "query": query,
-        }),
-    };
-
-    // Make the GraphQL request
-    let response = http_client
-        .post(GRAPHQL_URL)
-        .send_json(ureq::json!(&request_body))
-        .map_err(ReportSendErrorKind::Net)?;
-
-    // Parse the response JSON
-    let response_json: Value =
-        serde_json::from_str(&response.into_string().unwrap_or_default()).map_err(ReportSendErrorKind::JSON)?;
-
-    // Check for GraphQL errors
-    if let Some(errors) = response_json.get("errors") {
-        if errors.is_array() && !errors.as_array().unwrap().is_empty() {
-            let error_message = serde_json::to_string_pretty(errors).unwrap();
-            return Err(ReportSendErrorKind::GraphQL(error_message));
-        }
-    }
-
-    // Return the data response
-    if let Some(data) = response_json.get("data") {
-        let result = match field {
-            Some(field) => data.get(&field).unwrap_or(data),
-            None => data,
-        };
-        Ok(result.to_string())
-    } else {
-        Err(ReportSendErrorKind::GraphQL(
-            "No 'data' field in the GraphQL response.".to_string(),
-        ))
-    }
 }
 
 /// Wraps errors that can occur during report sending.
@@ -367,33 +308,71 @@ fn try_send_next_report(
         return Err(ReportSendError {
             is_last_attempt,
             sleep_ms: error_sleep_ms,
-            kind: ReportSendErrorKind::NotSuccessful(response_body.to_string()),
+            kind: ReportSendErrorKind::NotSuccessful(response_body),
         });
     }
 
     Ok(response.upload_url)
 }
 
-// Add the "flate2" crate to your Cargo.toml to use the flate2 library for compression and decompression.
+/// Prepares and executes a GraphQL query.
+fn execute_graphql_query(
+    http_client: &ureq::Agent,
+    query: &str,
+    variables: Option<Value>,
+    field: Option<String>,
+) -> Result<String, ReportSendErrorKind> {
+    // Prepare the GraphQL request payload
+    let request_body = match variables {
+        Some(vars) => json!({
+            "query": query,
+            "variables": vars,
+        }),
+        None => json!({
+            "query": query,
+        }),
+    };
 
-// Ported compressToGzip function
-fn compress_to_gzip(input: &[u8], output: &mut [u8]) -> usize {
+    // Make the GraphQL request
+    let response = http_client
+        .post(GRAPHQL_URL)
+        .send_json(&request_body)
+        .map_err(ReportSendErrorKind::Net)?;
+
+    // Parse the response JSON
+    let response_json: Value =
+        serde_json::from_str(&response.into_string().unwrap_or_default()).map_err(ReportSendErrorKind::JSON)?;
+
+    // Check for GraphQL errors
+    if let Some(errors) = response_json.get("errors") {
+        if errors.is_array() && !errors.as_array().unwrap().is_empty() {
+            let error_message = serde_json::to_string_pretty(errors).unwrap();
+            return Err(ReportSendErrorKind::GraphQL(error_message));
+        }
+    }
+
+    // Return the data response
+    if let Some(data) = response_json.get("data") {
+        let result = match field {
+            Some(field) => data.get(&field).unwrap_or(data),
+            None => data,
+        };
+        Ok(result.to_string())
+    } else {
+        Err(ReportSendErrorKind::GraphQL(
+            "No 'data' field in the GraphQL response.".to_string(),
+        ))
+    }
+}
+
+/// Gzip compresses `input` data to `output` data.
+fn compress_to_gzip(input: &[u8], output: &mut [u8]) -> Result<usize, std::io::Error> {
     let mut encoder = GzEncoder::new(output, Compression::default());
+    encoder.write_all(input)?;
 
-    let write_res = encoder.write_all(input);
-    if let Err(e) = write_res {
-        tracing::error!(target: Log::GameReporter, ?e, "GzEncoder write_res error");
-        return 0;
-    }
+    let res = encoder.finish()?;
 
-    let res = encoder.finish();
-    match res {
-        Ok(res) => res.len(),
-        Err(e) => {
-            tracing::error!(target: Log::GameReporter, ?e, "Compression error");
-            return 0;
-        },
-    }
+    Ok(res.len())
 }
 
 /// Attempts to compress and upload replay data to the url at `upload_url`.
@@ -410,10 +389,16 @@ fn try_upload_replay_data(data: Vec<u8>, upload_url: String, http_client: &ureq:
     contents.append(&mut footer);
 
     let mut gzipped_data = vec![0u8; data.len()]; // Resize to some initial size
-    let res_size = compress_to_gzip(&contents, &mut gzipped_data);
-    if res_size == 0 {
-        return;
-    }
+
+    let res_size = match compress_to_gzip(&contents, &mut gzipped_data) {
+        Ok(size) => size,
+
+        Err(error) => {
+            tracing::error!(target: Log::GameReporter, ?error, "Failed to compress replay");
+            return;
+        },
+    };
+
     gzipped_data.resize(res_size, 0);
 
     let response = http_client
@@ -423,7 +408,7 @@ fn try_upload_replay_data(data: Vec<u8>, upload_url: String, http_client: &ureq:
         .set("X-Goog-Content-Length-Range", "0,10000000")
         .send_bytes(&gzipped_data);
 
-    if let Err(e) = response {
-        tracing::error!(target: Log::GameReporter, ?e, "Failed to upload replay data",);
+    if let Err(error) = response {
+        tracing::error!(target: Log::GameReporter, ?error, "Failed to upload replay data",);
     }
 }
