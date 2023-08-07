@@ -1,9 +1,12 @@
+//! Implements potential desync ISO detection. The function(s) in this module should typically
+//! be called from a background thread due to processing time.
+
 use std::fs::File;
 use std::sync::{Arc, OnceLock};
 
 use chksum::prelude::*;
 
-use dolphin_integrations::{Color, Dolphin, Duration};
+use dolphin_integrations::{Color, Dolphin, Duration, Log};
 
 /// ISO hashes that are known to cause problems. We alert the player
 /// if we detect that they're running one.
@@ -16,17 +19,45 @@ const KNOWN_DESYNC_ISOS: [&'static str; 4] = [
 
 /// Computes an MD5 hash of the ISO at `iso_path` and writes it back to the value
 /// behind `iso_hash`.
+///
+/// This function is currently more defensive than it probably needs to be, but while
+/// we move things into Rust I'd like to reduce the chances of anything panic'ing back
+/// into C++ since that can produce undefined behavior. This just handles every possible
+/// failure gracefully - however seemingly rare - and simply logs the error.
 pub fn run(iso_hash: Arc<OnceLock<String>>, iso_path: String) {
-    let digest = File::open(&iso_path)
-        .expect("Dolphin would crash if this was invalid")
-        .chksum(HashAlgorithm::MD5)
-        .expect("This might be worth handling later");
+    let digest = match File::open(&iso_path) {
+        Ok(mut file) => match file.chksum(HashAlgorithm::MD5) {
+            Ok(digest) => digest,
+
+            Err(error) => {
+                tracing::error!(target: Log::GameReporter, ?error, "Unable to produce ISO MD5 Hash");
+
+                return;
+            },
+        },
+
+        Err(error) => {
+            tracing::error!(target: Log::GameReporter, ?error, "Unable to open ISO for MD5 hashing");
+
+            return;
+        },
+    };
 
     let hash = format!("{:x}", digest);
 
-    if KNOWN_DESYNC_ISOS.contains(&hash.as_str()) {
+    if !KNOWN_DESYNC_ISOS.contains(&hash.as_str()) {
+        tracing::info!(target: Log::GameReporter, iso_md5_hash = ?hash);
+    } else {
+        // Dump it into the logs as well in case we're ever looking at a user's
+        // logs - may end up being faster than trying to debug with them.
+        tracing::warn!(
+            target: Log::GameReporter,
+            iso_md5_hash = ?hash,
+            "Potential desync ISO detected"
+        );
+
         // This has more line breaks in the C++ version and I frankly do not have the context as to
-        // why there were there, but if it's some weird string parsing issue...?
+        // why they were there - some weird string parsing issue...?
         //
         // Settle on 2 (4 before) as a middle ground I guess.
         Dolphin::add_osd_message(
@@ -36,6 +67,7 @@ pub fn run(iso_hash: Arc<OnceLock<String>>, iso_path: String) {
         );
     }
 
-    println!("MD5 Hash: {}", hash);
-    iso_hash.set(hash).expect("This should not fail");
+    if let Err(error) = iso_hash.set(hash) {
+        tracing::error!(target: Log::GameReporter, ?error, "Unable to set iso_hash lock");
+    }
 }
