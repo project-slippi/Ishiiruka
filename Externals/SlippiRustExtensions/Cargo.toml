@@ -12,6 +12,15 @@ members = [
     "jukebox",
 ]
 
+# Ship the resulting dylib with debug information so we can figure out
+# crashes easier, and swap panic behavior to "abort" to match C++ behavior.
+# 
+# We don't want to panic and attempt to unwind into C/C++ since that can cause
+# undefined behavior.
+[profile.release]
+debug = true
+panic = "abort"
+
 [workspace.dependencies]
 time = { version = "0.3.20", default-features = false, features = ["std", "local-offset"] }
 

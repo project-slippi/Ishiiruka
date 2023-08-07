@@ -131,7 +131,19 @@ std::string ConvertConnectCodeForGame(const std::string &input)
 	return connectCode;
 }
 
-void OSDMessageHandler(char* message, u32 color, u32 duration) {}
+// This function gets passed to the Rust EXI device to support emitting OSD messages
+// across the Rust/C/C++ boundary.
+void OSDMessageHandler(const char* message, u32 color, u32 duration_ms)
+{
+    // When called with a C str type, this constructor does a copy.
+    //
+    // We intentionally do this to ensure that there are no ownership issues with a C String coming
+    // from the Rust side. This isn't a particularly hot code path so we don't need to care about
+    // the extra allocation, but this could be revisited in the future.
+    std::string msg(message);
+
+	OSD::AddMessage(msg, duration_ms, color);
+}
 
 CEXISlippi::CEXISlippi()
 {

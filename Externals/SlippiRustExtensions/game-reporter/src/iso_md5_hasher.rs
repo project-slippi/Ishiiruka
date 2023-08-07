@@ -3,6 +3,8 @@ use std::sync::{Arc, OnceLock};
 
 use chksum::prelude::*;
 
+use dolphin_integrations::{Color, Dolphin, Duration};
+
 /// ISO hashes that are known to cause problems. We alert the player
 /// if we detect that they're running one.
 const KNOWN_DESYNC_ISOS: [&'static str; 4] = [
@@ -23,8 +25,15 @@ pub fn run(iso_hash: Arc<OnceLock<String>>, iso_path: String) {
     let hash = format!("{:x}", digest);
 
     if KNOWN_DESYNC_ISOS.contains(&hash.as_str()) {
-        // This should be an OSD message but that can be handled later
-        println!("Desync warning!");
+        // This has more line breaks in the C++ version and I frankly do not have the context as to
+        // why there were there, but if it's some weird string parsing issue...?
+        //
+        // Settle on 2 (4 before) as a middle ground I guess.
+        Dolphin::add_osd_message(
+            Color::Red,
+            Duration::Custom(20000),
+            "\n\nCAUTION: You are using an ISO that is known to cause desyncs",
+        );
     }
 
     println!("MD5 Hash: {}", hash);
