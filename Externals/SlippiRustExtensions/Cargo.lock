@@ -341,7 +341,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c87e182de0887fd5361989c677c4e8f5000cd9491d6d563161a8f3a5519fc7f"
 
 [[package]]
-name = "dolphin-logger"
+name = "dolphin-integrations"
 version = "0.1.0"
 dependencies = [
  "time",
@@ -1176,7 +1176,7 @@ checksum = "43b2853a4d09f215c24cc5489c992ce46052d359b5109343cbafbf26bc62f8a3"
 name = "slippi-exi-device"
 version = "0.1.0"
 dependencies = [
- "dolphin-logger",
+ "dolphin-integrations",
  "slippi-game-reporter",
  "slippi-jukebox",
  "tracing",
@@ -1187,7 +1187,7 @@ name = "slippi-game-reporter"
 version = "0.1.0"
 dependencies = [
  "chksum",
- "dolphin-logger",
+ "dolphin-integrations",
  "flate2",
  "serde",
  "serde_json",
@@ -1201,7 +1201,7 @@ name = "slippi-jukebox"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "dolphin-logger",
+ "dolphin-integrations",
  "fastrand 2.0.0",
  "hps_decode",
  "process-memory",
@@ -1214,7 +1214,7 @@ name = "slippi_rust_extensions"
 version = "0.1.0"
 dependencies = [
  "cbindgen",
- "dolphin-logger",
+ "dolphin-integrations",
  "slippi-exi-device",
  "slippi-game-reporter",
  "tracing",

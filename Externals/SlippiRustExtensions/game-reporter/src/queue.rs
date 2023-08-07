@@ -6,7 +6,7 @@ use std::time::Duration;
 
 use serde_json::{json, Value};
 
-use dolphin_logger::Log;
+use dolphin_integrations::Log;
 
 use crate::types::{GameReport, GameReportRequestPayload};
 use crate::ProcessingEvent;

@@ -1,6 +1,6 @@
 use std::ffi::{c_char, c_int};
 
-use dolphin_logger::Log;
+use dolphin_integrations::Log;
 use slippi_exi_device::SlippiEXIDevice;
 use slippi_game_reporter::GameReport;
 
@@ -14,10 +14,15 @@ use crate::c_str_to_string;
 ///
 /// The returned pointer from this should *not* be used after calling `slprs_exi_device_destroy`.
 #[no_mangle]
-pub extern "C" fn slprs_exi_device_create(iso_path: *const c_char) -> usize {
+pub extern "C" fn slprs_exi_device_create(
+    iso_path: *const c_char,
+    osd_add_msg_fn: unsafe extern "C" fn(*const c_char, u32, u32),
+) -> usize {
     let fn_name = "slprs_exi_device_create";
 
     let iso_path = c_str_to_string(iso_path, fn_name, "iso_path");
+
+    dolphin_integrations::ffi::osd::set_global_hook(osd_add_msg_fn);
 
     let exi_device = Box::new(SlippiEXIDevice::new(iso_path));
     let exi_device_instance_ptr = Box::into_raw(exi_device) as usize;

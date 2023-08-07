@@ -5,7 +5,7 @@
 //! `SlippiEXIDevice` and forwards calls over the C FFI. This has a fairly clean mapping to "when
 //! Slippi stuff is happening" and enables us to let the Rust side live in its own world.
 
-use dolphin_logger::Log;
+use dolphin_integrations::Log;
 use slippi_game_reporter::SlippiGameReporter;
 use slippi_jukebox::Jukebox;
 

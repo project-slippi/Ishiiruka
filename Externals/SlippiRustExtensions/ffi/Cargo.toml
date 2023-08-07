@@ -21,7 +21,7 @@ default = []
 playback = []
 
 [dependencies]
-dolphin-logger = { path = "../logger" }
+dolphin-integrations = { path = "../dolphin" }
 slippi-game-reporter = { path = "../game-reporter" }
 slippi-exi-device = { path = "../exi" }
 tracing = { workspace = true }

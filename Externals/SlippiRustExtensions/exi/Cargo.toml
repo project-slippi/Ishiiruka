@@ -10,7 +10,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
-dolphin-logger = { path = "../logger" }
+dolphin-integrations = { path = "../dolphin" }
 slippi-game-reporter = { path = "../game-reporter" }
 slippi-jukebox = { path = "../jukebox" }
 tracing = { workspace = true }

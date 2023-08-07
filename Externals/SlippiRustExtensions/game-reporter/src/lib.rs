@@ -5,7 +5,7 @@ use std::ops::Deref;
 use std::sync::mpsc::{self, Sender};
 use std::thread;
 
-use dolphin_logger::Log;
+use dolphin_integrations::Log;
 
 mod iso_md5_hasher;
 

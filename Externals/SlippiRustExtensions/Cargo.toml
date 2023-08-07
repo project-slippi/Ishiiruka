@@ -5,11 +5,11 @@ resolver = "2"
 default-members = ["ffi"]
 
 members = [
+    "dolphin",
     "exi",
     "ffi",
     "game-reporter",
     "jukebox",
-    "logger"
 ]
 
 [workspace.dependencies]

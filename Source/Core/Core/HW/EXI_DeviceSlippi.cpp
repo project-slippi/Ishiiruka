@@ -131,6 +131,8 @@ std::string ConvertConnectCodeForGame(const std::string &input)
 	return connectCode;
 }
 
+void OSDMessageHandler(char* message, u32 color, u32 duration) {}
+
 CEXISlippi::CEXISlippi()
 {
 	INFO_LOG(SLIPPI, "EXI SLIPPI Constructor called.");
@@ -138,7 +140,7 @@ CEXISlippi::CEXISlippi()
     // TODO: For mainline port, ISO file path can't be fetched this way. Look at the following:
 	// https://github.com/dolphin-emu/dolphin/blob/7f450f1d7e7d37bd2300f3a2134cb443d07251f9/Source/Core/Core/Movie.cpp#L246-L249
 	std::string isoPath = SConfig::GetInstance().m_strFilename;
-    slprs_exi_device_ptr = slprs_exi_device_create(isoPath.c_str());
+    slprs_exi_device_ptr = slprs_exi_device_create(isoPath.c_str(), OSDMessageHandler);
 
 	m_slippiserver = SlippiSpectateServer::getInstance();
 	user = std::make_unique<SlippiUser>();

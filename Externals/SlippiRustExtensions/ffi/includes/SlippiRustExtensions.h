@@ -26,7 +26,8 @@ extern "C" {
 /// down (at whatever point) via the corresponding `slprs_exi_device_destroy` function.
 ///
 /// The returned pointer from this should *not* be used after calling `slprs_exi_device_destroy`.
-uintptr_t slprs_exi_device_create(const char *iso_path);
+uintptr_t slprs_exi_device_create(const char *iso_path,
+                                  void (*osd_add_msg_fn)(const char*, uint32_t, uint32_t));
 
 /// The C++ (Dolphin) side of things should call this to notify the Rust side that it
 /// can safely shut down and clean up.
