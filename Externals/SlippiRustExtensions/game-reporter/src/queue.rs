@@ -356,17 +356,12 @@ fn try_send_next_report(
             }
         })?;
 
-    tracing::error!(target: Log::GameReporter, "Response {}", response_body);
-    tracing::error!(target: Log::GameReporter, "1????");
-
     // Now, parse the response JSON to get the data you need.
     let response: ReportResponse = serde_json::from_str(&response_body).map_err(|e| ReportSendError {
         is_last_attempt,
         sleep_ms: error_sleep_ms,
         kind: ReportSendErrorKind::JSON(e),
     })?;
-
-    tracing::error!(target: Log::GameReporter, "2????");
 
     if !response.success {
         return Err(ReportSendError {
@@ -376,9 +371,6 @@ fn try_send_next_report(
         });
     }
 
-    tracing::error!(target: Log::GameReporter, "????");
-    tracing::error!(target: Log::GameReporter, url = ?response.upload_url, "Upload URL");
-
     Ok(response.upload_url)
 }
 
@@ -387,41 +379,27 @@ fn try_send_next_report(
 // Ported compressToGzip function
 fn compress_to_gzip(input: &[u8], output: &mut [u8]) -> usize {
     let mut encoder = GzEncoder::new(output, Compression::default());
+
     let write_res = encoder.write_all(input);
     if let Err(e) = write_res {
-        tracing::error!(target: Log::GameReporter, ?e, "Write res error");
+        tracing::error!(target: Log::GameReporter, ?e, "GzEncoder write_res error");
         return 0;
     }
-    let res = encoder.finish();
 
+    let res = encoder.finish();
     match res {
-        Ok(res) => {
-            tracing::warn!(target: Log::GameReporter, "Compression success");
-            res.len()
-        },
+        Ok(res) => res.len(),
         Err(e) => {
             tracing::error!(target: Log::GameReporter, ?e, "Compression error");
-            0
+            return 0;
         },
     }
 }
 
 /// Attempts to compress and upload replay data to the url at `upload_url`.
 fn try_upload_replay_data(data: Vec<u8>, upload_url: String, http_client: &ureq::Agent) {
-    tracing::warn!(target: Log::GameReporter, "Starting upload to: {}", upload_url);
-
-    //X-Goog-Content-Length-Range: 0,10000000
     let raw_data_size = data.len() as u32;
     let rdbs = raw_data_size.to_le_bytes();
-
-    tracing::warn!(
-        target: Log::GameReporter,
-        "About to combine {} {} {} {}",
-        rdbs[3],
-        rdbs[2],
-        rdbs[1],
-        rdbs[0]
-    );
 
     // Add header and footer to replay file
     let mut contents = vec![
@@ -431,8 +409,6 @@ fn try_upload_replay_data(data: Vec<u8>, upload_url: String, http_client: &ureq:
     let mut footer = vec![b'U', 8, b'm', b'e', b't', b'a', b'd', b'a', b't', b'a', b'{', b'}', b'}'];
     contents.append(&mut footer);
 
-    tracing::warn!(target: Log::GameReporter, "About to compress");
-
     let mut gzipped_data = vec![0u8; data.len()]; // Resize to some initial size
     let res_size = compress_to_gzip(&contents, &mut gzipped_data);
     if res_size == 0 {
@@ -440,32 +416,14 @@ fn try_upload_replay_data(data: Vec<u8>, upload_url: String, http_client: &ureq:
     }
     gzipped_data.resize(res_size, 0);
 
-    tracing::warn!(
-        target: Log::GameReporter,
-        "About to send bytes. Compression {} => {}",
-        data.len(),
-        gzipped_data.len(),
-    );
+    let response = http_client
+        .put(upload_url.as_str())
+        .set("Content-Type", "application/octet-stream")
+        .set("Content-Encoding", "gzip")
+        .set("X-Goog-Content-Length-Range", "0,10000000")
+        .send_bytes(&gzipped_data);
 
-    let response = http_client.put(upload_url.as_str()).send_bytes(&gzipped_data);
-
-    tracing::warn!(target: Log::GameReporter, resp = ?response);
-
-    match response {
-        Ok(response) => {
-            tracing::warn!(
-                target: Log::GameReporter,
-                "Replay upload success! Response: {}",
-                response.into_string().unwrap_or_default()
-            );
-        },
-        Err(e) => {
-            tracing::error!(
-                target: Log::GameReporter,
-                ?e,
-                "Failed to upload replay data to {}",
-                upload_url,
-            );
-        },
+    if let Err(e) = response {
+        tracing::error!(target: Log::GameReporter, ?e, "Failed to upload replay data",);
     }
 }
