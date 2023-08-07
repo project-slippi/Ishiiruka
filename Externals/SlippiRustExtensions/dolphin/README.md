@@ -1,7 +1,7 @@
-# Dolphin-Logger
-This crate implements a custom [tracing-subscriber](https://crates.io/crates/tracing-subscriber) that handles shuttling logs through the Dolphin application logging infrastructure. This is important not just for keeping logs contained all in one place, but for aiding in debugging on Windows where console logging is... odd.
+# Dolphin Integrations
+This crate implements various hooks and functionality for interacting with Dolphin from the Rust side. Notably, it contains a custom [tracing-subscriber](https://crates.io/crates/tracing-subscriber) that handles shuttling logs through the Dolphin application logging infrastructure. This is important not just for keeping logs contained all in one place, but for aiding in debugging on Windows where console logging is... odd.
 
-## How it works
+## How Logging works
 The first thing to understand is that the Slippi Dolphin `LogManager` module has some tweaks to support creating a "Rust-sourced" `LogContainer`.
 
 When the `LogManager` is created, we initialize the Rust logging framework by calling `slprs_logging_init`, passing a function to dispatch logs through from the Rust side.
@@ -41,7 +41,7 @@ pub mod Log {
 Now your Rust module can specify that it should log to this container via the tracing module:
 
 ``` rust
-use dolphin_logger::Log;
+use dolphin_integrations::Log;
 
 fn do_stuff() {
     tracing::info!(target: Log::EXI, "Hello from the Rust side");
