@@ -9,12 +9,17 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 
+[features]
+default = []
+ishiiruka = []
+mainline = []
+
 [dependencies]
 chksum = { version = "0.1.0-rc5", default-features = false, features = ["md5"] }
 dolphin-integrations = { path = "../dolphin" }
 flate2 = "1.0"
-serde = { version = "1", features = ["derive"] }
-serde_json = { version = "1" }
-serde_repr = { version = "0.1" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_repr = { workspace = true }
 tracing = { workspace = true }
-ureq = { version = "2.7.1", features = ["json"] }
+ureq = { workspace = true }

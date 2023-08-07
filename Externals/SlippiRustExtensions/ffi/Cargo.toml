@@ -17,7 +17,13 @@ crate-type = ["cdylib"]
 cbindgen = "0.24.3"
 
 [features]
-default = []
+default = ["ishiiruka"]
+ishiiruka = [
+    "dolphin-integrations/ishiiruka",
+    "slippi-game-reporter/ishiiruka",
+    "slippi-exi-device/ishiiruka"
+]
+mainline = []
 playback = []
 
 [dependencies]

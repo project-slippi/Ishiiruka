@@ -9,6 +9,11 @@ authors = [
 edition = "2021"
 publish = false
 
+[features]
+default = []
+ishiiruka = []
+mainline = []
+
 [dependencies]
 time = { workspace = true }
 
