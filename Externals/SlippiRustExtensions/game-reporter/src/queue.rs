@@ -99,7 +99,7 @@ impl GameReporterQueue {
             }
         }));
 
-        let res = execute_graphql_query(&self.http_client, mutation, variables, Some("completeOnlineGame".to_string()));
+        let res = execute_graphql_query(&self.http_client, mutation, variables, Some("completeOnlineGame"));
 
         match res {
             Ok(value) if value == "true" => {
@@ -129,7 +129,7 @@ impl GameReporterQueue {
             }
         }));
 
-        let res = execute_graphql_query(&self.http_client, mutation, variables, Some("abandonOnlineGame".to_string()));
+        let res = execute_graphql_query(&self.http_client, mutation, variables, Some("abandonOnlineGame"));
 
         match res {
             Ok(value) if value == "true" => {
@@ -289,12 +289,10 @@ fn try_send_next_report(
 
     // Call execute_graphql_query and get the response body as a String.
     let response_body =
-        execute_graphql_query(http_client, mutation, variables, Some("reportOnlineGame".to_string())).map_err(|e| {
-            ReportSendError {
-                is_last_attempt,
-                sleep_ms: error_sleep_ms,
-                kind: e,
-            }
+        execute_graphql_query(http_client, mutation, variables, Some("reportOnlineGame")).map_err(|e| ReportSendError {
+            is_last_attempt,
+            sleep_ms: error_sleep_ms,
+            kind: e,
         })?;
 
     // Now, parse the response JSON to get the data you need.
@@ -320,7 +318,7 @@ fn execute_graphql_query(
     http_client: &ureq::Agent,
     query: &str,
     variables: Option<Value>,
-    field: Option<String>,
+    field: Option<&str>,
 ) -> Result<String, ReportSendErrorKind> {
     // Prepare the GraphQL request payload
     let request_body = match variables {
@@ -354,7 +352,7 @@ fn execute_graphql_query(
     // Return the data response
     if let Some(data) = response_json.get("data") {
         let result = match field {
-            Some(field) => data.get(&field).unwrap_or(data),
+            Some(field) => data.get(field).unwrap_or(data),
             None => data,
         };
         Ok(result.to_string())
