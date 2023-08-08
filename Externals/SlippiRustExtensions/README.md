@@ -12,13 +12,13 @@ This workspace currently targets Rust `1.70.0`. As long as you have Rust install
 
 ## Project Module Structure Overview
 
-| Module          | Description                                                                    |
-|-----------------|--------------------------------------------------------------------------------|
-| `ffi`           | The core library. Exposes C FFI functions for Dolphin to call.                 |
-| `exi`           | An EXI device that receives forwarded calls from the Dolphin EXI (C++) device. |
-| `game-reporter` | Implements match and event reporting.                                          |
-| `logger`        | A library that connects Dolphin `LogContainer`s and `tracing`.                 |
-| `jukebox`       | Melee music player library. See the [Slippi Jukebox README](jukebox/README.md) for more info. |
+| Module                 | Description                                                                |
+|------------------------|----------------------------------------------------------------------------|
+| `ffi`                  | The core library. Exposes C FFI functions for Dolphin to call.             |
+| `exi`                  | EXI device that receives forwarded calls from the EXI (C++) device.        |
+| `game-reporter`        | Implements match and event reporting.                                      |
+| `dolphin-integrations` | A library that wraps Dolphin callbacks (logging, etc).                     |
+| `jukebox`              | Melee music player library. See the [Slippi Jukebox README](jukebox/README.md) for more info. |
 
 Some important aspects of the project structure to understand:
 
