@@ -179,9 +179,15 @@ fn process_reports(queue: &GameReporterQueue, event: ProcessingEvent) {
     // This `.expect()` should realistically never trigger, as we'd need
     // some real odd cases to occur (can't read the file, etc) which are
     // unlikely to happen given the nature of the application itself.
-    let iso_hash = queue.iso_hash.get().expect("ISO MD5 hash is somehow missing");
+    let Some(iso_hash) = queue.iso_hash.get() else {
+        tracing::warn!(target: Log::GameReporter, "No ISO_HASH available");
+        return;
+    };
 
-    let mut report_queue = queue.inner.lock().expect("Failed to lock queue for game report processing");
+    let Ok(mut report_queue) = queue.inner.lock() else {
+        tracing::warn!(target: Log::GameReporter, "Reporter Queue is dead");
+        return;
+    };
 
     // Process all reports currently in the queue.
     while !report_queue.is_empty() {
