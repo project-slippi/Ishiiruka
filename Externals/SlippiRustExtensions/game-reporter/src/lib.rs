@@ -31,11 +31,11 @@ pub(crate) enum ProcessingEvent {
 /// it of new reports to process.
 #[derive(Debug)]
 pub struct SlippiGameReporter {
+    iso_md5_hasher_thread: Option<thread::JoinHandle<()>>,
+    processing_thread: Option<thread::JoinHandle<()>>,
+    processing_thread_notifier: Sender<ProcessingEvent>,
     queue: GameReporterQueue,
     replay_data: Vec<u8>,
-    processing_thread_notifier: Sender<ProcessingEvent>,
-    processing_thread: Option<thread::JoinHandle<()>>,
-    iso_md5_hasher_thread: Option<thread::JoinHandle<()>>,
 }
 
 impl SlippiGameReporter {
