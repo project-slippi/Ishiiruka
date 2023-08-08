@@ -8,9 +8,9 @@ use std::time::Duration;
 
 use serde_json::{json, Value};
 
-use dolphin_integrations::Log;
+use dolphin_integrations::{Color, Dolphin, Duration as OSDDuration, Log};
 
-use crate::types::{GameReport, GameReportRequestPayload};
+use crate::types::{GameReport, GameReportRequestPayload, OnlinePlayMode};
 use crate::ProcessingEvent;
 
 use flate2::write::GzEncoder;
@@ -198,12 +198,7 @@ fn process_reports(queue: &GameReporterQueue, event: ProcessingEvent) {
                 // to the replay uploader.
                 let report = report_queue.pop_front();
 
-                tracing::warn!(
-                    target: Log::GameReporter,
-                    url = ?upload_url,
-                    len = report.as_ref().map(|r| r.replay_data.len()),
-                    "Successfully sent report, popping from queue",
-                );
+                tracing::info!(target: Log::GameReporter, "Successfully sent report, popping from queue");
 
                 if let (Some(report), Some(upload_url)) = (report, upload_url) {
                     try_upload_replay_data(report.replay_data, upload_url, &queue.http_client);
@@ -222,7 +217,16 @@ fn process_reports(queue: &GameReporterQueue, event: ProcessingEvent) {
 
                 if error.is_last_attempt {
                     tracing::error!(target: Log::GameReporter, "Hit max retry limit, dropping report");
-                    let _ = report_queue.pop_front();
+                    let report = report_queue.pop_front();
+                    if let Some(report) = report {
+                        if report.online_mode == OnlinePlayMode::Ranked {
+                            Dolphin::add_osd_message(
+                                Color::Red,
+                                OSDDuration::VeryLong,
+                                "Failed to send game report. If you get this often, visit Slippi Discord for help.",
+                            );
+                        }
+                    }
                 }
 
                 thread::sleep(error.sleep_ms)
