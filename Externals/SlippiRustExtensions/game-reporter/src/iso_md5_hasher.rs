@@ -74,6 +74,6 @@ pub fn run(iso_hash: Arc<Mutex<String>>, iso_path: String) {
 
         Err(error) => {
             tracing::error!(target: Log::GameReporter, ?error, "Unable to lock iso_hash");
-        }
+        },
     };
 }
