@@ -2,7 +2,7 @@
 //! be called from a background thread due to processing time.
 
 use std::fs::File;
-use std::sync::{Arc, OnceLock};
+use std::sync::{Arc, Mutex};
 
 use chksum::prelude::*;
 
@@ -24,7 +24,7 @@ const KNOWN_DESYNC_ISOS: [&'static str; 4] = [
 /// we move things into Rust I'd like to reduce the chances of anything panic'ing back
 /// into C++ since that can produce undefined behavior. This just handles every possible
 /// failure gracefully - however seemingly rare - and simply logs the error.
-pub fn run(iso_hash: Arc<OnceLock<String>>, iso_path: String) {
+pub fn run(iso_hash: Arc<Mutex<String>>, iso_path: String) {
     let digest = match File::open(&iso_path) {
         Ok(mut file) => match file.chksum(HashAlgorithm::MD5) {
             Ok(digest) => digest,
@@ -67,7 +67,13 @@ pub fn run(iso_hash: Arc<OnceLock<String>>, iso_path: String) {
         );
     }
 
-    if let Err(error) = iso_hash.set(hash) {
-        tracing::error!(target: Log::GameReporter, ?error, "Unable to set iso_hash lock");
-    }
+    match iso_hash.lock() {
+        Ok(mut iso_hash) => {
+            *iso_hash = hash;
+        },
+
+        Err(error) => {
+            tracing::error!(target: Log::GameReporter, ?error, "Unable to lock iso_hash");
+        }
+    };
 }

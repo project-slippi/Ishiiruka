@@ -2,7 +2,7 @@
 
 use std::collections::VecDeque;
 use std::sync::mpsc::Receiver;
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
@@ -40,7 +40,7 @@ struct ReportResponse {
 #[derive(Clone, Debug)]
 pub struct GameReporterQueue {
     pub http_client: ureq::Agent,
-    pub iso_hash: Arc<OnceLock<String>>,
+    pub iso_hash: Arc<Mutex<String>>,
     inner: Arc<Mutex<VecDeque<GameReport>>>,
 }
 
@@ -58,7 +58,7 @@ impl GameReporterQueue {
 
         Self {
             http_client,
-            iso_hash: Arc::new(OnceLock::new()),
+            iso_hash: Arc::new(Mutex::new(String::new())),
             inner: Arc::new(Mutex::new(VecDeque::new())),
         }
     }
@@ -176,10 +176,7 @@ pub(crate) fn run(reporter: GameReporterQueue, receiver: Receiver<ProcessingEven
 
 /// Process jobs from the queue.
 fn process_reports(queue: &GameReporterQueue, event: ProcessingEvent) {
-    // This `.expect()` should realistically never trigger, as we'd need
-    // some real odd cases to occur (can't read the file, etc) which are
-    // unlikely to happen given the nature of the application itself.
-    let Some(iso_hash) = queue.iso_hash.get() else {
+    let Ok(iso_hash) = queue.iso_hash.lock() else {
         tracing::warn!(target: Log::GameReporter, "No ISO_HASH available");
         return;
     };
