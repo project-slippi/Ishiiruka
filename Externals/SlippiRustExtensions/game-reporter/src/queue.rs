@@ -217,7 +217,9 @@ fn process_reports(queue: &GameReporterQueue, event: ProcessingEvent) {
 
                 if error.is_last_attempt {
                     tracing::error!(target: Log::GameReporter, "Hit max retry limit, dropping report");
-                    let report = report_queue.pop_front();
+                    let report = report_queue.pop_front(); // Remove the report so it no longer gets processed
+
+                    // Tell player their report failed to send
                     if let Some(report) = report {
                         if report.online_mode == OnlinePlayMode::Ranked {
                             Dolphin::add_osd_message(
