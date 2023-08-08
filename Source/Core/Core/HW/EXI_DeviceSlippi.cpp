@@ -34,7 +34,7 @@
 #include "Core/State.h"
 
 #include "Core/GeckoCode.h"
-//#include "Core/PatchEngine.h"
+// #include "Core/PatchEngine.h"
 #include "Core/PowerPC/PowerPC.h"
 
 // Not clean but idk a better way atm
@@ -48,8 +48,8 @@
 #define SLEEP_TIME_MS 8
 #define WRITE_FILE_SLEEP_TIME_MS 85
 
-//#define LOCAL_TESTING
-//#define CREATE_DIFF_FILES
+// #define LOCAL_TESTING
+// #define CREATE_DIFF_FILES
 
 static std::unordered_map<u8, std::string> slippi_names;
 static std::unordered_map<u8, std::string> slippi_connect_codes;

@@ -104,12 +104,12 @@ void SlippiNetplayConfigPane::InitializeGUI()
 #ifndef IS_PLAYBACK
 	m_slippi_jukebox_enabled_checkbox = new wxCheckBox(this, wxID_ANY, _("Enable Music (Beta)"));
 
-    // WASAPI does not work with this and we want a note for the user.
+	// WASAPI does not work with this and we want a note for the user.
 #ifdef _WIN32
-    m_slippi_jukebox_enabled_checkbox->SetToolTip(
+	m_slippi_jukebox_enabled_checkbox->SetToolTip(
 	    _("Toggle in-game music for stages and menus. Changing this does not affect "
 	      "other audio like character hits or effects. This option does nothing when "
-          "using the Exclusive WASAPI audio backend."));
+	      "using the Exclusive WASAPI audio backend."));
 #else
 	m_slippi_jukebox_enabled_checkbox->SetToolTip(
 	    _("Toggle in-game music for stages and menus. Changing this does not affect "
@@ -174,7 +174,8 @@ void SlippiNetplayConfigPane::InitializeGUI()
 	main_sizer->AddSpacer(space5);
 
 #ifndef IS_PLAYBACK
-	wxStaticBoxSizer *const sbSlippiJukeboxSettings = new wxStaticBoxSizer(wxVERTICAL, this, _("Slippi Jukebox Settings"));
+	wxStaticBoxSizer *const sbSlippiJukeboxSettings =
+	    new wxStaticBoxSizer(wxVERTICAL, this, _("Slippi Jukebox Settings"));
 	sbSlippiJukeboxSettings->AddSpacer(space5);
 	sbSlippiJukeboxSettings->Add(m_slippi_jukebox_enabled_checkbox, 0, wxLEFT | wxRIGHT, space5);
 	sbSlippiJukeboxSettings->AddSpacer(space5);
@@ -252,8 +253,7 @@ void SlippiNetplayConfigPane::BindEvents()
 	                                          this);
 
 #ifndef IS_PLAYBACK
-	m_slippi_jukebox_enabled_checkbox->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnToggleJukeboxEnabled,
-	                                          this);
+	m_slippi_jukebox_enabled_checkbox->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnToggleJukeboxEnabled, this);
 #endif
 }
 
@@ -342,22 +342,22 @@ void SlippiNetplayConfigPane::OnReduceTimingDispersionToggle(wxCommandEvent &eve
 #ifndef IS_PLAYBACK
 void SlippiNetplayConfigPane::OnToggleJukeboxEnabled(wxCommandEvent &event)
 {
-    bool isEnabled = m_slippi_jukebox_enabled_checkbox->GetValue();
+	bool isEnabled = m_slippi_jukebox_enabled_checkbox->GetValue();
 
 	SConfig::GetInstance().bSlippiJukeboxEnabled = isEnabled;
 
-    // If we have a Slippi EXI device loaded, grab it and tell it to reconfigure the Jukebox.
-    // Note that this should only execute if `Core` is loaded and running, as otherwise the Expansion
-    // Interface is not actually initialized.
-    if (Core::IsRunning())
-    {
-        CEXISlippi* slippiEXIDevice = (CEXISlippi*)ExpansionInterface::FindDevice(TEXIDevices::EXIDEVICE_SLIPPI);
-        
-        if (slippiEXIDevice != nullptr && slippiEXIDevice->IsPresent())
-	    {
-            slippiEXIDevice->ConfigureJukebox();
-	    }
-    }
+	// If we have a Slippi EXI device loaded, grab it and tell it to reconfigure the Jukebox.
+	// Note that this should only execute if `Core` is loaded and running, as otherwise the Expansion
+	// Interface is not actually initialized.
+	if (Core::IsRunning())
+	{
+		CEXISlippi *slippiEXIDevice = (CEXISlippi *)ExpansionInterface::FindDevice(TEXIDevices::EXIDEVICE_SLIPPI);
+
+		if (slippiEXIDevice != nullptr && slippiEXIDevice->IsPresent())
+		{
+			slippiEXIDevice->ConfigureJukebox();
+		}
+	}
 }
 #endif
 
