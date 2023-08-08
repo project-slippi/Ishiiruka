@@ -133,14 +133,14 @@ std::string ConvertConnectCodeForGame(const std::string &input)
 
 // This function gets passed to the Rust EXI device to support emitting OSD messages
 // across the Rust/C/C++ boundary.
-void OSDMessageHandler(const char* message, u32 color, u32 duration_ms)
+void OSDMessageHandler(const char *message, u32 color, u32 duration_ms)
 {
-    // When called with a C str type, this constructor does a copy.
-    //
-    // We intentionally do this to ensure that there are no ownership issues with a C String coming
-    // from the Rust side. This isn't a particularly hot code path so we don't need to care about
-    // the extra allocation, but this could be revisited in the future.
-    std::string msg(message);
+	// When called with a C str type, this constructor does a copy.
+	//
+	// We intentionally do this to ensure that there are no ownership issues with a C String coming
+	// from the Rust side. This isn't a particularly hot code path so we don't need to care about
+	// the extra allocation, but this could be revisited in the future.
+	std::string msg(message);
 
 	OSD::AddMessage(msg, duration_ms, color);
 }
@@ -149,10 +149,10 @@ CEXISlippi::CEXISlippi()
 {
 	INFO_LOG(SLIPPI, "EXI SLIPPI Constructor called.");
 
-    // TODO: For mainline port, ISO file path can't be fetched this way. Look at the following:
+	// TODO: For mainline port, ISO file path can't be fetched this way. Look at the following:
 	// https://github.com/dolphin-emu/dolphin/blob/7f450f1d7e7d37bd2300f3a2134cb443d07251f9/Source/Core/Core/Movie.cpp#L246-L249
 	std::string isoPath = SConfig::GetInstance().m_strFilename;
-    slprs_exi_device_ptr = slprs_exi_device_create(isoPath.c_str(), OSDMessageHandler);
+	slprs_exi_device_ptr = slprs_exi_device_create(isoPath.c_str(), OSDMessageHandler);
 
 	m_slippiserver = SlippiSpectateServer::getInstance();
 	user = std::make_unique<SlippiUser>();
@@ -286,7 +286,7 @@ CEXISlippi::CEXISlippi()
 CEXISlippi::~CEXISlippi()
 {
 	u8 empty[1];
-	
+
 	// Closes file gracefully to prevent file corruption when emulation
 	// suddenly stops. This would happen often on netplay when the opponent
 	// would close the emulation before the file successfully finished writing
@@ -306,14 +306,10 @@ CEXISlippi::~CEXISlippi()
 	{
 		ERROR_LOG(SLIPPI_ONLINE, "Exit during in-progress ranked game: %s", activeMatchId.c_str());
 
-        auto userInfo = user->GetUserInfo();
+		auto userInfo = user->GetUserInfo();
 
-		slprs_exi_device_report_match_abandonment(
-            slprs_exi_device_ptr,
-            userInfo.uid.c_str(),
-            userInfo.playKey.c_str(),
-            activeMatchId.c_str()
-        );
+		slprs_exi_device_report_match_abandonment(slprs_exi_device_ptr, userInfo.uid.c_str(), userInfo.playKey.c_str(),
+		                                          activeMatchId.c_str());
 	}
 	handleConnectionCleanup();
 
@@ -321,9 +317,9 @@ CEXISlippi::~CEXISlippi()
 
 	// Kill threads to prevent cleanup crash
 	g_playbackStatus->resetPlayback();
-    
-    // Instruct the Rust EXI device to shut down/drop everything.
-    slprs_exi_device_destroy(slprs_exi_device_ptr);
+
+	// Instruct the Rust EXI device to shut down/drop everything.
+	slprs_exi_device_destroy(slprs_exi_device_ptr);
 
 	// TODO: ENET shutdown should maybe be done at app shutdown instead.
 	// Right now this might be problematic in the case where someone starts a netplay client
@@ -1616,7 +1612,8 @@ void CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)
 		results[i] = slippi_netplay->GetSlippiRemotePad(i, ROLLBACK_MAX_FRAMES);
 		// results[i] = slippi_netplay->GetFakePadOutput(frame);
 
-		//INFO_LOG(SLIPPI_ONLINE, "Sending checksum values: [%d] %08x", results[i]->checksumFrame, results[i]->checksum);
+		// INFO_LOG(SLIPPI_ONLINE, "Sending checksum values: [%d] %08x", results[i]->checksumFrame,
+		// results[i]->checksum);
 		appendWordToBuffer(&m_read_queue, static_cast<u32>(results[i]->checksumFrame));
 		appendWordToBuffer(&m_read_queue, results[i]->checksum);
 	}
@@ -2080,7 +2077,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		// Here we are connected, check to see if we should init play session
 		if (!isPlaySessionActive)
 		{
-            slprs_exi_device_start_new_reporter_session(slprs_exi_device_ptr);
+			slprs_exi_device_start_new_reporter_session(slprs_exi_device_ptr);
 			isPlaySessionActive = true;
 		}
 	}
@@ -2223,7 +2220,8 @@ void CEXISlippi::prepareOnlineMatchState()
 
 		// Here we are storing pointers to the player selections. That means that we can technically modify
 		// the values from here, which is probably not the cleanest thing since they're coming from the netplay class.
-		// Unfortunately, I think it might be required for the overwrite stuff to work correctly though, maybe on a tiebreak in ranked?
+		// Unfortunately, I think it might be required for the overwrite stuff to work correctly though, maybe on a
+		// tiebreak in ranked?
 		std::vector<SlippiPlayerSelections *> orderedSelections(remotePlayerCount + 1);
 		orderedSelections[lps.playerIdx] = &lps;
 		for (int i = 0; i < remotePlayerCount; i++)
@@ -2235,7 +2233,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		for (int i = 0; i < overwrite_selections.size(); i++)
 		{
 			const auto &ow = overwrite_selections[i];
-			
+
 			orderedSelections[i]->characterId = ow.characterId;
 			orderedSelections[i]->characterColor = ow.characterColor;
 			orderedSelections[i]->stageId = ow.stageId;
@@ -2308,7 +2306,8 @@ void CEXISlippi::prepareOnlineMatchState()
 		bool areAllSameTeam = true;
 		for (const auto &s : orderedSelections)
 		{
-			// ERROR_LOG(SLIPPI_ONLINE, "[%d] First team: %d. Team: %d. LocalPlayer: %d", s->playerIdx, color, s->teamId, localPlayerIndex);
+			// ERROR_LOG(SLIPPI_ONLINE, "[%d] First team: %d. Team: %d. LocalPlayer: %d", s->playerIdx, color,
+			// s->teamId, localPlayerIndex);
 			if (s->teamId != color)
 			{
 				areAllSameTeam = false;
@@ -2893,7 +2892,7 @@ void CEXISlippi::prepareNewSeed()
 
 void CEXISlippi::handleReportGame(const SlippiExiTypes::ReportGameQuery &query)
 {
-    std::string matchId = recentMmResult.id;
+	std::string matchId = recentMmResult.id;
 	SlippiMatchmakingOnlinePlayMode onlineMode = static_cast<SlippiMatchmakingOnlinePlayMode>(query.onlineMode);
 	u32 durationFrames = query.frameLength;
 	u32 gameIndex = query.gameIndex;
@@ -2903,32 +2902,25 @@ void CEXISlippi::handleReportGame(const SlippiExiTypes::ReportGameQuery &query)
 	u8 gameEndMethod = query.gameEndMethod;
 	s8 lrasInitiator = query.lrasInitiator;
 
-	ERROR_LOG(SLIPPI_ONLINE, "Mode: %d / %d, Frames: %d, GameIdx: %d, TiebreakIdx: %d, WinnerIdx: %d, StageId: %d, GameEndMethod: %d, LRASInitiator: %d",
-	          onlineMode, query.onlineMode, durationFrames, gameIndex, tiebreakIndex, winnerIdx, stageId, gameEndMethod, lrasInitiator);
-	
-    auto userInfo = user->GetUserInfo();
+	ERROR_LOG(SLIPPI_ONLINE,
+	          "Mode: %d / %d, Frames: %d, GameIdx: %d, TiebreakIdx: %d, WinnerIdx: %d, StageId: %d, GameEndMethod: %d, "
+	          "LRASInitiator: %d",
+	          onlineMode, query.onlineMode, durationFrames, gameIndex, tiebreakIndex, winnerIdx, stageId, gameEndMethod,
+	          lrasInitiator);
 
-    // We pass `uid` and `playKey` here until the User side of things is
-    // ported to Rust.
-	uintptr_t gameReport = slprs_game_report_create(
-        userInfo.uid.c_str(),
-        userInfo.playKey.c_str(),
-        onlineMode,
-        matchId.c_str(),
-        durationFrames,
-        gameIndex,
-        tiebreakIndex,
-        winnerIdx,
-        gameEndMethod,
-        lrasInitiator,
-        stageId
-    );
+	auto userInfo = user->GetUserInfo();
+
+	// We pass `uid` and `playKey` here until the User side of things is
+	// ported to Rust.
+	uintptr_t gameReport = slprs_game_report_create(userInfo.uid.c_str(), userInfo.playKey.c_str(), onlineMode,
+	                                                matchId.c_str(), durationFrames, gameIndex, tiebreakIndex,
+	                                                winnerIdx, gameEndMethod, lrasInitiator, stageId);
 
 	auto mmPlayers = recentMmResult.players;
 
 	for (auto i = 0; i < 4; ++i)
 	{
-        std::string uid = mmPlayers.size() > i ? mmPlayers[i].uid : "";
+		std::string uid = mmPlayers.size() > i ? mmPlayers[i].uid : "";
 		u8 slotType = query.players[i].slotType;
 		u8 stocksRemaining = query.players[i].stocksRemaining;
 		float damageDone = query.players[i].damageDone;
@@ -2940,21 +2932,12 @@ void CEXISlippi::handleReportGame(const SlippiExiTypes::ReportGameQuery &query)
 		ERROR_LOG(SLIPPI_ONLINE,
 		          "UID: %s, Port Type: %d, Stocks: %d, DamageDone: %f, CharId: %d, ColorId: %d, StartStocks: %d, "
 		          "StartPercent: %d",
-		          uid.c_str(), slotType, stocksRemaining, damageDone, charId, colorId, startingStocks,
-		          startingPercent);
+		          uid.c_str(), slotType, stocksRemaining, damageDone, charId, colorId, startingStocks, startingPercent);
 
-        uintptr_t playerReport = slprs_player_report_create(
-            uid.c_str(),
-            slotType,
-            damageDone,
-            stocksRemaining,
-            charId,
-            colorId,
-            startingStocks,
-            startingPercent
-        );
+		uintptr_t playerReport = slprs_player_report_create(uid.c_str(), slotType, damageDone, stocksRemaining, charId,
+		                                                    colorId, startingStocks, startingPercent);
 
-        slprs_game_report_add_player_report(gameReport, playerReport);
+		slprs_game_report_add_player_report(gameReport, playerReport);
 	}
 
 	// If ranked mode and the game ended with a quit out, this is either a desync or an interrupted game,
@@ -2977,7 +2960,7 @@ void CEXISlippi::handleReportGame(const SlippiExiTypes::ReportGameQuery &query)
 	}
 
 #ifndef LOCAL_TESTING
-    slprs_exi_device_log_game_report(slprs_exi_device_ptr, gameReport);
+	slprs_exi_device_log_game_report(slprs_exi_device_ptr, gameReport);
 #endif
 }
 
@@ -3009,7 +2992,7 @@ void CEXISlippi::handleOverwriteSelections(const SlippiExiTypes::OverwriteSelect
 		// TODO: wrong players I think
 		if (!query.chars[i].is_set)
 			continue;
-		
+
 		SlippiPlayerSelections s;
 		s.isCharacterSelected = true;
 		s.characterId = query.chars[i].char_id;
@@ -3029,7 +3012,7 @@ void CEXISlippi::handleGamePrepStepComplete(const SlippiExiTypes::GpCompleteStep
 	res.char_selection = query.char_selection;
 	res.char_color_selection = query.char_color_selection;
 	memcpy(res.stage_selections, query.stage_selections, 2);
-	
+
 	if (slippi_netplay)
 		slippi_netplay->SendGamePrepStep(res);
 }
@@ -3078,15 +3061,10 @@ void CEXISlippi::handleCompleteSet(const SlippiExiTypes::ReportSetCompletionQuer
 	{
 		INFO_LOG(SLIPPI_ONLINE, "Reporting set completion: %s", lastMatchId.c_str());
 
-        auto userInfo = user->GetUserInfo();
+		auto userInfo = user->GetUserInfo();
 
-        slprs_exi_device_report_match_completion(
-            slprs_exi_device_ptr,
-            userInfo.uid.c_str(),
-            userInfo.playKey.c_str(),
-            lastMatchId.c_str(),
-            query.endMode
-        );
+		slprs_exi_device_report_match_completion(slprs_exi_device_ptr, userInfo.uid.c_str(), userInfo.playKey.c_str(),
+		                                         lastMatchId.c_str(), query.endMode);
 	}
 }
 
@@ -3095,14 +3073,15 @@ void CEXISlippi::handleGetPlayerSettings()
 	m_read_queue.clear();
 
 	SlippiExiTypes::GetPlayerSettingsResponse resp = {};
-	
+
 	std::vector<std::vector<std::string>> messagesByPlayer = {
 	    SlippiUser::defaultChatMessages, SlippiUser::defaultChatMessages, SlippiUser::defaultChatMessages,
 	    SlippiUser::defaultChatMessages};
 
 	// These chat messages will be used when previewing messages
 	auto userChatMessages = user->GetUserInfo().chatMessages;
-	if (userChatMessages.size() == 16) {
+	if (userChatMessages.size() == 16)
+	{
 		messagesByPlayer[0] = userChatMessages;
 	}
 
@@ -3115,7 +3094,7 @@ void CEXISlippi::handleGetPlayerSettings()
 
 	for (int i = 0; i < 4; i++)
 	{
-		for (int j = 0; j < 16; j++) 
+		for (int j = 0; j < 16; j++)
 		{
 			auto str = ConvertStringForGame(messagesByPlayer[i][j], MAX_MESSAGE_LENGTH);
 			sprintf(resp.settings[i].chatMessages[j], "%s", str.c_str());
@@ -3129,7 +3108,7 @@ void CEXISlippi::handleGetPlayerSettings()
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 {
 	u8 *memPtr = Memory::GetPointer(_uAddr);
-	//INFO_LOG(SLIPPI, "DMA Write: %x, Size: %d", _uAddr, _uSize);
+	// INFO_LOG(SLIPPI, "DMA Write: %x, Size: %d", _uAddr, _uSize);
 
 	u32 bufLoc = 0;
 
@@ -3154,7 +3133,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		m_slippiserver->startGame();
 		m_slippiserver->write(&memPtr[0], receiveCommandsLen + 1);
 
-        slprs_exi_device_reporter_push_replay_data(slprs_exi_device_ptr, &memPtr[0], receiveCommandsLen + 1);
+		slprs_exi_device_reporter_push_replay_data(slprs_exi_device_ptr, &memPtr[0], receiveCommandsLen + 1);
 	}
 
 	if (byte == CMD_MENU_FRAME)
@@ -3187,7 +3166,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "close");
 			m_slippiserver->write(&memPtr[bufLoc], payloadLen + 1);
 			m_slippiserver->endGame();
-            slprs_exi_device_reporter_push_replay_data(slprs_exi_device_ptr, &memPtr[bufLoc], payloadLen + 1);
+			slprs_exi_device_reporter_push_replay_data(slprs_exi_device_ptr, &memPtr[bufLoc], payloadLen + 1);
 			break;
 		case CMD_PREPARE_REPLAY:
 			// log.open("log.txt");
@@ -3200,7 +3179,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			g_needInputForFrame = true;
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "");
 			m_slippiserver->write(&memPtr[bufLoc], payloadLen + 1);
-            slprs_exi_device_reporter_push_replay_data(slprs_exi_device_ptr, &memPtr[bufLoc], payloadLen + 1);
+			slprs_exi_device_reporter_push_replay_data(slprs_exi_device_ptr, &memPtr[bufLoc], payloadLen + 1);
 			break;
 		case CMD_IS_STOCK_STEAL:
 			prepareIsStockSteal(&memPtr[bufLoc + 1]);
@@ -3277,13 +3256,14 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_GCT_LOAD:
 			prepareGctLoad(&memPtr[bufLoc + 1]);
-            ConfigureJukebox();
+			ConfigureJukebox();
 			break;
 		case CMD_GET_DELAY:
 			prepareDelayResponse();
 			break;
 		case CMD_OVERWRITE_SELECTIONS:
-			handleOverwriteSelections(SlippiExiTypes::Convert<SlippiExiTypes::OverwriteSelectionsQuery>(&memPtr[bufLoc]));
+			handleOverwriteSelections(
+			    SlippiExiTypes::Convert<SlippiExiTypes::OverwriteSelectionsQuery>(&memPtr[bufLoc]));
 			break;
 		case CMD_GP_FETCH_STEP:
 			prepareGamePrepOppStep(SlippiExiTypes::Convert<SlippiExiTypes::GpFetchStepQuery>(&memPtr[bufLoc]));
@@ -3300,7 +3280,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		default:
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "");
 			m_slippiserver->write(&memPtr[bufLoc], payloadLen + 1);
-            slprs_exi_device_reporter_push_replay_data(slprs_exi_device_ptr, &memPtr[bufLoc], payloadLen + 1);
+			slprs_exi_device_reporter_push_replay_data(slprs_exi_device_ptr, &memPtr[bufLoc], payloadLen + 1);
 			break;
 		}
 
@@ -3333,23 +3313,19 @@ void CEXISlippi::DMARead(u32 addr, u32 size)
 void CEXISlippi::ConfigureJukebox()
 {
 #ifndef IS_PLAYBACK
-    // Exclusive WASAPI and the Jukebox do not play nicely, so we just don't bother enabling
-    // the Jukebox in that scenario - why bother doing the processing work when it's not even
-    // possible to play it?
+	// Exclusive WASAPI and the Jukebox do not play nicely, so we just don't bother enabling
+	// the Jukebox in that scenario - why bother doing the processing work when it's not even
+	// possible to play it?
 #ifdef _WIN32
-    std::string backend = SConfig::GetInstance().sBackend;
-    if(backend.find(BACKEND_EXCLUSIVE_WASAPI) != std::string::npos)
-    {
-        return;
-    }
+	std::string backend = SConfig::GetInstance().sBackend;
+	if (backend.find(BACKEND_EXCLUSIVE_WASAPI) != std::string::npos)
+	{
+		return;
+	}
 #endif
 
-    slprs_exi_device_configure_jukebox(
-        slprs_exi_device_ptr,
-        SConfig::GetInstance().bSlippiJukeboxEnabled,
-        Memory::m_pRAM,
-        AudioCommonGetCurrentVolume
-    );
+	slprs_exi_device_configure_jukebox(slprs_exi_device_ptr, SConfig::GetInstance().bSlippiJukeboxEnabled,
+	                                   Memory::m_pRAM, AudioCommonGetCurrentVolume);
 #endif
 }
 
