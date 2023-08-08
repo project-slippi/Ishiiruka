@@ -14,10 +14,10 @@ This workspace currently targets Rust `1.70.0`. As long as you have Rust install
 
 | Module                 | Description                                                                |
 |------------------------|----------------------------------------------------------------------------|
-| `ffi`                  | The core library. Exposes C FFI functions for Dolphin to call.             |
-| `exi`                  | EXI device that receives forwarded calls from the EXI (C++) device.        |
-| `game-reporter`        | Implements match and event reporting.                                      |
 | `dolphin-integrations` | A library that wraps Dolphin callbacks (logging, etc).                     |
+| `exi`                  | EXI device that receives forwarded calls from the EXI (C++) device.        |
+| `ffi`                  | The core library. Exposes C FFI functions for Dolphin to call.             |
+| `game-reporter`        | Implements match and event reporting.                                      |
 | `jukebox`              | Melee music player library. See the [Slippi Jukebox README](jukebox/README.md) for more info. |
 
 Some important aspects of the project structure to understand:
