@@ -12,12 +12,13 @@ This workspace currently targets Rust `1.70.0`. As long as you have Rust install
 
 ## Project Module Structure Overview
 
-| Module   | Description                                                                    |
-|----------|--------------------------------------------------------------------------------|
-| `ffi`    | The core library. Exposes C FFI functions for Dolphin to call.                 |
-| `exi`    | An EXI device that receives forwarded calls from the Dolphin EXI (C++) device. |
-| `logger` | A library that connects Dolphin `LogContainer`s and `tracing`.                 |
-| `jukebox`| Melee music player library. See the [Slippi Jukebox README](jukebox/README.md) for more info. |
+| Module                 | Description                                                                |
+|------------------------|----------------------------------------------------------------------------|
+| `dolphin-integrations` | A library that wraps Dolphin callbacks (logging, etc).                     |
+| `exi`                  | EXI device that receives forwarded calls from the EXI (C++) device.        |
+| `ffi`                  | The core library. Exposes C FFI functions for Dolphin to call.             |
+| `game-reporter`        | Implements match and event reporting.                                      |
+| `jukebox`              | Melee music player library. See the [Slippi Jukebox README](jukebox/README.md) for more info. |
 
 Some important aspects of the project structure to understand:
 
@@ -35,6 +36,9 @@ If you're adding a new workspace module, simply create it (`cargo new --lib my_m
 If this is code that Dolphin needs to call (via the C FFI), then it belongs in the `ffi` module. Your exposed method in the `ffi` module can/should forward on to wherever your code actually lives.
 
 ## Feature Flags
+
+### The `ishiiruka/mainline` feature(s)
+These two features control which codebase this extension is built against: Ishiiruka (the older build) or Dolphin (mainline Dolphin, much newer). `ishiiruka` is the current default feature until further notice.
 
 ### The `playback` feature
 There is an optional feature flag for this repository for playback-specific functionality. This will automatically be set via either CMake or Visual Studio if you're building a Playback-enabled project, but if you're building and testing out of band you may need to enable this flag, e.g:
@@ -61,4 +65,10 @@ Simply rebuild with the release flag.
 
 ```
 cargo build --release
+```
+
+## Code Formatting
+The following line will format the entire project
+```
+cargo fmt --all --manifest-path=./Cargo.toml
 ```

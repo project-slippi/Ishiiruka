@@ -1,6 +1,6 @@
 [package]
-name = "dolphin-logger"
-description = "A shim for Dolphin's LogContainer with a custom tracing subscriber layer."
+name = "dolphin-integrations"
+description = "Shims for calling back into C++ for Dolphin-specific functionality."
 version = "0.1.0"
 authors = [
     "Slippi Team",
@@ -8,6 +8,11 @@ authors = [
 ]
 edition = "2021"
 publish = false
+
+[features]
+default = []
+ishiiruka = []
+mainline = []
 
 [dependencies]
 time = { workspace = true }
