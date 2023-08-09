@@ -1425,17 +1425,17 @@ bool CEXISlippi::shouldSkipOnlineFrame(s32 frame, s32 finalizedFrame)
 		// that this won't really be used much because the frame advance of the slow client along with
 		// dynamic emulation speed will pick up the difference most of the time. But at some point it's
 		// probably better to slow down...
-		if (offsetUs > (frame <= 120 ? t1 : t2))
-		{
-			isCurrentlySkipping = true;
+		// if (offsetUs > (frame <= 120 ? t1 : t2))
+		//{
+		//	isCurrentlySkipping = true;
 
-			int maxSkipFrames = frame <= 120 ? 5 : 1; // On early frames, support skipping more frames
-			framesToSkip = ((offsetUs - t1) / frameTime) + 1;
-			framesToSkip = framesToSkip > maxSkipFrames ? maxSkipFrames : framesToSkip; // Only skip 5 frames max
+		//	int maxSkipFrames = frame <= 120 ? 5 : 1; // On early frames, support skipping more frames
+		//	framesToSkip = ((offsetUs - t1) / frameTime) + 1;
+		//	framesToSkip = framesToSkip > maxSkipFrames ? maxSkipFrames : framesToSkip; // Only skip 5 frames max
 
-			WARN_LOG(SLIPPI_ONLINE, "Halting on frame %d due to time sync. Offset: %d us. Frames: %d...", frame,
-			         offsetUs, framesToSkip);
-		}
+		//	WARN_LOG(SLIPPI_ONLINE, "Halting on frame %d due to time sync. Offset: %d us. Frames: %d...", frame,
+		//	         offsetUs, framesToSkip);
+		//}
 	}
 
 	// Handle the skipped frames
