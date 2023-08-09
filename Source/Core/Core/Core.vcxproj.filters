@@ -790,9 +790,6 @@
     <ClCompile Include="..\DolphinWX\PlaybackSlider.cpp">
       <Filter>Slippi</Filter>
     </ClCompile>
-    <ClCompile Include="Slippi\SlippiGameReporter.cpp">
-      <Filter>Slippi</Filter>
-    </ClCompile>
     <ClCompile Include="Slippi\SlippiDirectCodes.cpp">
       <Filter>Slippi</Filter>
     </ClCompile>
@@ -1362,9 +1359,6 @@
       <Filter>Slippi</Filter>
     </ClInclude>
     <ClInclude Include="Slippi\SlippiPlayback.h">
-      <Filter>Slippi</Filter>
-    </ClInclude>
-    <ClInclude Include="Slippi\SlippiGameReporter.h">
       <Filter>Slippi</Filter>
     </ClInclude>
     <ClInclude Include="Slippi\SlippiPremadeText.h">

@@ -26,15 +26,15 @@
 #include "VideoCommon/VideoConfig.h"
 
 #if defined(VK_USE_PLATFORM_METAL_EXT)
-#include <objc/message.h>
 #include <CoreGraphics/CGBase.h>
 #include <CoreGraphics/CGGeometry.h>
+#include <objc/message.h>
 #endif
 
 namespace Vulkan
 {
 
-static void* s_metal_view_handle = nullptr;
+static void *s_metal_view_handle = nullptr;
 
 void VideoBackend::InitBackendInfo()
 {
@@ -99,7 +99,7 @@ static bool ShouldEnableDebugReports(bool enable_validation_layers)
 	return enable_validation_layers || IsHostGPULoggingEnabled();
 }
 
-bool VideoBackend::Initialize(void* window_handle)
+bool VideoBackend::Initialize(void *window_handle)
 {
 	if (!LoadVulkanLibrary())
 	{
@@ -125,16 +125,16 @@ bool VideoBackend::Initialize(void* window_handle)
 	// On macOS, we want to get the subview that hosts the rendering layer. Other platforms
 	// render through to the underlying view with no issues.
 #if defined(VK_USE_PLATFORM_METAL_EXT)
-	void* win_handle = s_metal_view_handle; 
+	void *win_handle = s_metal_view_handle;
 #else
-	void* win_handle = window_handle;
+	void *win_handle = window_handle;
 #endif
 
 	// Create Vulkan instance, needed before we can create a surface.
 	bool enable_surface = win_handle != nullptr;
 	bool enable_debug_reports = ShouldEnableDebugReports(enable_validation_layer);
-	VkInstance instance = VulkanContext::CreateVulkanInstance(enable_surface, enable_debug_reports,
-		enable_validation_layer);
+	VkInstance instance =
+	    VulkanContext::CreateVulkanInstance(enable_surface, enable_debug_reports, enable_validation_layer);
 	if (instance == VK_NULL_HANDLE)
 	{
 		PanicAlert("Failed to create Vulkan instance.");
@@ -191,8 +191,8 @@ bool VideoBackend::Initialize(void* window_handle)
 	}
 
 	// Pass ownership over to VulkanContext, and let it take care of everything.
-	g_vulkan_context = VulkanContext::Create(instance, gpu_list[selected_adapter_index], surface,
-		&g_Config, enable_debug_reports, enable_validation_layer);
+	g_vulkan_context = VulkanContext::Create(instance, gpu_list[selected_adapter_index], surface, &g_Config,
+	                                         enable_debug_reports, enable_validation_layer);
 	if (!g_vulkan_context)
 	{
 		PanicAlert("Failed to create Vulkan device");
@@ -241,7 +241,7 @@ bool VideoBackend::Initialize(void* window_handle)
 	// These have to be done before the others because the destructors
 	// for the remaining classes may call methods on these.
 	if (!g_object_cache->Initialize() || !FramebufferManager::GetInstance()->Initialize() ||
-		!StateTracker::CreateInstance() || !Renderer::GetInstance()->Initialize())
+	    !StateTracker::CreateInstance() || !Renderer::GetInstance()->Initialize())
 	{
 		PanicAlert("Failed to initialize Vulkan classes.");
 		g_renderer.reset();
@@ -260,7 +260,7 @@ bool VideoBackend::Initialize(void* window_handle)
 	g_texture_cache = std::make_unique<TextureCache>();
 	g_perf_query = std::make_unique<PerfQuery>();
 	if (!VertexManager::GetInstance()->Initialize() || !TextureCache::GetInstance()->Initialize() ||
-		!PerfQuery::GetInstance()->Initialize())
+	    !PerfQuery::GetInstance()->Initialize())
 	{
 		PanicAlert("Failed to initialize Vulkan classes.");
 		g_perf_query.reset();
@@ -285,10 +285,9 @@ bool VideoBackend::Initialize(void* window_handle)
 void VideoBackend::Video_Prepare()
 {
 	// Display the name so the user knows which device was actually created
-	OSD::AddMessage(StringFromFormat("Using physical adapter %s",
-		g_vulkan_context->GetDeviceProperties().deviceName)
-		.c_str(),
-		5000);
+	OSD::AddMessage(
+	    StringFromFormat("Using physical adapter %s", g_vulkan_context->GetDeviceProperties().deviceName).c_str(),
+	    5000);
 }
 
 void VideoBackend::Shutdown()
@@ -353,34 +352,32 @@ id makeBackingLayer(id self, SEL _cmd)
 
 	id layer = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(metalLayerClass, sel_getUid("layer"));
 
-	id screen = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(objc_getClass("NSScreen"),
-	                                                             sel_getUid("mainScreen"));
+	id screen = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(objc_getClass("NSScreen"), sel_getUid("mainScreen"));
 
 	// CGFloat factor = [screen backingScaleFactor]
 	double factor = reinterpret_cast<double (*)(id, SEL)>(objc_msgSend)(screen, sel_getUid("backingScaleFactor"));
 
 	// layer.contentsScale = factor
-	reinterpret_cast<void (*)(id, SEL, double)>(objc_msgSend)(layer, sel_getUid("setContentsScale:"),
-	                                                        factor);
+	reinterpret_cast<void (*)(id, SEL, double)>(objc_msgSend)(layer, sel_getUid("setContentsScale:"), factor);
 
 	// This is an oddity, but alright. The SwapChain is already configured to be respective of Vsync, but the underlying
-	// CAMetalLayer *also* needs to be instructed to respect it. This defaults to YES; if we're not supposed to have vsync
-	// enabled, then we need to flip this.
+	// CAMetalLayer *also* needs to be instructed to respect it. This defaults to YES; if we're not supposed to have
+	// vsync enabled, then we need to flip this.
 	//
 	// Notably, some M1 Macs have issues without this logic.
-	// 
+	//
 	// I have absolutely no clue why this works, as MoltenVK also sets this property. Setting it before giving the layer
 	// to MoltenVK seems to make it stick, though.
 	if (!g_Config.IsVSync())
 	{
 		// Explicitly tells the underlying layer to NOT use vsync.
 		// [view setDisplaySyncEnabled:NO]
-		reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(layer, sel_getUid("setDisplaySyncEnabled:"), NO);        
+		reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(layer, sel_getUid("setDisplaySyncEnabled:"), NO);
 	}
-    
-	// CAMetalLayer is triple-buffered by default; we can lower this to double buffering. 
+
+	// CAMetalLayer is triple-buffered by default; we can lower this to double buffering.
 	//
-	// (The only acceptable values are `2` or `3`). Typically it's only iMacs that can handle this, so we'll just 
+	// (The only acceptable values are `2` or `3`). Typically it's only iMacs that can handle this, so we'll just
 	// enable an ENV variable for it and document it on the wiki.
 	if (getenv("SLP_METAL_DOUBLE_BUFFER") != NULL)
 	{
@@ -413,19 +410,15 @@ Class getSLPMetalLayerViewClassType()
 		// These are disabled on Playback builds for now, as M1 devices running Playback under Rosetta 2
 		// seem to hit a race condition with asynchronous queue submits. Rendering takes a slight hit but
 		// this matters less in playback, and it's still better than OpenGL.
-		//setenv("MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS", "0", 0);
-		//setenv("MVK_CONFIG_PRESENT_WITH_COMMAND_BUFFER", "0", 0);
+		// setenv("MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS", "0", 0);
+		// setenv("MVK_CONFIG_PRESENT_WITH_COMMAND_BUFFER", "0", 0);
 #else
 		// This does a one-time opt-in to a MVK flag that seems to universally help in Ishiiruka.
 		// (mainline should not need this)
 		setenv("MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS", "0", 0);
-		setenv("MVK_CONFIG_PRESENT_WITH_COMMAND_BUFFER", "0", 0);		
+		setenv("MVK_CONFIG_PRESENT_WITH_COMMAND_BUFFER", "0", 0);
 #endif
-		SLPMetalLayerViewClass = objc_allocateClassPair(
-			(Class)objc_getClass("NSView"),
-			kSLPMetalLayerViewClassName,
-			0
-		);
+		SLPMetalLayerViewClass = objc_allocateClassPair((Class)objc_getClass("NSView"), kSLPMetalLayerViewClassName, 0);
 
 		class_addMethod(SLPMetalLayerViewClass, sel_getUid("layerClass"), (IMP)getLayerClass, "@:@");
 		class_addMethod(SLPMetalLayerViewClass, sel_getUid("wantsUpdateLayer"), (IMP)wantsUpdateLayer, "v@:");
@@ -438,7 +431,8 @@ Class getSLPMetalLayerViewClassType()
 }
 #endif
 
-void VideoBackend::PrepareWindow(void* window_handle) {
+void VideoBackend::PrepareWindow(void *window_handle)
+{
 #if defined(VK_USE_PLATFORM_METAL_EXT)
 	id view = reinterpret_cast<id>(window_handle);
 
@@ -451,14 +445,14 @@ void VideoBackend::PrepareWindow(void* window_handle) {
 
 	auto rect = (CGRect){{0, 0}, {frame.size.width, frame.size.height}};
 	id metal_view = reinterpret_cast<id (*)(id, SEL, CGRect)>(objc_msgSend)(alloc, sel_getUid("initWithFrame:"), rect);
-	objc_msgSend(metal_view, sel_getUid("setWantsLayer:"), YES);
+	reinterpret_cast<id (*)(id, SEL, BOOL)>(objc_msgSend)(metal_view, sel_getUid("setWantsLayer:"), YES);
 
 	// The below does: objc_msgSend(view, sel_getUid("setAutoresizingMask"), NSViewWidthSizable | NSViewHeightSizable);
 	// All this is doing is telling the view/layer to resize when the parent does.
-	objc_msgSend(metal_view, sel_getUid("setAutoresizingMask:"), 18);
+	reinterpret_cast<id (*)(id, SEL, unsigned long)>(objc_msgSend)(metal_view, sel_getUid("setAutoresizingMask:"), 18);
 
-	objc_msgSend(view, sel_getUid("addSubview:"), metal_view);
+	reinterpret_cast<id (*)(id, SEL, id)>(objc_msgSend)(view, sel_getUid("addSubview:"), metal_view);
 	s_metal_view_handle = metal_view;
 #endif
 }
-}
+} // namespace Vulkan

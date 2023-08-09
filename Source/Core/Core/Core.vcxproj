@@ -27,6 +27,7 @@
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
+    <DisableFastUpToDateCheck>true</DisableFastUpToDateCheck>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">
     <UseDebugLibraries>true</UseDebugLibraries>
@@ -51,25 +52,56 @@
   <PropertyGroup Label="UserMacros" />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ExternalsDir)base64;$(ExternalsDir)nlohmann;${ExternalsDir}open-vcdiff;$(ExternalsDir)SlippiLib;$(ExternalsDir)semver;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ExternalsDir)base64;$(ExternalsDir)nlohmann;${ExternalsDir}open-vcdiff;$(ExternalsDir)SlippiLib;$(ExternalsDir)SlippiRustExtensions/ffi/includes;$(ExternalsDir)semver;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
+    <PreBuildEvent>
+      <Message>Compile SlippiRustExtensions</Message>
+      <!-- Note that we need to cd into the directory proper, otherwise the Rust toolchain configuration file will not be picked up -->
+      <Command>
+        cd $(ExternalsDir)SlippiRustExtensions
+        cargo build --target x86_64-pc-windows-msvc --release
+      </Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleasePlayback|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ExternalsDir)base64;$(ExternalsDir)nlohmann;${ExternalsDir}open-vcdiff;$(ExternalsDir)SlippiLib;$(ExternalsDir)semver;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ExternalsDir)base64;$(ExternalsDir)nlohmann;${ExternalsDir}open-vcdiff;$(ExternalsDir)SlippiLib;$(ExternalsDir)SlippiRustExtensions/ffi/includes;$(ExternalsDir)semver;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>IS_PLAYBACK;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
+    <PreBuildEvent>
+      <Message>Compile SlippiRustExtensions (w/ playback feature)</Message>
+      <Command>
+        cd $(ExternalsDir)SlippiRustExtensions
+        cargo build --target x86_64-pc-windows-msvc --release --features playback
+      </Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugFast|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ExternalsDir)base64;$(ExternalsDir)nlohmann;${ExternalsDir}open-vcdiff;$(ExternalsDir)SlippiLib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ExternalsDir)base64;$(ExternalsDir)nlohmann;$(ExternalsDir)SlippiLib;$(ExternalsDir)SlippiRustExtensions/ffi/includes;$(ExternalsDir)HDiffPatch;$(ExternalsDir)semver;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>DEBUGFAST;_WIN32_WINNT=0x0602;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
+    <PreBuildEvent>
+      <Message>Compile SlippiRustExtensions</Message>
+      <!-- This could be tweaked to not be release mode, but would need corresponding tweaks in Dolphin.vcproj -->
+      <Command>
+        cd $(ExternalsDir)SlippiRustExtensions
+        cargo build --target x86_64-pc-windows-msvc --release
+      </Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ExternalsDir)base64;$(ExternalsDir)nlohmann;$(ExternalsDir)SlippiLib;$(ExternalsDir)HDiffPatch;$(ExternalsDir)semver;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ExternalsDir)base64;$(ExternalsDir)nlohmann;$(ExternalsDir)SlippiLib;$(ExternalsDir)SlippiRustExtensions/ffi/includes;$(ExternalsDir)HDiffPatch;$(ExternalsDir)semver;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
+    <PreBuildEvent>
+      <Message>Compile SlippiRustExtensions</Message>
+      <!-- This could be tweaked to not be release mode, but would need corresponding tweaks in Dolphin.vcproj -->
+      <Command>
+        cd $(ExternalsDir)SlippiRustExtensions
+        cargo build --target x86_64-pc-windows-msvc --release
+      </Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\DolphinWX\PlaybackSlider.cpp" />
@@ -294,7 +326,6 @@
     <ClCompile Include="PowerPC\Profiler.cpp" />
     <ClCompile Include="PowerPC\SignatureDB.cpp" />
     <ClCompile Include="Slippi\SlippiDirectCodes.cpp" />
-    <ClCompile Include="Slippi\SlippiGameReporter.cpp" />
     <ClCompile Include="Slippi\SlippiPlayback.cpp" />
     <ClCompile Include="Slippi\SlippiTimer.cpp" />
     <ClCompile Include="Slippi\SlippiGameFileLoader.cpp" />
@@ -498,7 +529,6 @@
     <ClInclude Include="PowerPC\Profiler.h" />
     <ClInclude Include="PowerPC\SignatureDB.h" />
     <ClInclude Include="Slippi\SlippiExiTypes.h" />
-    <ClInclude Include="Slippi\SlippiGameReporter.h" />
     <ClInclude Include="Slippi\SlippiDirectCodes.h" />
     <ClInclude Include="Slippi\SlippiPlayback.h" />
     <ClInclude Include="Slippi\SlippiPremadeText.h" />

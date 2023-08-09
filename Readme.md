@@ -22,6 +22,11 @@ Please read the [FAQ](https://dolphin-emu.org/docs/faq/) before using Dolphin.
     * A reasonably modern graphics card (Direct3D 10.0 / OpenGL 3.0).
     * A graphics card that supports Direct3D 11 / OpenGL 4.4 is recommended.
 
+## General Requirements
+This fork includes a [Rust submodule](Externals/SlippiRustExtensions) that needs to be built and linked to the final executable.
+This means that you will need to install a Rust compiler for your current system; to do this, simply visit 
+[rustup.rs](https://rustup.rs). Once installed, both CMake and Visual Studio should be able to automatically handle the rest for you.
+
 ## Building for Windows
 Open the solution file `Source/Dolphin.sln` to build Dolphin on Windows using [Visual Studio 2019](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=16).
 Other compilers might be
