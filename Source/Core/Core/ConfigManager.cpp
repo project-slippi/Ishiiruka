@@ -1263,9 +1263,9 @@ IniFile SConfig::LoadGameIni() const
 bool SConfig::GameHasDefaultGameIni(const std::string &id, u16 revision)
 {
 	const std::vector<std::string> filenames = GetGameIniFilenames(id, revision);
-	return std::any_of(filenames.begin(), filenames.end(), [](const std::string &filename) {
-		return File::Exists(File::GetSysDirectory() + GAMESETTINGS_DIR DIR_SEP + filename);
-	});
+	return std::any_of(filenames.begin(), filenames.end(),
+	                   [](const std::string &filename)
+	                   { return File::Exists(File::GetSysDirectory() + GAMESETTINGS_DIR DIR_SEP + filename); });
 }
 
 IniFile SConfig::LoadDefaultGameIni(const std::string &id, u16 revision)

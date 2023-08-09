@@ -27,6 +27,7 @@
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
+    <DisableFastUpToDateCheck>true</DisableFastUpToDateCheck>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">
     <UseDebugLibraries>true</UseDebugLibraries>
@@ -325,7 +326,6 @@
     <ClCompile Include="PowerPC\Profiler.cpp" />
     <ClCompile Include="PowerPC\SignatureDB.cpp" />
     <ClCompile Include="Slippi\SlippiDirectCodes.cpp" />
-    <ClCompile Include="Slippi\SlippiGameReporter.cpp" />
     <ClCompile Include="Slippi\SlippiPlayback.cpp" />
     <ClCompile Include="Slippi\SlippiTimer.cpp" />
     <ClCompile Include="Slippi\SlippiGameFileLoader.cpp" />
@@ -529,7 +529,6 @@
     <ClInclude Include="PowerPC\Profiler.h" />
     <ClInclude Include="PowerPC\SignatureDB.h" />
     <ClInclude Include="Slippi\SlippiExiTypes.h" />
-    <ClInclude Include="Slippi\SlippiGameReporter.h" />
     <ClInclude Include="Slippi\SlippiDirectCodes.h" />
     <ClInclude Include="Slippi\SlippiPlayback.h" />
     <ClInclude Include="Slippi\SlippiPremadeText.h" />

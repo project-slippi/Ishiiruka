@@ -49,6 +49,9 @@ pub mod Log {
     /// The default target for EXI tracing.
     pub const EXI: &'static str = "SLIPPI_RUST_EXI";
 
+    /// Logs for `SlippiGameReporter`.
+    pub const GameReporter: &'static str = "SLIPPI_RUST_GAME_REPORTER";
+
     /// Can be used to segment Jukebox logs.
     pub const Jukebox: &'static str = "SLIPPI_RUST_JUKEBOX";
 }

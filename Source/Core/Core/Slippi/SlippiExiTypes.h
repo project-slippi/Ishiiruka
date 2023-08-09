@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Common/CommonFuncs.h"
 #include "Common/CommonTypes.h"
 
 #define REPORT_PLAYER_COUNT 4

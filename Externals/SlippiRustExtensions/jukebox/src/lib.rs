@@ -3,7 +3,7 @@ mod tracks;
 mod utils;
 
 use anyhow::{Context, Result};
-use dolphin_logger::Log;
+use dolphin_integrations::Log;
 use hps_decode::{hps::Hps, pcm_iterator::PcmIterator};
 use process_memory::LocalMember;
 use process_memory::Memory;
