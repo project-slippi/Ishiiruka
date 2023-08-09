@@ -1410,35 +1410,36 @@ bool CEXISlippi::shouldSkipOnlineFrame(s32 frame, s32 finalizedFrame)
 	s32 t2 = (2 * frameTime) + t1;
 
 	// 8/8/23: Removed the halting time sync logic in favor of emulation speed. Hopefully less halts means
-	// less dropped inputs
+	// less dropped inputs. We will only do it at the start of the game to sync everything up
+
 	// Only skip once for a given frame because our time detection method doesn't take into consideration
 	// waiting for a frame. Also it's less jarring and it happens often enough that it will smoothly
 	// get to the right place
-	//auto isTimeSyncFrame = frame % SLIPPI_ONLINE_LOCKSTEP_INTERVAL; // Only time sync every 30 frames
-	// if (isTimeSyncFrame == 0 && !isCurrentlySkipping)
-	//{
-	//	auto offsetUs = slippi_netplay->CalcTimeOffsetUs();
-	//	INFO_LOG(SLIPPI_ONLINE, "[Frame %d] Offset for skip is: %d us", frame, offsetUs);
+	auto isTimeSyncFrame = frame % SLIPPI_ONLINE_LOCKSTEP_INTERVAL; // Only time sync every 30 frames
+	if (isTimeSyncFrame == 0 && !isCurrentlySkipping && frame <= 120)
+	{
+		auto offsetUs = slippi_netplay->CalcTimeOffsetUs();
+		INFO_LOG(SLIPPI_ONLINE, "[Frame %d] Offset for skip is: %d us", frame, offsetUs);
 
-	// At the start of the game, let's make sure to sync perfectly, but after that let the slow instance
-	// try to do more work before we stall
+		// At the start of the game, let's make sure to sync perfectly, but after that let the slow instance
+		// try to do more work before we stall
 
-	// The decision to skip a frame only happens when we are already pretty far off ahead. The hope is
-	// that this won't really be used much because the frame advance of the slow client along with
-	// dynamic emulation speed will pick up the difference most of the time. But at some point it's
-	// probably better to slow down...
-	// if (offsetUs > (frame <= 120 ? t1 : t2))
-	//{
-	//	isCurrentlySkipping = true;
+		// The decision to skip a frame only happens when we are already pretty far off ahead. The hope is
+		// that this won't really be used much because the frame advance of the slow client along with
+		// dynamic emulation speed will pick up the difference most of the time. But at some point it's
+		// probably better to slow down...
+		if (offsetUs > (frame <= 120 ? t1 : t2))
+		{
+			isCurrentlySkipping = true;
 
-	//	int maxSkipFrames = frame <= 120 ? 5 : 1; // On early frames, support skipping more frames
-	//	framesToSkip = ((offsetUs - t1) / frameTime) + 1;
-	//	framesToSkip = framesToSkip > maxSkipFrames ? maxSkipFrames : framesToSkip; // Only skip 5 frames max
+			int maxSkipFrames = frame <= 120 ? 5 : 1; // On early frames, support skipping more frames
+			framesToSkip = ((offsetUs - t1) / frameTime) + 1;
+			framesToSkip = framesToSkip > maxSkipFrames ? maxSkipFrames : framesToSkip; // Only skip 5 frames max
 
-	//	WARN_LOG(SLIPPI_ONLINE, "Halting on frame %d due to time sync. Offset: %d us. Frames: %d...", frame,
-	//	         offsetUs, framesToSkip);
-	//}
-	//}
+			WARN_LOG(SLIPPI_ONLINE, "Halting on frame %d due to time sync. Offset: %d us. Frames: %d...", frame,
+			         offsetUs, framesToSkip);
+		}
+	}
 
 	// Handle the skipped frames
 	if (framesToSkip > 0)
@@ -1530,6 +1531,7 @@ bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame)
 
 		// 8/8/23: I want to disable forced frame advances for now. I think they're largely unnecessary because of the
 		// dynamic emulation speed and cause more jarring frame drops.
+	
 		// if (offsetUs < -t2 && !isCurrentlyAdvancing)
 		//{
 		//	isCurrentlyAdvancing = true;
