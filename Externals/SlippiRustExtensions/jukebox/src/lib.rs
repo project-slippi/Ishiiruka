@@ -173,7 +173,7 @@ impl Jukebox {
                 OSDDuration::VeryLong,
                 "\nError starting Slippi Jukebox. Your ISO is likely incompatible. Music will not play.",
             );
-            tracing::error!(target: Log::Jukebox, "Failed to create track map: {}", e);
+            tracing::error!(target: Log::Jukebox, error = ?e, "Failed to create track map");
             return e;
         })?;
         tracing::info!(target: Log::Jukebox, "Loaded metadata for {} tracks!", tracks.len());
