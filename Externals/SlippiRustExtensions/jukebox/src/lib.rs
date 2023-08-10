@@ -15,6 +15,8 @@ use std::sync::mpsc::{channel, Receiver, Sender};
 use std::{thread::sleep, time::Duration};
 use tracks::TrackId;
 
+use dolphin_integrations::{Color, Dolphin, Duration as OSDDuration};
+
 /// Represents a foreign method from the Dolphin side for grabbing the current volume.
 /// Dolphin represents this as a number from 0 - 100; 0 being mute.
 pub type ForeignGetVolumeFn = unsafe extern "C" fn() -> std::ffi::c_int;
@@ -165,7 +167,15 @@ impl Jukebox {
         let mut iso = std::fs::File::open(iso_path)?;
 
         tracing::info!(target: Log::Jukebox, "Loading track metadata...");
-        let tracks = utils::create_track_map(&mut iso)?;
+        let tracks = utils::create_track_map(&mut iso).map_err(|e| {
+            Dolphin::add_osd_message(
+                Color::Red,
+                OSDDuration::VeryLong,
+                "\nError starting Slippi Jukebox. Your ISO is likely incompatible. Music will not play.",
+            );
+            tracing::error!(target: Log::Jukebox, error = ?e, "Failed to create track map");
+            return e;
+        })?;
         tracing::info!(target: Log::Jukebox, "Loaded metadata for {} tracks!", tracks.len());
 
         let (_stream, stream_handle) = OutputStream::try_default()?;
