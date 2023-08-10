@@ -47,14 +47,28 @@ pub(crate) fn create_track_map(iso: &mut std::fs::File) -> Result<HashMap<TrackI
             .try_into()
             .map_err(|_| anyhow!("Unable to read FST offset as u32"))?,
     );
+    if fst_location <= 0 {
+        return Err(anyhow!("FST location is 0"));
+    }
+
     let fst_size = u32::from_be_bytes(
         read_from_file(iso, FST_SIZE_OFFSET, 0x4)?
             .try_into()
             .map_err(|_| anyhow!("Unable to read FST size as u32"))?,
     );
+    // Check for sensible size. Vanilla is 29993
+    if fst_size < 1000 || fst_size > 500000 {
+        return Err(anyhow!("FST size is out of range"));
+    }
+
     let fst = read_from_file(iso, fst_location as u64, fst_size as usize)?;
 
-    // FST String Table
+    // FST String Table.
+    // TODO: This is the line that crashed on CISO. All above values are 0.
+    // I think a better fix than the defensive lines I added above could be to
+    // return Result<...> from read_u32 and handle errors? With the code as is,
+    // it's still technically possible maybe to get through here and then crash
+    // on the read_u32 calls in the filter_map
     let str_table_offset = read_u32(&fst, 0x8) as usize * FST_ENTRY_SIZE;
 
     // Collect the .hps file metadata in the FST into a hash map
