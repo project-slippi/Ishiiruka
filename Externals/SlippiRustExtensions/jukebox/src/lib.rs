@@ -2,8 +2,8 @@ mod scenes;
 mod tracks;
 mod utils;
 
-use anyhow::{Context, Result};
-use dolphin_integrations::Log;
+use anyhow::{anyhow, Context, Result};
+use dolphin_integrations::{Color, Dolphin, Log};
 use hps_decode::{hps::Hps, pcm_iterator::PcmIterator};
 use process_memory::LocalMember;
 use process_memory::Memory;
@@ -84,6 +84,19 @@ impl Jukebox {
     /// to try and read game memory and play music. When the returned instance is
     /// dropped, the child threads will terminate and the music will stop.
     pub fn new(m_p_ram: *const u8, iso_path: String, get_dolphin_volume_fn: ForeignGetVolumeFn) -> Result<Self> {
+        let mut iso = std::fs::File::open(iso_path)?;
+
+        // Non-standard disc images do not have the Filesystem Table in a known
+        // location. For now, they are incompatible with Jukebox
+        if utils::read_from_file(&mut iso, 0, 6)? != b"GALE01" {
+            Dolphin::add_osd_message(
+                Color::Red,
+                dolphin_integrations::Duration::VeryLong,
+                "\nYour game file is incompatible with Slippi Jukebox. Music will not play.",
+            );
+            return Err(anyhow!("Provided iso does not have the magic number: GALE01"));
+        }
+
         tracing::info!(target: Log::Jukebox, "Initializing Slippi Jukebox");
 
         // We are implicitly trusting that these pointers will outlive the jukebox instance
@@ -107,7 +120,7 @@ impl Jukebox {
 
         std::thread::Builder::new()
             .name("JukeboxMusicPlayer".to_string())
-            .spawn(move || Self::play_music(m_p_ram, &iso_path, get_dolphin_volume, music_thread_rx, melee_event_rx))?;
+            .spawn(move || Self::play_music(m_p_ram, &mut iso, get_dolphin_volume, music_thread_rx, melee_event_rx))?;
 
         Ok(Self {
             channel_senders: [message_dispatcher_thread_tx, music_thread_tx],
@@ -157,15 +170,13 @@ impl Jukebox {
     /// accordingly.
     fn play_music(
         m_p_ram: usize,
-        iso_path: &str,
+        iso: &mut std::fs::File,
         get_dolphin_volume: impl Fn() -> f32,
         music_thread_rx: Receiver<JukeboxEvent>,
         melee_event_rx: Receiver<MeleeEvent>,
     ) -> Result<()> {
-        let mut iso = std::fs::File::open(iso_path)?;
-
         tracing::info!(target: Log::Jukebox, "Loading track metadata...");
-        let tracks = utils::create_track_map(&mut iso)?;
+        let tracks = utils::create_track_map(iso)?;
         tracing::info!(target: Log::Jukebox, "Loaded metadata for {} tracks!", tracks.len());
 
         let (_stream, stream_handle) = OutputStream::try_default()?;
@@ -193,7 +204,7 @@ impl Jukebox {
                     let size = size as usize;
 
                     // Parse data from the ISO into pcm samples
-                    let hps: Hps = utils::read_from_file(&mut iso, offset, size)?
+                    let hps: Hps = utils::read_from_file(iso, offset, size)?
                         .try_into()
                         .with_context(|| format!("The {size} bytes at offset 0x{offset:x?} could not be decoded into an Hps"))?;
 

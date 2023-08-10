@@ -38,7 +38,7 @@ pub(crate) fn read_from_file(file: &mut std::fs::File, offset: u64, size: usize)
 /// These can be looked up by TrackId
 pub(crate) fn create_track_map(iso: &mut std::fs::File) -> Result<HashMap<TrackId, (u32, u32)>> {
     const FST_LOCATION_OFFSET: u64 = 0x424;
-    const FST_SIZE_OFFSET: u64 = 0x0428;
+    const FST_SIZE_OFFSET: u64 = 0x428;
     const FST_ENTRY_SIZE: usize = 0xC;
 
     // Filesystem Table (FST)
