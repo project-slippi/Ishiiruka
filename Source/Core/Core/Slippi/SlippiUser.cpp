@@ -132,6 +132,10 @@ SlippiUser::~SlippiUser()
 	}
 }
 
+SlippiUser::RankInfo SlippiUser::GetRankInfo() {
+	return userRank;
+}
+
 SlippiUser::SlippiRank SlippiUser::GetRank(float ratingOrdinal, int globalPlacing, int regionalPlacing, int ratingUpdateCount)
 {
 	if (ratingUpdateCount < 5)
@@ -177,7 +181,7 @@ SlippiUser::SlippiRank SlippiUser::GetRank(float ratingOrdinal, int globalPlacin
 	return RANK_UNRANKED;
 }
 
-SlippiUser::RankInfo SlippiUser::GetRankInfo(std::string connectCode)
+SlippiUser::RankInfo SlippiUser::FetchUserRank(std::string connectCode)
 {
 	RankInfo info;
 
@@ -217,23 +221,34 @@ SlippiUser::RankInfo SlippiUser::GetRankInfo(std::string connectCode)
 	float ratingOrdinal = rankedObject["ratingOrdinal"];
 	INFO_LOG(SLIPPI_ONLINE, "Rating: %0000.00f", ratingOrdinal);
 
-	int global = (rankedObject["dailyGlobalPlacement"]).is_null() ? 0 : rankedObject["dailyGlobalPlacement"];
+	u8 global = (rankedObject["dailyGlobalPlacement"]).is_null() ? 0 : rankedObject["dailyGlobalPlacement"];
 	INFO_LOG(SLIPPI_ONLINE, "Global Placing: %d", global);
 
-	int regional = (rankedObject["dailyRegionalPlacement"]).is_null() ? 0 : rankedObject["dailyRegionalPlacement"];
+	u8 regional = (rankedObject["dailyRegionalPlacement"]).is_null() ? 0 : rankedObject["dailyRegionalPlacement"];
 	INFO_LOG(SLIPPI_ONLINE, "Regional Placing: %d", regional);
 
-	int ratingUpdateCount = (rankedObject["ratingUpdateCount"]).is_null() ? 0 : rankedObject["ratingUpdateCount"];
+	u8 ratingUpdateCount = (rankedObject["ratingUpdateCount"]).is_null() ? 0 : rankedObject["ratingUpdateCount"];
 	INFO_LOG(SLIPPI_ONLINE, "Rating Update Count: %d", ratingUpdateCount);
 
 	SlippiRank rank = GetRank(ratingOrdinal, global, regional, ratingUpdateCount);
 	INFO_LOG(SLIPPI_ONLINE, "Rank: %d", rank);
+
+	float ratingChange =  (userRank.ratingOrdinal > 0.001f) ? ratingOrdinal - userRank.ratingOrdinal : 0;
+	INFO_LOG(SLIPPI_ONLINE, "Rating Change: %0.1f", ratingChange);
+
+	u8 rankChange = userRank.rankChange;
+	INFO_LOG(SLIPPI_ONLINE, "Rank Change: %d", rankChange);
 
 	info.ratingOrdinal = ratingOrdinal;
 	info.rank = rank;
 	info.globalPlacing = global;
 	info.regionalPlacing = regional;
 	info.ratingUpdateCount = ratingUpdateCount;
+	info.ratingChange = ratingChange;
+	info.rankChange = rankChange;
+
+	// Set user rank
+	userRank = info;
 
 	return info;
 }

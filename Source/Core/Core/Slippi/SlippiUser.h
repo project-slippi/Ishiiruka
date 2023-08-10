@@ -53,9 +53,11 @@ class SlippiUser
 	{
 		SlippiRank rank;
 		float ratingOrdinal;
-		int globalPlacing;
-		int regionalPlacing;
-		int ratingUpdateCount;
+		u8 globalPlacing;
+		u8 regionalPlacing;
+		u8 ratingUpdateCount;
+		float ratingChange;
+		u8 rankChange;
 	};
 
 	SlippiUser();
@@ -71,7 +73,8 @@ class SlippiUser
 	bool IsLoggedIn();
 	void FileListenThread();
 
-	RankInfo GetRankInfo(std::string connectCode);
+	RankInfo FetchUserRank(std::string connectCode);
+	RankInfo GetRankInfo();
 	SlippiRank GetRank(float ratingOrdinal, int globalPlacing, int regionalPlacing, int ratingUpdateCount);
 
 	const static std::vector<std::string> defaultChatMessages;
@@ -83,6 +86,7 @@ class SlippiUser
 
 	UserInfo userInfo;
 	bool isLoggedIn = false;
+	RankInfo userRank;
 
 	const std::string URL_START = "https://users-rest-dot-slippi.uc.r.appspot.com/user";
 	CURL *m_curl = nullptr;

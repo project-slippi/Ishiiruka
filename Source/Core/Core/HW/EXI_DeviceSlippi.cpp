@@ -3114,15 +3114,18 @@ void CEXISlippi::handleGetPlayerSettings()
 
 void CEXISlippi::handleGetRank()
 {
-	// INFO_LOG(SLIPPI, "handleGetRank()");
 	auto userInfo = user->GetUserInfo();
-	auto rankInfo = user->GetRankInfo(userInfo.connectCode);
+	auto prevRankInfo = user->GetRankInfo();
+	auto rankInfo = user->FetchUserRank(userInfo.connectCode);
 
 	u8 rank = rankInfo.rank;
 	float ratingOrdinal = rankInfo.ratingOrdinal;
 	u8 global = rankInfo.globalPlacing;
 	u8 regional = rankInfo.regionalPlacing;
 	u8 ratingUpdateCount = rankInfo.ratingUpdateCount;
+	float ratingChange = rankInfo.ratingChange;
+	// u8 rankChange = rankInfo.rankChange;
+	u8 rankChange = 1;
 
 	m_read_queue.clear();
 	m_read_queue.push_back(rank);
@@ -3135,6 +3138,14 @@ void CEXISlippi::handleGetRank()
 	m_read_queue.push_back(global);
 	m_read_queue.push_back(regional);
 	m_read_queue.push_back(ratingUpdateCount);
+
+	u.f = ratingChange;
+	for (int i = sizeof(float) - 1; i >= 0; i--)
+		m_read_queue.push_back((u8) u.bytes[i]);
+
+	m_read_queue.push_back(rankChange);
+
+	// INFO_LOG(SLIPPI_ONLINE, "ratingChange: %x %x %x %x", u.bytes[0], u.bytes[1], u.bytes[2], u.bytes[3]);
 }
 
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
