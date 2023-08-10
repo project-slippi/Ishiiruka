@@ -92,7 +92,7 @@ impl Jukebox {
             Dolphin::add_osd_message(
                 Color::Red,
                 dolphin_integrations::Duration::VeryLong,
-                "\nYour game file is incompatible with Slippi Jukebox. Music will not play.",
+                "\nYour ISO is incompatible with Slippi Jukebox. Music will not play.",
             );
             return Err(anyhow!("Provided iso does not have the magic number: GALE01"));
         }
