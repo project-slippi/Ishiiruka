@@ -25,6 +25,8 @@ PLAYBACK_CODES_PATH="./Data/PlaybackGeckoCodes/"
 APPDIR_BIN="./AppDir/usr/bin"
 APPDIR_HOOKS="./AppDir/apprun-hooks"
 
+NO_STRIP=on
+
 # Grab various appimage binaries from GitHub if we don't have them
 if [ ! -e ./Tools/linuxdeploy ]; then
 	wget ${LINUXDEPLOY_URL} -O ./Tools/linuxdeploy
