@@ -1,8 +1,9 @@
+mod errors;
+mod fst;
 mod scenes;
 mod tracks;
 mod utils;
 
-use anyhow::{Context, Result};
 use dolphin_integrations::Log;
 use hps_decode::{hps::Hps, pcm_iterator::PcmIterator};
 use process_memory::LocalMember;
@@ -14,8 +15,11 @@ use std::ops::ControlFlow::{self, Break, Continue};
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::{thread::sleep, time::Duration};
 use tracks::TrackId;
+use JukeboxError::*;
 
-use dolphin_integrations::{Color, Dolphin, Duration as OSDDuration};
+pub use errors::JukeboxError;
+
+pub(crate) type Result<T> = std::result::Result<T, JukeboxError>;
 
 /// Represents a foreign method from the Dolphin side for grabbing the current volume.
 /// Dolphin represents this as a number from 0 - 100; 0 being mute.
@@ -105,11 +109,13 @@ impl Jukebox {
 
         std::thread::Builder::new()
             .name("JukeboxMessageDispatcher".to_string())
-            .spawn(move || Self::dispatch_messages(m_p_ram, get_dolphin_volume, message_dispatcher_thread_rx, melee_event_tx))?;
+            .spawn(move || Self::dispatch_messages(m_p_ram, get_dolphin_volume, message_dispatcher_thread_rx, melee_event_tx))
+            .map_err(ThreadSpawnFailure)?;
 
         std::thread::Builder::new()
             .name("JukeboxMusicPlayer".to_string())
-            .spawn(move || Self::play_music(m_p_ram, &iso_path, get_dolphin_volume, music_thread_rx, melee_event_rx))?;
+            .spawn(move || Self::play_music(m_p_ram, &iso_path, get_dolphin_volume, music_thread_rx, melee_event_rx))
+            .map_err(ThreadSpawnFailure)?;
 
         Ok(Self {
             channel_senders: [message_dispatcher_thread_tx, music_thread_tx],
@@ -146,7 +152,7 @@ impl Jukebox {
                 let event = Self::produce_melee_event(&prev_state, &state);
                 tracing::info!(target: Log::Jukebox, "{:?}", event);
 
-                melee_event_tx.send(event)?;
+                melee_event_tx.send(event).map_err(|_| MeleeEventUnreceived)?;
                 prev_state = state;
             }
 
@@ -164,18 +170,10 @@ impl Jukebox {
         music_thread_rx: Receiver<JukeboxEvent>,
         melee_event_rx: Receiver<MeleeEvent>,
     ) -> Result<()> {
-        let mut iso = std::fs::File::open(iso_path)?;
+        let mut iso = std::fs::File::open(iso_path).map_err(GenericIOError)?;
 
         tracing::info!(target: Log::Jukebox, "Loading track metadata...");
-        let tracks = utils::create_track_map(&mut iso).map_err(|e| {
-            Dolphin::add_osd_message(
-                Color::Red,
-                OSDDuration::VeryLong,
-                "\nError starting Slippi Jukebox. Your ISO is likely incompatible. Music will not play.",
-            );
-            tracing::error!(target: Log::Jukebox, error = ?e, "Failed to create track map");
-            return e;
-        })?;
+        let tracks = fst::create_track_map(&mut iso)?;
         tracing::info!(target: Log::Jukebox, "Loaded metadata for {} tracks!", tracks.len());
 
         let (_stream, stream_handle) = OutputStream::try_default()?;
@@ -183,7 +181,7 @@ impl Jukebox {
 
         // The menu track and tournament-mode track are randomly selected
         // one time, and will be used for the rest of the session
-        let random_menu_tracks = utils::get_random_menu_tracks();
+        let random_menu_tracks = tracks::get_random_menu_tracks();
 
         // Initial music volume and track id. These values will get
         // updated by the `handle_melee_event` fn whenever a message is
@@ -203,9 +201,7 @@ impl Jukebox {
                     let size = size as usize;
 
                     // Parse data from the ISO into pcm samples
-                    let hps: Hps = utils::read_from_file(&mut iso, offset, size)?
-                        .try_into()
-                        .with_context(|| format!("The {size} bytes at offset 0x{offset:x?} could not be decoded into an Hps"))?;
+                    let hps: Hps = utils::read_from_file(&mut iso, offset, size)?.try_into()?;
 
                     let padding_length = hps.channel_count * hps.sample_rate / 4;
                     let audio_source = HpsAudioSource {
@@ -349,7 +345,11 @@ impl Jukebox {
     fn read_dolphin_game_state(m_p_ram: &usize, dolphin_volume_percent: f32) -> Result<DolphinGameState> {
         #[inline(always)]
         fn read<T: Copy>(offset: usize) -> Result<T> {
-            Ok(unsafe { LocalMember::<T>::new_offset(vec![offset]).read()? })
+            Ok(unsafe {
+                LocalMember::<T>::new_offset(vec![offset])
+                    .read()
+                    .map_err(DolphinMemoryReadError)?
+            })
         }
         // https://github.com/bkacjios/m-overlay/blob/d8c629d/source/modules/games/GALE01-2.lua#L8
         let melee_volume_percent = ((read::<i8>(m_p_ram + 0x45C384)? as f32 - 100.0) * -1.0) / 100.0;
@@ -383,7 +383,7 @@ impl Drop for Jukebox {
         tracing::info!(target: Log::Jukebox, "Dropping Slippi Jukebox");
         for sender in &self.channel_senders {
             if let Err(e) = sender.send(JukeboxEvent::Dropped) {
-                tracing::error!(
+                tracing::warn!(
                     target: Log::Jukebox,
                     "Failed to notify child thread that Jukebox is dropping: {e}"
                 );
