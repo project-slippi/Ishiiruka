@@ -103,10 +103,10 @@ impl GameReporterQueue {
 
         match res {
             Ok(value) if value == "true" => {
-                tracing::info!(target: Log::GameReporter, "Successfully executed abandonment request")
+                tracing::info!(target: Log::GameReporter, "Successfully executed completion request")
             },
-            Ok(value) => tracing::error!(target: Log::GameReporter, ?value, "Error executing abandonment request",),
-            Err(error) => tracing::error!(target: Log::GameReporter, ?error, "Error executing abandonment request"),
+            Ok(value) => tracing::error!(target: Log::GameReporter, ?value, "Error executing completion request",),
+            Err(error) => tracing::error!(target: Log::GameReporter, ?error, "Error executing completion request"),
         }
     }
 
