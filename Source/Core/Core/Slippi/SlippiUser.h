@@ -57,7 +57,7 @@ class SlippiUser
 		u8 regionalPlacing;
 		u8 ratingUpdateCount;
 		float ratingChange;
-		u8 rankChange;
+		int rankChange;
 	};
 
 	SlippiUser();

@@ -48,7 +48,7 @@
 #define SLEEP_TIME_MS 8
 #define WRITE_FILE_SLEEP_TIME_MS 85
 
-// #define LOCAL_TESTING
+#define LOCAL_TESTING
 // #define CREATE_DIFF_FILES
 
 static std::unordered_map<u8, std::string> slippi_names;
@@ -3124,28 +3124,30 @@ void CEXISlippi::handleGetRank()
 	u8 regional = rankInfo.regionalPlacing;
 	u8 ratingUpdateCount = rankInfo.ratingUpdateCount;
 	float ratingChange = rankInfo.ratingChange;
-	// u8 rankChange = rankInfo.rankChange;
-	u8 rankChange = 1;
+	int rankChange = rankInfo.rankChange;
 
 	m_read_queue.clear();
 	m_read_queue.push_back(rank);
 
-	union { float f; unsigned char bytes[sizeof(float)]; } u;
-	u.f = ratingOrdinal;
+	union { float data; unsigned char bytes[sizeof(float)]; } u_f;
+	u_f.data= ratingOrdinal;
 	for (int i = sizeof(float) - 1; i >= 0; i--)
-		m_read_queue.push_back((u8) u.bytes[i]);
+		m_read_queue.push_back((u8) u_f.bytes[i]);
 
 	m_read_queue.push_back(global);
 	m_read_queue.push_back(regional);
 	m_read_queue.push_back(ratingUpdateCount);
 
-	u.f = ratingChange;
+	u_f.data = ratingChange;
 	for (int i = sizeof(float) - 1; i >= 0; i--)
-		m_read_queue.push_back((u8) u.bytes[i]);
+		m_read_queue.push_back((u8) u_f.bytes[i]);
 
-	m_read_queue.push_back(rankChange);
+	union { int data; unsigned char bytes[sizeof(int)]; } u_i;
+	u_i.data = rankChange;
+	for (int i = sizeof(int) - 1; i >= 0; i--)
+		m_read_queue.push_back((u8) u_i.bytes[i]);
 
-	// INFO_LOG(SLIPPI_ONLINE, "ratingChange: %x %x %x %x", u.bytes[0], u.bytes[1], u.bytes[2], u.bytes[3]);
+	INFO_LOG(SLIPPI_ONLINE, "rankChange: %d", rankChange);
 }
 
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
