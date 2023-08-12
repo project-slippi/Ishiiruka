@@ -111,9 +111,13 @@ impl Jukebox {
         std::thread::Builder::new()
             .name("JukeboxMessageDispatcher".to_string())
             .spawn(move || {
-                let result = Self::dispatch_messages(m_p_ram, get_dolphin_volume, message_dispatcher_thread_rx, melee_event_tx);
-                if let Err(e) = result {
-                    tracing::error!(target: Log::Jukebox, error = ?e, "JukeboxMessageDispatcher thread encountered an error: {e}");
+                match Self::dispatch_messages(m_p_ram, get_dolphin_volume, message_dispatcher_thread_rx, melee_event_tx) {
+                    Err(e) => tracing::error!(
+                        target: Log::Jukebox,
+                        error = ?e,
+                        "JukeboxMessageDispatcher thread encountered an error: {e}"
+                    ),
+                    _ => (),
                 }
             })
             .map_err(ThreadSpawnFailure)?;
@@ -121,19 +125,21 @@ impl Jukebox {
         // Spawn music player thread
         std::thread::Builder::new()
             .name("JukeboxMusicPlayer".to_string())
-            .spawn(move || {
-                let result = Self::play_music(m_p_ram, &iso_path, get_dolphin_volume, music_thread_rx, melee_event_rx);
-                if let Err(e) = result {
-                    if matches!(e, UnsupportedIso) {
-                        Dolphin::add_osd_message(
-                            Color::Red,
-                            OSDDuration::VeryLong,
-                            "\nYour ISO is not supported by Slippi Jukebox. Music will not play.",
-                        );
-                    }
-                    tracing::error!(target: Log::Jukebox, error = ?e, "JukeboxMusicPlayer thread encountered an error: {e}");
-                }
-            })
+            .spawn(
+                move || match Self::play_music(m_p_ram, &iso_path, get_dolphin_volume, music_thread_rx, melee_event_rx) {
+                    Err(UnsupportedIso) => Dolphin::add_osd_message(
+                        Color::Red,
+                        OSDDuration::VeryLong,
+                        "\nYour ISO is not supported by Slippi Jukebox. Music will not play.",
+                    ),
+                    Err(e) => tracing::error!(
+                        target: Log::Jukebox,
+                        error = ?e,
+                        "JukeboxMusicPlayer thread encountered an error: {e}"
+                    ),
+                    _ => (),
+                },
+            )
             .map_err(ThreadSpawnFailure)?;
 
         Ok(Self {
