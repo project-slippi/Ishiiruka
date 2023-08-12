@@ -189,7 +189,7 @@ impl Jukebox {
         music_thread_rx: Receiver<JukeboxEvent>,
         melee_event_rx: Receiver<MeleeEvent>,
     ) -> Result<()> {
-        let mut iso = std::fs::File::open(iso_path).map_err(GenericIOError)?;
+        let mut iso = std::fs::File::open(iso_path)?;
 
         tracing::info!(target: Log::Jukebox, "Loading track metadata...");
         let tracks = fst::create_track_map(&mut iso)?;

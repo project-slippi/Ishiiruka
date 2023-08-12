@@ -11,7 +11,7 @@ use std::io::{Read, Seek};
 const CISO_HEADER_SIZE: usize = 0x8000;
 const CISO_BLOCK_MAP_SIZE: usize = CISO_HEADER_SIZE - 0x8;
 
-// Block size and Block Map
+// (Block Size, Block Map)
 type CisoHeader = (u32, [u8; CISO_BLOCK_MAP_SIZE]);
 
 #[derive(Debug, Clone, Copy)]
@@ -36,20 +36,23 @@ pub(crate) fn create_track_map(iso: &mut File) -> Result<HashMap<TrackId, (u32, 
         IsoKind::Unknown => return Err(UnsupportedIso),
     };
 
+    // `get_true_offset` is a fn that takes an offset for a standard disc image, and
+    // returns it's _true_ offset (which differs between standard and ciso)
+    let get_true_offset = create_offset_locator_fn(ciso_header.as_ref());
+
     // Filesystem Table (FST)
-    let fst_location_offset = translate_offset(RAW_FST_LOCATION_OFFSET, ciso_header.as_ref())
+    let fst_location_offset = get_true_offset(RAW_FST_LOCATION_OFFSET)
         .ok_or(FstParseError("FST location offset is missing from the ISO".to_string()))?;
 
-    let fst_size_offset = translate_offset(RAW_FST_SIZE_OFFSET, ciso_header.as_ref())
-        .ok_or(FstParseError("FST size offset is missing from the ISO".to_string()))?;
+    let fst_size_offset =
+        get_true_offset(RAW_FST_SIZE_OFFSET).ok_or(FstParseError("FST size offset is missing from the ISO".to_string()))?;
 
     let fst_location = u32::from_be_bytes(
         read_from_file(iso, fst_location_offset as u64, 0x4)?
             .try_into()
             .map_err(|_| FstParseError("Unable to read FST offset as u32".to_string()))?,
     );
-    let fst_location = translate_offset(fst_location, ciso_header.as_ref())
-        .ok_or(FstParseError("FST location is missing from the ISO".to_string()))?;
+    let fst_location = get_true_offset(fst_location).ok_or(FstParseError("FST location is missing from the ISO".to_string()))?;
 
     if fst_location <= 0 {
         return Err(FstParseError("FST location is 0".to_string()));
@@ -80,7 +83,7 @@ pub(crate) fn create_track_map(iso: &mut File) -> Result<HashMap<TrackId, (u32, 
             if is_file && name.ends_with(".hps") {
                 match get_track_id_by_filename(&name) {
                     Some(track_id) => {
-                        let offset = translate_offset(offset, ciso_header.as_ref())?;
+                        let offset = get_true_offset(offset)?;
                         Some((track_id, (offset, size)))
                     },
                     None => None,
@@ -183,10 +186,20 @@ fn get_ciso_offset(header: &CisoHeader, offset: u32) -> Option<u32> {
     Some(ciso_offset as u32)
 }
 
-/// Given an offset for a standard disc image, return it's true position in the
-/// iso
-fn translate_offset(offset: u32, ciso_header: Option<&CisoHeader>) -> Option<u32> {
-    match ciso_header {
+/// When we want to read data from an offset for a _standard_ disc image, we need
+/// to know what the _actual_ offset is for the iso that we _have on hand_.
+/// This can vary depending on the kind of disc image that we are dealing
+/// with (standard vs ciso, for example)
+///
+/// This HoF returns a fn that can be used to locate the true offset
+///
+/// Example Usage:
+/// ```
+/// let get_true_offset = create_offset_locator(None);
+/// let true_offset = get_true_offset(0x424);
+/// ```
+fn create_offset_locator_fn(ciso_header: Option<&CisoHeader>) -> impl Fn(u32) -> Option<u32> + '_ {
+    move |offset| match ciso_header {
         Some(ciso_header) => get_ciso_offset(ciso_header, offset),
         None => Some(offset),
     }
