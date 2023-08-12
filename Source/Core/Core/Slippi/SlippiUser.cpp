@@ -185,10 +185,74 @@ SlippiUser::RankInfo SlippiUser::FetchUserRank(std::string connectCode)
 {
 	RankInfo info;
 
+	const char *query = 
+		"fragment profileFields on NetplayProfile {\n"
+		"  id\n"
+		"  ratingOrdinal\n"
+		"  ratingUpdateCount\n"
+		"  wins\n"
+		"  losses\n"
+		"  dailyGlobalPlacement\n"
+		"  dailyRegionalPlacement\n"
+		"  continent\n  characters {\n"
+		"    id\n"
+		"    character\n"
+		"    gameCount\n"
+		"    __typename\n"
+		"  }\n"
+		"  __typename\n"
+		"}\n"
+		"\n"
+		"fragment userProfilePage on User {\n"
+		"  fbUid\n"
+		"  displayName\n"
+		"  connectCode {\n"
+		"    code\n"
+		"    __typename\n"
+		"  }\n"
+		"  status\n"
+		"  activeSubscription {\n"
+		"    level\n"
+		"    hasGiftSub\n"
+		"    __typename\n"
+		"  }\n"
+		"  rankedNetplayProfile {\n"
+		"    ...profileFields\n"
+		"    __typename\n"
+		"  }\n"
+		"  netplayProfiles {\n"
+		"    ...profileFields\n"
+		"    season {\n"
+		"      id\n"
+		"      startedAt\n"
+		"      endedAt\n"
+		"      name\n"
+		"      status\n"
+		"      __typename\n"
+		"    }\n"
+		"    __typename\n"
+		"  }\n"
+		"  __typename\n"
+		"}\n"
+		"\n"
+		"query AccountManagementPageQuery($cc: String!, $uid: String!) {\n"
+		"  getUser(fbUid: $uid) {\n"
+		"    ...userProfilePage\n"
+		"    __typename\n"
+		"  }\n"
+		"  getConnectCode(code: $cc) {\n"
+		"    user {\n"
+		"      ...userProfilePage\n"
+		"      __typename\n"
+		"    }\n"
+		"    __typename\n"
+		"  }\n"
+		"}\n";
+
 	std::string url = "https://gql-gateway-dot-slippi.uc.r.appspot.com/graphql";
 	json body = {{"operationName", "AccountManagementPageQuery"},
 		{"variables", {{"cc", connectCode}, {"uid", connectCode}}},
-	    {"query", "fragment profileFields on NetplayProfile {\n  id\n  ratingOrdinal\n  ratingUpdateCount\n  wins\n  losses\n  dailyGlobalPlacement\n  dailyRegionalPlacement\n  continent\n  characters {\n    id\n    character\n    gameCount\n    __typename\n  }\n  __typename\n}\n\nfragment userProfilePage on User {\n  fbUid\n  displayName\n  connectCode {\n    code\n    __typename\n  }\n  status\n  activeSubscription {\n    level\n    hasGiftSub\n    __typename\n  }\n  rankedNetplayProfile {\n    ...profileFields\n    __typename\n  }\n  netplayProfiles {\n    ...profileFields\n    season {\n      id\n      startedAt\n      endedAt\n      name\n      status\n      __typename\n    }\n    __typename\n  }\n  __typename\n}\n\nquery AccountManagementPageQuery($cc: String!, $uid: String!) {\n  getUser(fbUid: $uid) {\n    ...userProfilePage\n    __typename\n  }\n  getConnectCode(code: $cc) {\n    user {\n      ...userProfilePage\n      __typename\n    }\n    __typename\n  }\n}\n"}};
+		{"query", query}};
 
 	// INFO_LOG(SLIPPI_ONLINE, "Preparing request...");
 	// Perform curl request
