@@ -3129,25 +3129,14 @@ void CEXISlippi::handleGetRank()
 	m_read_queue.clear();
 	m_read_queue.push_back(rank);
 
-	union { float data; unsigned char bytes[sizeof(float)]; } u_f;
-	u_f.data= ratingOrdinal;
-	for (int i = sizeof(float) - 1; i >= 0; i--)
-		m_read_queue.push_back((u8) u_f.bytes[i]);
+	appendWordToBuffer(&m_read_queue, *(u32 *)&ratingOrdinal);
 
 	m_read_queue.push_back(global);
 	m_read_queue.push_back(regional);
 	m_read_queue.push_back(ratingUpdateCount);
 
-	u_f.data = ratingChange;
-	for (int i = sizeof(float) - 1; i >= 0; i--)
-		m_read_queue.push_back((u8) u_f.bytes[i]);
-
-	union { int data; unsigned char bytes[sizeof(int)]; } u_i;
-	u_i.data = rankChange;
-	for (int i = sizeof(int) - 1; i >= 0; i--)
-		m_read_queue.push_back((u8) u_i.bytes[i]);
-
-	INFO_LOG(SLIPPI_ONLINE, "rankChange: %d", rankChange);
+	appendWordToBuffer(&m_read_queue, *(u32 *)&ratingChange);
+	appendWordToBuffer(&m_read_queue, *(u32 *)&rankChange);
 }
 
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
