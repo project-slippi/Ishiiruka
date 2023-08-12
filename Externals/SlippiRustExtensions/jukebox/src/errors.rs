@@ -2,9 +2,6 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum JukeboxError {
-    #[error("JukeboxMusicPlayer thread did not receive a MeleeEvent that was sent by the JukeboxMessageDispatcher thread")]
-    MeleeEventUnreceived,
-
     #[error("{0}")]
     GenericIOError(#[from] std::io::Error),
 

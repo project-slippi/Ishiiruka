@@ -4,7 +4,7 @@ mod scenes;
 mod tracks;
 mod utils;
 
-use dolphin_integrations::Log;
+use dolphin_integrations::{Color, Dolphin, Duration as OSDDuration, Log};
 use hps_decode::{hps::Hps, pcm_iterator::PcmIterator};
 use process_memory::LocalMember;
 use process_memory::Memory;
@@ -107,14 +107,33 @@ impl Jukebox {
         let (message_dispatcher_thread_tx, message_dispatcher_thread_rx) = channel::<JukeboxEvent>();
         let (music_thread_tx, music_thread_rx) = channel::<JukeboxEvent>();
 
+        // Spawn message dispatcher thread
         std::thread::Builder::new()
             .name("JukeboxMessageDispatcher".to_string())
-            .spawn(move || Self::dispatch_messages(m_p_ram, get_dolphin_volume, message_dispatcher_thread_rx, melee_event_tx))
+            .spawn(move || {
+                let result = Self::dispatch_messages(m_p_ram, get_dolphin_volume, message_dispatcher_thread_rx, melee_event_tx);
+                if let Err(e) = result {
+                    tracing::error!(target: Log::Jukebox, error = ?e, "JukeboxMessageDispatcher thread encountered an error: {e}");
+                }
+            })
             .map_err(ThreadSpawnFailure)?;
 
+        // Spawn music player thread
         std::thread::Builder::new()
             .name("JukeboxMusicPlayer".to_string())
-            .spawn(move || Self::play_music(m_p_ram, &iso_path, get_dolphin_volume, music_thread_rx, melee_event_rx))
+            .spawn(move || {
+                let result = Self::play_music(m_p_ram, &iso_path, get_dolphin_volume, music_thread_rx, melee_event_rx);
+                if let Err(e) = result {
+                    if matches!(e, UnsupportedIso) {
+                        Dolphin::add_osd_message(
+                            Color::Red,
+                            OSDDuration::VeryLong,
+                            "\nYour ISO is not supported by Slippi Jukebox. Music will not play.",
+                        );
+                    }
+                    tracing::error!(target: Log::Jukebox, error = ?e, "JukeboxMusicPlayer thread encountered an error: {e}");
+                }
+            })
             .map_err(ThreadSpawnFailure)?;
 
         Ok(Self {
@@ -152,7 +171,7 @@ impl Jukebox {
                 let event = Self::produce_melee_event(&prev_state, &state);
                 tracing::info!(target: Log::Jukebox, "{:?}", event);
 
-                melee_event_tx.send(event).map_err(|_| MeleeEventUnreceived)?;
+                melee_event_tx.send(event).ok();
                 prev_state = state;
             }
 

@@ -5,9 +5,9 @@
 //! `SlippiEXIDevice` and forwards calls over the C FFI. This has a fairly clean mapping to "when
 //! Slippi stuff is happening" and enables us to let the Rust side live in its own world.
 
-use dolphin_integrations::{Color, Dolphin, Duration as OSDDuration, Log};
+use dolphin_integrations::Log;
 use slippi_game_reporter::SlippiGameReporter;
-use slippi_jukebox::{Jukebox, JukeboxError};
+use slippi_jukebox::Jukebox;
 
 /// An EXI Device subclass specific to managing and interacting with the game itself.
 #[derive(Debug)]
@@ -56,22 +56,11 @@ impl SlippiEXIDevice {
                 self.jukebox = Some(jukebox);
             },
 
-            Err(e) => match e {
-                JukeboxError::UnsupportedIso => {
-                    Dolphin::add_osd_message(
-                        Color::Red,
-                        OSDDuration::VeryLong,
-                        "\nYour ISO is not supported by Slippi Jukebox. Music will not play.",
-                    );
-                },
-                _ => {
-                    tracing::error!(
-                        target: Log::EXI,
-                        error = ?e,
-                        "Failed to start Jukebox"
-                    );
-                },
-            },
+            Err(e) => tracing::error!(
+                target: Log::EXI,
+                error = ?e,
+                "Failed to start Jukebox"
+            ),
         }
     }
 }
