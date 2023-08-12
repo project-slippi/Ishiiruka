@@ -233,10 +233,10 @@ SlippiUser::RankInfo SlippiUser::FetchUserRank(std::string connectCode)
 	SlippiRank rank = GetRank(ratingOrdinal, global, regional, ratingUpdateCount);
 	INFO_LOG(SLIPPI_ONLINE, "Rank: %d", rank);
 
-	float ratingChange =  (userRank.ratingOrdinal > 0.001f) ? ratingOrdinal - userRank.ratingOrdinal : 0;
+	float ratingChange = (userRank.ratingOrdinal > 0.001f) ? ratingOrdinal - userRank.ratingOrdinal : 0;
 	INFO_LOG(SLIPPI_ONLINE, "Rating Change: %0.1f", ratingChange);
 
-	u8 rankChange = userRank.rankChange;
+	u8 rankChange = (userRank.rank > 0.001f) ? rank - userRank.rank: 0;
 	INFO_LOG(SLIPPI_ONLINE, "Rank Change: %d", rankChange);
 
 	info.ratingOrdinal = ratingOrdinal;
