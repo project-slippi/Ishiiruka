@@ -122,7 +122,7 @@ impl Jukebox {
                     _ => (),
                 }
             })
-            .map_err(ThreadSpawnFailure)?;
+            .map_err(ThreadSpawn)?;
 
         // Spawn music player thread
         std::thread::Builder::new()
@@ -142,7 +142,7 @@ impl Jukebox {
                     _ => (),
                 },
             )
-            .map_err(ThreadSpawnFailure)?;
+            .map_err(ThreadSpawn)?;
 
         Ok(Self {
             channel_senders: [message_dispatcher_thread_tx, music_thread_tx],
@@ -372,11 +372,7 @@ impl Jukebox {
     fn read_dolphin_game_state(m_p_ram: &usize, dolphin_volume_percent: f32) -> Result<DolphinGameState> {
         #[inline(always)]
         fn read<T: Copy>(offset: usize) -> Result<T> {
-            Ok(unsafe {
-                LocalMember::<T>::new_offset(vec![offset])
-                    .read()
-                    .map_err(DolphinMemoryReadError)?
-            })
+            Ok(unsafe { LocalMember::<T>::new_offset(vec![offset]).read().map_err(DolphinMemoryRead)? })
         }
         // https://github.com/bkacjios/m-overlay/blob/d8c629d/source/modules/games/GALE01-2.lua#L8
         let melee_volume_percent = ((read::<i8>(m_p_ram + 0x45C384)? as f32 - 100.0) * -1.0) / 100.0;

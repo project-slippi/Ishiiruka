@@ -42,27 +42,27 @@ pub(crate) fn create_track_map(iso: &mut File) -> Result<HashMap<TrackId, (u32, 
     let get_true_offset = create_offset_locator_fn(ciso_header.as_ref());
 
     // Filesystem Table (FST)
-    let fst_location_offset = get_true_offset(RAW_FST_LOCATION_OFFSET)
-        .ok_or(FstParseError("FST location offset is missing from the ISO".to_string()))?;
+    let fst_location_offset =
+        get_true_offset(RAW_FST_LOCATION_OFFSET).ok_or(FstParse("FST location offset is missing from the ISO".to_string()))?;
 
     let fst_size_offset =
-        get_true_offset(RAW_FST_SIZE_OFFSET).ok_or(FstParseError("FST size offset is missing from the ISO".to_string()))?;
+        get_true_offset(RAW_FST_SIZE_OFFSET).ok_or(FstParse("FST size offset is missing from the ISO".to_string()))?;
 
     let fst_location = u32::from_be_bytes(
         read_from_file(iso, fst_location_offset as u64, 0x4)?
             .try_into()
-            .map_err(|_| FstParseError("Unable to read FST offset as u32".to_string()))?,
+            .map_err(|_| FstParse("Unable to read FST offset as u32".to_string()))?,
     );
-    let fst_location = get_true_offset(fst_location).ok_or(FstParseError("FST location is missing from the ISO".to_string()))?;
+    let fst_location = get_true_offset(fst_location).ok_or(FstParse("FST location is missing from the ISO".to_string()))?;
 
     if fst_location <= 0 {
-        return Err(FstParseError("FST location is 0".to_string()));
+        return Err(FstParse("FST location is 0".to_string()));
     }
 
     let fst_size = u32::from_be_bytes(
         read_from_file(iso, fst_size_offset as u64, 0x4)?
             .try_into()
-            .map_err(|_| FstParseError("Unable to read FST size as u32".to_string()))?,
+            .map_err(|_| FstParse("Unable to read FST size as u32".to_string()))?,
     );
 
     let fst = read_from_file(iso, fst_location as u64, fst_size as usize)?;
@@ -103,7 +103,7 @@ fn read_u24(bytes: &[u8], offset: usize) -> Result<u32> {
     let mut padded_bytes = [0; 4];
     let slice = &bytes
         .get(offset..end)
-        .ok_or(FstParseError("Too few bytes to read u24".to_string()))?;
+        .ok_or(FstParse("Too few bytes to read u24".to_string()))?;
     padded_bytes[1..4].copy_from_slice(slice);
     Ok(u32::from_be_bytes(padded_bytes))
 }
@@ -115,7 +115,7 @@ fn read_u32(bytes: &[u8], offset: usize) -> Result<u32> {
     Ok(u32::from_be_bytes(
         bytes
             .get(offset..end)
-            .ok_or(FstParseError("Too few bytes to read u32".to_string()))?
+            .ok_or(FstParse("Too few bytes to read u32".to_string()))?
             .try_into()
             .unwrap_or_else(|_| unreachable!("u32::BITS / 8 is always 4")),
     ))
@@ -124,14 +124,14 @@ fn read_u32(bytes: &[u8], offset: usize) -> Result<u32> {
 /// Given an iso file, determine what kind it is
 fn get_iso_kind(iso: &mut File) -> Result<IsoKind> {
     // Get the first four bytes
-    iso.rewind().map_err(IsoSeekError)?;
+    iso.rewind().map_err(IsoSeek)?;
     let mut initial_bytes = [0; 4];
-    iso.read_exact(&mut initial_bytes).map_err(IsoReadError)?;
+    iso.read_exact(&mut initial_bytes).map_err(IsoRead)?;
 
     // Get the four bytes at 0x1c
-    iso.seek(std::io::SeekFrom::Start(0x1c)).map_err(IsoSeekError)?;
+    iso.seek(std::io::SeekFrom::Start(0x1c)).map_err(IsoSeek)?;
     let mut dvd_magic_bytes = [0; 4];
-    iso.read_exact(&mut dvd_magic_bytes).map_err(IsoReadError)?;
+    iso.read_exact(&mut dvd_magic_bytes).map_err(IsoRead)?;
 
     match (initial_bytes, dvd_magic_bytes) {
         // DVD Magic Word
