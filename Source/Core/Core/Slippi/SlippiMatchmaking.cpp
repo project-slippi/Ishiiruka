@@ -240,7 +240,7 @@ static char *getLocalAddressFallback()
 // Set up and connect a socket (UDP, so "connect" doesn't actually send any
 // packets) so that the OS will determine what device/local IP address we will
 // actually use.
-static enet_uint32 getLocalAddressNew(ENetAddress *mm_address)
+static enet_uint32 getLocalAddress(ENetAddress *mm_address)
 {
 	ENetSocket socket = enet_socket_create(ENET_SOCKET_TYPE_DATAGRAM);
 	if (socket == -1)
@@ -373,7 +373,7 @@ void SlippiMatchmaking::startMatchmaking()
 	}
 	else
 	{
-		enet_uint32 localAddress = getLocalAddressNew(&addr);
+		enet_uint32 localAddress = getLocalAddress(&addr);
 		if (localAddress != 0)
 		{
 			sprintf(lanAddr, "%s:%d", inet_ntoa(*(struct in_addr *)&localAddress), m_hostPort);
