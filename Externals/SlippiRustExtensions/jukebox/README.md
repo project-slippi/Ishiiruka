@@ -1,6 +1,6 @@
 # Slippi Jukebox
 
-Slippi Jukebox is a built-in solution to play Melee's OST in a manner that's effectively detached from emulation.
+Slippi Jukebox serves as an integrated solution for playing Melee's OST in a way that's effectively independent from emulation.
 
 ## Features
 
