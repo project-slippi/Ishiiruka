@@ -246,19 +246,25 @@ static enet_uint32 getLocalAddressNew(ENetAddress *mm_address)
 	if (socket == -1)
 	{
 		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Failed to get local address: socket create");
+		enet_socket_destroy(socket);
 		return 0;
 	}
+
 	if (enet_socket_connect(socket, mm_address) == -1)
 	{
 		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Failed to get local address: socket connect");
+		enet_socket_destroy(socket);
 		return 0;
 	}
+
 	ENetAddress enetAddress;
 	if (enet_socket_get_address(socket, &enetAddress) == -1)
 	{
 		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Failed to get local address: socket get address");
+		enet_socket_destroy(socket);
 		return 0;
 	}
+
 	enet_socket_destroy(socket);
 	return enetAddress.host;
 }
