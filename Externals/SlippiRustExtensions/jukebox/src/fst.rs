@@ -1,11 +1,12 @@
-use crate::tracks::{get_track_id_by_filename, TrackId};
-use crate::utils::read_from_file;
-use crate::JukeboxError::*;
-use crate::Result;
 use std::collections::HashMap;
 use std::ffi::CStr;
 use std::fs::File;
 use std::io::{Read, Seek};
+
+use crate::tracks::{get_track_id_by_filename, TrackId};
+use crate::utils::read_from_file;
+use crate::JukeboxError::*;
+use crate::Result;
 
 // Constants for CISO images (compressed ISO)
 const CISO_HEADER_SIZE: usize = 0x8000;

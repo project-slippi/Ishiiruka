@@ -1,23 +1,25 @@
-mod errors;
-mod fst;
-mod scenes;
-mod tracks;
-mod utils;
-
-use dolphin_integrations::{Color, Dolphin, Duration as OSDDuration, Log};
-use hps_decode::{hps::Hps, pcm_iterator::PcmIterator};
-use process_memory::LocalMember;
-use process_memory::Memory;
-use rodio::{OutputStream, Sink};
-use scenes::scene_ids::*;
 use std::convert::TryInto;
 use std::ops::ControlFlow::{self, Break, Continue};
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::{thread::sleep, time::Duration};
-use tracks::TrackId;
+
+use dolphin_integrations::{Color, Dolphin, Duration as OSDDuration, Log};
+use hps_decode::{Hps, PcmIterator};
+use process_memory::{LocalMember, Memory};
+use rodio::{OutputStream, Sink};
+
+mod errors;
+pub use errors::JukeboxError;
 use JukeboxError::*;
 
-pub use errors::JukeboxError;
+mod fst;
+mod scenes;
+use scenes::scene_ids::*;
+
+mod tracks;
+use tracks::TrackId;
+
+mod utils;
 
 pub(crate) type Result<T> = std::result::Result<T, JukeboxError>;
 

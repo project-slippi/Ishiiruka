@@ -1,7 +1,8 @@
-use crate::scenes::scene_ids::*;
-use crate::{JukeboxError::*, Result};
 use std::fs::File;
 use std::io::{Read, Seek};
+
+use crate::scenes::scene_ids::*;
+use crate::{JukeboxError::*, Result};
 
 /// Get a copy of the `size` bytes in `file` at `offset`
 pub(crate) fn read_from_file(file: &mut File, offset: u64, size: usize) -> Result<Vec<u8>> {
