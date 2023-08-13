@@ -4,16 +4,11 @@ use std::fs::File;
 use std::io::{Read, Seek};
 
 use crate::tracks::{get_track_id_by_filename, TrackId};
-use crate::utils::read_from_file;
+use crate::utils::copy_bytes_from_file;
 use crate::JukeboxError::*;
 use crate::Result;
 
-// Constants for CISO images (compressed ISO)
-const CISO_HEADER_SIZE: usize = 0x8000;
-const CISO_BLOCK_MAP_SIZE: usize = CISO_HEADER_SIZE - 0x8;
-
-// (Block Size, Block Map)
-type CisoHeader = (u32, [u8; CISO_BLOCK_MAP_SIZE]);
+mod ciso;
 
 #[derive(Debug, Clone, Copy)]
 enum IsoKind {
@@ -24,22 +19,15 @@ enum IsoKind {
 
 /// Produces a hashmap containing offsets and sizes of .hps files contained within the iso
 /// These can be looked up by TrackId
-pub(crate) fn create_track_map(iso: &mut File) -> Result<HashMap<TrackId, (u32, u32)>> {
+pub(crate) fn create_track_map(iso_path: &str) -> Result<HashMap<TrackId, (u32, u32)>> {
     const RAW_FST_LOCATION_OFFSET: u32 = 0x424;
     const RAW_FST_SIZE_OFFSET: u32 = 0x0428;
     const FST_ENTRY_SIZE: usize = 0xC;
 
-    // Get the CISO header (block size and block map) of the provided iso.
-    // If the provided iso is not a CISO, this will be `None`
-    let ciso_header = match get_iso_kind(iso)? {
-        IsoKind::Standard => None,
-        IsoKind::Ciso => get_ciso_header(iso)?,
-        IsoKind::Unknown => return Err(UnsupportedIso),
-    };
-
     // `get_true_offset` is a fn that takes an offset for a standard disc image, and
     // returns it's _true_ offset (which differs between standard and ciso)
-    let get_true_offset = create_offset_locator_fn(ciso_header.as_ref());
+    let get_true_offset = create_offset_locator_fn(iso_path)?;
+    let mut iso = File::open(iso_path)?;
 
     // Filesystem Table (FST)
     let fst_location_offset =
@@ -49,7 +37,7 @@ pub(crate) fn create_track_map(iso: &mut File) -> Result<HashMap<TrackId, (u32, 
         get_true_offset(RAW_FST_SIZE_OFFSET).ok_or(FstParse("FST size offset is missing from the ISO".to_string()))?;
 
     let fst_location = u32::from_be_bytes(
-        read_from_file(iso, fst_location_offset as u64, 0x4)?
+        copy_bytes_from_file(&mut iso, fst_location_offset as u64, 0x4)?
             .try_into()
             .map_err(|_| FstParse("Unable to read FST offset as u32".to_string()))?,
     );
@@ -60,12 +48,12 @@ pub(crate) fn create_track_map(iso: &mut File) -> Result<HashMap<TrackId, (u32, 
     }
 
     let fst_size = u32::from_be_bytes(
-        read_from_file(iso, fst_size_offset as u64, 0x4)?
+        copy_bytes_from_file(&mut iso, fst_size_offset as u64, 0x4)?
             .try_into()
             .map_err(|_| FstParse("Unable to read FST size as u32".to_string()))?,
     );
 
-    let fst = read_from_file(iso, fst_location as u64, fst_size as usize)?;
+    let fst = copy_bytes_from_file(&mut iso, fst_location as u64, fst_size as usize)?;
 
     // FST String Table
     let str_table_offset = read_u32(&fst, 0x8)? as usize * FST_ENTRY_SIZE;
@@ -142,66 +130,33 @@ fn get_iso_kind(iso: &mut File) -> Result<IsoKind> {
     }
 }
 
-/// Get the header of a ciso disc image. If the provided file is not a ciso,
-/// `None` will be returned
-fn get_ciso_header(iso: &mut File) -> Result<Option<CisoHeader>> {
-    match get_iso_kind(iso)? {
-        IsoKind::Ciso => {
-            // Get the block size
-            let mut block_size = [0; 0x4];
-            iso.seek(std::io::SeekFrom::Start(0x4))?;
-            iso.read_exact(&mut block_size)?;
-            let block_size = u32::from_le_bytes(block_size);
-
-            // Get the block map
-            let mut block_map = [0; CISO_BLOCK_MAP_SIZE];
-            iso.seek(std::io::SeekFrom::Start(0x8))?;
-            iso.read_exact(&mut block_map)?;
-
-            Ok(Some((block_size, block_map)))
-        },
-        _ => Ok(None),
-    }
-}
-
-// Given an offset for an standard disc image, return the offset for a ciso
-// image
-fn get_ciso_offset(header: &CisoHeader, offset: u32) -> Option<u32> {
-    let block_size = header.0 as usize;
-    let block_map = header.1;
-    let offset = offset as usize;
-
-    // Get position of the block that `offset` is contained in
-    let block_pos = offset / block_size;
-
-    // If the block map has a 0 (no data) at `block_pos` (or if the `block_pos`
-    // is out of bounds), return None
-    if block_pos >= CISO_BLOCK_MAP_SIZE || block_map[block_pos] == 0 {
-        return None;
-    }
-
-    // Otherwise return the offset in the ciso by accounting for all of the
-    // empty data blocks up until `block_pos`
-    let empty_block_count = block_map[0..block_pos].iter().filter(|&b| *b == 0).count();
-    let ciso_offset = offset + CISO_HEADER_SIZE - (block_size * empty_block_count);
-    Some(ciso_offset as u32)
-}
-
-/// When we want to read data from an offset for a _standard_ disc image, we need
-/// to know what the _actual_ offset is for the iso that we _have on hand_.
-/// This can vary depending on the kind of disc image that we are dealing
-/// with (standard vs ciso, for example)
+/// When we want to read data from any given iso file, but we only know the
+/// offset for a standard disc image, we need a way to be able to get the
+/// _actual_ offset for the file we have on hand.
 ///
-/// This HoF returns a fn that can be used to locate the true offset
+/// This can vary depending on the kind of disc image that we are dealing with
+/// (standard vs ciso, for example)
+///
+/// This HoF returns a fn that can be used to locate the true offset.
 ///
 /// Example Usage:
+/// ```no_run
+/// let get_true_offset = create_offset_locator("/foo/bar.iso");
+/// let offset = get_true_offset(0x424);
 /// ```
-/// let get_true_offset = create_offset_locator(None);
-/// let true_offset = get_true_offset(0x424);
-/// ```
-fn create_offset_locator_fn(ciso_header: Option<&CisoHeader>) -> impl Fn(u32) -> Option<u32> + '_ {
-    move |offset| match ciso_header {
-        Some(ciso_header) => get_ciso_offset(ciso_header, offset),
+fn create_offset_locator_fn(iso_path: &str) -> Result<impl Fn(u32) -> Option<u32> + '_> {
+    let mut iso = File::open(iso_path)?;
+
+    // Get the ciso header (block size and block map) of the provided file.
+    // If the file is not a ciso, this will be `None`
+    let ciso_header = match get_iso_kind(&mut iso)? {
+        IsoKind::Standard => None,
+        IsoKind::Ciso => ciso::get_ciso_header(&mut iso)?,
+        IsoKind::Unknown => return Err(UnsupportedIso),
+    };
+
+    Ok(move |offset| match ciso_header {
+        Some(ciso_header) => ciso::get_ciso_offset(&ciso_header, offset),
         None => Some(offset),
-    }
+    })
 }

@@ -5,7 +5,7 @@ use crate::scenes::scene_ids::*;
 use crate::{JukeboxError::*, Result};
 
 /// Get a copy of the `size` bytes in `file` at `offset`
-pub(crate) fn read_from_file(file: &mut File, offset: u64, size: usize) -> Result<Vec<u8>> {
+pub(crate) fn copy_bytes_from_file(file: &mut File, offset: u64, size: usize) -> Result<Vec<u8>> {
     file.seek(std::io::SeekFrom::Start(offset)).map_err(IsoSeek)?;
     let mut bytes = vec![0; size];
     file.read_exact(&mut bytes).map_err(IsoRead)?;

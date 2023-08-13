@@ -1,4 +1,5 @@
 use std::convert::TryInto;
+use std::fs::File;
 use std::ops::ControlFlow::{self, Break, Continue};
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::{thread::sleep, time::Duration};
@@ -197,14 +198,14 @@ impl Jukebox {
         music_thread_rx: Receiver<JukeboxEvent>,
         melee_event_rx: Receiver<MeleeEvent>,
     ) -> Result<()> {
-        let mut iso = std::fs::File::open(iso_path)?;
-
         tracing::info!(target: Log::Jukebox, "Loading track metadata...");
-        let tracks = fst::create_track_map(&mut iso)?;
+        let tracks = fst::create_track_map(&iso_path)?;
         tracing::info!(target: Log::Jukebox, "Loaded metadata for {} tracks!", tracks.len());
 
         let (_stream, stream_handle) = OutputStream::try_default()?;
         let sink = Sink::try_new(&stream_handle)?;
+
+        let mut iso = File::open(iso_path)?;
 
         // The menu track and tournament-mode track are randomly selected
         // one time, and will be used for the rest of the session
@@ -228,7 +229,7 @@ impl Jukebox {
                     let size = size as usize;
 
                     // Parse data from the ISO into pcm samples
-                    let hps: Hps = utils::read_from_file(&mut iso, offset, size)?.try_into()?;
+                    let hps: Hps = utils::copy_bytes_from_file(&mut iso, offset, size)?.try_into()?;
 
                     let padding_length = hps.channel_count * hps.sample_rate / 4;
                     let audio_source = HpsAudioSource {
