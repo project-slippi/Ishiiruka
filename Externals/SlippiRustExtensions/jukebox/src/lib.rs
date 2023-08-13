@@ -225,9 +225,6 @@ impl Jukebox {
                 // be silence until a new track_id is set
                 let track = tracks.get(&track_id);
                 if let Some(&(offset, size)) = track {
-                    let offset = offset as u64;
-                    let size = size as usize;
-
                     // Parse data from the ISO into pcm samples
                     let hps: Hps = utils::copy_bytes_from_file(&mut iso, offset, size)?.try_into()?;
 

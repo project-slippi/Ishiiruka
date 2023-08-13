@@ -17,11 +17,14 @@ enum IsoKind {
     Unknown,
 }
 
-/// Produces a hashmap containing offsets and sizes of .hps files contained within the iso
+/// Produces a hashmap containing offsets and sizes of .hps files contained within the iso.
 /// These can be looked up by TrackId
-pub(crate) fn create_track_map(iso_path: &str) -> Result<HashMap<TrackId, (u32, u32)>> {
-    const RAW_FST_LOCATION_OFFSET: u32 = 0x424;
-    const RAW_FST_SIZE_OFFSET: u32 = 0x0428;
+///
+/// e.g.
+/// `TrackId => (offset in the iso, file size)`
+pub(crate) fn create_track_map(iso_path: &str) -> Result<HashMap<TrackId, (u64, usize)>> {
+    const RAW_FST_LOCATION_OFFSET: u64 = 0x424;
+    const RAW_FST_SIZE_OFFSET: u64 = 0x428;
     const FST_ENTRY_SIZE: usize = 0xC;
 
     // `get_true_offset` is a fn that takes an offset for a standard disc image, and
@@ -41,7 +44,8 @@ pub(crate) fn create_track_map(iso_path: &str) -> Result<HashMap<TrackId, (u32, 
             .try_into()
             .map_err(|_| FstParse("Unable to read FST offset as u32".to_string()))?,
     );
-    let fst_location = get_true_offset(fst_location).ok_or(FstParse("FST location is missing from the ISO".to_string()))?;
+    let fst_location =
+        get_true_offset(fst_location as u64).ok_or(FstParse("FST location is missing from the ISO".to_string()))?;
 
     if fst_location <= 0 {
         return Err(FstParse("FST location is 0".to_string()));
@@ -64,8 +68,8 @@ pub(crate) fn create_track_map(iso_path: &str) -> Result<HashMap<TrackId, (u32, 
         .filter_map(|entry| {
             let is_file = entry[0] == 0;
             let name_offset = str_table_offset + read_u24(entry, 0x1).ok()? as usize;
-            let offset = read_u32(entry, 0x4).ok()?;
-            let size = read_u32(entry, 0x8).ok()?;
+            let offset = read_u32(entry, 0x4).ok()? as u64;
+            let size = read_u32(entry, 0x8).ok()? as usize;
 
             let name = CStr::from_bytes_until_nul(&fst[name_offset..]).ok()?.to_str().ok()?;
 
@@ -144,7 +148,7 @@ fn get_iso_kind(iso: &mut File) -> Result<IsoKind> {
 /// let get_true_offset = create_offset_locator_fn("/foo/bar.iso");
 /// let offset = get_true_offset(0x424);
 /// ```
-fn create_offset_locator_fn(iso_path: &str) -> Result<impl Fn(u32) -> Option<u32> + '_> {
+fn create_offset_locator_fn(iso_path: &str) -> Result<impl Fn(u64) -> Option<u64> + '_> {
     let mut iso = File::open(iso_path)?;
 
     // Get the ciso header (block size and block map) of the provided file.
