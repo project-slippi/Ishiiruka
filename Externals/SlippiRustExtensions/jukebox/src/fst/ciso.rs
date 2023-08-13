@@ -55,3 +55,64 @@ pub(crate) fn get_ciso_offset(header: &CisoHeader, offset: u32) -> Option<u32> {
     let ciso_offset = offset + CISO_HEADER_SIZE - (block_size * empty_block_count);
     Some(ciso_offset as u32)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn doesnt_try_to_read_headers_from_non_ciso_files() {
+        let mut file = File::open("test-data/misow.bin").unwrap();
+        let header = get_ciso_header(&mut file).unwrap();
+        assert!(header.is_none());
+    }
+
+    #[test]
+    fn reads_ciso_header_block_size_correctly() {
+        let mut file = File::open("test-data/ciso-header-1.bin").unwrap();
+        let (block_size, _) = get_ciso_header(&mut file).unwrap().unwrap();
+        assert_eq!(block_size, 0x200000);
+    }
+
+    #[test]
+    fn converts_offsets_to_ciso_offsets_correctly() {
+        let mut file = File::open("test-data/ciso-header-1.bin").unwrap();
+        let header = get_ciso_header(&mut file).unwrap().unwrap();
+        let offset_pairs = [(0x00, 0x8000), (0x424, 0x8424), (0x1EAFBB3D, 0x1DF03B3D)];
+        for (original_offset, expected_ciso_offset) in offset_pairs {
+            let ciso_offset = get_ciso_offset(&header, original_offset).unwrap();
+            assert_eq!(ciso_offset, expected_ciso_offset);
+        }
+
+        let mut file = File::open("test-data/ciso-header-2.bin").unwrap();
+        let header = get_ciso_header(&mut file).unwrap().unwrap();
+        let offset_pairs = [
+            (0x400D0C, 0x8D0C),
+            (0xDEDEDE, 0x9F5EDE),
+            (0xD00D1E, 0x908D1E),
+            (0x32992BC0, 0x2219ABC0),
+        ];
+        for (original_offset, expected_ciso_offset) in offset_pairs {
+            let ciso_offset = get_ciso_offset(&header, original_offset).unwrap();
+            assert_eq!(ciso_offset, expected_ciso_offset);
+        }
+    }
+
+    #[test]
+    fn converts_offsets_to_none_if_block_is_zeroed() {
+        let mut file = File::open("test-data/ciso-header-1.bin").unwrap();
+        let header = get_ciso_header(&mut file).unwrap().unwrap();
+        let offsets = [0x800000, 0xB00000, 0xD00000];
+        for offset in offsets {
+            let ciso_offset = get_ciso_offset(&header, offset);
+            assert!(ciso_offset.is_none());
+        }
+
+        let mut file = File::open("test-data/ciso-header-2.bin").unwrap();
+        let header = get_ciso_header(&mut file).unwrap().unwrap();
+        let offsets = [0x3A0000, 0x133F8000, 0x31000000];
+        for offset in offsets {
+            let ciso_offset = get_ciso_offset(&header, offset);
+            assert!(ciso_offset.is_none());
+        }
+    }
+}

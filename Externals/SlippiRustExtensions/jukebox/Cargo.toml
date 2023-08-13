@@ -8,6 +8,7 @@ authors = [
 ]
 edition = "2021"
 publish = false
+exclude = ["/test-data"]
 
 [features]
 default = []

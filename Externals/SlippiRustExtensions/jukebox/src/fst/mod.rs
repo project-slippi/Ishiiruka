@@ -140,8 +140,8 @@ fn get_iso_kind(iso: &mut File) -> Result<IsoKind> {
 /// This HoF returns a fn that can be used to locate the true offset.
 ///
 /// Example Usage:
-/// ```no_run
-/// let get_true_offset = create_offset_locator("/foo/bar.iso");
+/// ```ignore
+/// let get_true_offset = create_offset_locator_fn("/foo/bar.iso");
 /// let offset = get_true_offset(0x424);
 /// ```
 fn create_offset_locator_fn(iso_path: &str) -> Result<impl Fn(u32) -> Option<u32> + '_> {
