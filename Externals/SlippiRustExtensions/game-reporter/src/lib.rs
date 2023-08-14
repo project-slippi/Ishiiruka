@@ -22,6 +22,19 @@ pub(crate) enum ProcessingEvent {
     Shutdown,
 }
 
+/// Used to pass completion event data to a background processing thread.
+#[derive(Clone, Debug)]
+pub(crate) enum CompletionEvent {
+    ReportAvailable {
+        uid: String,
+        play_key: String,
+        match_id: String,
+        end_mode: u8,
+    },
+
+    Shutdown,
+}
+
 /// The public interface for the game reporter service. This handles managing any
 /// necessary background threads and provides hooks for instrumenting the reporting
 /// process.
@@ -32,8 +45,10 @@ pub(crate) enum ProcessingEvent {
 #[derive(Debug)]
 pub struct SlippiGameReporter {
     iso_md5_hasher_thread: Option<thread::JoinHandle<()>>,
-    processing_thread: Option<thread::JoinHandle<()>>,
-    processing_thread_notifier: Sender<ProcessingEvent>,
+    queue_thread: Option<thread::JoinHandle<()>>,
+    queue_thread_notifier: Sender<ProcessingEvent>,
+    completion_thread: Option<thread::JoinHandle<()>>,
+    completion_thread_notifier: Sender<CompletionEvent>,
     queue: GameReporterQueue,
     replay_data: Vec<u8>,
 }
@@ -61,21 +76,33 @@ impl SlippiGameReporter {
             })
             .expect("Failed to spawn SlippiGameReporterISOHasherThread.");
 
-        let (sender, receiver) = mpsc::channel();
-        let processing_thread_queue_handle = queue.clone();
+        let (queue_sender, queue_receiver) = mpsc::channel();
+        let queue_thread_queue_handle = queue.clone();
 
-        let processing_thread = thread::Builder::new()
-            .name("SlippiGameReporterProcessingThread".into())
+        let queue_thread = thread::Builder::new()
+            .name("SlippiGameReporterQueueProcessingThread".into())
             .spawn(move || {
-                queue::run(processing_thread_queue_handle, receiver);
+                queue::run(queue_thread_queue_handle, queue_receiver);
             })
-            .expect("Failed to spawn SlippiGameReporterProcessingThread.");
+            .expect("Failed to spawn SlippiGameReporterQueueProcessingThread.");
+
+        let (completion_sender, completion_receiver) = mpsc::channel();
+        let completion_http_handle = queue.http_client.clone();
+
+        let completion_thread = thread::Builder::new()
+            .name("SlippiGameReporterCompletionProcessingThread".into())
+            .spawn(move || {
+                queue::run_completion(completion_http_handle, completion_receiver);
+            })
+            .expect("Failed to spawn SlippiGameReporterCompletionProcessingThread.");
 
         Self {
             queue,
             replay_data: Vec::new(),
-            processing_thread_notifier: sender,
-            processing_thread: Some(processing_thread),
+            queue_thread_notifier: queue_sender,
+            queue_thread: Some(queue_thread),
+            completion_thread_notifier: completion_sender,
+            completion_thread: Some(completion_thread),
             iso_md5_hasher_thread: Some(iso_md5_hasher_thread),
         }
     }
@@ -101,11 +128,29 @@ impl SlippiGameReporter {
         report.replay_data = std::mem::replace(&mut self.replay_data, Vec::new());
         self.queue.add_report(report);
 
-        if let Err(e) = self.processing_thread_notifier.send(ProcessingEvent::ReportAvailable) {
+        if let Err(e) = self.queue_thread_notifier.send(ProcessingEvent::ReportAvailable) {
             tracing::error!(
                 target: Log::GameReporter,
                 error = ?e,
                 "Unable to dispatch ReportAvailable notification"
+            );
+        }
+    }
+
+    /// Dispatches a completion report to a background processing thread.
+    pub fn report_completion(&self, uid: String, play_key: String, match_id: String, end_mode: u8) {
+        let event = CompletionEvent::ReportAvailable {
+            uid,
+            play_key,
+            match_id,
+            end_mode,
+        };
+
+        if let Err(e) = self.completion_thread_notifier.send(event) {
+            tracing::error!(
+                target: Log::GameReporter,
+                error = ?e,
+                "Unable to dispatch match completion notification"
             );
         }
     }
@@ -125,20 +170,38 @@ impl Drop for SlippiGameReporter {
     /// Joins the background threads when we're done, logging if
     /// any errors are encountered.
     fn drop(&mut self) {
-        if let Some(processing_thread) = self.processing_thread.take() {
-            if let Err(e) = self.processing_thread_notifier.send(ProcessingEvent::Shutdown) {
+        if let Some(queue_thread) = self.queue_thread.take() {
+            if let Err(e) = self.queue_thread_notifier.send(ProcessingEvent::Shutdown) {
                 tracing::error!(
                     target: Log::GameReporter,
                     error = ?e,
-                    "Failed to send shutdown notification to report processing thread, may hang"
+                    "Failed to send shutdown notification to queue processing thread, may hang"
                 );
             }
 
-            if let Err(e) = processing_thread.join() {
+            if let Err(e) = queue_thread.join() {
                 tracing::error!(
                     target: Log::GameReporter,
                     error = ?e,
-                    "Processing thread failure"
+                    "Queue thread failure"
+                );
+            }
+        }
+
+        if let Some(completion_thread) = self.completion_thread.take() {
+            if let Err(e) = self.completion_thread_notifier.send(CompletionEvent::Shutdown) {
+                tracing::error!(
+                    target: Log::GameReporter,
+                    error = ?e,
+                    "Failed to send shutdown notification to completion processing thread, may hang"
+                );
+            }
+
+            if let Err(e) = completion_thread.join() {
+                tracing::error!(
+                    target: Log::GameReporter,
+                    error = ?e,
+                    "Completion thread failure"
                 );
             }
         }
