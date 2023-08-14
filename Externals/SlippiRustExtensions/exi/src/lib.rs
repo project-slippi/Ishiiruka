@@ -56,13 +56,11 @@ impl SlippiEXIDevice {
                 self.jukebox = Some(jukebox);
             },
 
-            Err(e) => {
-                tracing::error!(
-                    target: Log::EXI,
-                    error = ?e,
-                    "Failed to start Jukebox"
-                );
-            },
+            Err(e) => tracing::error!(
+                target: Log::EXI,
+                error = ?e,
+                "Failed to start Jukebox"
+            ),
         }
     }
 }
