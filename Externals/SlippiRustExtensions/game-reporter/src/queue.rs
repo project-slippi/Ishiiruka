@@ -118,7 +118,7 @@ pub(crate) fn run_completion(http_client: ureq::Agent, receiver: Receiver<Comple
                 match_id,
                 end_mode,
             }) => {
-                report_completion(&http_client, uid, play_key, match_id, end_mode);
+                report_completion(&http_client, uid, match_id, play_key, end_mode);
             },
 
             Ok(CompletionEvent::Shutdown) => {
