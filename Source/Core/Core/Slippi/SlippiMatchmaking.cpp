@@ -211,6 +211,64 @@ void SlippiMatchmaking::terminateMmConnection()
 	}
 }
 
+// Fallback: arbitrarily choose the last available local IP address listed. They seem to be listed in decreasing order
+// IE. 192.168.0.100 > 192.168.0.10 > 10.0.0.2
+static char *getLocalAddressFallback()
+{
+	char host[256];
+	int hostname = gethostname(host, sizeof(host)); // find the host name
+	if (hostname == -1)
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Error finding LAN address");
+		return nullptr;
+	}
+
+	struct hostent *host_entry = gethostbyname(host); // find host information
+	if (host_entry == NULL || host_entry->h_addrtype != AF_INET || host_entry->h_addr_list[0] == 0)
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Error finding LAN host");
+		return nullptr;
+	}
+
+	// Fetch the last IP (because that was correct for me, not sure if it will be for all)
+	for (int i = 0; host_entry->h_addr_list[i] != 0; i++)
+		if (host_entry->h_addr_list[i + 1] == 0)
+			return host_entry->h_addr_list[i];
+	return nullptr;
+}
+
+// Set up and connect a socket (UDP, so "connect" doesn't actually send any
+// packets) so that the OS will determine what device/local IP address we will
+// actually use.
+static enet_uint32 getLocalAddress(ENetAddress *mm_address)
+{
+	ENetSocket socket = enet_socket_create(ENET_SOCKET_TYPE_DATAGRAM);
+	if (socket == -1)
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Failed to get local address: socket create");
+		enet_socket_destroy(socket);
+		return 0;
+	}
+
+	if (enet_socket_connect(socket, mm_address) == -1)
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Failed to get local address: socket connect");
+		enet_socket_destroy(socket);
+		return 0;
+	}
+
+	ENetAddress enetAddress;
+	if (enet_socket_get_address(socket, &enetAddress) == -1)
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Failed to get local address: socket get address");
+		enet_socket_destroy(socket);
+		return 0;
+	}
+
+	enet_socket_destroy(socket);
+	return enetAddress.host;
+}
+
 void SlippiMatchmaking::startMatchmaking()
 {
 	// I don't understand why I have to do this... if I don't do this, rand always returns the
@@ -301,58 +359,32 @@ void SlippiMatchmaking::startMatchmaking()
 	    return;
 	}*/
 
-	// The following code attempts to fetch the LAN IP such that when remote IPs match, the
-	// LAN IP can be tried in order to establish a connection in the case where the players
-	// don't have NAT loopback which allows that type of connection.
-	// Right now though, the logic would replace the WAN IP with the LAN IP and if the LAN
-	// IP connection didn't work but WAN would have, the players can no longer connect.
-	// Two things need to happen to improtve this logic:
-	// 1. The connection must be changed to try both the LAN and WAN IPs in the case of
-	//    matching WAN IPs
-	// 2. The process for fetching LAN IP must be improved. For me, the current method
-	//    would always fetch my VirtualBox IP, which is not correct. I also think perhaps
-	//    it didn't work on Linux/Mac but I haven't tested it.
-	// I left this logic on for now under the assumption that it will help more people than
-	// it will hurt
+	// Determine local IP address. We can attempt to connect to our opponent via
+	// local IP address if we have the same external IP address. The following
+	// scenarios can cause us to have the same external IP address:
+	// - we are connected to the same LAN
+	// - we are connected to the same VPN node
+	// - we are behind the same CGNAT
 	char lanAddr[30] = "";
-
-	char host[256];
-	char *IP;
-	struct hostent *host_entry;
-	int hostname;
-	hostname = gethostname(host, sizeof(host)); // find the host name
-	if (hostname == -1)
-	{
-		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Error finding LAN address");
-	}
-	else
-	{
-		host_entry = gethostbyname(host); // find host information
-		if (host_entry == NULL || host_entry->h_addrtype != AF_INET)
-		{
-			ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Error finding LAN host");
-		}
-		else
-		{
-			// Fetch the last IP (because that was correct for me, not sure if it will be for all)
-			int i = 0;
-			while (host_entry->h_addr_list[i] != 0)
-			{
-				IP = inet_ntoa(*((struct in_addr *)host_entry->h_addr_list[i]));
-				WARN_LOG(SLIPPI_ONLINE, "[Matchmaking] IP at idx %d: %s", i, IP);
-				i++;
-			}
-
-			sprintf(lanAddr, "%s:%d", IP, m_hostPort);
-		}
-	}
-
 	if (SConfig::GetInstance().m_slippiForceLanIp)
 	{
 		WARN_LOG(SLIPPI_ONLINE, "[Matchmaking] Overwriting LAN IP sent with configured address");
 		sprintf(lanAddr, "%s:%d", SConfig::GetInstance().m_slippiLanIp.c_str(), m_hostPort);
 	}
-
+	else
+	{
+		enet_uint32 localAddress = getLocalAddress(&addr);
+		if (localAddress != 0)
+		{
+			sprintf(lanAddr, "%s:%d", inet_ntoa(*(struct in_addr *)&localAddress), m_hostPort);
+		}
+		else
+		{
+			char *fallbackAddress = getLocalAddressFallback();
+			if (fallbackAddress != nullptr)
+				sprintf(lanAddr, "%s:%d", inet_ntoa(*(struct in_addr *)fallbackAddress), m_hostPort);
+		}
+	}
 	WARN_LOG(SLIPPI_ONLINE, "[Matchmaking] Sending LAN address: %s", lanAddr);
 
 	std::vector<u8> connectCodeBuf;
@@ -488,7 +520,7 @@ void SlippiMatchmaking::handleMatchmaking()
 					playerInfo.chatMessages = SlippiUser::defaultChatMessages;
 				}
 			}
-			
+
 			m_playerInfo.push_back(playerInfo);
 
 			if (isLocal)

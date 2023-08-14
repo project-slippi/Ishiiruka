@@ -169,3 +169,23 @@ pub(crate) fn get_stage_track_id(stage_id: u8) -> Option<TrackId> {
         None => None,
     }
 }
+
+/// Returns a tuple containing a randomly selected menu track tournament track
+/// to play
+pub(crate) fn get_random_menu_tracks() -> (TrackId, TrackId) {
+    // 25% chance to use the alternate menu theme
+    let menu_track = if fastrand::u8(0..4) == 0 {
+        TrackId::Menu2
+    } else {
+        TrackId::Menu1
+    };
+
+    // 50% chance to use the alternate tournament mode theme
+    let tournament_track = if fastrand::u8(0..2) == 0 {
+        TrackId::TournamentMode1
+    } else {
+        TrackId::TournamentMode2
+    };
+
+    (menu_track, tournament_track)
+}
