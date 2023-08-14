@@ -174,12 +174,7 @@ std::string SlippiDirectCodes::getCodesFilePath()
 {
 	std::string fileName = m_fileName + ".json";
 
-	// TODO: Move to User dir
-#if defined(__APPLE__)
-	std::string directCodesPath = File::GetApplicationSupportDirectory() + "/Slippi/" + m_fileName;
-#else
 	std::string directCodesPath = File::GetUserPath(D_SLIPPI_IDX) + m_fileName;
-#endif
 	return directCodesPath;
 }
 
