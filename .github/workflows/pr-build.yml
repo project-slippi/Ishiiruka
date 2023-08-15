@@ -20,6 +20,8 @@ jobs:
       rust_ver: ${{ steps.rust_ver.outputs.rust_ver }}
     steps:
       - uses: actions/checkout@v3
+        with:
+          submodules: recursive
       - id: rust_ver
         name: Grab Rust Version
         run: echo "rust_ver=$(sed -rn 's/^channel = "(.*)"/\1/p' ./Externals/SlippiRustExtensions/rust-toolchain.toml)" >> "$GITHUB_OUTPUT"
