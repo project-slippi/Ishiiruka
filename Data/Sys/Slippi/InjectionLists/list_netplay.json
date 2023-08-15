@@ -463,6 +463,13 @@
    "Tags": ""
   },
   {
+   "InjectionAddress": "801A4CB4",
+   "Name": "Required: Slippi Recording",
+   "Codetype": "Auto",
+   "Annotation": "Common/AllocBuffer.asm",
+   "Tags": ""
+  },
+  {
    "InjectionAddress": "800055F8",
    "Name": "Required: Slippi Recording",
    "Codetype": "Auto",
@@ -652,13 +659,6 @@
    "Tags": ""
   },
   {
-   "InjectionAddress": "801A4CB4",
-   "Name": "Required: Slippi Online",
-   "Codetype": "Auto",
-   "Annotation": "Online/Core/EXIFileLoad/AllocBuffer.asm",
-   "Tags": ""
-  },
-  {
    "InjectionAddress": "800163FC",
    "Name": "Required: Slippi Online",
    "Codetype": "Auto",
@@ -726,6 +726,27 @@
    "Name": "Required: Slippi Online",
    "Codetype": "Auto",
    "Annotation": "Online/Core/Hacks/PreventPadAlarmDuringRollback.asm",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "8038E910",
+   "Name": "Required: Slippi Online",
+   "Codetype": "Auto",
+   "Annotation": "Online/Core/Music/StartSong.asm",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "800236EC",
+   "Name": "Required: Slippi Online",
+   "Codetype": "Auto",
+   "Annotation": "Online/Core/Music/Stop.asm",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "800249F0",
+   "Name": "Required: Slippi Online",
+   "Codetype": "Auto",
+   "Annotation": "Online/Core/Music/VolumeChange.asm",
    "Tags": ""
   },
   {

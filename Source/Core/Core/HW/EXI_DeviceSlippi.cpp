@@ -3284,6 +3284,21 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		case CMD_GET_PLAYER_SETTINGS:
 			handleGetPlayerSettings();
 			break;
+		case CMD_PLAY_MUSIC:
+		{
+			auto args = SlippiExiTypes::Convert<SlippiExiTypes::PlayMusicQuery>(&memPtr[bufLoc]);
+			NOTICE_LOG(SLIPPI_ONLINE, "[Music EXI] Play music. Offset: 0x%x, Length: %d", args.offset, args.size);
+			break;
+		}
+		case CMD_STOP_MUSIC:
+			NOTICE_LOG(SLIPPI_ONLINE, "[Music EXI] Stop music");
+			break;
+		case CMD_CHANGE_MUSIC_VOLUME:
+		{
+			auto args = SlippiExiTypes::Convert<SlippiExiTypes::ChangeMusicVolumeQuery>(&memPtr[bufLoc]);
+			NOTICE_LOG(SLIPPI_ONLINE, "[Music EXI] Change volume. %d", args.volume);
+			break;
+		}
 		default:
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "");
 			m_slippiserver->write(&memPtr[bufLoc], payloadLen + 1);
