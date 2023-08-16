@@ -90,6 +90,9 @@ class CEXISlippi : public IEXIDevice
 		CMD_GCT_LENGTH = 0xD3,
 		CMD_GCT_LOAD = 0xD4,
 		CMD_GET_DELAY = 0xD5,
+		CMD_PLAY_MUSIC = 0xD6,
+		CMD_STOP_MUSIC = 0xD7,
+		CMD_CHANGE_MUSIC_VOLUME = 0xD8,
 		CMD_PREMADE_TEXT_LENGTH = 0xE1,
 		CMD_PREMADE_TEXT_LOAD = 0xE2,
 	};
@@ -146,6 +149,9 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_GCT_LENGTH, 0x0},
 	    {CMD_GCT_LOAD, 0x4},
 	    {CMD_GET_DELAY, 0x0},
+	    {CMD_PLAY_MUSIC, static_cast<u32>(sizeof(SlippiExiTypes::PlayMusicQuery) - 1)},
+	    {CMD_STOP_MUSIC, 0x0},
+	    {CMD_CHANGE_MUSIC_VOLUME, static_cast<u32>(sizeof(SlippiExiTypes::ChangeMusicVolumeQuery) - 1)},
 	    {CMD_PREMADE_TEXT_LENGTH, 0x2},
 	    {CMD_PREMADE_TEXT_LOAD, 0x2},
 	};
