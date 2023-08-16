@@ -8,6 +8,8 @@
 #include <wx/panel.h>
 #include <wx/textctrl.h>
 
+#include "DolphinWX/DolphinSlider.h"
+
 enum TEXIDevices : int;
 
 class wxButton;
@@ -60,6 +62,9 @@ class SlippiNetplayConfigPane final : public wxPanel
 #ifndef IS_PLAYBACK
 	void OnToggleJukeboxEnabled(wxCommandEvent &event);
 	wxCheckBox *m_slippi_jukebox_enabled_checkbox;
+	DolphinSlider* m_slippi_jukebox_volume_slider;
+	wxStaticText* m_jukebox_volume_text;
+	void OnJukeboxVolumeUpdate(wxCommandEvent &event);
 #endif
 };
 

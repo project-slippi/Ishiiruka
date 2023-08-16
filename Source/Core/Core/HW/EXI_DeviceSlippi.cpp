@@ -145,6 +145,12 @@ void OSDMessageHandler(const char *message, u32 color, u32 duration_ms)
 	OSD::AddMessage(msg, duration_ms, color);
 }
 
+// This function gets passed to Jukebox for handling music volume changes
+int GetJukeboxVolume()
+{
+	return SConfig::GetInstance().iSlippiJukeboxVolume;
+}
+
 CEXISlippi::CEXISlippi()
 {
 	INFO_LOG(SLIPPI, "EXI SLIPPI Constructor called.");
@@ -1531,7 +1537,7 @@ bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame)
 
 		// 8/8/23: I want to disable forced frame advances for now. I think they're largely unnecessary because of the
 		// dynamic emulation speed and cause more jarring frame drops.
-	
+
 		// if (offsetUs < -t2 && !isCurrentlyAdvancing)
 		//{
 		//	isCurrentlyAdvancing = true;
@@ -3347,7 +3353,7 @@ void CEXISlippi::ConfigureJukebox()
 #endif
 
 	slprs_exi_device_configure_jukebox(slprs_exi_device_ptr, SConfig::GetInstance().bSlippiJukeboxEnabled,
-	                                   AudioCommonGetCurrentVolume);
+	                                   Memory::m_pRAM, AudioCommonGetCurrentVolume, GetJukeboxVolume);
 #endif
 }
 
