@@ -117,6 +117,7 @@ void SlippiNetplayConfigPane::InitializeGUI()
 
 	m_slippi_jukebox_volume_slider = new DolphinSlider(this, wxID_ANY, 100, 0, 100);
 	m_jukebox_volume_text = new wxStaticText(this, wxID_ANY, "");
+	m_jukebox_volume_text->SetMinSize(wxSize(50, 20));
 
 	auto *const jukebox_music_volume_sizer = new wxBoxSizer(wxHORIZONTAL);
 	jukebox_music_volume_sizer->Add(new wxStaticText(this, wxID_ANY, _("Music Volume:")), 0, wxALIGN_CENTER_VERTICAL);
