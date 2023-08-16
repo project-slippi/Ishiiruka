@@ -3287,18 +3287,15 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		case CMD_PLAY_MUSIC:
 		{
 			auto args = SlippiExiTypes::Convert<SlippiExiTypes::PlayMusicQuery>(&memPtr[bufLoc]);
-			NOTICE_LOG(SLIPPI_ONLINE, "[Music EXI] Play music. Offset: 0x%x, Length: %d", args.offset, args.size);
 			slprs_exi_device_jukebox_play_music(slprs_exi_device_ptr, args.offset, args.size);
 			break;
 		}
 		case CMD_STOP_MUSIC:
-			NOTICE_LOG(SLIPPI_ONLINE, "[Music EXI] Stop music");
 			slprs_exi_device_jukebox_stop_music(slprs_exi_device_ptr);
 			break;
 		case CMD_CHANGE_MUSIC_VOLUME:
 		{
 			auto args = SlippiExiTypes::Convert<SlippiExiTypes::ChangeMusicVolumeQuery>(&memPtr[bufLoc]);
-			NOTICE_LOG(SLIPPI_ONLINE, "[Music EXI] Change volume. %d", args.volume);
 			slprs_exi_device_jukebox_set_music_volume(slprs_exi_device_ptr, args.volume);
 			break;
 		}
