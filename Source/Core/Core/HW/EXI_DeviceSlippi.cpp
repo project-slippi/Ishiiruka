@@ -3287,7 +3287,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		case CMD_PLAY_MUSIC:
 		{
 			auto args = SlippiExiTypes::Convert<SlippiExiTypes::PlayMusicQuery>(&memPtr[bufLoc]);
-			slprs_exi_device_jukebox_play_music(slprs_exi_device_ptr, args.offset, args.size);
+			slprs_exi_device_jukebox_start_song(slprs_exi_device_ptr, args.offset, args.size);
 			break;
 		}
 		case CMD_STOP_MUSIC:
@@ -3296,7 +3296,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		case CMD_CHANGE_MUSIC_VOLUME:
 		{
 			auto args = SlippiExiTypes::Convert<SlippiExiTypes::ChangeMusicVolumeQuery>(&memPtr[bufLoc]);
-			slprs_exi_device_jukebox_set_music_volume(slprs_exi_device_ptr, args.volume);
+			slprs_exi_device_jukebox_set_melee_music_volume(slprs_exi_device_ptr, args.volume);
 			break;
 		}
 		default:
@@ -3346,8 +3346,7 @@ void CEXISlippi::ConfigureJukebox()
 	}
 #endif
 
-	slprs_exi_device_configure_jukebox(slprs_exi_device_ptr, SConfig::GetInstance().bSlippiJukeboxEnabled,
-	                                   AudioCommonGetCurrentVolume);
+	slprs_exi_device_configure_jukebox(slprs_exi_device_ptr, SConfig::GetInstance().bSlippiJukeboxEnabled);
 #endif
 }
 
