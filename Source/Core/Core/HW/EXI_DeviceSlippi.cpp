@@ -22,7 +22,6 @@
 #include "Common/Thread.h"
 #include "Core/HW/Memmap.h"
 
-#include "AudioCommon/AudioCommon.h"
 #include "VideoCommon/OnScreenDisplay.h"
 
 #include "Core/Core.h"
