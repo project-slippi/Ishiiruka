@@ -24,8 +24,6 @@
 #include "Common/FileUtil.h"
 #include "Core/ConfigManager.h"
 #include "Core/Core.h"
-#include "Core/HW/EXI.h"
-#include "Core/HW/EXI_DeviceSlippi.h"
 #include "Core/HW/GCMemcard.h"
 #include "Core/HW/GCPad.h"
 #include "Core/NetPlayProto.h"
@@ -33,6 +31,11 @@
 #include "DolphinWX/Input/MicButtonConfigDiag.h"
 #include "DolphinWX/WxEventUtils.h"
 #include "DolphinWX/WxUtils.h"
+
+#ifndef IS_PLAYBACK
+#include "Core/HW/EXI.h"
+#include "Core/HW/EXI_DeviceSlippi.h"
+#endif
 
 SlippiNetplayConfigPane::SlippiNetplayConfigPane(wxWindow *parent, wxWindowID id)
     : wxPanel(parent, id)
@@ -365,6 +368,7 @@ void SlippiNetplayConfigPane::OnToggleJukeboxEnabled(wxCommandEvent &event)
 		m_slippi_jukebox_volume_slider->Disable();
 	}
 
+#ifndef IS_PLAYBACK
 	// If we have a Slippi EXI device loaded, grab it and tell it to reconfigure the Jukebox.
 	// Note that this should only execute if `Core` is loaded and running, as otherwise the Expansion
 	// Interface is not actually initialized.
@@ -377,6 +381,7 @@ void SlippiNetplayConfigPane::OnToggleJukeboxEnabled(wxCommandEvent &event)
 			slippiEXIDevice->ConfigureJukebox();
 		}
 	}
+#endif // !IS_PLAYBACK
 }
 
 void SlippiNetplayConfigPane::OnJukeboxVolumeUpdate(wxCommandEvent &event)
@@ -384,6 +389,7 @@ void SlippiNetplayConfigPane::OnJukeboxVolumeUpdate(wxCommandEvent &event)
 	SConfig::GetInstance().iSlippiJukeboxVolume = event.GetInt();
 	m_jukebox_volume_text->SetLabel(wxString::Format("%d %%", event.GetInt()));
 
+#ifndef IS_PLAYBACK
 	if (Core::IsRunning())
 	{
 		CEXISlippi *slippiEXIDevice = (CEXISlippi *)ExpansionInterface::FindDevice(TEXIDevices::EXIDEVICE_SLIPPI);
@@ -393,6 +399,7 @@ void SlippiNetplayConfigPane::OnJukeboxVolumeUpdate(wxCommandEvent &event)
 			slippiEXIDevice->UpdateJukeboxDolphinMusicVolume();
 		}
 	}
+#endif // !IS_PLAYBACK
 }
 
 void SlippiNetplayConfigPane::PopulateEnableChatChoiceBox()
