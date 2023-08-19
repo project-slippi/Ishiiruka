@@ -149,13 +149,17 @@ CEXISlippi::CEXISlippi()
 {
 	INFO_LOG(SLIPPI, "EXI SLIPPI Constructor called.");
 
-	// TODO: For mainline port, ISO file path can't be fetched this way. Look at the following:
+	// @TODO: For mainline port, ISO file path can't be fetched this way. Look at the following:
 	// https://github.com/dolphin-emu/dolphin/blob/7f450f1d7e7d37bd2300f3a2134cb443d07251f9/Source/Core/Core/Movie.cpp#L246-L249
 	std::string isoPath = SConfig::GetInstance().m_strFilename;
-	slprs_exi_device_ptr = slprs_exi_device_create(isoPath.c_str(), OSDMessageHandler);
+
+    // @TODO: Eventually we should move `GetSlippiUserJSONPath` out of the File module.
+    std::string userJSONPath = File::GetSlippiUserJSONPath();
+
+	slprs_exi_device_ptr = slprs_exi_device_create(isoPath.c_str(), userJSONPath.c_str(), OSDMessageHandler);
 
 	m_slippiserver = SlippiSpectateServer::getInstance();
-	user = std::make_unique<SlippiUser>();
+	user = std::make_unique<SlippiUser>(slprs_exi_device_ptr);
 	g_playbackStatus = std::make_unique<SlippiPlaybackStatus>();
 	matchmaking = std::make_unique<SlippiMatchmaking>(user.get());
 	gameFileLoader = std::make_unique<SlippiGameFileLoader>();
@@ -306,10 +310,7 @@ CEXISlippi::~CEXISlippi()
 	{
 		ERROR_LOG(SLIPPI_ONLINE, "Exit during in-progress ranked game: %s", activeMatchId.c_str());
 
-		auto userInfo = user->GetUserInfo();
-
-		slprs_exi_device_report_match_abandonment(slprs_exi_device_ptr, userInfo.uid.c_str(), userInfo.playKey.c_str(),
-		                                          activeMatchId.c_str());
+		slprs_exi_device_report_match_abandonment(slprs_exi_device_ptr, activeMatchId.c_str());
 	}
 	handleConnectionCleanup();
 
@@ -2762,8 +2763,6 @@ void CEXISlippi::handleChatMessage(u8 *payload)
 
 	if (slippi_netplay)
 	{
-
-		auto userInfo = user->GetUserInfo();
 		auto packet = std::make_unique<sf::Packet>();
 		//		OSD::AddMessage("[Me]: "+ msg, OSD::Duration::VERY_LONG, OSD::Color::YELLOW);
 		slippi_netplay->remoteSentChatMessageId = messageId;
@@ -3070,8 +3069,7 @@ void CEXISlippi::handleCompleteSet(const SlippiExiTypes::ReportSetCompletionQuer
 
 		auto userInfo = user->GetUserInfo();
 
-		slprs_exi_device_report_match_completion(slprs_exi_device_ptr, userInfo.uid.c_str(), userInfo.playKey.c_str(),
-		                                         lastMatchId.c_str(), query.endMode);
+		slprs_exi_device_report_match_completion(slprs_exi_device_ptr, lastMatchId.c_str(), query.endMode);
 	}
 }
 
