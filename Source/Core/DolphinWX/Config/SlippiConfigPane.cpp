@@ -380,6 +380,16 @@ void SlippiNetplayConfigPane::OnJukeboxVolumeUpdate(wxCommandEvent &event)
 {
 	SConfig::GetInstance().iSlippiJukeboxVolume = event.GetInt();
 	m_jukebox_volume_text->SetLabel(wxString::Format("%d %%", event.GetInt()));
+
+	if (Core::IsRunning())
+	{
+		CEXISlippi *slippiEXIDevice = (CEXISlippi *)ExpansionInterface::FindDevice(TEXIDevices::EXIDEVICE_SLIPPI);
+
+		if (slippiEXIDevice != nullptr && slippiEXIDevice->IsPresent())
+		{
+			slippiEXIDevice->UpdateJukeboxDolphinMusicVolume();
+		}
+	}
 }
 
 void SlippiNetplayConfigPane::PopulateEnableChatChoiceBox()

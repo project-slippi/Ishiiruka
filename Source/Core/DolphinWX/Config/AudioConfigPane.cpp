@@ -18,6 +18,8 @@
 #include "Common/Common.h"
 #include "Core/ConfigManager.h"
 #include "Core/Core.h"
+#include "Core/HW/EXI.h"
+#include "Core/HW/EXI_DeviceSlippi.h"
 #include "DolphinWX/DolphinSlider.h"
 #include "DolphinWX/WxEventUtils.h"
 #include "DolphinWX/WxUtils.h"
@@ -192,6 +194,16 @@ void AudioConfigPane::OnVolumeSliderChanged(wxCommandEvent& event)
 	SConfig::GetInstance().m_Volume = m_volume_slider->GetValue();
 	AudioCommon::UpdateSoundStream();
 	m_volume_text->SetLabel(wxString::Format("%d %%", m_volume_slider->GetValue()));
+
+	if (Core::IsRunning())
+	{
+		CEXISlippi *slippiEXIDevice = (CEXISlippi *)ExpansionInterface::FindDevice(TEXIDevices::EXIDEVICE_SLIPPI);
+
+		if (slippiEXIDevice != nullptr && slippiEXIDevice->IsPresent())
+		{
+			slippiEXIDevice->UpdateJukeboxDolphinSystemVolume();
+		}
+	}
 }
 
 void AudioConfigPane::OnAudioBackendChanged(wxCommandEvent& event)
