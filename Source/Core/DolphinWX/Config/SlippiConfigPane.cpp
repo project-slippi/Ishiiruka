@@ -17,6 +17,7 @@
 #include <wx/sizer.h>
 #include <wx/spinctrl.h>
 #include <wx/stattext.h>
+#include <wx/valtext.h>
 
 #include "Common/Common.h"
 #include "Common/CommonPaths.h"
@@ -24,6 +25,7 @@
 #include "Core/ConfigManager.h"
 #include "Core/Core.h"
 #include "Core/HW/EXI.h"
+#include "Core/HW/EXI_DeviceSlippi.h"
 #include "Core/HW/GCMemcard.h"
 #include "Core/HW/GCPad.h"
 #include "Core/NetPlayProto.h"
@@ -31,11 +33,6 @@
 #include "DolphinWX/Input/MicButtonConfigDiag.h"
 #include "DolphinWX/WxEventUtils.h"
 #include "DolphinWX/WxUtils.h"
-#include <wx/valtext.h>
-
-#ifndef IS_PLAYBACK
-#include "Core/HW/EXI_DeviceSlippi.h"
-#endif
 
 SlippiNetplayConfigPane::SlippiNetplayConfigPane(wxWindow *parent, wxWindowID id)
     : wxPanel(parent, id)
@@ -236,9 +233,12 @@ void SlippiNetplayConfigPane::LoadGUIValues()
 	m_slippi_jukebox_enabled_checkbox->SetValue(enableJukebox);
 	m_slippi_jukebox_volume_slider->SetValue(startup_params.iSlippiJukeboxVolume);
 	m_jukebox_volume_text->SetLabel(wxString::Format("%d %%", startup_params.iSlippiJukeboxVolume));
-	if (enableJukebox) {
+	if (enableJukebox)
+	{
 		m_slippi_jukebox_volume_slider->Enable();
-	} else {
+	}
+	else
+	{
 		m_slippi_jukebox_volume_slider->Disable();
 	}
 }
@@ -356,9 +356,12 @@ void SlippiNetplayConfigPane::OnToggleJukeboxEnabled(wxCommandEvent &event)
 
 	SConfig::GetInstance().bSlippiJukeboxEnabled = isEnabled;
 
-	if (isEnabled) {
+	if (isEnabled)
+	{
 		m_slippi_jukebox_volume_slider->Enable();
-	} else {
+	}
+	else
+	{
 		m_slippi_jukebox_volume_slider->Disable();
 	}
 

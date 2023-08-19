@@ -59,13 +59,11 @@ class SlippiNetplayConfigPane final : public wxPanel
 
 	wxCheckBox *m_reduce_timing_dispersion_checkbox;
 
-#ifndef IS_PLAYBACK
 	void OnToggleJukeboxEnabled(wxCommandEvent &event);
 	wxCheckBox *m_slippi_jukebox_enabled_checkbox;
-	DolphinSlider* m_slippi_jukebox_volume_slider;
-	wxStaticText* m_jukebox_volume_text;
+	DolphinSlider *m_slippi_jukebox_volume_slider;
+	wxStaticText *m_jukebox_volume_text;
 	void OnJukeboxVolumeUpdate(wxCommandEvent &event);
-#endif
 };
 
 class SlippiPlaybackConfigPane final : public wxPanel
