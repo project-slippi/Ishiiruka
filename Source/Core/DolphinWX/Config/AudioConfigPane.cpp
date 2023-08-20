@@ -196,7 +196,7 @@ void AudioConfigPane::OnVolumeSliderChanged(wxCommandEvent &event)
 
 		if (slippiEXIDevice != nullptr && slippiEXIDevice->IsPresent())
 		{
-			slippiEXIDevice->UpdateJukeboxDolphinSystemVolume();
+			slippiEXIDevice->SetJukeboxDolphinSystemVolume();
 		}
 	}
 #endif

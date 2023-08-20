@@ -396,7 +396,7 @@ void SlippiNetplayConfigPane::OnJukeboxVolumeUpdate(wxCommandEvent &event)
 
 		if (slippiEXIDevice != nullptr && slippiEXIDevice->IsPresent())
 		{
-			slippiEXIDevice->UpdateJukeboxDolphinMusicVolume();
+			slippiEXIDevice->SetJukeboxDolphinMusicVolume();
 		}
 	}
 #endif // !IS_PLAYBACK

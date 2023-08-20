@@ -3354,13 +3354,13 @@ void CEXISlippi::ConfigureJukebox()
 #endif
 }
 
-void CEXISlippi::UpdateJukeboxDolphinSystemVolume()
+void CEXISlippi::SetJukeboxDolphinSystemVolume()
 {
 	int systemVolume = SConfig::GetInstance().m_IsMuted ? 0 : SConfig::GetInstance().m_Volume;
 	slprs_jukebox_set_dolphin_system_volume(slprs_exi_device_ptr, systemVolume);
 }
 
-void CEXISlippi::UpdateJukeboxDolphinMusicVolume()
+void CEXISlippi::SetJukeboxDolphinMusicVolume()
 {
 	int jukeboxVolume = SConfig::GetInstance().iSlippiJukeboxVolume;
 	slprs_jukebox_set_dolphin_music_volume(slprs_exi_device_ptr, jukeboxVolume);
