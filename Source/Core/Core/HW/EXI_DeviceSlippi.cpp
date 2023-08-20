@@ -1692,7 +1692,7 @@ void CEXISlippi::handleCaptureSavestate(u8 *payload)
 
 	s32 frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
 
-	u64 startTime = Common::Timer::GetTimeUs();
+	// u64 startTime = Common::Timer::GetTimeUs();
 
 	// Grab an available savestate
 	std::unique_ptr<SlippiSavestate> ss;
@@ -1719,7 +1719,7 @@ void CEXISlippi::handleCaptureSavestate(u8 *payload)
 	ss->Capture();
 	activeSavestates[frame] = std::move(ss);
 
-	u32 timeDiff = (u32)(Common::Timer::GetTimeUs() - startTime);
+	// u32 timeDiff = (u32)(Common::Timer::GetTimeUs() - startTime);
 	// INFO_LOG(SLIPPI_ONLINE, "SLIPPI ONLINE: Captured savestate for frame %d in: %f ms", frame,
 	//         ((double)timeDiff) / 1000);
 }
@@ -1736,7 +1736,7 @@ void CEXISlippi::handleLoadSavestate(u8 *payload)
 		return;
 	}
 
-	u64 startTime = Common::Timer::GetTimeUs();
+	// u64 startTime = Common::Timer::GetTimeUs();
 
 	// Fetch preservation blocks
 	std::vector<SlippiSavestate::PreserveBlock> blocks;
@@ -1761,7 +1761,7 @@ void CEXISlippi::handleLoadSavestate(u8 *payload)
 
 	activeSavestates.clear();
 
-	u32 timeDiff = (u32)(Common::Timer::GetTimeUs() - startTime);
+	// u32 timeDiff = (u32)(Common::Timer::GetTimeUs() - startTime);
 	// INFO_LOG(SLIPPI_ONLINE, "SLIPPI ONLINE: Loaded savestate for frame %d in: %f ms", frame, ((double)timeDiff) /
 	// 1000);
 }
@@ -2563,7 +2563,7 @@ void CEXISlippi::setMatchSelections(u8 *payload)
 
 	s.stageId = Common::swap16(&payload[4]);
 	u8 stageSelectOption = payload[6];
-	u8 onlineMode = payload[7];
+	// u8 onlineMode = payload[7];
 
 	s.isStageSelected = stageSelectOption == 1 || stageSelectOption == 3;
 	if (stageSelectOption == 3)
@@ -2714,7 +2714,6 @@ std::vector<u8> CEXISlippi::loadPremadeText(u8 *payload)
 
 void CEXISlippi::preparePremadeTextLength(u8 *payload)
 {
-	u8 textId = payload[0];
 	std::vector<u8> premadeTextData = loadPremadeText(payload);
 
 	m_read_queue.clear();
@@ -2724,7 +2723,6 @@ void CEXISlippi::preparePremadeTextLength(u8 *payload)
 
 void CEXISlippi::preparePremadeTextLoad(u8 *payload)
 {
-	u8 textId = payload[0];
 	std::vector<u8> premadeTextData = loadPremadeText(payload);
 
 	m_read_queue.clear();
@@ -2762,7 +2760,6 @@ void CEXISlippi::handleChatMessage(u8 *payload)
 
 	if (slippi_netplay)
 	{
-
 		auto userInfo = user->GetUserInfo();
 		auto packet = std::make_unique<sf::Packet>();
 		//		OSD::AddMessage("[Me]: "+ msg, OSD::Duration::VERY_LONG, OSD::Color::YELLOW);
