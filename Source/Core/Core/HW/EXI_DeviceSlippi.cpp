@@ -145,12 +145,6 @@ void OSDMessageHandler(const char *message, u32 color, u32 duration_ms)
 	OSD::AddMessage(msg, duration_ms, color);
 }
 
-// This function gets passed to Jukebox for handling music volume changes
-int GetJukeboxVolume()
-{
-	return SConfig::GetInstance().iSlippiJukeboxVolume;
-}
-
 CEXISlippi::CEXISlippi()
 {
 	INFO_LOG(SLIPPI, "EXI SLIPPI Constructor called.");
