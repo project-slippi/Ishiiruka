@@ -24,7 +24,11 @@ Please read the [FAQ](https://dolphin-emu.org/docs/faq/) before using Dolphin.
 
 ## General Requirements
 This fork includes a [Rust submodule](Externals/SlippiRustExtensions) that needs to be built and linked to the final executable.
-This means that you will need to install a Rust compiler for your current system; to do this, simply visit 
+First, pull in the submodule by running
+```
+git submodule update --init --recursive
+```
+then install the Rust compiler for your current system; to do this, simply visit 
 [rustup.rs](https://rustup.rs). Once installed, both CMake and Visual Studio should be able to automatically handle the rest for you.
 
 ## Building for Windows
