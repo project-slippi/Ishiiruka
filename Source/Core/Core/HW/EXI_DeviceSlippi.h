@@ -37,6 +37,8 @@ class CEXISlippi : public IEXIDevice
 	void DMARead(u32 addr, u32 size) override;
 
 	void ConfigureJukebox();
+	void SetJukeboxDolphinSystemVolume();
+	void SetJukeboxDolphinMusicVolume();
 
 	bool IsPresent() const override;
 
