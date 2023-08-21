@@ -1531,7 +1531,7 @@ bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame)
 
 		// 8/8/23: I want to disable forced frame advances for now. I think they're largely unnecessary because of the
 		// dynamic emulation speed and cause more jarring frame drops.
-	
+
 		// if (offsetUs < -t2 && !isCurrentlyAdvancing)
 		//{
 		//	isCurrentlyAdvancing = true;
@@ -1692,7 +1692,7 @@ void CEXISlippi::handleCaptureSavestate(u8 *payload)
 
 	s32 frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
 
-	u64 startTime = Common::Timer::GetTimeUs();
+	// u64 startTime = Common::Timer::GetTimeUs();
 
 	// Grab an available savestate
 	std::unique_ptr<SlippiSavestate> ss;
@@ -1719,7 +1719,7 @@ void CEXISlippi::handleCaptureSavestate(u8 *payload)
 	ss->Capture();
 	activeSavestates[frame] = std::move(ss);
 
-	u32 timeDiff = (u32)(Common::Timer::GetTimeUs() - startTime);
+	// u32 timeDiff = (u32)(Common::Timer::GetTimeUs() - startTime);
 	// INFO_LOG(SLIPPI_ONLINE, "SLIPPI ONLINE: Captured savestate for frame %d in: %f ms", frame,
 	//         ((double)timeDiff) / 1000);
 }
@@ -1736,7 +1736,7 @@ void CEXISlippi::handleLoadSavestate(u8 *payload)
 		return;
 	}
 
-	u64 startTime = Common::Timer::GetTimeUs();
+	// u64 startTime = Common::Timer::GetTimeUs();
 
 	// Fetch preservation blocks
 	std::vector<SlippiSavestate::PreserveBlock> blocks;
@@ -1761,7 +1761,7 @@ void CEXISlippi::handleLoadSavestate(u8 *payload)
 
 	activeSavestates.clear();
 
-	u32 timeDiff = (u32)(Common::Timer::GetTimeUs() - startTime);
+	// u32 timeDiff = (u32)(Common::Timer::GetTimeUs() - startTime);
 	// INFO_LOG(SLIPPI_ONLINE, "SLIPPI ONLINE: Loaded savestate for frame %d in: %f ms", frame, ((double)timeDiff) /
 	// 1000);
 }
@@ -2563,7 +2563,7 @@ void CEXISlippi::setMatchSelections(u8 *payload)
 
 	s.stageId = Common::swap16(&payload[4]);
 	u8 stageSelectOption = payload[6];
-	u8 onlineMode = payload[7];
+	// u8 onlineMode = payload[7];
 
 	s.isStageSelected = stageSelectOption == 1 || stageSelectOption == 3;
 	if (stageSelectOption == 3)
@@ -2714,7 +2714,6 @@ std::vector<u8> CEXISlippi::loadPremadeText(u8 *payload)
 
 void CEXISlippi::preparePremadeTextLength(u8 *payload)
 {
-	u8 textId = payload[0];
 	std::vector<u8> premadeTextData = loadPremadeText(payload);
 
 	m_read_queue.clear();
@@ -2724,7 +2723,6 @@ void CEXISlippi::preparePremadeTextLength(u8 *payload)
 
 void CEXISlippi::preparePremadeTextLoad(u8 *payload)
 {
-	u8 textId = payload[0];
 	std::vector<u8> premadeTextData = loadPremadeText(payload);
 
 	m_read_queue.clear();
@@ -2762,7 +2760,6 @@ void CEXISlippi::handleChatMessage(u8 *payload)
 
 	if (slippi_netplay)
 	{
-
 		auto userInfo = user->GetUserInfo();
 		auto packet = std::make_unique<sf::Packet>();
 		//		OSD::AddMessage("[Me]: "+ msg, OSD::Duration::VERY_LONG, OSD::Color::YELLOW);
@@ -3287,16 +3284,16 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		case CMD_PLAY_MUSIC:
 		{
 			auto args = SlippiExiTypes::Convert<SlippiExiTypes::PlayMusicQuery>(&memPtr[bufLoc]);
-			slprs_exi_device_jukebox_play_music(slprs_exi_device_ptr, args.offset, args.size);
+			slprs_jukebox_start_song(slprs_exi_device_ptr, args.offset, args.size);
 			break;
 		}
 		case CMD_STOP_MUSIC:
-			slprs_exi_device_jukebox_stop_music(slprs_exi_device_ptr);
+			slprs_jukebox_stop_music(slprs_exi_device_ptr);
 			break;
 		case CMD_CHANGE_MUSIC_VOLUME:
 		{
 			auto args = SlippiExiTypes::Convert<SlippiExiTypes::ChangeMusicVolumeQuery>(&memPtr[bufLoc]);
-			slprs_exi_device_jukebox_set_music_volume(slprs_exi_device_ptr, args.volume);
+			slprs_jukebox_set_melee_music_volume(slprs_exi_device_ptr, args.volume);
 			break;
 		}
 		default:
@@ -3346,9 +3343,24 @@ void CEXISlippi::ConfigureJukebox()
 	}
 #endif
 
-	slprs_exi_device_configure_jukebox(slprs_exi_device_ptr, SConfig::GetInstance().bSlippiJukeboxEnabled,
-	                                   AudioCommonGetCurrentVolume);
+	bool jukeboxEnabled = SConfig::GetInstance().bSlippiJukeboxEnabled;
+	int systemVolume = SConfig::GetInstance().m_IsMuted ? 0 : SConfig::GetInstance().m_Volume;
+	int jukeboxVolume = SConfig::GetInstance().iSlippiJukeboxVolume;
+
+	slprs_exi_device_configure_jukebox(slprs_exi_device_ptr, jukeboxEnabled, systemVolume, jukeboxVolume);
 #endif
+}
+
+void CEXISlippi::SetJukeboxDolphinSystemVolume()
+{
+	int systemVolume = SConfig::GetInstance().m_IsMuted ? 0 : SConfig::GetInstance().m_Volume;
+	slprs_jukebox_set_dolphin_system_volume(slprs_exi_device_ptr, systemVolume);
+}
+
+void CEXISlippi::SetJukeboxDolphinMusicVolume()
+{
+	int jukeboxVolume = SConfig::GetInstance().iSlippiJukeboxVolume;
+	slprs_jukebox_set_dolphin_music_volume(slprs_exi_device_ptr, jukeboxVolume);
 }
 
 bool CEXISlippi::IsPresent() const

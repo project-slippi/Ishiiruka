@@ -17,13 +17,13 @@
 #include <wx/sizer.h>
 #include <wx/spinctrl.h>
 #include <wx/stattext.h>
+#include <wx/valtext.h>
 
 #include "Common/Common.h"
 #include "Common/CommonPaths.h"
 #include "Common/FileUtil.h"
 #include "Core/ConfigManager.h"
 #include "Core/Core.h"
-#include "Core/HW/EXI.h"
 #include "Core/HW/GCMemcard.h"
 #include "Core/HW/GCPad.h"
 #include "Core/NetPlayProto.h"
@@ -31,9 +31,9 @@
 #include "DolphinWX/Input/MicButtonConfigDiag.h"
 #include "DolphinWX/WxEventUtils.h"
 #include "DolphinWX/WxUtils.h"
-#include <wx/valtext.h>
 
 #ifndef IS_PLAYBACK
+#include "Core/HW/EXI.h"
 #include "Core/HW/EXI_DeviceSlippi.h"
 #endif
 
@@ -101,8 +101,7 @@ void SlippiNetplayConfigPane::InitializeGUI()
 	    _("Make inputs feel more console-like for overclocked GCC to USB "
 	      "adapters at the cost of 1.6ms of input lag (2ms for single-port official adapter)."));
 
-#ifndef IS_PLAYBACK
-	m_slippi_jukebox_enabled_checkbox = new wxCheckBox(this, wxID_ANY, _("Enable Music (Beta)"));
+	m_slippi_jukebox_enabled_checkbox = new wxCheckBox(this, wxID_ANY, _("Enable Music"));
 
 	// WASAPI does not work with this and we want a note for the user.
 #ifdef _WIN32
@@ -115,7 +114,15 @@ void SlippiNetplayConfigPane::InitializeGUI()
 	    _("Toggle in-game music for stages and menus. Changing this does not affect "
 	      "other audio like character hits or effects."));
 #endif
-#endif
+
+	m_slippi_jukebox_volume_slider = new DolphinSlider(this, wxID_ANY, 100, 0, 100);
+	m_jukebox_volume_text = new wxStaticText(this, wxID_ANY, "");
+	m_jukebox_volume_text->SetMinSize(wxSize(50, 20));
+
+	auto *const jukebox_music_volume_sizer = new wxBoxSizer(wxHORIZONTAL);
+	jukebox_music_volume_sizer->Add(new wxStaticText(this, wxID_ANY, _("Music Volume:")), 0, wxALIGN_CENTER_VERTICAL);
+	jukebox_music_volume_sizer->Add(m_slippi_jukebox_volume_slider, 1, wxALIGN_CENTER_VERTICAL);
+	jukebox_music_volume_sizer->Add(m_jukebox_volume_text, 0, wxALIGN_CENTER_VERTICAL);
 
 	const int space5 = FromDIP(5);
 	const int space10 = FromDIP(10);
@@ -173,16 +180,15 @@ void SlippiNetplayConfigPane::InitializeGUI()
 	main_sizer->Add(sbSlippiInputSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	main_sizer->AddSpacer(space5);
 
-#ifndef IS_PLAYBACK
 	wxStaticBoxSizer *const sbSlippiJukeboxSettings =
-	    new wxStaticBoxSizer(wxVERTICAL, this, _("Slippi Jukebox Settings"));
+	    new wxStaticBoxSizer(wxVERTICAL, this, _("Slippi Jukebox Settings (Beta)"));
 	sbSlippiJukeboxSettings->AddSpacer(space5);
 	sbSlippiJukeboxSettings->Add(m_slippi_jukebox_enabled_checkbox, 0, wxLEFT | wxRIGHT, space5);
 	sbSlippiJukeboxSettings->AddSpacer(space5);
+	sbSlippiJukeboxSettings->Add(jukebox_music_volume_sizer, 2, wxEXPAND, space5);
 
 	main_sizer->Add(sbSlippiJukeboxSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	main_sizer->AddSpacer(space5);
-#endif
 
 	SetSizer(main_sizer);
 }
@@ -197,6 +203,7 @@ void SlippiNetplayConfigPane::LoadGUIValues()
 	bool enableReplays = startup_params.m_slippiSaveReplays;
 	bool forceNetplayPort = startup_params.m_slippiForceNetplayPort;
 	bool forceLanIp = startup_params.m_slippiForceLanIp;
+	bool enableJukebox = startup_params.bSlippiJukeboxEnabled;
 
 	m_replay_enable_checkbox->SetValue(enableReplays);
 	m_replay_month_folders_checkbox->SetValue(startup_params.m_slippiReplayMonthFolders);
@@ -226,9 +233,17 @@ void SlippiNetplayConfigPane::LoadGUIValues()
 
 	m_reduce_timing_dispersion_checkbox->SetValue(startup_params.bReduceTimingDispersion);
 
-#ifndef IS_PLAYBACK
-	m_slippi_jukebox_enabled_checkbox->SetValue(startup_params.bSlippiJukeboxEnabled);
-#endif
+	m_slippi_jukebox_enabled_checkbox->SetValue(enableJukebox);
+	m_slippi_jukebox_volume_slider->SetValue(startup_params.iSlippiJukeboxVolume);
+	m_jukebox_volume_text->SetLabel(wxString::Format("%d %%", startup_params.iSlippiJukeboxVolume));
+	if (enableJukebox)
+	{
+		m_slippi_jukebox_volume_slider->Enable();
+	}
+	else
+	{
+		m_slippi_jukebox_volume_slider->Disable();
+	}
 }
 
 void SlippiNetplayConfigPane::BindEvents()
@@ -252,9 +267,8 @@ void SlippiNetplayConfigPane::BindEvents()
 	m_reduce_timing_dispersion_checkbox->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnReduceTimingDispersionToggle,
 	                                          this);
 
-#ifndef IS_PLAYBACK
 	m_slippi_jukebox_enabled_checkbox->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnToggleJukeboxEnabled, this);
-#endif
+	m_slippi_jukebox_volume_slider->Bind(wxEVT_SLIDER, &SlippiNetplayConfigPane::OnJukeboxVolumeUpdate, this);
 }
 
 void SlippiNetplayConfigPane::OnQuickChatChanged(wxCommandEvent &event)
@@ -339,13 +353,22 @@ void SlippiNetplayConfigPane::OnReduceTimingDispersionToggle(wxCommandEvent &eve
 	SConfig::GetInstance().bReduceTimingDispersion = m_reduce_timing_dispersion_checkbox->GetValue();
 }
 
-#ifndef IS_PLAYBACK
 void SlippiNetplayConfigPane::OnToggleJukeboxEnabled(wxCommandEvent &event)
 {
 	bool isEnabled = m_slippi_jukebox_enabled_checkbox->GetValue();
 
 	SConfig::GetInstance().bSlippiJukeboxEnabled = isEnabled;
 
+	if (isEnabled)
+	{
+		m_slippi_jukebox_volume_slider->Enable();
+	}
+	else
+	{
+		m_slippi_jukebox_volume_slider->Disable();
+	}
+
+#ifndef IS_PLAYBACK
 	// If we have a Slippi EXI device loaded, grab it and tell it to reconfigure the Jukebox.
 	// Note that this should only execute if `Core` is loaded and running, as otherwise the Expansion
 	// Interface is not actually initialized.
@@ -358,8 +381,26 @@ void SlippiNetplayConfigPane::OnToggleJukeboxEnabled(wxCommandEvent &event)
 			slippiEXIDevice->ConfigureJukebox();
 		}
 	}
+#endif // !IS_PLAYBACK
 }
-#endif
+
+void SlippiNetplayConfigPane::OnJukeboxVolumeUpdate(wxCommandEvent &event)
+{
+	SConfig::GetInstance().iSlippiJukeboxVolume = event.GetInt();
+	m_jukebox_volume_text->SetLabel(wxString::Format("%d %%", event.GetInt()));
+
+#ifndef IS_PLAYBACK
+	if (Core::IsRunning())
+	{
+		CEXISlippi *slippiEXIDevice = (CEXISlippi *)ExpansionInterface::FindDevice(TEXIDevices::EXIDEVICE_SLIPPI);
+
+		if (slippiEXIDevice != nullptr && slippiEXIDevice->IsPresent())
+		{
+			slippiEXIDevice->SetJukeboxDolphinMusicVolume();
+		}
+	}
+#endif // !IS_PLAYBACK
+}
 
 void SlippiNetplayConfigPane::PopulateEnableChatChoiceBox()
 {
