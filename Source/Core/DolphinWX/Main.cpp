@@ -32,6 +32,8 @@
 #include "Common/Logging/LogManager.h"
 #include "Common/Thread.h"
 
+#include "UICommon/UICommon.h"
+
 #include "Core/Analytics.h"
 #include "Core/ConfigManager.h"
 #include "Core/Core.h"
@@ -91,6 +93,16 @@ bool wxMsgAlert(const char *, const char *, bool, int);
 std::string wxStringTranslator(const char *);
 
 CFrame *main_frame = nullptr;
+
+void UICommon::LowerRenderWindow()
+{
+	main_frame->LowerRenderWindow();
+}
+
+void UICommon::RaiseRenderWindow()
+{
+	main_frame->RaiseRenderWindow();
+}
 
 static std::mutex s_init_mutex;
 
