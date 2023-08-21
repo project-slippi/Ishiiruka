@@ -3080,11 +3080,11 @@ void CEXISlippi::handleGetPlayerSettings()
 	SlippiExiTypes::GetPlayerSettingsResponse resp = {};
 
 	std::vector<std::vector<std::string>> messagesByPlayer = {
-	    SlippiUser::defaultChatMessages, SlippiUser::defaultChatMessages, SlippiUser::defaultChatMessages,
-	    SlippiUser::defaultChatMessages};
+		{}, {}, {}, {}
+	};
 
 	// These chat messages will be used when previewing messages
-	auto userChatMessages = user->GetUserInfo().chatMessages;
+	auto userChatMessages = user->GetUserChatMessages();
 	if (userChatMessages.size() == 16)
 	{
 		messagesByPlayer[0] = userChatMessages;
@@ -3099,6 +3099,13 @@ void CEXISlippi::handleGetPlayerSettings()
 
 	for (int i = 0; i < 4; i++)
 	{
+		// If any of the users in the chat messages vector have a payload that is incorrect,
+		// force that player to the default chat messages. A valid payload is 16 entries.
+		if(messagesByPlayer[i].size() != 16)
+		{
+			messagesByPlayer[i] = user->GetDefaultChatMessages();
+		}
+
 		for (int j = 0; j < 16; j++)
 		{
 			auto str = ConvertStringForGame(messagesByPlayer[i][j], MAX_MESSAGE_LENGTH);

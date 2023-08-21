@@ -19,7 +19,7 @@ class SlippiUser
 {
   public:
 	// This type is filled in with data from the Rust side.
-    // Eventually, this entire class will disappear.
+	// Eventually, this entire class will disappear.
 	struct UserInfo
 	{
 		std::string uid = "";
@@ -29,23 +29,23 @@ class SlippiUser
 		std::string latestVersion = "";
 
 		int port;
-
-		std::vector<std::string> chatMessages;
+        
+        std::vector<std::string> chatMessages;
 	};
 
 	SlippiUser(uintptr_t rs_exi_device_ptr);
 	~SlippiUser();
 
-    bool AttemptLogin();
+	bool AttemptLogin();
 	void OpenLogInPage();
 	bool UpdateApp();
 	void ListenForLogIn();
 	void LogOut();
 	void OverwriteLatestVersion(std::string version);
 	UserInfo GetUserInfo();
+	std::vector<std::string> GetUserChatMessages();
+	std::vector<std::string> GetDefaultChatMessages();
 	bool IsLoggedIn();
-
-    const static std::vector<std::string> defaultChatMessages;
 
   protected:
 	// A pointer to a "shadow" EXI Device that lives on the Rust side of things.
