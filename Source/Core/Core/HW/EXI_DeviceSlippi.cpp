@@ -153,10 +153,16 @@ CEXISlippi::CEXISlippi()
 	// https://github.com/dolphin-emu/dolphin/blob/7f450f1d7e7d37bd2300f3a2134cb443d07251f9/Source/Core/Core/Movie.cpp#L246-L249
 	std::string isoPath = SConfig::GetInstance().m_strFilename;
 
-    // @TODO: Eventually we should move `GetSlippiUserJSONPath` out of the File module.
-    std::string userJSONPath = File::GetSlippiUserJSONPath();
+	// @TODO: Eventually we should move `GetSlippiUserJSONPath` out of the File module.
+	std::string userJSONPath = File::GetSlippiUserJSONPath();
 
-	slprs_exi_device_ptr = slprs_exi_device_create(isoPath.c_str(), userJSONPath.c_str(), OSDMessageHandler);
+	SlippiRustEXIConfig slprs_exi_config;
+	slprs_exi_config.iso_path = isoPath.c_str();
+	slprs_exi_config.user_json_path = userJSONPath.c_str();
+	slprs_exi_config.scm_slippi_semver_str = scm_slippi_semver_str.c_str();
+	slprs_exi_config.osd_add_msg_fn = OSDMessageHandler;
+
+	slprs_exi_device_ptr = slprs_exi_device_create(slprs_exi_config);
 
 	m_slippiserver = SlippiSpectateServer::getInstance();
 	user = std::make_unique<SlippiUser>(slprs_exi_device_ptr);
