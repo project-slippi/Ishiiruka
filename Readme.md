@@ -23,7 +23,7 @@ Please read the [FAQ](https://dolphin-emu.org/docs/faq/) before using Dolphin.
     * A graphics card that supports Direct3D 11 / OpenGL 4.4 is recommended.
 
 ## General Requirements
-This fork includes a [Rust submodule](Externals/SlippiRustExtensions) that needs to be built and linked to the final executable.
+This fork includes a [Rust submodule](https://github.com/project-slippi/slippi-rust-extensions) that needs to be built and linked to the final executable.
 First, pull in the submodule by running
 ```
 git submodule update --init --recursive
