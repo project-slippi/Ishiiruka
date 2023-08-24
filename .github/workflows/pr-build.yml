@@ -13,26 +13,6 @@ on:
       - "**.md"
 
 jobs:
-  slprs_cargo_fmt:
-    name: (SlippiRustExtensions) Cargo Format
-    runs-on: ubuntu-latest
-    outputs:
-      rust_ver: ${{ steps.rust_ver.outputs.rust_ver }}
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: recursive
-      - id: rust_ver
-        name: Grab Rust Version
-        run: echo "rust_ver=$(sed -rn 's/^channel = "(.*)"/\1/p' ./Externals/SlippiRustExtensions/rust-toolchain.toml)" >> "$GITHUB_OUTPUT"
-      - uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          toolchain: ${{ steps.rust_ver.outputs.rust_ver }}
-          components: rustfmt
-      - name: Rustfmt Check
-        uses: actions-rust-lang/rustfmt@v1
-        with:
-          manifest-path: ./Externals/SlippiRustExtensions/Cargo.toml
 
   skip_duplicates:
     name: Skip Duplicate Runs
@@ -46,8 +26,24 @@ jobs:
           concurrent_skipping: "same_content"
           do_not_skip: '["push", "workflow_dispatch", "schedule"]'
 
+  # goal is to prevent merges when the commit is not from the main branch, builds should still succeed
+  check_rust_commit:
+    needs: [skip_duplicates]
+    if: ${{ needs.skip_duplicates.outputs.should_skip != 'true' }}
+    name: Verify SlippiRustExtensions Commit is in Main
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Main Branch Check
+        shell: bash
+        run: |
+          git submodule update --init Externals/SlippiRustExtensions
+          cd Externals/SlippiRustExtensions
+          commit_id=$(git rev-parse HEAD)
+          git branch --contains $commit_id | grep main
+
   windows:
-    needs: [skip_duplicates, slprs_cargo_fmt]
+    needs: [skip_duplicates]
     if: ${{ needs.skip_duplicates.outputs.should_skip != 'true' }}
     strategy:
       fail-fast: false
@@ -70,10 +66,14 @@ jobs:
         uses: actions/checkout@v3
         with:
           submodules: recursive
+      - id: rust_ver
+        name: Grab Rust Version
+        shell: bash
+        run: echo "rust_ver=$(sed -rn 's/^channel = "(.*)"/\1/p' ./Externals/SlippiRustExtensions/rust-toolchain.toml)" >> "$GITHUB_OUTPUT"
       - name: "Install Rust"
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          toolchain: ${{ needs.slprs_cargo_fmt.outputs.rust_ver }}  # Pin to our specific Rust version.
+          toolchain: ${{ steps.rust_ver.outputs.rust_ver }}  # Pin to our specific Rust version.
           rustflags: ""  # Disable default injection of warnings = errors.
       - name: "(SlippiRustExtensions) Run cargo test"
         run: cargo test --all --all-features --manifest-path=Externals/SlippiRustExtensions/Cargo.toml
@@ -151,7 +151,7 @@ jobs:
           path: "./artifact/"
   
   linux:
-    needs: [skip_duplicates, slprs_cargo_fmt]
+    needs: [skip_duplicates]
     if: ${{ needs.skip_duplicates.outputs.should_skip != 'true' }}
     strategy:
       fail-fast: false
@@ -221,10 +221,14 @@ jobs:
           qtbase5-private-dev \
           libxxf86vm-dev \
           x11proto-xinerama-dev
+      - id: rust_ver
+        name: Grab Rust Version
+        shell: bash
+        run: echo "rust_ver=$(sed -rn 's/^channel = "(.*)"/\1/p' ./Externals/SlippiRustExtensions/rust-toolchain.toml)" >> "$GITHUB_OUTPUT"
       - name: "Install Rust"
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          toolchain: ${{ needs.slprs_cargo_fmt.outputs.rust_ver }}  # Pin to our specific Rust version.
+          toolchain: ${{ steps.rust_ver.outputs.rust_ver }}  # Pin to our specific Rust version.
           rustflags: ""  # Disable default injection of warnings = errors.
       - name: "(SlippiRustExtensions) Run cargo test"
         run: cargo test --all --all-features --manifest-path=Externals/SlippiRustExtensions/Cargo.toml
@@ -259,7 +263,7 @@ jobs:
           path: "./artifact/"
   
   macOS:
-    needs: [skip_duplicates, slprs_cargo_fmt]
+    needs: [skip_duplicates]
     if: ${{ needs.skip_duplicates.outputs.should_skip != 'true' }}
     strategy:
       fail-fast: false
@@ -311,10 +315,14 @@ jobs:
           sound-touch \
           hidapi \
           python@3.10
+      - id: rust_ver
+        name: Grab Rust Version
+        shell: bash
+        run: echo "rust_ver=$(sed -rn 's/^channel = "(.*)"/\1/p' ./Externals/SlippiRustExtensions/rust-toolchain.toml)" >> "$GITHUB_OUTPUT"
       - name: "Install Rust"
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          toolchain: ${{ needs.slprs_cargo_fmt.outputs.rust_ver }}  # Pin to our specific Rust version.
+          toolchain: ${{ steps.rust_ver.outputs.rust_ver }}  # Pin to our specific Rust version.
           rustflags: ""  # Disable default injection of warnings = errors.
       - name: "(SlippiRustExtensions) Run cargo test"
         run: cargo test --all --all-features --manifest-path=Externals/SlippiRustExtensions/Cargo.toml
