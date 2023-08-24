@@ -28,6 +28,8 @@ jobs:
 
   # goal is to prevent merges when the commit is not from the main branch, builds should still succeed
   check_rust_commit:
+    needs: [skip_duplicates]
+    if: ${{ needs.skip_duplicates.outputs.should_skip != 'true' }}
     name: Verify SlippiRustExtensions Commit is in Main
     runs-on: ubuntu-latest
     steps:
