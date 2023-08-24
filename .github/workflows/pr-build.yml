@@ -26,13 +26,13 @@ jobs:
           concurrent_skipping: "same_content"
           do_not_skip: '["push", "workflow_dispatch", "schedule"]'
 
-  # goal is to prevent merges when the commit is from the main branch, builds should still succeed
+  # goal is to prevent merges when the commit is not from the main branch, builds should still succeed
   check_rust_commit:
-    name: Verify SlippiRustExtensions commit is in main
+    name: Verify SlippiRustExtensions Commit is in Main
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: main branch check
+      - name: Main Branch Check
         shell: bash
         run: |
           git submodule update --init Externals/SlippiRustExtensions
