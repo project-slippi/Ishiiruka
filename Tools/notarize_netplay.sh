@@ -22,7 +22,7 @@ response=$(
         --wait \
         --issuer ${APPLE_ISSUER_ID} \
         --key-id ${APPLE_API_KEY} \
-        --key ~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
+        --key ~/private_keys/AuthKey_${{ APPLE_API_KEY_ID }}.p8
 )
 
 # Get the notarization job ID from the response
@@ -44,7 +44,7 @@ log_response=$(
     xcrun notarytool log \
         --issuer ${APPLE_ISSUER_ID} \
         --key-id ${APPLE_API_KEY} \
-        --key ~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8 \
+        --key ~/private_keys/AuthKey_${{ APPLE_API_KEY_ID }}.p8 \
         $job_id
 )
 echo "${log_response}"
