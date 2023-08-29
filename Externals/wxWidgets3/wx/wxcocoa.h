@@ -340,7 +340,7 @@
 
 #define wxUSE_STC 0
 
-#define wxUSE_WEBVIEW 1
+#define wxUSE_WEBVIEW 0
 
 #ifdef __WXMSW__
 #define wxUSE_WEBVIEW_IE 0
@@ -349,7 +349,7 @@
 #endif
 
 #if defined(__WXGTK__) || defined(__WXOSX__)
-#define wxUSE_WEBVIEW_WEBKIT 1
+#define wxUSE_WEBVIEW_WEBKIT 0
 #else
 #define wxUSE_WEBVIEW_WEBKIT 0
 #endif

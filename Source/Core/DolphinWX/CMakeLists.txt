@@ -106,11 +106,7 @@ if(APPLE)
 			${CORESERV_LIBRARY}
 			${IOK_LIBRARY}
 			${OPENGL_LIBRARY}
-			${WEBKIT_FRAMEWORK}
 			)
-
-		# Keep the WebView login portal around only on macOS, just a bit longer
-		set(GUI_SRCS ${GUI_SRCS} SlippiAuthWebView/SlippiAuthWebView.cpp)
 	endif()
 
 	# Add resource files to application bundle.
