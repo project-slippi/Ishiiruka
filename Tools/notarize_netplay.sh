@@ -17,13 +17,11 @@ filepath=${1:?"need a filepath"}
 echo "Attempting notarization"
 
 # Submit the DMG for notarization and wait for the flow to finish
-response=$(
-    xcrun notarytool submit $filepath \
-        --wait \
-        --issuer ${APPLE_ISSUER_ID} \
-        --key-id ${APPLE_API_KEY} \
-        --key ~/private_keys/AuthKey_${{ APPLE_API_KEY_ID }}.p8
-)
+response=$(xcrun notarytool submit $filepath \
+    --wait \
+    --issuer ${APPLE_ISSUER_ID} \
+    --key-id ${APPLE_API_KEY} \
+    --key ~/private_keys/AuthKey_${{ APPLE_API_KEY_ID }}.p8)
 
 # Get the notarization job ID from the response
 e_time=$(date +%s)
@@ -40,17 +38,15 @@ status_result=$(echo "${status_line}" | cut -d ":" -s -f 2 | cut -d " " -f 2)
 
 # Fetch and echo the log *before* bailing if it's bad, so we can tell if there's
 # a deeper error we need to handle.
-log_response=$(
-    xcrun notarytool log \
-        --issuer ${APPLE_ISSUER_ID} \
-        --key-id ${APPLE_API_KEY} \
-        --key ~/private_keys/AuthKey_${{ APPLE_API_KEY_ID }}.p8 \
-        $job_id
-)
+log_response=$(xcrun notarytool log \
+    --issuer ${APPLE_ISSUER_ID} \
+    --key-id ${APPLE_API_KEY} \
+    --key ~/private_keys/AuthKey_${{ APPLE_API_KEY_ID }}.p8 \
+    $job_id)
 echo "${log_response}"
 
 if [[ ${status_result} != "Accepted" ]]; then
-    show_error_then_exit "Notarization failed with status ${status_result}"
+    echo "Notarization failed with status ${status_result}"
     exit 1
 fi
 
@@ -58,7 +54,8 @@ fi
 echo "Successfully notarized! Stapling notarization status to ${filepath}"
 success=$(xcrun stapler staple "$filepath")
 if [[ -z "${success}" ]]; then
-    show_error_then_exit "Could not staple notarization to app"
+    echo "Could not staple notarization to app"
+    exit 1
 fi
 
 # Confirm the staple actually worked...
