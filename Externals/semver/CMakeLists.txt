@@ -24,8 +24,8 @@ if(UNIX)
 	add_definitions(-std=c++14)
 endif()
 
-if(APPLE OR ${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD|NetBSD|OpenBSD")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -Wno-error -Wno-unused-but-set-variable -Wno-missing-variable-declarations")
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error -Wno-unused-but-set-variable -Wno-missing-variable-declarations")
 endif()
 
 if(WIN32)
