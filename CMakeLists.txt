@@ -65,7 +65,7 @@ option(ENCODE_FRAMEDUMPS "Encode framedumps in AVI format" ON)
 option(FASTLOG "Enable all logs" OFF)
 option(OPROFILING "Enable profiling" OFF)
 option(GDBSTUB "Enable gdb stub for remote debugging." OFF)
-if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR ${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD|OpenBSD|NetBSD")
 	option(VTUNE "Enable Intel VTune integration for JIT symbols." OFF)
 endif()
 
@@ -681,7 +681,9 @@ include_directories(Externals/base64)
 add_subdirectory(Externals/Bochs_disasm)
 include_directories(Externals/Bochs_disasm)
 
-add_subdirectory(Externals/glslang)
+if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD|OpenBSD|NetBSD")
+	add_subdirectory(Externals/glslang)
+endif()
 
 add_subdirectory(Externals/SlippiLib)
 include_directories(Externals/SlippiLib)
@@ -996,7 +998,7 @@ if(NOT DISABLE_WX)
 		# not when building wx itself (see wxw3 CMakeLists.txt for that)
 		if(APPLE)
 			add_definitions(-D__WXOSX_COCOA__)
-		elseif(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
+		elseif(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD|OpenBSD|NetBSD")
 			add_definitions(-D__WXGTK__)
 
 			# Check for required libs
@@ -1021,7 +1023,7 @@ if(NOT DISABLE_WX)
 	add_definitions(-DHAVE_WX=1)
 endif(NOT DISABLE_WX)
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD|NetBSD")
+if(${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD|NetBSD|OpenBSD")
 	set(LIBS ${LIBS} usbhid)
 endif()
 

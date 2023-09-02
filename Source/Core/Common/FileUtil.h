@@ -162,7 +162,7 @@ std::string GetBundleDirectory();
 std::string GetApplicationSupportDirectory();
 #endif
 
-std::string& GetExeDirectory();
+std::string GetExeDirectory();
 
 std::string GetHomeDirectory();
 

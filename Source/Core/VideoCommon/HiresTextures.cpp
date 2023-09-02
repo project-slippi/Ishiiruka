@@ -11,7 +11,7 @@
 #include <thread>
 #include <utility>
 #include <vector>
-#include <xxhash.h>
+#include "../../Externals/xxhash/xxhash.h"
 
 #include <SOIL/SOIL.h>
 

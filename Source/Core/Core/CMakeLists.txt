@@ -271,7 +271,10 @@ if(LIBUSB_FOUND)
 					   	IPC_HLE/WII_IPC_HLE_Device_usb_bt_real.cpp)
 endif(LIBUSB_FOUND)
 
-set(LIBS ${LIBS} videovulkan)
+# Can be fixed, but temporarily disabled: Use OpenGL
+if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD|NetBSD|OpenBSD")
+	set(LIBS ${LIBS} videovulkan)
+endif()
 
 set(LIBS ${LIBS} ${MBEDTLS_LIBRARIES})
 

@@ -103,7 +103,9 @@ void VideoBackendBase::PopulateList()
 		else
 #endif
         	{
+#if !(defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__))
 	        	g_available_video_backends.push_back(std::make_unique<Vulkan::VideoBackend>());
+#endif
         	}
     }
 

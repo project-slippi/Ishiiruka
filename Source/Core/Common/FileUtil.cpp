@@ -735,7 +735,7 @@ std::string GetApplicationSupportDirectory()
 }
 #endif
 
-std::string &GetExeDirectory()
+std::string GetExeDirectory()
 {
 	static std::string DolphinPath;
 	if (DolphinPath.empty())
@@ -749,6 +749,8 @@ std::string &GetExeDirectory()
 		else
 			DolphinPath = TStrToUTF8(Dolphin_exe_Path);
 		DolphinPath = DolphinPath.substr(0, DolphinPath.find_last_of('\\'));
+#elif defined(__FreeBSD__) || || defined(__OpenBSD__) || defined(__NetBSD__)
+		return "."; // Hack
 #else
 		char Dolphin_exe_Path[PATH_MAX];
 		ssize_t len = ::readlink("/proc/self/exe", Dolphin_exe_Path, sizeof(Dolphin_exe_Path));
@@ -791,16 +793,16 @@ std::string GetSysDirectory()
 {
 	std::string sysDir;
 
-#if defined(__APPLE__)
-	sysDir = GetBundleDirectory() + DIR_SEP + SYSDATA_DIR;
-#elif defined(_WIN32) || defined(LINUX_LOCAL_DEV)
+#if defined(_WIN32) || defined(LINUX_LOCAL_DEV) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
 	sysDir = GetExeDirectory() + DIR_SEP + SYSDATA_DIR;
+#elif defined(__APPLE__)
+	sysDir = GetBundleDirectory() + DIR_SEP + SYSDATA_DIR;
 #else
 	sysDir = SYSDATA_DIR;
 #endif
 	sysDir += DIR_SEP;
 
-	INFO_LOG(COMMON, "GetSysDirectory: Setting to %s:", sysDir.c_str());
+	INFO_LOG(COMMON, "GetSysDirectory: Setting to %s: ", sysDir.c_str());
 	return sysDir;
 }
 
