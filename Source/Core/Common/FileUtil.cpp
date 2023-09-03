@@ -749,7 +749,7 @@ std::string GetExeDirectory()
 		else
 			DolphinPath = TStrToUTF8(Dolphin_exe_Path);
 		DolphinPath = DolphinPath.substr(0, DolphinPath.find_last_of('\\'));
-#elif defined(__FreeBSD__) || || defined(__OpenBSD__) || defined(__NetBSD__)
+#elif defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
 		return "."; // Hack
 #else
 		char Dolphin_exe_Path[PATH_MAX];
