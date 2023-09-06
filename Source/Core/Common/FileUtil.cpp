@@ -47,6 +47,8 @@
 #define S_ISDIR(m) (((m)&S_IFMT) == S_IFDIR)
 #endif
 
+static std::string s_user_paths[NUM_PATH_INDICES];
+
 // This namespace has various generic functions related to files and paths.
 // The code still needs a ton of cleanup.
 // REMEMBER: strdup considered harmful!
@@ -793,8 +795,14 @@ std::string GetSysDirectory()
 {
 	std::string sysDir;
 
-#if defined(_WIN32) || defined(LINUX_LOCAL_DEV) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+#if defined(_WIN32)
 	sysDir = GetExeDirectory() + DIR_SEP + SYSDATA_DIR;
+#elif defined(LINUX_LOCAL_DEV) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+#	ifdef INSTALLMODE
+		sysDir = s_user_paths[D_USER_IDX] + "/Sys";
+#	else
+		sysDir = GetExeDirectory() + DIR_SEP + SYSDATA_DIR;
+#	endif
 #elif defined(__APPLE__)
 	sysDir = GetBundleDirectory() + DIR_SEP + SYSDATA_DIR;
 #else
@@ -819,7 +827,6 @@ std::string GetSlippiUserJSONPath()
 	return userFilePath;
 }
 
-static std::string s_user_paths[NUM_PATH_INDICES];
 static void RebuildUserDirectories(unsigned int dir_index)
 {
 	switch (dir_index)

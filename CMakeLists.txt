@@ -359,6 +359,9 @@ if(UNIX)
 	if(LINUX_LOCAL_DEV)
 		add_definitions('-DLINUX_LOCAL_DEV')
 	endif(LINUX_LOCAL_DEV)
+	if(INSTALLMODE)
+		add_definitions('-DINSTALLMODE')
+	endif(INSTALLMODE)
 endif(UNIX)
 
 # Dolphin requires threads.
