@@ -623,12 +623,13 @@ static bool CheckDeviceAccess(libusb_device* device)
 		else if ((ret = libusb_kernel_driver_active(s_handle, 0)) == 1)
 		{
 		// Slippi Ishiiruka temp patch: A fix is underway for Dolphin-emu, but this is workaround
-		//  on said systems
-#if !(defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__))
+		//  on said systems. Only on FreeBSD systems, not the other BSD's I think
+#ifndef __FreeBSD__
 			if ((ret = libusb_detach_kernel_driver(s_handle, 0)) && ret != LIBUSB_ERROR_NOT_SUPPORTED)
 			{
 				ERROR_LOG(SERIALINTERFACE, "libusb_detach_kernel_driver failed with error: %d", ret);
 			}
+			ret = 0; // Need to work around.
 #endif
 		}
 		// This call makes Nyko-brand (and perhaps other) adapters work.
