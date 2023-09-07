@@ -3,12 +3,12 @@
 // Refer to the license.txt file included.
 // Modified For Ishiiruka By Tino
 
-#include "AudioCommon/AudioCommon.h"
 #include "AudioCommon/Mixer.h"
+#include "AudioCommon/AudioCommon.h"
 #include "Common/Atomic.h"
 #include "Common/CPUDetect.h"
-#include "Common/MathUtil.h"
 #include "Common/CommonFuncs.h"
+#include "Common/MathUtil.h"
 #include "Core/ConfigManager.h"
 #include "Core/Core.h"
 #include "Core/HW/AudioInterface.h"
@@ -23,55 +23,50 @@ const float CMixer::CONTROL_FACTOR = 0.2f;
 const float CMixer::CONTROL_AVG = 32;
 
 CMixer::CMixer(u32 BackendSampleRate)
-	: m_dma_mixer(this, 32000)
-	, m_streaming_mixer(this, 48000)
-	, m_wiimote_speaker_mixer(this, 3000)
-	, m_sample_rate(BackendSampleRate)
-	, m_log_dtk_audio(0)
-	, m_log_dsp_audio(0)
-	, m_speed(0)
+    : m_dma_mixer(this, 32000)
+    , m_streaming_mixer(this, 48000)
+    , m_wiimote_speaker_mixer(this, 3000)
+    , m_sample_rate(BackendSampleRate)
+    , m_log_dtk_audio(0)
+    , m_log_dsp_audio(0)
+    , m_speed(0)
 {
 	INFO_LOG(AUDIO_INTERFACE, "Mixer is initialized");
 }
 
-void CMixer::LinearMixerFifo::Interpolate(u32 left_input_index, float* left_output, float* right_output)
+void CMixer::LinearMixerFifo::Interpolate(u32 left_input_index, float *left_output, float *right_output)
 {
-	*left_output = (1 - m_fraction) * m_float_buffer[left_input_index & INDEX_MASK]
-		+ m_fraction * m_float_buffer[(left_input_index + 2) & INDEX_MASK];
-	*right_output = (1 - m_fraction) * m_float_buffer[(left_input_index + 1) & INDEX_MASK]
-		+ m_fraction * m_float_buffer[(left_input_index + 3) & INDEX_MASK];
+	*left_output = (1 - m_fraction) * m_float_buffer[left_input_index & INDEX_MASK] +
+	               m_fraction * m_float_buffer[(left_input_index + 2) & INDEX_MASK];
+	*right_output = (1 - m_fraction) * m_float_buffer[(left_input_index + 1) & INDEX_MASK] +
+	                m_fraction * m_float_buffer[(left_input_index + 3) & INDEX_MASK];
 }
 
-void CMixer::CubicMixerFifo::Interpolate(u32 left_input_index, float* left_output, float* right_output)
+void CMixer::CubicMixerFifo::Interpolate(u32 left_input_index, float *left_output, float *right_output)
 {
-	static const float cubic_coef[] =
-	{
-	  -0.5f, 1.0f, -0.5f, 0.0f,
-	  1.5f, -2.5f, 0.0f, 1.0f,
-	  -1.5f, 2.0f, 0.5f, 0.0f,
-	  0.5f, -0.5f, 0.0f, 0.0f
-	};
+	static const float cubic_coef[] = {-0.5f, 1.0f, -0.5f, 0.0f, 1.5f, -2.5f, 0.0f, 1.0f,
+	                                   -1.5f, 2.0f, 0.5f,  0.0f, 0.5f, -0.5f, 0.0f, 0.0f};
 
-	const float x2 = m_fraction;		// x
-	const float x1 = x2*x2;          // x^2
-	const float x0 = x1*x2;          // x^3
+	const float x2 = m_fraction; // x
+	const float x1 = x2 * x2;    // x^2
+	const float x0 = x1 * x2;    // x^3
 
 	float y0 = cubic_coef[0] * x0 + cubic_coef[1] * x1 + cubic_coef[2] * x2 + cubic_coef[3];
 	float y1 = cubic_coef[4] * x0 + cubic_coef[5] * x1 + cubic_coef[6] * x2 + cubic_coef[7];
 	float y2 = cubic_coef[8] * x0 + cubic_coef[9] * x1 + cubic_coef[10] * x2 + cubic_coef[11];
 	float y3 = cubic_coef[12] * x0 + cubic_coef[13] * x1 + cubic_coef[14] * x2 + cubic_coef[15];
 
-	*left_output = y0 * m_float_buffer[left_input_index & INDEX_MASK]
-		+ y1 * m_float_buffer[(left_input_index + 2) & INDEX_MASK]
-		+ y2 * m_float_buffer[(left_input_index + 4) & INDEX_MASK]
-		+ y3 * m_float_buffer[(left_input_index + 6) & INDEX_MASK];
-	*right_output = y0 * m_float_buffer[(left_input_index + 1) & INDEX_MASK]
-		+ y1 * m_float_buffer[(left_input_index + 3) & INDEX_MASK]
-		+ y2 * m_float_buffer[(left_input_index + 5) & INDEX_MASK]
-		+ y3 * m_float_buffer[(left_input_index + 7) & INDEX_MASK];
+	*left_output = y0 * m_float_buffer[left_input_index & INDEX_MASK] +
+	               y1 * m_float_buffer[(left_input_index + 2) & INDEX_MASK] +
+	               y2 * m_float_buffer[(left_input_index + 4) & INDEX_MASK] +
+	               y3 * m_float_buffer[(left_input_index + 6) & INDEX_MASK];
+	*right_output = y0 * m_float_buffer[(left_input_index + 1) & INDEX_MASK] +
+	                y1 * m_float_buffer[(left_input_index + 3) & INDEX_MASK] +
+	                y2 * m_float_buffer[(left_input_index + 5) & INDEX_MASK] +
+	                y3 * m_float_buffer[(left_input_index + 7) & INDEX_MASK];
 }
 
-void CMixer::MixerFifo::Mix(float* samples, u32 numSamples, bool consider_framelimit)
+void CMixer::MixerFifo::Mix(float *samples, u32 numSamples, bool consider_framelimit)
 {
 	u32 current_sample = 0;
 	// Cache access in non-volatile variable so interpolation loop can be optimized
@@ -105,7 +100,8 @@ void CMixer::MixerFifo::Mix(float* samples, u32 numSamples, bool consider_framel
 	// increment input sample position by ratio, store fraction
 	// QUESTION: do we need to check for NUM_CROSSINGS samples before we interpolate?
 	// seems to work fine as is
-	for (; current_sample < numSamples * 2 && ((write_index - read_index) & INDEX_MASK) > GetWindowSize(); current_sample += 2)
+	for (; current_sample < numSamples * 2 && ((write_index - read_index) & INDEX_MASK) > GetWindowSize();
+	     current_sample += 2)
 	{
 		float l_output, r_output;
 		Interpolate(read_index, &l_output, &r_output);
@@ -147,7 +143,7 @@ u32 CMixer::AvailableSamples()
 	return samples;
 }
 
-u32 CMixer::Mix(s16* samples, u32 num_samples, bool consider_framelimit)
+u32 CMixer::Mix(s16 *samples, u32 num_samples, bool consider_framelimit)
 {
 	if (!samples)
 		return 0;
@@ -171,7 +167,7 @@ u32 CMixer::Mix(s16* samples, u32 num_samples, bool consider_framelimit)
 	return num_samples;
 }
 
-u32 CMixer::Mix(float* samples, u32 num_samples, bool consider_framelimit)
+u32 CMixer::Mix(float *samples, u32 num_samples, bool consider_framelimit)
 {
 	if (!samples)
 		return 0;
@@ -183,8 +179,7 @@ u32 CMixer::Mix(float* samples, u32 num_samples, bool consider_framelimit)
 	return num_samples;
 }
 
-
-void CMixer::MixerFifo::PushSamples(const s16* samples, u32 num_samples)
+void CMixer::MixerFifo::PushSamples(const s16 *samples, u32 num_samples)
 {
 	// Cache access in non-volatile variable
 	// indexR isn't allowed to cache in the audio throttling loop as it
@@ -193,7 +188,16 @@ void CMixer::MixerFifo::PushSamples(const s16* samples, u32 num_samples)
 	// Check if we have enough free space
 	// indexW == m_indexR results in empty buffer, so indexR must always be smaller than indexW
 	if (num_samples * 2 + ((current_write_index - m_read_index.load()) & INDEX_MASK) >= MAX_SAMPLES * 2)
+	{
+		// @TODO: We would ideally like to be able to push Jukebox audio samples through Dolphin's mixer,
+		// however attempts at doing so seem to conflict with some expected logic regarding sample submission.
+		//
+		// For whoever chooses to try and debug this, you may want to uncomment the following line to examine
+		// why some samples get dropped and not pushed into the buffer.
+		// NOTICE_LOG(AUDIO, "PushSamples exiting early");
 		return;
+	}
+
 	// AyuanX: Actual re-sampling work has been moved to sound thread
 	// to alleviate the workload on main thread
 	// convert to float while copying to buffer
@@ -270,13 +274,13 @@ void CMixer::MixerFifo::SetVolume(u32 lvolume, u32 rvolume)
 	m_rvolume.store(rvolume + (rvolume >> 7));
 }
 
-void CMixer::MixerFifo::GetVolume(u32* lvolume, u32* rvolume) const
+void CMixer::MixerFifo::GetVolume(u32 *lvolume, u32 *rvolume) const
 {
 	*lvolume = m_lvolume.load();
 	*rvolume = m_rvolume.load();
 }
 
-void CMixer::StartLogDTKAudio(const std::string& filename)
+void CMixer::StartLogDTKAudio(const std::string &filename)
 {
 	if (!m_log_dtk_audio)
 	{
@@ -313,7 +317,7 @@ void CMixer::StopLogDTKAudio()
 	}
 }
 
-void CMixer::StartLogDSPAudio(const std::string& filename)
+void CMixer::StartLogDSPAudio(const std::string &filename)
 {
 	if (!m_log_dsp_audio)
 	{

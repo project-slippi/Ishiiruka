@@ -4,21 +4,20 @@
 
 #pragma once
 
-#include <SlippiGame.h>
+#include <SlippiLib/SlippiGame.h>
 
 #include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
 #include "Core/HW/EXI_Device.h"
 #include "Core/Slippi/SlippiDirectCodes.h"
+#include "Core/Slippi/SlippiExiTypes.h"
 #include "Core/Slippi/SlippiGameFileLoader.h"
-#include "Core/Slippi/SlippiGameReporter.h"
 #include "Core/Slippi/SlippiMatchmaking.h"
 #include "Core/Slippi/SlippiNetplay.h"
 #include "Core/Slippi/SlippiReplayComm.h"
 #include "Core/Slippi/SlippiSavestate.h"
 #include "Core/Slippi/SlippiSpectate.h"
 #include "Core/Slippi/SlippiUser.h"
-#include "Core/Slippi/SlippiExiTypes.h"
 
 #define ROLLBACK_MAX_FRAMES 7
 #define MAX_NAME_LENGTH 15
@@ -36,6 +35,10 @@ class CEXISlippi : public IEXIDevice
 
 	void DMAWrite(u32 _uAddr, u32 _uSize) override;
 	void DMARead(u32 addr, u32 size) override;
+
+	void ConfigureJukebox();
+	void SetJukeboxDolphinSystemVolume();
+	void SetJukeboxDolphinMusicVolume();
 
 	bool IsPresent() const override;
 
@@ -89,6 +92,9 @@ class CEXISlippi : public IEXIDevice
 		CMD_GCT_LENGTH = 0xD3,
 		CMD_GCT_LOAD = 0xD4,
 		CMD_GET_DELAY = 0xD5,
+		CMD_PLAY_MUSIC = 0xD6,
+		CMD_STOP_MUSIC = 0xD7,
+		CMD_CHANGE_MUSIC_VOLUME = 0xD8,
 		CMD_PREMADE_TEXT_LENGTH = 0xE1,
 		CMD_PREMADE_TEXT_LOAD = 0xE2,
 	};
@@ -145,6 +151,9 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_GCT_LENGTH, 0x0},
 	    {CMD_GCT_LOAD, 0x4},
 	    {CMD_GET_DELAY, 0x0},
+	    {CMD_PLAY_MUSIC, static_cast<u32>(sizeof(SlippiExiTypes::PlayMusicQuery) - 1)},
+	    {CMD_STOP_MUSIC, 0x0},
+	    {CMD_CHANGE_MUSIC_VOLUME, static_cast<u32>(sizeof(SlippiExiTypes::ChangeMusicVolumeQuery) - 1)},
 	    {CMD_PREMADE_TEXT_LENGTH, 0x2},
 	    {CMD_PREMADE_TEXT_LOAD, 0x2},
 	};
@@ -154,6 +163,10 @@ class CEXISlippi : public IEXIDevice
 		std::vector<u8> data;
 		std::string operation;
 	};
+
+	// A pointer to a "shadow" EXI Device that lives on the Rust side of things.
+	// This should be cleaned up in any destructor!
+	uintptr_t slprs_exi_device_ptr;
 
 	// .slp File creation stuff
 	u32 writtenByteCount = 0;
@@ -295,7 +308,6 @@ class CEXISlippi : public IEXIDevice
 	std::unique_ptr<SlippiGameFileLoader> gameFileLoader;
 	std::unique_ptr<SlippiNetplayClient> slippi_netplay;
 	std::unique_ptr<SlippiMatchmaking> matchmaking;
-	std::unique_ptr<SlippiGameReporter> gameReporter;
 	std::unique_ptr<SlippiDirectCodes> directCodes;
 	std::unique_ptr<SlippiDirectCodes> teamsCodes;
 

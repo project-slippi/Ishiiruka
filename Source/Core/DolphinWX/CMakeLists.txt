@@ -97,16 +97,16 @@ list(APPEND LIBS core uicommon)
 if(APPLE)
 	if(wxWidgets_FOUND)
 		list(APPEND WXLIBS
-            ${APPKIT_LIBRARY}
-            ${APPSERV_LIBRARY}
-            ${ATB_LIBRARY}
-            ${CARBON_LIBRARY}
-            ${COCOA_LIBRARY}
-            ${COREFUND_LIBRARY}
-            ${CORESERV_LIBRARY}
-            ${IOK_LIBRARY}
-            ${OPENGL_LIBRARY}
-            ${WEBKIT_FRAMEWORK}
+			${APPKIT_LIBRARY}
+			${APPSERV_LIBRARY}
+			${ATB_LIBRARY}
+			${CARBON_LIBRARY}
+			${COCOA_LIBRARY}
+			${COREFUND_LIBRARY}
+			${CORESERV_LIBRARY}
+			${IOK_LIBRARY}
+			${OPENGL_LIBRARY}
+			${WEBKIT_FRAMEWORK}
 			)
 
 		# Keep the WebView login portal around only on macOS, just a bit longer
@@ -139,6 +139,18 @@ if(wxWidgets_FOUND)
 	add_executable("${DOLPHIN_EXE}" ${SRCS} ${GUI_SRCS})
 	target_link_libraries("${DOLPHIN_EXE}" ${LIBS} ${WXLIBS})
 
+	# Link SlippiRustExtensions in.
+	#
+	# (This doesn't feel perfect here, but truth be told I can't think offhand of
+	# a better location for it at the moment.)
+	set(RUST_FEATURES "")
+	if(DIS_PLAYBACK)
+		set(RUST_FEATURES "playback")
+	endif()
+
+	corrosion_import_crate(MANIFEST_PATH ${CMAKE_SOURCE_DIR}/Externals/SlippiRustExtensions/Cargo.toml ${RUST_FEATURES})
+	target_link_libraries("${DOLPHIN_EXE}" PUBLIC slippi_rust_extensions)
+
 	if(APPLE)
 		include(BundleUtilities)
 		set(BUNDLE_PATH ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/"${DOLPHIN_EXE}".app)
@@ -149,7 +161,7 @@ if(wxWidgets_FOUND)
 			MACOSX_BUNDLE true
 			MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist.in
 		)
-        
+		
 		# Link MoltenVK for the Vulkan (experimental) backend; the framework is
 		# added into the bundle in Tools/deploy-mac.py due to legacy build reasons.
 		find_library(MOLTENVK libvulkan.dylib PATHS ${CMAKE_SOURCE_DIR}/Externals/MoltenVK)
@@ -231,10 +243,10 @@ if(wxWidgets_FOUND)
 		endif()
 
 		if(MACOS_CODE_SIGNING)
-            # Disable this as we need to codesign AFTER resources replacement.
-            #add_custom_command(TARGET ${DOLPHIN_EXE}
-            #	POST_BUILD COMMAND
-            #	/usr/bin/codesign -f -s "${MACOS_CODE_SIGNING_IDENTITY}" --deep --options runtime --entitlements ${CMAKE_SOURCE_DIR}/Source/Core/DolphinWX/Entitlements.plist "${BUNDLE_PATH_NO_QUOTES}")
+			# Disable this as we need to codesign AFTER resources replacement.
+			#add_custom_command(TARGET ${DOLPHIN_EXE}
+			#	POST_BUILD COMMAND
+			#	/usr/bin/codesign -f -s "${MACOS_CODE_SIGNING_IDENTITY}" --deep --options runtime --entitlements ${CMAKE_SOURCE_DIR}/Source/Core/DolphinWX/Entitlements.plist "${BUNDLE_PATH_NO_QUOTES}")
 		endif()
 	else()
 		install(TARGETS ${DOLPHIN_EXE} RUNTIME DESTINATION ${bindir})

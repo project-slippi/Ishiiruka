@@ -40,8 +40,9 @@ void Init()
 	VideoInterface::Init();
 	SerialInterface::Init();
 	ProcessorInterface::Init();
-	ExpansionInterface::Init();  // Needs to be initialized before Memory
+	ExpansionInterface::Init(); // Needs to be initialized before Memory
 	Memory::Init();
+
 	DSP::Init(SConfig::GetInstance().bDSPHLE);
 	DVDInterface::Init();
 	GPFifo::Init();
@@ -54,7 +55,7 @@ void Init()
 		DiscIO::cUIDsys::AccessInstance().UpdateLocation();
 		DiscIO::CSharedContent::AccessInstance().UpdateLocation();
 		WII_IPCInterface::Init();
-		WII_IPC_HLE_Interface::Init();  // Depends on Memory
+		WII_IPC_HLE_Interface::Init(); // Depends on Memory
 	}
 }
 
@@ -62,7 +63,7 @@ void Shutdown()
 {
 	if (SConfig::GetInstance().bWii)
 	{
-		WII_IPC_HLE_Interface::Shutdown();  // Depends on Memory
+		WII_IPC_HLE_Interface::Shutdown(); // Depends on Memory
 		WII_IPCInterface::Shutdown();
 		Common::ShutdownWiiRoot();
 	}
@@ -71,8 +72,12 @@ void Shutdown()
 	CPU::Shutdown();
 	DVDInterface::Shutdown();
 	DSP::Shutdown();
-	Memory::Shutdown();
+
+	// Slippi-specific change: We need to shut this down *before* `Memory`
+	// as we make use of some known offsets in `Memory` for the Jukebox.
 	ExpansionInterface::Shutdown();
+
+	Memory::Shutdown();
 	SerialInterface::Shutdown();
 	AudioInterface::Shutdown();
 
@@ -80,7 +85,7 @@ void Shutdown()
 	CoreTiming::Shutdown();
 }
 
-void DoState(PointerWrap& p)
+void DoState(PointerWrap &p)
 {
 	Memory::DoState(p);
 	p.DoMarker("Memory");
@@ -111,4 +116,4 @@ void DoState(PointerWrap& p)
 
 	p.DoMarker("WIIHW");
 }
-}
+} // namespace HW

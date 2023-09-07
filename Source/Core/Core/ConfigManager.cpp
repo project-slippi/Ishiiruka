@@ -279,6 +279,8 @@ void SConfig::SaveCoreSettings(IniFile &ini)
 	core->Set("RSHACK", bRSHACK);
 	core->Set("Latency", iLatency);
 	core->Set("ReduceTimingDispersion", bReduceTimingDispersion);
+	core->Set("SlippiJukeboxEnabled", bSlippiJukeboxEnabled);
+	core->Set("SlippiJukeboxVolume", iSlippiJukeboxVolume);
 	core->Set("SlippiOnlineDelay", m_slippiOnlineDelay);
 	core->Set("SlippiEnableSpectator", m_enableSpectator);
 	core->Set("SlippiSpectatorLocalPort", m_spectator_local_port);
@@ -620,6 +622,8 @@ void SConfig::LoadCoreSettings(IniFile &ini)
 	core->Get("RSHACK", &bRSHACK, false);
 	core->Get("Latency", &iLatency, 0);
 	core->Get("ReduceTimingDispersion", &bReduceTimingDispersion, false);
+	core->Get("SlippiJukeboxEnabled", &bSlippiJukeboxEnabled, true);
+	core->Get("SlippiJukeboxVolume", &iSlippiJukeboxVolume, 100);
 	core->Get("SlippiEnableSpectator", &m_enableSpectator, true);
 	core->Get("SlippiSpectatorLocalPort", &m_spectator_local_port, 51441);
 	core->Get("SlippiOnlineDelay", &m_slippiOnlineDelay, 2);
@@ -1261,9 +1265,9 @@ IniFile SConfig::LoadGameIni() const
 bool SConfig::GameHasDefaultGameIni(const std::string &id, u16 revision)
 {
 	const std::vector<std::string> filenames = GetGameIniFilenames(id, revision);
-	return std::any_of(filenames.begin(), filenames.end(), [](const std::string &filename) {
-		return File::Exists(File::GetSysDirectory() + GAMESETTINGS_DIR DIR_SEP + filename);
-	});
+	return std::any_of(filenames.begin(), filenames.end(),
+	                   [](const std::string &filename)
+	                   { return File::Exists(File::GetSysDirectory() + GAMESETTINGS_DIR DIR_SEP + filename); });
 }
 
 IniFile SConfig::LoadDefaultGameIni(const std::string &id, u16 revision)

@@ -1,10 +1,15 @@
+#include "SlippiReplayComm.h"
+
 #include <cctype>
 #include <memory>
-#include "SlippiReplayComm.h"
+
 #include "Common/CommonPaths.h"
 #include "Common/FileUtil.h"
 #include "Common/Logging/LogManager.h"
 #include "Core/ConfigManager.h"
+
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
 
 std::unique_ptr<SlippiReplayComm> g_replayComm;
 
@@ -86,7 +91,8 @@ void SlippiReplayComm::nextReplay()
 	if (commFileSettings.queue.empty())
 	{
 #ifdef IS_PLAYBACK
-		if (!queueWasEmpty) std::cout << "[NO_GAME]" << std::endl;
+		if (!queueWasEmpty)
+			std::cout << "[NO_GAME]" << std::endl;
 		queueWasEmpty = true;
 #endif
 		return;

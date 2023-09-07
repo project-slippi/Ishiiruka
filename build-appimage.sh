@@ -25,6 +25,8 @@ PLAYBACK_CODES_PATH="./Data/PlaybackGeckoCodes/"
 APPDIR_BIN="./AppDir/usr/bin"
 APPDIR_HOOKS="./AppDir/apprun-hooks"
 
+export NO_STRIP=on
+
 # Grab various appimage binaries from GitHub if we don't have them
 if [ ! -e ./Tools/linuxdeploy ]; then
 	wget ${LINUXDEPLOY_URL} -O ./Tools/linuxdeploy
@@ -89,3 +91,5 @@ rm ./AppDir/usr/lib/libgmodule*
 
 # Bake appimage
 UPDATE_INFORMATION="${UPDATE_INFORMATION}" OUTPUT="${OUTPUT}" ./Tools/linuxdeploy-update-plugin --appdir=./AppDir/
+
+unset NO_STRIP

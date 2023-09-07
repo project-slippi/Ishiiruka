@@ -8,7 +8,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "../../Common/CommonTypes.h"
+#include "Common/CommonTypes.h"
 
 class SlippiPlaybackStatus
 {

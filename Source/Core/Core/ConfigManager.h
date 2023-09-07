@@ -150,6 +150,8 @@ struct SConfig : NonCopyable
 	bool bAdapterWarning = true;
 
 	bool bReduceTimingDispersion = false;
+	bool bSlippiJukeboxEnabled = true;
+	int iSlippiJukeboxVolume = 100;
 
 	MeleeLagReductionCode iLagReductionCode = MELEE_LAG_REDUCTION_CODE_UNSET;
 	bool bHasShownLagReductionWarning = false;
