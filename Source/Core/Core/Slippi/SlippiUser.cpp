@@ -116,6 +116,8 @@ SlippiUser::SlippiUser()
 
 		m_curl = curl;
 	}
+
+	InitUserRank();
 }
 
 SlippiUser::~SlippiUser()
@@ -130,6 +132,16 @@ SlippiUser::~SlippiUser()
 		curl_slist_free_all(m_curlHeaderList);
 		curl_easy_cleanup(m_curl);
 	}
+}
+
+void SlippiUser::InitUserRank() {
+	userRank.rank = SlippiUser::SlippiRank (0);
+	userRank.ratingOrdinal = 0.0f;
+	userRank.globalPlacing = 0;
+	userRank.regionalPlacing = 0;
+	userRank.ratingUpdateCount = 0;
+	userRank.ratingChange = 0.0f;
+	userRank.rankChange = 0;
 }
 
 SlippiUser::RankInfo SlippiUser::GetRankInfo() {
@@ -301,10 +313,11 @@ SlippiUser::RankInfo SlippiUser::FetchUserRank(std::string connectCode)
 	INFO_LOG(SLIPPI_ONLINE, "Rating Change: %0.1f", ratingChange);
 
 	int rankChange = (userRank.rank > 0.001f) ? rank - userRank.rank : 0;
+	INFO_LOG(SLIPPI_ONLINE, "userRank: %d", userRank.rank);
 	INFO_LOG(SLIPPI_ONLINE, "Rank Change: %d", rankChange);
 
-	info.ratingOrdinal = ratingOrdinal;
 	info.rank = rank;
+	info.ratingOrdinal = ratingOrdinal;
 	info.globalPlacing = global;
 	info.regionalPlacing = regional;
 	info.ratingUpdateCount = ratingUpdateCount;
@@ -347,6 +360,8 @@ bool SlippiUser::AttemptLogin()
 	{
 		overwriteFromServer();
 		WARN_LOG(SLIPPI_ONLINE, "Found user %s (%s)", userInfo.displayName.c_str(), userInfo.uid.c_str());
+
+
 	}
 
 	return isLoggedIn;

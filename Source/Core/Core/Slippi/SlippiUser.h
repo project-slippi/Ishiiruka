@@ -75,6 +75,8 @@ class SlippiUser
 
 	RankInfo FetchUserRank(std::string connectCode);
 	RankInfo GetRankInfo();
+	void InitUserRank();
+
 	SlippiRank GetRank(float ratingOrdinal, int globalPlacing, int regionalPlacing, int ratingUpdateCount);
 
 	const static std::vector<std::string> defaultChatMessages;
