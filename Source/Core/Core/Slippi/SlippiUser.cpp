@@ -7,11 +7,12 @@
 
 // Takes a RustChatMessages pointer and extracts messages from them, then
 // frees the underlying memory safely.
-std::vector<std::string> ConvertChatMessagesFromRust(RustChatMessages* rsMessages)
+std::vector<std::string> ConvertChatMessagesFromRust(RustChatMessages *rsMessages)
 {
 	std::vector<std::string> chatMessages;
 
-	for(int i = 0; i < rsMessages->len; i++) {
+	for (int i = 0; i < rsMessages->len; i++)
+	{
 		std::string message = std::string(rsMessages->data[i]);
 		chatMessages.push_back(message);
 	}
@@ -26,9 +27,7 @@ SlippiUser::SlippiUser(uintptr_t rs_exi_device_ptr)
 	slprs_exi_device_ptr = rs_exi_device_ptr;
 }
 
-SlippiUser::~SlippiUser()
-{
-}
+SlippiUser::~SlippiUser() {}
 
 bool SlippiUser::AttemptLogin()
 {
@@ -64,7 +63,7 @@ SlippiUser::UserInfo SlippiUser::GetUserInfo()
 {
 	SlippiUser::UserInfo userInfo;
 
-	RustUserInfo* info = slprs_user_get_info(slprs_exi_device_ptr);
+	RustUserInfo *info = slprs_user_get_info(slprs_exi_device_ptr);
 	userInfo.uid = std::string(info->uid);
 	userInfo.playKey = std::string(info->play_key);
 	userInfo.displayName = std::string(info->display_name);
@@ -77,13 +76,13 @@ SlippiUser::UserInfo SlippiUser::GetUserInfo()
 
 std::vector<std::string> SlippiUser::GetDefaultChatMessages()
 {
-	RustChatMessages* chatMessages = slprs_user_get_default_messages(slprs_exi_device_ptr);
+	RustChatMessages *chatMessages = slprs_user_get_default_messages(slprs_exi_device_ptr);
 	return ConvertChatMessagesFromRust(chatMessages);
 }
 
 std::vector<std::string> SlippiUser::GetUserChatMessages()
 {
-	RustChatMessages* chatMessages = slprs_user_get_messages(slprs_exi_device_ptr);
+	RustChatMessages *chatMessages = slprs_user_get_messages(slprs_exi_device_ptr);
 	return ConvertChatMessagesFromRust(chatMessages);
 }
 

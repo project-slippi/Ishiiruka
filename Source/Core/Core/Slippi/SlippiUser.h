@@ -9,7 +9,7 @@
 #include <vector>
 
 // This class is currently a shim for the Rust user interface. We're doing it this way
-// to begin migratig things over without needing to do larger invasive changes.
+// to begin migrating things over without needing to do larger invasive changes.
 //
 // The remaining methods on here are simply layers that direct the call over to the Rust
 // side. A quirk of this is that we're using the EXI device pointer, so this class absolutely
@@ -29,8 +29,8 @@ class SlippiUser
 		std::string latestVersion = "";
 
 		int port;
-        
-        std::vector<std::string> chatMessages;
+
+		std::vector<std::string> chatMessages;
 	};
 
 	SlippiUser(uintptr_t rs_exi_device_ptr);

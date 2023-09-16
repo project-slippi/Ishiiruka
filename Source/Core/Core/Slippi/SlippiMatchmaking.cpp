@@ -520,7 +520,9 @@ void SlippiMatchmaking::handleMatchmaking()
 				{
 					playerInfo.chatMessages = m_user->GetDefaultChatMessages();
 				}
-			} else {
+			}
+			else
+			{
 				playerInfo.chatMessages = m_user->GetDefaultChatMessages();
 			}
 
