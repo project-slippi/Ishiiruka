@@ -934,13 +934,7 @@ endif()
 
 if(NOT DISABLE_WX)
 	include(FindwxWidgets OPTIONAL)
-
-	# This is increasingly not touched, but the clarity is probably beneficial to keep around.
-	if(APPLE)
-		FIND_PACKAGE(wxWidgets COMPONENTS core aui adv webview)
-	else()
-		FIND_PACKAGE(wxWidgets COMPONENTS core aui adv)
-	endif()
+    FIND_PACKAGE(wxWidgets COMPONENTS core aui adv)
 
 	if(_ARCH_32)
 		add_definitions(-DwxSIZE_T_IS_UINT)
