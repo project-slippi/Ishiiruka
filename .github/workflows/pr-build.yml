@@ -58,7 +58,7 @@ jobs:
             build_config: ReleasePlayback
     env:
       DXSDK_DIR: "C:\\Program Files (x86)\\Microsoft DirectX SDK (June 2010)\\"
-      CERTIFICATE_WINDOWS_APPLICATION: ${{ secrets.ES_USERNAME }}
+      ES_USERNAME: ${{ secrets.ES_USERNAME }}
     name: "Windows ${{ matrix.build_type }}"
     runs-on: windows-2019
     steps:
@@ -131,6 +131,7 @@ jobs:
       - name: "Codesign ${{ matrix.build_type}} Dolphin"
         working-directory: ${{ github.workspace }}
         shell: powershell
+        if: env.ES_USERNAME != null
         run: |
           if (!(Test-Path ".\CodeSignTool\CodeSignTool.bat" -PathType Leaf)) { 
             Invoke-WebRequest -Uri https://www.ssl.com/download/codesigntool-for-windows/ -UseBasicParsing -OutFile ".\CodeSignTool.zip"
