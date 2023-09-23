@@ -272,9 +272,9 @@ if(LIBUSB_FOUND)
 endif(LIBUSB_FOUND)
 
 # Can be fixed, but temporarily disabled: Use OpenGL
-if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD|NetBSD|OpenBSD")
+#if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD|NetBSD|OpenBSD")
 	set(LIBS ${LIBS} videovulkan)
-endif()
+#endif()
 
 set(LIBS ${LIBS} ${MBEDTLS_LIBRARIES})
 

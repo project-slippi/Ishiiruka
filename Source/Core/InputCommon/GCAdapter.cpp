@@ -629,6 +629,7 @@ static bool CheckDeviceAccess(libusb_device* device)
 			{
 				ERROR_LOG(SERIALINTERFACE, "libusb_detach_kernel_driver failed with error: %d", ret);
 			}
+#else
 			ret = 0; // Need to work around.
 #endif
 		}

@@ -684,9 +684,9 @@ include_directories(Externals/base64)
 add_subdirectory(Externals/Bochs_disasm)
 include_directories(Externals/Bochs_disasm)
 
-if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD|OpenBSD|NetBSD")
+#if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD|OpenBSD|NetBSD")
 	add_subdirectory(Externals/glslang)
-endif()
+#endif()
 
 add_subdirectory(Externals/SlippiLib)
 include_directories(Externals/SlippiLib)

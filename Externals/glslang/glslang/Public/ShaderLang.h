@@ -75,7 +75,11 @@ SH_IMPORT_EXPORT int ShInitialize();
 //
 // Driver should call this at process shutdown.
 //
+#ifdef __FreeBSD__
+SH_IMPORT_EXPORT int ShFinalize();
+#else
 SH_IMPORT_EXPORT int __fastcall ShFinalize();
+#endif
 
 //
 // Types of languages the compiler can consume.
