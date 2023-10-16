@@ -94,12 +94,8 @@ LogManager::LogManager()
 	    "SLIPPI_RUST_DEPENDENCIES", "[Rust] Slippi Dependencies", LogTypes::SLIPPI_RUST_DEPENDENCIES, true);
 
 	// This LogContainer will register with the Rust side under the "SLIPPI_RUST_EXI" target.
-	m_Log[LogTypes::SLIPPI_RUST_EXI] =
-	    new LogContainer("SLIPPI_RUST_EXI", "[Rust] Slippi EXI", LogTypes::SLIPPI_RUST_EXI, true);
-
-	// This LogContainer will register with the Rust side under the "SLIPPI_RUST_GAME_REPORTER" target.
-	m_Log[LogTypes::SLIPPI_RUST_GAME_REPORTER] = new LogContainer(
-	    "SLIPPI_RUST_GAME_REPORTER", "[Rust] Slippi Game Reporter", LogTypes::SLIPPI_RUST_GAME_REPORTER, true);
+	m_Log[LogTypes::SLIPPI_RUST_ONLINE] =
+	    new LogContainer("SLIPPI_RUST_ONLINE", "[Rust] Slippi Online", LogTypes::SLIPPI_RUST_ONLINE, true);
 
 	// This LogContainer will register with the Rust side under the "SLIPPI_RUST_JUKEBOX" target.
 	m_Log[LogTypes::SLIPPI_RUST_JUKEBOX] =

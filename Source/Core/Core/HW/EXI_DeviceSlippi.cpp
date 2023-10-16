@@ -149,13 +149,23 @@ CEXISlippi::CEXISlippi()
 {
 	INFO_LOG(SLIPPI, "EXI SLIPPI Constructor called.");
 
-	// TODO: For mainline port, ISO file path can't be fetched this way. Look at the following:
+	// @TODO: For mainline port, ISO file path can't be fetched this way. Look at the following:
 	// https://github.com/dolphin-emu/dolphin/blob/7f450f1d7e7d37bd2300f3a2134cb443d07251f9/Source/Core/Core/Movie.cpp#L246-L249
 	std::string isoPath = SConfig::GetInstance().m_strFilename;
-	slprs_exi_device_ptr = slprs_exi_device_create(isoPath.c_str(), OSDMessageHandler);
+
+	// @TODO: Eventually we should move `GetSlippiUserJSONPath` out of the File module.
+	std::string userJSONPath = File::GetSlippiUserJSONPath();
+
+	SlippiRustEXIConfig slprs_exi_config;
+	slprs_exi_config.iso_path = isoPath.c_str();
+	slprs_exi_config.user_json_path = userJSONPath.c_str();
+	slprs_exi_config.scm_slippi_semver_str = scm_slippi_semver_str.c_str();
+	slprs_exi_config.osd_add_msg_fn = OSDMessageHandler;
+
+	slprs_exi_device_ptr = slprs_exi_device_create(slprs_exi_config);
 
 	m_slippiserver = SlippiSpectateServer::getInstance();
-	user = std::make_unique<SlippiUser>();
+	user = std::make_unique<SlippiUser>(slprs_exi_device_ptr);
 	g_playbackStatus = std::make_unique<SlippiPlaybackStatus>();
 	matchmaking = std::make_unique<SlippiMatchmaking>(user.get());
 	gameFileLoader = std::make_unique<SlippiGameFileLoader>();
@@ -306,10 +316,7 @@ CEXISlippi::~CEXISlippi()
 	{
 		ERROR_LOG(SLIPPI_ONLINE, "Exit during in-progress ranked game: %s", activeMatchId.c_str());
 
-		auto userInfo = user->GetUserInfo();
-
-		slprs_exi_device_report_match_abandonment(slprs_exi_device_ptr, userInfo.uid.c_str(), userInfo.playKey.c_str(),
-		                                          activeMatchId.c_str());
+		slprs_exi_device_report_match_abandonment(slprs_exi_device_ptr, activeMatchId.c_str());
 	}
 	handleConnectionCleanup();
 
@@ -1411,6 +1418,7 @@ bool CEXISlippi::shouldSkipOnlineFrame(s32 frame, s32 finalizedFrame)
 
 	// 8/8/23: Removed the halting time sync logic in favor of emulation speed. Hopefully less halts means
 	// less dropped inputs. We will only do it at the start of the game to sync everything up
+	// 9/18/23: Brought back frame skips when behind in the other location
 
 	// Only skip once for a given frame because our time detection method doesn't take into consideration
 	// waiting for a frame. Also it's less jarring and it happens often enough that it will smoothly
@@ -1481,9 +1489,9 @@ bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame)
 		// much because we want to prioritize performance for the fast PC
 		float deviation = 0;
 		float maxSlowDownAmount = 0.005f;
-		float maxSpeedUpAmount = 0.05f;
+		float maxSpeedUpAmount = 0.01f;
 		int slowDownFrameWindow = 3;
-		int speedUpFrameWindow = 6;
+		int speedUpFrameWindow = 3;
 		if (offsetUs > -250 && offsetUs < 8000)
 		{
 			// Do nothing, leave deviation at 0 for 100% emulation speed when ahead by 8 ms or less
@@ -1529,21 +1537,18 @@ bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame)
 			    10000, OSD::Color::RED);
 		}
 
-		// 8/8/23: I want to disable forced frame advances for now. I think they're largely unnecessary because of the
-		// dynamic emulation speed and cause more jarring frame drops.
+		if (offsetUs < -t2 && !isCurrentlyAdvancing)
+		{
+			isCurrentlyAdvancing = true;
 
-		// if (offsetUs < -t2 && !isCurrentlyAdvancing)
-		//{
-		//	isCurrentlyAdvancing = true;
+			// On early frames, don't advance any frames. Let the stalling logic handle the initial sync
+			int maxAdvFrames = frame > 120 ? 3 : 0;
+			framesToAdvance = ((-offsetUs - t1) / frameTime) + 1;
+			framesToAdvance = framesToAdvance > maxAdvFrames ? maxAdvFrames : framesToAdvance;
 
-		//	// On early frames, don't advance any frames. Let the stalling logic handle the initial sync
-		//	int maxAdvFrames = frame > 120 ? 3 : 0;
-		//	framesToAdvance = ((-offsetUs - t1) / frameTime) + 1;
-		//	framesToAdvance = framesToAdvance > maxAdvFrames ? maxAdvFrames : framesToAdvance;
-
-		//	WARN_LOG(SLIPPI_ONLINE, "Advancing on frame %d due to time sync. Offset: %d us. Frames: %d...", frame,
-		//	         offsetUs, framesToAdvance);
-		//}
+			WARN_LOG(SLIPPI_ONLINE, "Advancing on frame %d due to time sync. Offset: %d us. Frames: %d...", frame,
+			         offsetUs, framesToAdvance);
+		}
 	}
 
 	// Handle the skipped frames
@@ -2760,7 +2765,6 @@ void CEXISlippi::handleChatMessage(u8 *payload)
 
 	if (slippi_netplay)
 	{
-		auto userInfo = user->GetUserInfo();
 		auto packet = std::make_unique<sf::Packet>();
 		//		OSD::AddMessage("[Me]: "+ msg, OSD::Duration::VERY_LONG, OSD::Color::YELLOW);
 		slippi_netplay->remoteSentChatMessageId = messageId;
@@ -3067,8 +3071,7 @@ void CEXISlippi::handleCompleteSet(const SlippiExiTypes::ReportSetCompletionQuer
 
 		auto userInfo = user->GetUserInfo();
 
-		slprs_exi_device_report_match_completion(slprs_exi_device_ptr, userInfo.uid.c_str(), userInfo.playKey.c_str(),
-		                                         lastMatchId.c_str(), query.endMode);
+		slprs_exi_device_report_match_completion(slprs_exi_device_ptr, lastMatchId.c_str(), query.endMode);
 	}
 }
 
@@ -3078,12 +3081,10 @@ void CEXISlippi::handleGetPlayerSettings()
 
 	SlippiExiTypes::GetPlayerSettingsResponse resp = {};
 
-	std::vector<std::vector<std::string>> messagesByPlayer = {
-	    SlippiUser::defaultChatMessages, SlippiUser::defaultChatMessages, SlippiUser::defaultChatMessages,
-	    SlippiUser::defaultChatMessages};
+	std::vector<std::vector<std::string>> messagesByPlayer = {{}, {}, {}, {}};
 
 	// These chat messages will be used when previewing messages
-	auto userChatMessages = user->GetUserInfo().chatMessages;
+	auto userChatMessages = user->GetUserChatMessages();
 	if (userChatMessages.size() == 16)
 	{
 		messagesByPlayer[0] = userChatMessages;
@@ -3098,6 +3099,13 @@ void CEXISlippi::handleGetPlayerSettings()
 
 	for (int i = 0; i < 4; i++)
 	{
+		// If any of the users in the chat messages vector have a payload that is incorrect,
+		// force that player to the default chat messages. A valid payload is 16 entries.
+		if (messagesByPlayer[i].size() != 16)
+		{
+			messagesByPlayer[i] = user->GetDefaultChatMessages();
+		}
+
 		for (int j = 0; j < 16; j++)
 		{
 			auto str = ConvertStringForGame(messagesByPlayer[i][j], MAX_MESSAGE_LENGTH);

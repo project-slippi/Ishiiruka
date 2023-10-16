@@ -106,11 +106,7 @@ if(APPLE)
 			${CORESERV_LIBRARY}
 			${IOK_LIBRARY}
 			${OPENGL_LIBRARY}
-			${WEBKIT_FRAMEWORK}
 			)
-
-		# Keep the WebView login portal around only on macOS, just a bit longer
-		set(GUI_SRCS ${GUI_SRCS} SlippiAuthWebView/SlippiAuthWebView.cpp)
 	endif()
 
 	# Add resource files to application bundle.
@@ -149,7 +145,7 @@ if(wxWidgets_FOUND)
 	endif()
 
 	corrosion_import_crate(MANIFEST_PATH ${CMAKE_SOURCE_DIR}/Externals/SlippiRustExtensions/Cargo.toml ${RUST_FEATURES})
-	target_link_libraries("${DOLPHIN_EXE}" PUBLIC slippi_rust_extensions)
+	target_link_libraries("${DOLPHIN_EXE}" PUBLIC slippi-rust-extensions)
 
 	if(APPLE)
 		include(BundleUtilities)
