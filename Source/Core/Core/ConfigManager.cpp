@@ -627,7 +627,11 @@ void SConfig::LoadCoreSettings(IniFile &ini)
 	core->Get("SlippiEnableSpectator", &m_enableSpectator, true);
 	core->Get("SlippiSpectatorLocalPort", &m_spectator_local_port, 51441);
 	core->Get("SlippiOnlineDelay", &m_slippiOnlineDelay, 2);
+#ifdef IS_PLAYBACK
+	core->Get("SlippiSaveReplays", &m_slippiSaveReplays, false);
+#else
 	core->Get("SlippiSaveReplays", &m_slippiSaveReplays, true);
+#endif
 	core->Get("SlippiEnableQuickChat", &m_slippiEnableQuickChat, SLIPPI_CHAT_ON);
 	core->Get("SlippiForceNetplayPort", &m_slippiForceNetplayPort, false);
 	core->Get("SlippiNetplayPort", &m_slippiNetplayPort, 2626);

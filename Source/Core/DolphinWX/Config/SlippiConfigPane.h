@@ -79,10 +79,12 @@ class SlippiPlaybackConfigPane final : public wxPanel
 	wxStaticText *m_slippi_delay_frames_txt;
 	wxTextCtrl *m_slippi_netplay_lan_ip_ctrl;
 	wxCheckBox *m_replay_enable_checkbox;
+	wxCheckBox *m_replay_month_folders_checkbox;
 	wxDirPickerCtrl *m_replay_directory_picker;
 	wxCheckBox *m_display_frame_index;
 
 	void OnDisplayFrameIndexToggle(wxCommandEvent &event);
 	void OnReplaySavingToggle(wxCommandEvent &event);
+	void OnReplayMonthFoldersToggle(wxCommandEvent &event);
 	void OnReplayDirChanged(wxCommandEvent &event);
 };
