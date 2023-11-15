@@ -26,8 +26,8 @@
 // loading a "local" User folder that I don't want to screw with.
 #define USERDATA_DIR "Contents/Resources/User"
 
-// `DOLPHIN_DATA_DIR` is commented out so that any place in 
-// the build that uses it (for macOS) produces an error, as this shouldn't collide 
+// `DOLPHIN_DATA_DIR` is commented out so that any place in
+// the build that uses it (for macOS) produces an error, as this shouldn't collide
 // with a mainline installation.
 // #define DOLPHIN_DATA_DIR "Library/Application Support/Dolphin"
 #elif defined ANDROID
@@ -146,3 +146,4 @@
 
 // Slippi
 #define USER_JSON "user.json"
+#define VERSION_FILE "ishiiruka"

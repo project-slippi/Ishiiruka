@@ -124,7 +124,7 @@ bool DolphinApp::OnInit()
 	RegisterMsgAlertHandler(&wxMsgAlert);
 	RegisterStringTranslator(&wxStringTranslator);
 
-    // Don't use wxWidgets fatal exception handling on macOS as it obscures the root cause.
+	// Don't use wxWidgets fatal exception handling on macOS as it obscures the root cause.
 #ifndef __APPLE__
 #if wxUSE_ON_FATAL_EXCEPTION
 	wxHandleFatalExceptions(true);
@@ -133,6 +133,9 @@ bool DolphinApp::OnInit()
 
 	UICommon::SetUserDirectory(m_user_path.ToStdString());
 	UICommon::CreateDirectories();
+	// create the version marker file so we know that the user folder is from ishiiruka
+	auto marker_file_path = File::GetUserPath(F_VERSION_IDX);
+	File::WriteStringToFile("", marker_file_path);
 	InitLanguageSupport(); // The language setting is loaded from the user directory
 	UICommon::Init();
 
