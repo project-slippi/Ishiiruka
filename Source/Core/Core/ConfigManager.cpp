@@ -285,6 +285,7 @@ void SConfig::SaveCoreSettings(IniFile &ini)
 	core->Set("SlippiEnableSpectator", m_enableSpectator);
 	core->Set("SlippiSpectatorLocalPort", m_spectator_local_port);
 	core->Set("SlippiSaveReplays", m_slippiSaveReplays);
+	core->Set("SlippiRegenerateReplays", m_slippiRegenerateReplays);
 	core->Set("SlippiEnableQuickChat", m_slippiEnableQuickChat);
 	core->Set("SlippiForceNetplayPort", m_slippiForceNetplayPort);
 	core->Set("SlippiNetplayPort", m_slippiNetplayPort);
@@ -292,6 +293,7 @@ void SConfig::SaveCoreSettings(IniFile &ini)
 	core->Set("SlippiLanIp", m_slippiLanIp);
 	core->Set("SlippiReplayMonthFolders", m_slippiReplayMonthFolders);
 	core->Set("SlippiReplayDir", m_strSlippiReplayDir);
+	core->Set("SlippiReplayRegenerateDir", m_strSlippiRegenerateReplayDir);
 	core->Set("SlippiPlaybackDisplayFrameIndex", m_slippiEnableFrameIndex);
 	core->Set("BlockingPipes", m_blockingPipes);
 	core->Set("MemcardAPath", m_strMemoryCardA);
@@ -627,11 +629,8 @@ void SConfig::LoadCoreSettings(IniFile &ini)
 	core->Get("SlippiEnableSpectator", &m_enableSpectator, true);
 	core->Get("SlippiSpectatorLocalPort", &m_spectator_local_port, 51441);
 	core->Get("SlippiOnlineDelay", &m_slippiOnlineDelay, 2);
-#ifdef IS_PLAYBACK
-	core->Get("SlippiSaveReplays", &m_slippiSaveReplays, false);
-#else
 	core->Get("SlippiSaveReplays", &m_slippiSaveReplays, true);
-#endif
+	core->Get("SlippiRegenerateReplays", &m_slippiRegenerateReplays, false);
 	core->Get("SlippiEnableQuickChat", &m_slippiEnableQuickChat, SLIPPI_CHAT_ON);
 	core->Get("SlippiForceNetplayPort", &m_slippiForceNetplayPort, false);
 	core->Get("SlippiNetplayPort", &m_slippiNetplayPort, 2626);
@@ -642,6 +641,9 @@ void SConfig::LoadCoreSettings(IniFile &ini)
 	core->Get("SlippiReplayDir", &m_strSlippiReplayDir, default_replay_dir);
 	if (m_strSlippiReplayDir.empty())
 		m_strSlippiReplayDir = default_replay_dir;
+	core->Get("SlippiReplayRegenerateDir", &m_strSlippiRegenerateReplayDir, default_replay_dir);
+	if (m_strSlippiRegenerateReplayDir.empty())
+		m_strSlippiRegenerateReplayDir = default_replay_dir;
 	core->Get("SlippiPlaybackDisplayFrameIndex", &m_slippiEnableFrameIndex, false);
 	core->Get("BlockingPipes", &m_blockingPipes, false);
 	core->Get("MemcardAPath", &m_strMemoryCardA);

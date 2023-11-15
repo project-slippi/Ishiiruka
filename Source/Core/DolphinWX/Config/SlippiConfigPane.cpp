@@ -427,13 +427,9 @@ SlippiPlaybackConfigPane::SlippiPlaybackConfigPane(wxWindow *parent, wxWindowID 
 void SlippiPlaybackConfigPane::InitializeGUI()
 {
 	// Slippi settings
-	m_replay_enable_checkbox = new wxCheckBox(this, wxID_ANY, _("Regenerate Slippi Replays"));
-	m_replay_enable_checkbox->SetToolTip(
-	    _("Enable this to regenerate .slp recordings of your games. Does not need to be enabled to use spectator service for powering custom HUDs."));
-
-	m_replay_month_folders_checkbox = new wxCheckBox(this, wxID_ANY, _("Save Replays to Monthly Subfolders"));
-	m_replay_month_folders_checkbox->SetToolTip(
-	    _("Enable this to save your replays into subfolders by month (YYYY-MM)."));
+	m_replay_regenerate_checkbox = new wxCheckBox(this, wxID_ANY, _("Regenerate Slippi Replays (off if unsure)"));
+	m_replay_regenerate_checkbox->SetToolTip(
+	    _("Enable this to regenerate .slp recordings of your games. Does NOT need to be enabled to use slp event monitoring service for powering custom HUDs."));
 
 	m_replay_directory_picker =
 	    new wxDirPickerCtrl(this, wxID_ANY, wxEmptyString, _("Slippi Replay Folder:"), wxDefaultPosition, wxDefaultSize,
@@ -458,12 +454,10 @@ void SlippiPlaybackConfigPane::InitializeGUI()
 	sbSlippiPlaybackSettings->AddSpacer(space5);
 
 	wxGridBagSizer *const sSlippiReplaySettings = new wxGridBagSizer(space5, space5);
-	sSlippiReplaySettings->Add(m_replay_enable_checkbox, wxGBPosition(0, 0), wxGBSpan(1, 2));
-	sSlippiReplaySettings->Add(m_replay_month_folders_checkbox, wxGBPosition(1, 0), wxGBSpan(1, 2),
-	                           wxRESERVE_SPACE_EVEN_IF_HIDDEN);
-	sSlippiReplaySettings->Add(new wxStaticText(this, wxID_ANY, _("Replay folder:")), wxGBPosition(2, 0), wxDefaultSpan,
+	sSlippiReplaySettings->Add(m_replay_regenerate_checkbox, wxGBPosition(0, 0), wxGBSpan(1, 2));
+	sSlippiReplaySettings->Add(new wxStaticText(this, wxID_ANY, _("Replay folder:")), wxGBPosition(1, 0), wxDefaultSpan,
 	                           wxALIGN_CENTER_VERTICAL);
-	sSlippiReplaySettings->Add(m_replay_directory_picker, wxGBPosition(2, 1), wxDefaultSpan, wxEXPAND);
+	sSlippiReplaySettings->Add(m_replay_directory_picker, wxGBPosition(1, 1), wxDefaultSpan, wxEXPAND);
 	sSlippiReplaySettings->AddGrowableCol(1);
 
 	wxStaticBoxSizer *const sbSlippiReplaySettings =
@@ -487,9 +481,8 @@ void SlippiPlaybackConfigPane::LoadGUIValues()
 {
 	const SConfig &startup_params = SConfig::GetInstance();
 
-	m_replay_enable_checkbox->SetValue(startup_params.m_slippiSaveReplays);
-	m_replay_month_folders_checkbox->SetValue(startup_params.m_slippiReplayMonthFolders);
-	m_replay_directory_picker->SetPath(StrToWxStr(startup_params.m_strSlippiReplayDir));
+	m_replay_regenerate_checkbox->SetValue(startup_params.m_slippiRegenerateReplays);
+	m_replay_directory_picker->SetPath(StrToWxStr(startup_params.m_strSlippiRegenerateReplayDir));
 	m_display_frame_index->SetValue(startup_params.m_slippiEnableFrameIndex);
 }
 
@@ -497,8 +490,7 @@ void SlippiPlaybackConfigPane::BindEvents()
 {
 	m_display_frame_index->Bind(wxEVT_CHECKBOX, &SlippiPlaybackConfigPane::OnDisplayFrameIndexToggle, this);
 
-	m_replay_enable_checkbox->Bind(wxEVT_CHECKBOX, &SlippiPlaybackConfigPane::OnReplaySavingToggle, this);
-	m_replay_month_folders_checkbox->Bind(wxEVT_CHECKBOX, &SlippiPlaybackConfigPane::OnReplayMonthFoldersToggle, this);
+	m_replay_regenerate_checkbox->Bind(wxEVT_CHECKBOX, &SlippiPlaybackConfigPane::OnReplayRegenerateToggle, this);
 	m_replay_directory_picker->Bind(wxEVT_DIRPICKER_CHANGED, &SlippiPlaybackConfigPane::OnReplayDirChanged, this);
 }
 
@@ -508,20 +500,14 @@ void SlippiPlaybackConfigPane::OnDisplayFrameIndexToggle(wxCommandEvent &event)
 	SConfig::GetInstance().m_slippiEnableFrameIndex = enableFrameIndex;
 }
 
-void SlippiPlaybackConfigPane::OnReplaySavingToggle(wxCommandEvent &event)
+void SlippiPlaybackConfigPane::OnReplayRegenerateToggle(wxCommandEvent &event)
 {
-	bool enableReplays = m_replay_enable_checkbox->IsChecked();
+	bool enableReplays = m_replay_regenerate_checkbox->IsChecked();
 
-	SConfig::GetInstance().m_slippiSaveReplays = enableReplays;
-}
-
-void SlippiPlaybackConfigPane::OnReplayMonthFoldersToggle(wxCommandEvent &event)
-{
-	SConfig::GetInstance().m_slippiReplayMonthFolders =
-	    m_replay_enable_checkbox->IsChecked() && m_replay_month_folders_checkbox->IsChecked();
+	SConfig::GetInstance().m_slippiRegenerateReplays = enableReplays;
 }
 
 void SlippiPlaybackConfigPane::OnReplayDirChanged(wxCommandEvent &event)
 {
-	SConfig::GetInstance().m_strSlippiReplayDir = WxStrToStr(m_replay_directory_picker->GetPath());
+	SConfig::GetInstance().m_strSlippiRegenerateReplayDir = WxStrToStr(m_replay_directory_picker->GetPath());
 }
