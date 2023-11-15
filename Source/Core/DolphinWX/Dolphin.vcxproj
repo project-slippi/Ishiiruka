@@ -86,7 +86,7 @@
       <EnableDpiAwareness>true</EnableDpiAwareness>
     </Manifest>
     <ClCompile>
-      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='ReleasePlayback|x64'">IS_PLAYBACK;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='ReleasePlayback|x64'">IS_PLAYBACK;DEBUGFAST;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <PreLinkEvent>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
