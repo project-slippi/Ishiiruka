@@ -641,9 +641,10 @@ void SConfig::LoadCoreSettings(IniFile &ini)
 	core->Get("SlippiReplayDir", &m_strSlippiReplayDir, default_replay_dir);
 	if (m_strSlippiReplayDir.empty())
 		m_strSlippiReplayDir = default_replay_dir;
-	core->Get("SlippiReplayRegenerateDir", &m_strSlippiRegenerateReplayDir, default_replay_dir);
+	std::string default_regenerate_dir = File::GetHomeDirectory() + DIR_SEP + "Slippi" + DIR_SEP + "Regenerated";
+	core->Get("SlippiReplayRegenerateDir", &m_strSlippiRegenerateReplayDir, default_regenerate_dir);
 	if (m_strSlippiRegenerateReplayDir.empty())
-		m_strSlippiRegenerateReplayDir = default_replay_dir;
+		m_strSlippiRegenerateReplayDir = default_regenerate_dir;
 	core->Get("SlippiPlaybackDisplayFrameIndex", &m_slippiEnableFrameIndex, false);
 	core->Get("BlockingPipes", &m_blockingPipes, false);
 	core->Get("MemcardAPath", &m_strMemoryCardA);

@@ -647,7 +647,8 @@ void CEXISlippi::createNewFile()
 	// in case the config value just gets lost somehow
 	if (dirpath.empty())
 	{
-		SConfig::GetInstance().m_strSlippiRegenerateReplayDir = File::GetHomeDirectory() + DIR_SEP + "Slippi";
+		SConfig::GetInstance().m_strSlippiRegenerateReplayDir =
+		    File::GetHomeDirectory() + DIR_SEP + "Slippi" + DIR_SEP + "Regenerated";
 		dirpath = SConfig::GetInstance().m_strSlippiRegenerateReplayDir;
 	}
 #endif
