@@ -239,7 +239,7 @@
    "Tags": ""
   },
   {
-   "InjectionAddress": "8006B0DC",
+   "InjectionAddress": "8006B0E0",
    "Name": "Slippi Recording",
    "Codetype": "Auto",
    "Annotation": "Recording/SendGamePreFrame.asm",

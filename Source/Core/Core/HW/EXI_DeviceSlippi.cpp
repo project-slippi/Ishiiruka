@@ -484,7 +484,13 @@ std::vector<u8> CEXISlippi::generateMetadata()
 
 void CEXISlippi::writeToFileAsync(u8 *payload, u32 length, std::string fileOption)
 {
-	if (!SConfig::GetInstance().m_slippiSaveReplays)
+#ifndef IS_PLAYBACK
+	bool shouldSaveReplays = SConfig::GetInstance().m_slippiSaveReplays;
+#else
+	bool shouldSaveReplays = SConfig::GetInstance().m_slippiRegenerateReplays;
+#endif
+
+	if (!shouldSaveReplays)
 	{
 		return;
 	}
@@ -628,6 +634,7 @@ void CEXISlippi::createNewFile()
 		closeFile();
 	}
 
+#ifndef IS_PLAYBACK
 	std::string dirpath = SConfig::GetInstance().m_strSlippiReplayDir;
 	// in case the config value just gets lost somehow
 	if (dirpath.empty())
@@ -635,6 +642,16 @@ void CEXISlippi::createNewFile()
 		SConfig::GetInstance().m_strSlippiReplayDir = File::GetHomeDirectory() + DIR_SEP + "Slippi";
 		dirpath = SConfig::GetInstance().m_strSlippiReplayDir;
 	}
+#else
+	std::string dirpath = SConfig::GetInstance().m_strSlippiRegenerateReplayDir;
+	// in case the config value just gets lost somehow
+	if (dirpath.empty())
+	{
+		SConfig::GetInstance().m_strSlippiRegenerateReplayDir =
+		    File::GetHomeDirectory() + DIR_SEP + "Slippi" + DIR_SEP + "Regenerated";
+		dirpath = SConfig::GetInstance().m_strSlippiRegenerateReplayDir;
+	}
+#endif
 
 	// Remove a trailing / or \\ if the user managed to have that in their config
 	char dirpathEnd = dirpath.back();
@@ -646,6 +663,7 @@ void CEXISlippi::createNewFile()
 	// First, ensure that the root Slippi replay directory is created
 	File::CreateFullPath(dirpath + "/");
 
+#ifndef IS_PLAYBACK
 	// Now we have a dir such as /home/Replays but we need to make one such
 	// as /home/Replays/2020-06 if month categorization is enabled
 	if (SConfig::GetInstance().m_slippiReplayMonthFolders)
@@ -663,6 +681,7 @@ void CEXISlippi::createNewFile()
 		// Ensure that the subfolder directory is created
 		File::CreateDir(dirpath);
 	}
+#endif
 
 	std::string filepath = dirpath + DIR_SEP + generateFileName();
 	INFO_LOG(SLIPPI, "EXI_DeviceSlippi.cpp: Creating new replay file %s", filepath.c_str());

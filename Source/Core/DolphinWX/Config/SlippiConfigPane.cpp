@@ -426,15 +426,38 @@ SlippiPlaybackConfigPane::SlippiPlaybackConfigPane(wxWindow *parent, wxWindowID 
 
 void SlippiPlaybackConfigPane::InitializeGUI()
 {
-	// Slippi Replay settings
+	// Slippi settings
+	m_replay_regenerate_checkbox = new wxCheckBox(this, wxID_ANY, _("Regenerate Slippi Replays (off if unsure)"));
+	m_replay_regenerate_checkbox->SetToolTip(
+	    _("Enable this to regenerate .slp recordings of your games. Does NOT need to be enabled to use slp event monitoring service for powering custom HUDs."));
+
+	m_replay_directory_picker =
+	    new wxDirPickerCtrl(this, wxID_ANY, wxEmptyString, _("Slippi Replay Folder:"), wxDefaultPosition, wxDefaultSize,
+	                        wxDIRP_USE_TEXTCTRL | wxDIRP_SMALL);
+	m_replay_directory_picker->SetToolTip(_("Choose where your regenerated replay files are saved."));
+
+	// Slippi display settings
 	m_display_frame_index = new wxCheckBox(this, wxID_ANY, _("Display Frame Index"));
 	m_display_frame_index->SetToolTip(
 	    _("Displays the Frame Index when viewing replays. On-Screen Display Messages must also be enabled"));
 
 	const int space5 = FromDIP(5);
 
+	wxGridBagSizer *const sSlippiPlaybackSettings = new wxGridBagSizer(space5, space5);
+	sSlippiPlaybackSettings->Add(m_display_frame_index, wxGBPosition(0, 0), wxGBSpan(1, 2));
+	sSlippiPlaybackSettings->AddGrowableCol(1);
+
+	wxStaticBoxSizer *const sbSlippiPlaybackSettings =
+	    new wxStaticBoxSizer(wxVERTICAL, this, _("Playback Display Settings"));
+	sbSlippiPlaybackSettings->AddSpacer(space5);
+	sbSlippiPlaybackSettings->Add(sSlippiPlaybackSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
+	sbSlippiPlaybackSettings->AddSpacer(space5);
+
 	wxGridBagSizer *const sSlippiReplaySettings = new wxGridBagSizer(space5, space5);
-	sSlippiReplaySettings->Add(m_display_frame_index, wxGBPosition(0, 0), wxGBSpan(1, 2));
+	sSlippiReplaySettings->Add(m_replay_regenerate_checkbox, wxGBPosition(0, 0), wxGBSpan(1, 2));
+	sSlippiReplaySettings->Add(new wxStaticText(this, wxID_ANY, _("Replay folder:")), wxGBPosition(1, 0), wxDefaultSpan,
+	                           wxALIGN_CENTER_VERTICAL);
+	sSlippiReplaySettings->Add(m_replay_directory_picker, wxGBPosition(1, 1), wxDefaultSpan, wxEXPAND);
 	sSlippiReplaySettings->AddGrowableCol(1);
 
 	wxStaticBoxSizer *const sbSlippiReplaySettings =
@@ -446,6 +469,8 @@ void SlippiPlaybackConfigPane::InitializeGUI()
 	wxBoxSizer *const main_sizer = new wxBoxSizer(wxVERTICAL);
 
 	main_sizer->AddSpacer(space5);
+	main_sizer->Add(sbSlippiPlaybackSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
+	main_sizer->AddSpacer(space5);
 	main_sizer->Add(sbSlippiReplaySettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	main_sizer->AddSpacer(space5);
 
@@ -456,18 +481,33 @@ void SlippiPlaybackConfigPane::LoadGUIValues()
 {
 	const SConfig &startup_params = SConfig::GetInstance();
 
-	bool enableFrameIndex = startup_params.m_slippiEnableFrameIndex;
-
-	m_display_frame_index->SetValue(enableFrameIndex);
+	m_replay_regenerate_checkbox->SetValue(startup_params.m_slippiRegenerateReplays);
+	m_replay_directory_picker->SetPath(StrToWxStr(startup_params.m_strSlippiRegenerateReplayDir));
+	m_display_frame_index->SetValue(startup_params.m_slippiEnableFrameIndex);
 }
 
 void SlippiPlaybackConfigPane::BindEvents()
 {
 	m_display_frame_index->Bind(wxEVT_CHECKBOX, &SlippiPlaybackConfigPane::OnDisplayFrameIndexToggle, this);
+
+	m_replay_regenerate_checkbox->Bind(wxEVT_CHECKBOX, &SlippiPlaybackConfigPane::OnReplayRegenerateToggle, this);
+	m_replay_directory_picker->Bind(wxEVT_DIRPICKER_CHANGED, &SlippiPlaybackConfigPane::OnReplayDirChanged, this);
 }
 
 void SlippiPlaybackConfigPane::OnDisplayFrameIndexToggle(wxCommandEvent &event)
 {
 	bool enableFrameIndex = m_display_frame_index->IsChecked();
 	SConfig::GetInstance().m_slippiEnableFrameIndex = enableFrameIndex;
+}
+
+void SlippiPlaybackConfigPane::OnReplayRegenerateToggle(wxCommandEvent &event)
+{
+	bool enableReplays = m_replay_regenerate_checkbox->IsChecked();
+
+	SConfig::GetInstance().m_slippiRegenerateReplays = enableReplays;
+}
+
+void SlippiPlaybackConfigPane::OnReplayDirChanged(wxCommandEvent &event)
+{
+	SConfig::GetInstance().m_strSlippiRegenerateReplayDir = WxStrToStr(m_replay_directory_picker->GetPath());
 }
