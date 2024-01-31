@@ -101,6 +101,10 @@ LogManager::LogManager()
 	m_Log[LogTypes::SLIPPI_RUST_JUKEBOX] =
 	    new LogContainer("SLIPPI_RUST_JUKEBOX", "[Rust] Slippi Jukebox", LogTypes::SLIPPI_RUST_JUKEBOX, true);
 
+    // This LogContainer will register with the Rust side under the "SLIPPI_RUST_DISCORD_RPC" target.
+	m_Log[LogTypes::SLIPPI_RUST_DISCORD_RPC] =
+	    new LogContainer("SLIPPI_RUST_DISCORD_RPC", "[Rust] Slippi Discord RPC", LogTypes::SLIPPI_RUST_DISCORD_RPC, true);
+
 	m_Log[LogTypes::FILEMON] = new LogContainer("FileMon", "File Monitor", LogTypes::FILEMON);
 	m_Log[LogTypes::GDB_STUB] = new LogContainer("GDB_STUB", "GDB Stub", LogTypes::GDB_STUB);
 	m_Log[LogTypes::GPFIFO] = new LogContainer("GP", "GPFifo", LogTypes::GPFIFO);

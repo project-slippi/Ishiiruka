@@ -14,6 +14,7 @@
 #include "Core/HW/DSP.h"
 #include "Core/HW/DVDInterface.h"
 #include "Core/HW/EXI.h"
+#include "Core/HW/EXI_DeviceSlippi.h"
 #include "Core/HW/GPFifo.h"
 #include "Core/HW/HW.h"
 #include "Core/HW/Memmap.h"
@@ -57,6 +58,16 @@ void Init()
 		WII_IPCInterface::Init();
 		WII_IPC_HLE_Interface::Init(); // Depends on Memory
 	}
+
+    // Slipp-specific: Due to the initialization order for the hardware systems above, Memory isn't available
+    // when the EXI device starts - but certain systems need the `m_pRAM` offset to watch. We'll
+    // do a second initialization "callback" here to let it know it can use it.
+    CEXISlippi *slippiEXIDevice = (CEXISlippi *)ExpansionInterface::FindDevice(TEXIDevices::EXIDEVICE_SLIPPI);
+
+    if (slippiEXIDevice != nullptr && slippiEXIDevice->IsPresent())
+    {
+        slippiEXIDevice->OnMemoryInitialized();
+    }
 }
 
 void Shutdown()
@@ -74,7 +85,7 @@ void Shutdown()
 	DSP::Shutdown();
 
 	// Slippi-specific change: We need to shut this down *before* `Memory`
-	// as we make use of some known offsets in `Memory` for the Jukebox.
+	// as we make use of some known offsets in `Memory` for certain systems.
 	ExpansionInterface::Shutdown();
 
 	Memory::Shutdown();

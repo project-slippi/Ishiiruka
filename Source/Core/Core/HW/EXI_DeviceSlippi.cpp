@@ -3390,6 +3390,15 @@ void CEXISlippi::SetJukeboxDolphinMusicVolume()
 	slprs_jukebox_set_dolphin_music_volume(slprs_exi_device_ptr, jukeboxVolume);
 }
 
+// This is a callback that gets fired when the Memory hardware gets initialized properly.
+// For internal Dolphin reasons, the EXI device chain is set up before Memory is ready - but some
+// things in the Rust EXI device need the offset for memory watching, and we work around it by initializing
+// them later.
+void CEXISlippi::OnMemoryInitialized()
+{
+	slprs_exi_device_on_memory_initialized(slprs_exi_device_ptr, Memory::m_pRAM);
+}
+
 bool CEXISlippi::IsPresent() const
 {
 	return true;

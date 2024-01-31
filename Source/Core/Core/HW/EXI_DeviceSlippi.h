@@ -39,6 +39,7 @@ class CEXISlippi : public IEXIDevice
 	void ConfigureJukebox();
 	void SetJukeboxDolphinSystemVolume();
 	void SetJukeboxDolphinMusicVolume();
+    void OnMemoryInitialized();
 
 	bool IsPresent() const override;
 
