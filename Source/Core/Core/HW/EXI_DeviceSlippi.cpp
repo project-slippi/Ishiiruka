@@ -3288,6 +3288,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		case CMD_GCT_LOAD:
 			prepareGctLoad(&memPtr[bufLoc + 1]);
 			ConfigureJukebox();
+			ConfigureRichPresence(); // I think this happens here so that m_pRAM is correct?
 			break;
 		case CMD_GET_DELAY:
 			prepareDelayResponse();
@@ -3375,6 +3376,13 @@ void CEXISlippi::ConfigureJukebox()
 	int jukeboxVolume = SConfig::GetInstance().iSlippiJukeboxVolume;
 
 	slprs_exi_device_configure_jukebox(slprs_exi_device_ptr, jukeboxEnabled, systemVolume, jukeboxVolume);
+#endif
+}
+
+void CEXISlippi::ConfigureRichPresence()
+{
+#ifndef IS_PLAYBACK
+	slprs_start_discord_rich_presence(slprs_exi_device_ptr, Memory::m_pRAM);
 #endif
 }
 
