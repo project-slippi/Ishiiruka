@@ -131,19 +131,23 @@ jobs:
       - name: "Codesign ${{ matrix.build_type }} Dolphin"
         working-directory: ${{ github.workspace }}
         shell: powershell
+        env:
+          SLIPPI_BUILD_TYPE: ${{ matrix.build_type }}
         if: env.ES_USERNAME != null
         run: |
           $msg = git log -1 --no-merges --pretty=%B
-          if ($msg -notmatch "^release.*") {
+          $build_type = $env:SLIPPI_BUILD_TYPE.ToLower()
+          if ($msg -notmatch "^release:.*" -And $msg -notmatch "^release\($build_type\):.*") {
+            echo "not release, skipping code signing"
             exit 0;
           }
+          mkdir CodeSignTool
+          cd .\CodeSignTool
           if (!(Test-Path ".\CodeSignTool\CodeSignTool.bat" -PathType Leaf)) { 
             Invoke-WebRequest -Uri https://www.ssl.com/download/codesigntool-for-windows/ -UseBasicParsing -OutFile ".\CodeSignTool.zip"
             7z x CodeSignTool.zip
             Remove-Item CodeSignTool.zip
-            Get-ChildItem -Path . | Where-Object { $_.Name -like "CodeSignTool*" } | %{ Rename-Item -LiteralPath $_.FullName -NewName "CodeSignTool" }
           }
-          cd .\CodeSignTool
           ./CodeSignTool.bat sign -credential_id="${{ secrets.ES_CREDENTIAL_ID }}" -username="${{ secrets.ES_USERNAME }}" -password="${{ secrets.ES_PASSWORD }}" -totp_secret="${{ secrets.ES_TOTP_SECRET }}" -input_file_path="${{ github.workspace }}\Binary\x64\Slippi Dolphin.exe" -override="true"
       - name: "Package ${{ matrix.build_type}} Dolphin"
         working-directory: ${{ github.workspace }}
