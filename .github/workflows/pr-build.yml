@@ -13,24 +13,6 @@ on:
       - "**.md"
 
 jobs:
-  slprs_cargo_fmt:
-    name: (SlippiRustExtensions) Cargo Format
-    runs-on: ubuntu-latest
-    outputs:
-      rust_ver: ${{ steps.rust_ver.outputs.rust_ver }}
-    steps:
-      - uses: actions/checkout@v3
-      - id: rust_ver
-        name: Grab Rust Version
-        run: echo "rust_ver=$(sed -rn 's/^channel = "(.*)"/\1/p' ./Externals/SlippiRustExtensions/rust-toolchain.toml)" >> "$GITHUB_OUTPUT"
-      - uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          toolchain: ${{ steps.rust_ver.outputs.rust_ver }}
-          components: rustfmt
-      - name: Rustfmt Check
-        uses: actions-rust-lang/rustfmt@v1
-        with:
-          manifest-path: ./Externals/SlippiRustExtensions/Cargo.toml
 
   skip_duplicates:
     name: Skip Duplicate Runs
@@ -44,8 +26,24 @@ jobs:
           concurrent_skipping: "same_content"
           do_not_skip: '["push", "workflow_dispatch", "schedule"]'
 
+  # goal is to prevent merges when the commit is not from the main branch, builds should still succeed
+  check_rust_commit:
+    needs: [skip_duplicates]
+    if: ${{ needs.skip_duplicates.outputs.should_skip != 'true' }}
+    name: Verify SlippiRustExtensions Commit is in Main
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Main Branch Check
+        shell: bash
+        run: |
+          git submodule update --init Externals/SlippiRustExtensions
+          cd Externals/SlippiRustExtensions
+          commit_id=$(git rev-parse HEAD)
+          git branch --contains $commit_id | grep main
+
   windows:
-    needs: [skip_duplicates, slprs_cargo_fmt]
+    needs: [skip_duplicates]
     if: ${{ needs.skip_duplicates.outputs.should_skip != 'true' }}
     strategy:
       fail-fast: false
@@ -60,16 +58,22 @@ jobs:
             build_config: ReleasePlayback
     env:
       DXSDK_DIR: "C:\\Program Files (x86)\\Microsoft DirectX SDK (June 2010)\\"
-      CERTIFICATE_WINDOWS_APPLICATION: ${{ secrets.CERTIFICATE_WINDOWS_APPLICATION }}
+      ES_USERNAME: ${{ secrets.ES_USERNAME }}
     name: "Windows ${{ matrix.build_type }}"
     runs-on: windows-2019
     steps:
       - name: "Checkout"
         uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - id: rust_ver
+        name: Grab Rust Version
+        shell: bash
+        run: echo "rust_ver=$(sed -rn 's/^channel = "(.*)"/\1/p' ./Externals/SlippiRustExtensions/rust-toolchain.toml)" >> "$GITHUB_OUTPUT"
       - name: "Install Rust"
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          toolchain: ${{ needs.slprs_cargo_fmt.outputs.rust_ver }}  # Pin to our specific Rust version.
+          toolchain: ${{ steps.rust_ver.outputs.rust_ver }}  # Pin to our specific Rust version.
           rustflags: ""  # Disable default injection of warnings = errors.
       - name: "(SlippiRustExtensions) Run cargo test"
         run: cargo test --all --all-features --manifest-path=Externals/SlippiRustExtensions/Cargo.toml
@@ -81,11 +85,13 @@ jobs:
           mkdir .\Tools\DX
       - name: "Setup MSBuild"
         uses: microsoft/setup-msbuild@v1   
-      - name: Cache DXSDK_Jun10.exe
+      - name: Cache Utils
         uses: actions/cache@v3
         with:
-          path: ./Tools/DX/
-          key: ${{ runner.os }}
+          path: |
+            ./Tools/DX/
+            ./CodeSignTool/
+          key: ${{ runner.os }}-${{ secrets.CACHE_CONTROL }}
       - name: "Download DirectX SDK"
         working-directory: ${{ github.workspace }}
         shell: powershell
@@ -122,13 +128,27 @@ jobs:
         run: |
           Xcopy /Y /E /I .\Data\Sys .\Binary\x64\Sys
           Xcopy /Y /E /I .\Data\PlaybackGeckoCodes\* .\Binary\x64\Sys\GameSettings\
-      - name: "Codesign ${{ matrix.build_type}} Dolphin"
+      - name: "Codesign ${{ matrix.build_type }} Dolphin"
         working-directory: ${{ github.workspace }}
-        if: env.CERTIFICATE_WINDOWS_APPLICATION != null
+        shell: powershell
+        env:
+          SLIPPI_BUILD_TYPE: ${{ matrix.build_type }}
+        if: env.ES_USERNAME != null
         run: |
-          echo ${{ secrets.CERTIFICATE_WINDOWS_APPLICATION }} > slippi_llc.b64
-          certutil -decode slippi_llc.b64 slippi_llc.p12
-          C:\"Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\"signtool.exe sign /f slippi_llc.p12 /p ${{ secrets.CERTIFICATE_WINDOWS_PASSWORD }} /fd SHA256 /tr http://ts.ssl.com /td SHA256 "Binary\x64\Slippi Dolphin.exe"
+          $msg = git log -1 --no-merges --pretty=%B
+          $build_type = $env:SLIPPI_BUILD_TYPE.ToLower()
+          if ($msg -notmatch "^release:.*" -And $msg -notmatch "^release\($build_type\):.*") {
+            echo "not release, skipping code signing"
+            exit 0;
+          }
+          mkdir CodeSignTool
+          cd .\CodeSignTool
+          if (!(Test-Path ".\CodeSignTool\CodeSignTool.bat" -PathType Leaf)) { 
+            Invoke-WebRequest -Uri https://www.ssl.com/download/codesigntool-for-windows/ -UseBasicParsing -OutFile ".\CodeSignTool.zip"
+            7z x CodeSignTool.zip
+            Remove-Item CodeSignTool.zip
+          }
+          ./CodeSignTool.bat sign -credential_id="${{ secrets.ES_CREDENTIAL_ID }}" -username="${{ secrets.ES_USERNAME }}" -password="${{ secrets.ES_PASSWORD }}" -totp_secret="${{ secrets.ES_TOTP_SECRET }}" -input_file_path="${{ github.workspace }}\Binary\x64\Slippi Dolphin.exe" -override="true"
       - name: "Package ${{ matrix.build_type}} Dolphin"
         working-directory: ${{ github.workspace }}
         run: |
@@ -147,7 +167,7 @@ jobs:
           path: "./artifact/"
   
   linux:
-    needs: [skip_duplicates, slprs_cargo_fmt]
+    needs: [skip_duplicates]
     if: ${{ needs.skip_duplicates.outputs.should_skip != 'true' }}
     strategy:
       fail-fast: false
@@ -217,10 +237,14 @@ jobs:
           qtbase5-private-dev \
           libxxf86vm-dev \
           x11proto-xinerama-dev
+      - id: rust_ver
+        name: Grab Rust Version
+        shell: bash
+        run: echo "rust_ver=$(sed -rn 's/^channel = "(.*)"/\1/p' ./Externals/SlippiRustExtensions/rust-toolchain.toml)" >> "$GITHUB_OUTPUT"
       - name: "Install Rust"
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          toolchain: ${{ needs.slprs_cargo_fmt.outputs.rust_ver }}  # Pin to our specific Rust version.
+          toolchain: ${{ steps.rust_ver.outputs.rust_ver }}  # Pin to our specific Rust version.
           rustflags: ""  # Disable default injection of warnings = errors.
       - name: "(SlippiRustExtensions) Run cargo test"
         run: cargo test --all --all-features --manifest-path=Externals/SlippiRustExtensions/Cargo.toml
@@ -255,7 +279,7 @@ jobs:
           path: "./artifact/"
   
   macOS:
-    needs: [skip_duplicates, slprs_cargo_fmt]
+    needs: [skip_duplicates]
     if: ${{ needs.skip_duplicates.outputs.should_skip != 'true' }}
     strategy:
       fail-fast: false
@@ -307,10 +331,14 @@ jobs:
           sound-touch \
           hidapi \
           python@3.10
+      - id: rust_ver
+        name: Grab Rust Version
+        shell: bash
+        run: echo "rust_ver=$(sed -rn 's/^channel = "(.*)"/\1/p' ./Externals/SlippiRustExtensions/rust-toolchain.toml)" >> "$GITHUB_OUTPUT"
       - name: "Install Rust"
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          toolchain: ${{ needs.slprs_cargo_fmt.outputs.rust_ver }}  # Pin to our specific Rust version.
+          toolchain: ${{ steps.rust_ver.outputs.rust_ver }}  # Pin to our specific Rust version.
           rustflags: ""  # Disable default injection of warnings = errors.
       - name: "(SlippiRustExtensions) Run cargo test"
         run: cargo test --all --all-features --manifest-path=Externals/SlippiRustExtensions/Cargo.toml

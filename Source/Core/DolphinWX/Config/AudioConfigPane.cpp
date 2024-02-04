@@ -22,7 +22,13 @@
 #include "DolphinWX/WxEventUtils.h"
 #include "DolphinWX/WxUtils.h"
 
-AudioConfigPane::AudioConfigPane(wxWindow* parent, wxWindowID id) : wxPanel(parent, id)
+#ifndef IS_PLAYBACK
+#include "Core/HW/EXI.h"
+#include "Core/HW/EXI_DeviceSlippi.h"
+#endif
+
+AudioConfigPane::AudioConfigPane(wxWindow *parent, wxWindowID id)
+    : wxPanel(parent, id)
 {
 	InitializeGUI();
 	LoadGUIValues();
@@ -35,32 +41,28 @@ void AudioConfigPane::InitializeGUI()
 	m_dsp_engine_strings.Add(_("DSP LLE recompiler"));
 	m_dsp_engine_strings.Add(_("DSP LLE interpreter (slow)"));
 
-	m_dsp_engine_radiobox =
-		new wxRadioBox(this, wxID_ANY, _("DSP Emulator Engine"), wxDefaultPosition, wxDefaultSize,
-			m_dsp_engine_strings, 0, wxRA_SPECIFY_ROWS);
+	m_dsp_engine_radiobox = new wxRadioBox(this, wxID_ANY, _("DSP Emulator Engine"), wxDefaultPosition, wxDefaultSize,
+	                                       m_dsp_engine_strings, 0, wxRA_SPECIFY_ROWS);
 	m_dpl2_decoder_checkbox = new wxCheckBox(this, wxID_ANY, _("Dolby Pro Logic II decoder"));
-	m_volume_slider = new DolphinSlider(this, wxID_ANY, 0, 0, 100, wxDefaultPosition, wxDefaultSize,
-		wxSL_VERTICAL | wxSL_INVERSE);
+	m_volume_slider =
+	    new DolphinSlider(this, wxID_ANY, 0, 0, 100, wxDefaultPosition, wxDefaultSize, wxSL_VERTICAL | wxSL_INVERSE);
 	m_volume_text = new wxStaticText(this, wxID_ANY, "");
-	m_audio_backend_choice =
-		new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, m_audio_backend_strings);
+	m_audio_backend_choice = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, m_audio_backend_strings);
 	m_audio_latency_spinctrl =
-		new wxSpinCtrl(this, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, 30);
+	    new wxSpinCtrl(this, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, 30);
 	m_audio_latency_label = new wxStaticText(this, wxID_ANY, _("Latency:"));
 
 	m_time_stretching_checkbox = new wxCheckBox(this, wxID_ANY, _("Time Stretching"));
 	m_RS_Hack_checkbox = new wxCheckBox(this, wxID_ANY, _("Rogue Squadron 2/3 Hack"));
-	m_audio_backend_choice->SetToolTip(
-		_("Changing this will have no effect while the emulator is running."));
+	m_audio_backend_choice->SetToolTip(_("Changing this will have no effect while the emulator is running."));
 	m_audio_latency_spinctrl->SetToolTip(_("Sets the latency (in ms). Higher values may reduce audio "
-		"crackling. Certain backends only."));
+	                                       "crackling. Certain backends only."));
 	m_dpl2_decoder_checkbox->SetToolTip(
-		_("Enables Dolby Pro Logic II emulation using 5.1 surround. Certain backends only."));
+	    _("Enables Dolby Pro Logic II emulation using 5.1 surround. Certain backends only."));
 
 	const int space5 = FromDIP(5);
 
-	wxStaticBoxSizer* const dsp_engine_sizer =
-		new wxStaticBoxSizer(wxVERTICAL, this, _("Sound Settings"));
+	wxStaticBoxSizer *const dsp_engine_sizer = new wxStaticBoxSizer(wxVERTICAL, this, _("Sound Settings"));
 	dsp_engine_sizer->Add(m_dsp_engine_radiobox, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	dsp_engine_sizer->AddSpacer(space5);
 	dsp_engine_sizer->AddStretchSpacer();
@@ -71,37 +73,32 @@ void AudioConfigPane::InitializeGUI()
 	dsp_engine_sizer->AddStretchSpacer();
 	dsp_engine_sizer->AddSpacer(space5);
 
-	wxStaticBoxSizer* const volume_sizer = new wxStaticBoxSizer(wxVERTICAL, this, _("Volume"));
+	wxStaticBoxSizer *const volume_sizer = new wxStaticBoxSizer(wxVERTICAL, this, _("Volume"));
 	volume_sizer->Add(m_volume_slider, 1, wxALIGN_CENTER_HORIZONTAL);
 	volume_sizer->Add(m_volume_text, 0, wxALIGN_CENTER_HORIZONTAL | wxLEFT | wxRIGHT, space5);
 	volume_sizer->AddSpacer(space5);
 
-	wxGridBagSizer* const backend_grid_sizer = new wxGridBagSizer(space5, space5);
-	backend_grid_sizer->Add(new wxStaticText(this, wxID_ANY, _("Audio Backend:")), wxGBPosition(0, 0),
-		wxDefaultSpan, wxALIGN_CENTER_VERTICAL);
-	backend_grid_sizer->Add(m_audio_backend_choice, wxGBPosition(0, 1), wxDefaultSpan,
-		wxALIGN_CENTER_VERTICAL);
-	backend_grid_sizer->Add(m_dpl2_decoder_checkbox, wxGBPosition(1, 0), wxGBSpan(1, 2),
-		wxALIGN_CENTER_VERTICAL);
-	backend_grid_sizer->Add(m_audio_latency_label, wxGBPosition(2, 0), wxDefaultSpan,
-		wxALIGN_CENTER_VERTICAL);
-	backend_grid_sizer->Add(m_audio_latency_spinctrl, wxGBPosition(2, 1), wxDefaultSpan,
-		wxALIGN_CENTER_VERTICAL);
+	wxGridBagSizer *const backend_grid_sizer = new wxGridBagSizer(space5, space5);
+	backend_grid_sizer->Add(new wxStaticText(this, wxID_ANY, _("Audio Backend:")), wxGBPosition(0, 0), wxDefaultSpan,
+	                        wxALIGN_CENTER_VERTICAL);
+	backend_grid_sizer->Add(m_audio_backend_choice, wxGBPosition(0, 1), wxDefaultSpan, wxALIGN_CENTER_VERTICAL);
+	backend_grid_sizer->Add(m_dpl2_decoder_checkbox, wxGBPosition(1, 0), wxGBSpan(1, 2), wxALIGN_CENTER_VERTICAL);
+	backend_grid_sizer->Add(m_audio_latency_label, wxGBPosition(2, 0), wxDefaultSpan, wxALIGN_CENTER_VERTICAL);
+	backend_grid_sizer->Add(m_audio_latency_spinctrl, wxGBPosition(2, 1), wxDefaultSpan, wxALIGN_CENTER_VERTICAL);
 
-	wxStaticBoxSizer* const backend_static_box_sizer =
-		new wxStaticBoxSizer(wxVERTICAL, this, _("Backend Settings"));
+	wxStaticBoxSizer *const backend_static_box_sizer = new wxStaticBoxSizer(wxVERTICAL, this, _("Backend Settings"));
 	backend_static_box_sizer->AddSpacer(space5);
 	backend_static_box_sizer->Add(backend_grid_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	backend_static_box_sizer->AddSpacer(space5);
 
-	wxBoxSizer* const dsp_audio_sizer = new wxBoxSizer(wxHORIZONTAL);
+	wxBoxSizer *const dsp_audio_sizer = new wxBoxSizer(wxHORIZONTAL);
 	dsp_audio_sizer->AddSpacer(space5);
 	dsp_audio_sizer->Add(dsp_engine_sizer, 1, wxEXPAND | wxTOP | wxBOTTOM, space5);
 	dsp_audio_sizer->AddSpacer(space5);
 	dsp_audio_sizer->Add(volume_sizer, 0, wxEXPAND | wxTOP | wxBOTTOM, space5);
 	dsp_audio_sizer->AddSpacer(space5);
 
-	wxBoxSizer* const main_sizer = new wxBoxSizer(wxVERTICAL);
+	wxBoxSizer *const main_sizer = new wxBoxSizer(wxVERTICAL);
 	main_sizer->AddSpacer(space5);
 	main_sizer->Add(dsp_audio_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	main_sizer->AddSpacer(space5);
@@ -113,7 +110,7 @@ void AudioConfigPane::InitializeGUI()
 
 void AudioConfigPane::LoadGUIValues()
 {
-	const SConfig& startup_params = SConfig::GetInstance();
+	const SConfig &startup_params = SConfig::GetInstance();
 	PopulateBackendChoiceBox();
 	ToggleBackendSpecificControls(SConfig::GetInstance().sBackend);
 
@@ -132,7 +129,7 @@ void AudioConfigPane::LoadGUIValues()
 	m_RS_Hack_checkbox->SetValue(startup_params.bRSHACK);
 }
 
-void AudioConfigPane::ToggleBackendSpecificControls(const std::string& backend)
+void AudioConfigPane::ToggleBackendSpecificControls(const std::string &backend)
 {
 	m_dpl2_decoder_checkbox->Enable(AudioCommon::SupportsDPL2Decoder(backend));
 
@@ -150,8 +147,7 @@ void AudioConfigPane::BindEvents()
 	m_dsp_engine_radiobox->Bind(wxEVT_RADIOBOX, &AudioConfigPane::OnDSPEngineRadioBoxChanged, this);
 	m_dsp_engine_radiobox->Bind(wxEVT_UPDATE_UI, &WxEventUtils::OnEnableIfCoreNotRunning);
 
-	m_dpl2_decoder_checkbox->Bind(wxEVT_CHECKBOX, &AudioConfigPane::OnDPL2DecoderCheckBoxChanged,
-		this);
+	m_dpl2_decoder_checkbox->Bind(wxEVT_CHECKBOX, &AudioConfigPane::OnDPL2DecoderCheckBoxChanged, this);
 	m_dpl2_decoder_checkbox->Bind(wxEVT_UPDATE_UI, &WxEventUtils::OnEnableIfCoreNotRunning);
 
 	m_volume_slider->Bind(wxEVT_SLIDER, &AudioConfigPane::OnVolumeSliderChanged, this);
@@ -165,53 +161,65 @@ void AudioConfigPane::BindEvents()
 	m_RS_Hack_checkbox->Bind(wxEVT_CHECKBOX, &AudioConfigPane::OnRS_Hack_checkboxChanged, this);
 }
 
-void AudioConfigPane::OnDSPEngineRadioBoxChanged(wxCommandEvent& event)
+void AudioConfigPane::OnDSPEngineRadioBoxChanged(wxCommandEvent &event)
 {
 	SConfig::GetInstance().bDSPHLE = m_dsp_engine_radiobox->GetSelection() == 0;
 	SConfig::GetInstance().m_DSPEnableJIT = m_dsp_engine_radiobox->GetSelection() == 1;
 	AudioCommon::UpdateSoundStream();
 }
 
-void AudioConfigPane::OnDPL2DecoderCheckBoxChanged(wxCommandEvent&)
+void AudioConfigPane::OnDPL2DecoderCheckBoxChanged(wxCommandEvent &)
 {
 	SConfig::GetInstance().bDPL2Decoder = m_dpl2_decoder_checkbox->IsChecked();
 }
 
-void AudioConfigPane::OnTimeStretchingCheckBoxChanged(wxCommandEvent&)
+void AudioConfigPane::OnTimeStretchingCheckBoxChanged(wxCommandEvent &)
 {
 	SConfig::GetInstance().bTimeStretching = m_time_stretching_checkbox->IsChecked();
 }
 
-void AudioConfigPane::OnRS_Hack_checkboxChanged(wxCommandEvent&)
+void AudioConfigPane::OnRS_Hack_checkboxChanged(wxCommandEvent &)
 {
 	SConfig::GetInstance().bRSHACK = m_RS_Hack_checkbox->IsChecked();
 }
 
-void AudioConfigPane::OnVolumeSliderChanged(wxCommandEvent& event)
+void AudioConfigPane::OnVolumeSliderChanged(wxCommandEvent &event)
 {
 	SConfig::GetInstance().m_Volume = m_volume_slider->GetValue();
 	AudioCommon::UpdateSoundStream();
 	m_volume_text->SetLabel(wxString::Format("%d %%", m_volume_slider->GetValue()));
+
+#ifndef IS_PLAYBACK
+	if (Core::IsRunning())
+	{
+		CEXISlippi *slippiEXIDevice = (CEXISlippi *)ExpansionInterface::FindDevice(TEXIDevices::EXIDEVICE_SLIPPI);
+
+		if (slippiEXIDevice != nullptr && slippiEXIDevice->IsPresent())
+		{
+			slippiEXIDevice->SetJukeboxDolphinSystemVolume();
+		}
+	}
+#endif
 }
 
-void AudioConfigPane::OnAudioBackendChanged(wxCommandEvent& event)
+void AudioConfigPane::OnAudioBackendChanged(wxCommandEvent &event)
 {
 	// Don't save the translated BACKEND_NULLSOUND string
-	SConfig::GetInstance().sBackend = m_audio_backend_choice->GetSelection() ?
-		WxStrToStr(m_audio_backend_choice->GetStringSelection()) :
-		BACKEND_NULLSOUND;
+	SConfig::GetInstance().sBackend = m_audio_backend_choice->GetSelection()
+	                                      ? WxStrToStr(m_audio_backend_choice->GetStringSelection())
+	                                      : BACKEND_NULLSOUND;
 	ToggleBackendSpecificControls(WxStrToStr(m_audio_backend_choice->GetStringSelection()));
 	AudioCommon::UpdateSoundStream();
 }
 
-void AudioConfigPane::OnLatencySpinCtrlChanged(wxCommandEvent& event)
+void AudioConfigPane::OnLatencySpinCtrlChanged(wxCommandEvent &event)
 {
 	SConfig::GetInstance().iLatency = m_audio_latency_spinctrl->GetValue();
 }
 
 void AudioConfigPane::PopulateBackendChoiceBox()
 {
-	for (const std::string& backend : AudioCommon::GetSoundBackends())
+	for (const std::string &backend : AudioCommon::GetSoundBackends())
 	{
 		m_audio_backend_choice->Append(wxGetTranslation(StrToWxStr(backend)));
 	}

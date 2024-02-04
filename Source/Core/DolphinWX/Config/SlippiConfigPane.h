@@ -8,6 +8,8 @@
 #include <wx/panel.h>
 #include <wx/textctrl.h>
 
+#include "DolphinWX/DolphinSlider.h"
+
 enum TEXIDevices : int;
 
 class wxButton;
@@ -57,10 +59,11 @@ class SlippiNetplayConfigPane final : public wxPanel
 
 	wxCheckBox *m_reduce_timing_dispersion_checkbox;
 
-#ifndef IS_PLAYBACK
 	void OnToggleJukeboxEnabled(wxCommandEvent &event);
 	wxCheckBox *m_slippi_jukebox_enabled_checkbox;
-#endif
+	DolphinSlider *m_slippi_jukebox_volume_slider;
+	wxStaticText *m_jukebox_volume_text;
+	void OnJukeboxVolumeUpdate(wxCommandEvent &event);
 };
 
 class SlippiPlaybackConfigPane final : public wxPanel
@@ -75,7 +78,11 @@ class SlippiPlaybackConfigPane final : public wxPanel
 
 	wxStaticText *m_slippi_delay_frames_txt;
 	wxTextCtrl *m_slippi_netplay_lan_ip_ctrl;
+	wxCheckBox *m_replay_regenerate_checkbox;
+	wxDirPickerCtrl *m_replay_directory_picker;
 	wxCheckBox *m_display_frame_index;
 
 	void OnDisplayFrameIndexToggle(wxCommandEvent &event);
+	void OnReplayRegenerateToggle(wxCommandEvent &event);
+	void OnReplayDirChanged(wxCommandEvent &event);
 };

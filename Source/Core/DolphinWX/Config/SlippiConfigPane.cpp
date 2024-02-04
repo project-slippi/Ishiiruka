@@ -17,13 +17,13 @@
 #include <wx/sizer.h>
 #include <wx/spinctrl.h>
 #include <wx/stattext.h>
+#include <wx/valtext.h>
 
 #include "Common/Common.h"
 #include "Common/CommonPaths.h"
 #include "Common/FileUtil.h"
 #include "Core/ConfigManager.h"
 #include "Core/Core.h"
-#include "Core/HW/EXI.h"
 #include "Core/HW/GCMemcard.h"
 #include "Core/HW/GCPad.h"
 #include "Core/NetPlayProto.h"
@@ -31,9 +31,9 @@
 #include "DolphinWX/Input/MicButtonConfigDiag.h"
 #include "DolphinWX/WxEventUtils.h"
 #include "DolphinWX/WxUtils.h"
-#include <wx/valtext.h>
 
 #ifndef IS_PLAYBACK
+#include "Core/HW/EXI.h"
 #include "Core/HW/EXI_DeviceSlippi.h"
 #endif
 
@@ -101,8 +101,7 @@ void SlippiNetplayConfigPane::InitializeGUI()
 	    _("Make inputs feel more console-like for overclocked GCC to USB "
 	      "adapters at the cost of 1.6ms of input lag (2ms for single-port official adapter)."));
 
-#ifndef IS_PLAYBACK
-	m_slippi_jukebox_enabled_checkbox = new wxCheckBox(this, wxID_ANY, _("Enable Music (Beta)"));
+	m_slippi_jukebox_enabled_checkbox = new wxCheckBox(this, wxID_ANY, _("Enable Music"));
 
 	// WASAPI does not work with this and we want a note for the user.
 #ifdef _WIN32
@@ -115,7 +114,15 @@ void SlippiNetplayConfigPane::InitializeGUI()
 	    _("Toggle in-game music for stages and menus. Changing this does not affect "
 	      "other audio like character hits or effects."));
 #endif
-#endif
+
+	m_slippi_jukebox_volume_slider = new DolphinSlider(this, wxID_ANY, 100, 0, 100);
+	m_jukebox_volume_text = new wxStaticText(this, wxID_ANY, "");
+	m_jukebox_volume_text->SetMinSize(wxSize(50, 20));
+
+	auto *const jukebox_music_volume_sizer = new wxBoxSizer(wxHORIZONTAL);
+	jukebox_music_volume_sizer->Add(new wxStaticText(this, wxID_ANY, _("Music Volume:")), 0, wxALIGN_CENTER_VERTICAL);
+	jukebox_music_volume_sizer->Add(m_slippi_jukebox_volume_slider, 1, wxALIGN_CENTER_VERTICAL);
+	jukebox_music_volume_sizer->Add(m_jukebox_volume_text, 0, wxALIGN_CENTER_VERTICAL);
 
 	const int space5 = FromDIP(5);
 	const int space10 = FromDIP(10);
@@ -173,16 +180,15 @@ void SlippiNetplayConfigPane::InitializeGUI()
 	main_sizer->Add(sbSlippiInputSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	main_sizer->AddSpacer(space5);
 
-#ifndef IS_PLAYBACK
 	wxStaticBoxSizer *const sbSlippiJukeboxSettings =
-	    new wxStaticBoxSizer(wxVERTICAL, this, _("Slippi Jukebox Settings"));
+	    new wxStaticBoxSizer(wxVERTICAL, this, _("Slippi Jukebox Settings (Beta)"));
 	sbSlippiJukeboxSettings->AddSpacer(space5);
 	sbSlippiJukeboxSettings->Add(m_slippi_jukebox_enabled_checkbox, 0, wxLEFT | wxRIGHT, space5);
 	sbSlippiJukeboxSettings->AddSpacer(space5);
+	sbSlippiJukeboxSettings->Add(jukebox_music_volume_sizer, 2, wxEXPAND, space5);
 
 	main_sizer->Add(sbSlippiJukeboxSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	main_sizer->AddSpacer(space5);
-#endif
 
 	SetSizer(main_sizer);
 }
@@ -197,6 +203,7 @@ void SlippiNetplayConfigPane::LoadGUIValues()
 	bool enableReplays = startup_params.m_slippiSaveReplays;
 	bool forceNetplayPort = startup_params.m_slippiForceNetplayPort;
 	bool forceLanIp = startup_params.m_slippiForceLanIp;
+	bool enableJukebox = startup_params.bSlippiJukeboxEnabled;
 
 	m_replay_enable_checkbox->SetValue(enableReplays);
 	m_replay_month_folders_checkbox->SetValue(startup_params.m_slippiReplayMonthFolders);
@@ -226,9 +233,17 @@ void SlippiNetplayConfigPane::LoadGUIValues()
 
 	m_reduce_timing_dispersion_checkbox->SetValue(startup_params.bReduceTimingDispersion);
 
-#ifndef IS_PLAYBACK
-	m_slippi_jukebox_enabled_checkbox->SetValue(startup_params.bSlippiJukeboxEnabled);
-#endif
+	m_slippi_jukebox_enabled_checkbox->SetValue(enableJukebox);
+	m_slippi_jukebox_volume_slider->SetValue(startup_params.iSlippiJukeboxVolume);
+	m_jukebox_volume_text->SetLabel(wxString::Format("%d %%", startup_params.iSlippiJukeboxVolume));
+	if (enableJukebox)
+	{
+		m_slippi_jukebox_volume_slider->Enable();
+	}
+	else
+	{
+		m_slippi_jukebox_volume_slider->Disable();
+	}
 }
 
 void SlippiNetplayConfigPane::BindEvents()
@@ -252,9 +267,8 @@ void SlippiNetplayConfigPane::BindEvents()
 	m_reduce_timing_dispersion_checkbox->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnReduceTimingDispersionToggle,
 	                                          this);
 
-#ifndef IS_PLAYBACK
 	m_slippi_jukebox_enabled_checkbox->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnToggleJukeboxEnabled, this);
-#endif
+	m_slippi_jukebox_volume_slider->Bind(wxEVT_SLIDER, &SlippiNetplayConfigPane::OnJukeboxVolumeUpdate, this);
 }
 
 void SlippiNetplayConfigPane::OnQuickChatChanged(wxCommandEvent &event)
@@ -339,13 +353,22 @@ void SlippiNetplayConfigPane::OnReduceTimingDispersionToggle(wxCommandEvent &eve
 	SConfig::GetInstance().bReduceTimingDispersion = m_reduce_timing_dispersion_checkbox->GetValue();
 }
 
-#ifndef IS_PLAYBACK
 void SlippiNetplayConfigPane::OnToggleJukeboxEnabled(wxCommandEvent &event)
 {
 	bool isEnabled = m_slippi_jukebox_enabled_checkbox->GetValue();
 
 	SConfig::GetInstance().bSlippiJukeboxEnabled = isEnabled;
 
+	if (isEnabled)
+	{
+		m_slippi_jukebox_volume_slider->Enable();
+	}
+	else
+	{
+		m_slippi_jukebox_volume_slider->Disable();
+	}
+
+#ifndef IS_PLAYBACK
 	// If we have a Slippi EXI device loaded, grab it and tell it to reconfigure the Jukebox.
 	// Note that this should only execute if `Core` is loaded and running, as otherwise the Expansion
 	// Interface is not actually initialized.
@@ -358,8 +381,26 @@ void SlippiNetplayConfigPane::OnToggleJukeboxEnabled(wxCommandEvent &event)
 			slippiEXIDevice->ConfigureJukebox();
 		}
 	}
+#endif // !IS_PLAYBACK
 }
-#endif
+
+void SlippiNetplayConfigPane::OnJukeboxVolumeUpdate(wxCommandEvent &event)
+{
+	SConfig::GetInstance().iSlippiJukeboxVolume = event.GetInt();
+	m_jukebox_volume_text->SetLabel(wxString::Format("%d %%", event.GetInt()));
+
+#ifndef IS_PLAYBACK
+	if (Core::IsRunning())
+	{
+		CEXISlippi *slippiEXIDevice = (CEXISlippi *)ExpansionInterface::FindDevice(TEXIDevices::EXIDEVICE_SLIPPI);
+
+		if (slippiEXIDevice != nullptr && slippiEXIDevice->IsPresent())
+		{
+			slippiEXIDevice->SetJukeboxDolphinMusicVolume();
+		}
+	}
+#endif // !IS_PLAYBACK
+}
 
 void SlippiNetplayConfigPane::PopulateEnableChatChoiceBox()
 {
@@ -385,15 +426,38 @@ SlippiPlaybackConfigPane::SlippiPlaybackConfigPane(wxWindow *parent, wxWindowID 
 
 void SlippiPlaybackConfigPane::InitializeGUI()
 {
-	// Slippi Replay settings
+	// Slippi settings
+	m_replay_regenerate_checkbox = new wxCheckBox(this, wxID_ANY, _("Regenerate Slippi Replays (off if unsure)"));
+	m_replay_regenerate_checkbox->SetToolTip(
+	    _("Enable this to regenerate .slp recordings of your games. Does NOT need to be enabled to use slp event monitoring service for powering custom HUDs."));
+
+	m_replay_directory_picker =
+	    new wxDirPickerCtrl(this, wxID_ANY, wxEmptyString, _("Slippi Replay Folder:"), wxDefaultPosition, wxDefaultSize,
+	                        wxDIRP_USE_TEXTCTRL | wxDIRP_SMALL);
+	m_replay_directory_picker->SetToolTip(_("Choose where your regenerated replay files are saved."));
+
+	// Slippi display settings
 	m_display_frame_index = new wxCheckBox(this, wxID_ANY, _("Display Frame Index"));
 	m_display_frame_index->SetToolTip(
 	    _("Displays the Frame Index when viewing replays. On-Screen Display Messages must also be enabled"));
 
 	const int space5 = FromDIP(5);
 
+	wxGridBagSizer *const sSlippiPlaybackSettings = new wxGridBagSizer(space5, space5);
+	sSlippiPlaybackSettings->Add(m_display_frame_index, wxGBPosition(0, 0), wxGBSpan(1, 2));
+	sSlippiPlaybackSettings->AddGrowableCol(1);
+
+	wxStaticBoxSizer *const sbSlippiPlaybackSettings =
+	    new wxStaticBoxSizer(wxVERTICAL, this, _("Playback Display Settings"));
+	sbSlippiPlaybackSettings->AddSpacer(space5);
+	sbSlippiPlaybackSettings->Add(sSlippiPlaybackSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
+	sbSlippiPlaybackSettings->AddSpacer(space5);
+
 	wxGridBagSizer *const sSlippiReplaySettings = new wxGridBagSizer(space5, space5);
-	sSlippiReplaySettings->Add(m_display_frame_index, wxGBPosition(0, 0), wxGBSpan(1, 2));
+	sSlippiReplaySettings->Add(m_replay_regenerate_checkbox, wxGBPosition(0, 0), wxGBSpan(1, 2));
+	sSlippiReplaySettings->Add(new wxStaticText(this, wxID_ANY, _("Replay folder:")), wxGBPosition(1, 0), wxDefaultSpan,
+	                           wxALIGN_CENTER_VERTICAL);
+	sSlippiReplaySettings->Add(m_replay_directory_picker, wxGBPosition(1, 1), wxDefaultSpan, wxEXPAND);
 	sSlippiReplaySettings->AddGrowableCol(1);
 
 	wxStaticBoxSizer *const sbSlippiReplaySettings =
@@ -405,6 +469,8 @@ void SlippiPlaybackConfigPane::InitializeGUI()
 	wxBoxSizer *const main_sizer = new wxBoxSizer(wxVERTICAL);
 
 	main_sizer->AddSpacer(space5);
+	main_sizer->Add(sbSlippiPlaybackSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
+	main_sizer->AddSpacer(space5);
 	main_sizer->Add(sbSlippiReplaySettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	main_sizer->AddSpacer(space5);
 
@@ -415,18 +481,33 @@ void SlippiPlaybackConfigPane::LoadGUIValues()
 {
 	const SConfig &startup_params = SConfig::GetInstance();
 
-	bool enableFrameIndex = startup_params.m_slippiEnableFrameIndex;
-
-	m_display_frame_index->SetValue(enableFrameIndex);
+	m_replay_regenerate_checkbox->SetValue(startup_params.m_slippiRegenerateReplays);
+	m_replay_directory_picker->SetPath(StrToWxStr(startup_params.m_strSlippiRegenerateReplayDir));
+	m_display_frame_index->SetValue(startup_params.m_slippiEnableFrameIndex);
 }
 
 void SlippiPlaybackConfigPane::BindEvents()
 {
 	m_display_frame_index->Bind(wxEVT_CHECKBOX, &SlippiPlaybackConfigPane::OnDisplayFrameIndexToggle, this);
+
+	m_replay_regenerate_checkbox->Bind(wxEVT_CHECKBOX, &SlippiPlaybackConfigPane::OnReplayRegenerateToggle, this);
+	m_replay_directory_picker->Bind(wxEVT_DIRPICKER_CHANGED, &SlippiPlaybackConfigPane::OnReplayDirChanged, this);
 }
 
 void SlippiPlaybackConfigPane::OnDisplayFrameIndexToggle(wxCommandEvent &event)
 {
 	bool enableFrameIndex = m_display_frame_index->IsChecked();
 	SConfig::GetInstance().m_slippiEnableFrameIndex = enableFrameIndex;
+}
+
+void SlippiPlaybackConfigPane::OnReplayRegenerateToggle(wxCommandEvent &event)
+{
+	bool enableReplays = m_replay_regenerate_checkbox->IsChecked();
+
+	SConfig::GetInstance().m_slippiRegenerateReplays = enableReplays;
+}
+
+void SlippiPlaybackConfigPane::OnReplayDirChanged(wxCommandEvent &event)
+{
+	SConfig::GetInstance().m_strSlippiRegenerateReplayDir = WxStrToStr(m_replay_directory_picker->GetPath());
 }
