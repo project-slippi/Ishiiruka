@@ -222,9 +222,10 @@ bool TMemCheck::Action(DebugInterface* debug_interface, u32 iValue, u32 addr, bo
 		if (Log)
 		{
 			auto frame = PowerPC::HostRead_U32(0x804D6CF4);
-			NOTICE_LOG(MEMMAP, "[%d] MBP %08x (%s) %s%i %0*x at %08x (%s)", frame, pc,
-				debug_interface->GetDescription(pc).c_str(), write ? "Write" : "Read", size * 8,
-				size * 2, iValue, addr, debug_interface->GetDescription(addr).c_str());
+			float fltVal = *reinterpret_cast<float *>(&iValue);
+			NOTICE_LOG(MEMMAP, "[%d] MBP %08x (%s) %s%i %0*x (%.3f) at %08x (%s)", frame, pc,
+			           debug_interface->GetDescription(pc).c_str(), write ? "Write" : "Read", size * 8, size * 2,
+			           iValue, fltVal, addr, debug_interface->GetDescription(addr).c_str());
 			Dolphin_Debugger::PrintCallstack(LogTypes::MEMMAP, LogTypes::LOG_LEVELS::LERROR);
 		}
 		if (Break)
