@@ -153,12 +153,12 @@ CEXISlippi::CEXISlippi()
 	// https://github.com/dolphin-emu/dolphin/blob/7f450f1d7e7d37bd2300f3a2134cb443d07251f9/Source/Core/Core/Movie.cpp#L246-L249
 	std::string isoPath = SConfig::GetInstance().m_strFilename;
 
-	// @TODO: Eventually we should move `GetSlippiUserJSONPath` out of the File module.
-	std::string userJSONPath = File::GetSlippiUserJSONPath();
+	// @TODO: Eventually we should move `GetSlippiUserConfigFolder` out of the File module.
+	std::string userConfigFolder = File::GetSlippiUserConfigFolder();
 
 	SlippiRustEXIConfig slprs_exi_config;
 	slprs_exi_config.iso_path = isoPath.c_str();
-	slprs_exi_config.user_json_path = userJSONPath.c_str();
+	slprs_exi_config.user_config_folder = userConfigFolder.c_str();
 	slprs_exi_config.scm_slippi_semver_str = scm_slippi_semver_str.c_str();
 	slprs_exi_config.osd_add_msg_fn = OSDMessageHandler;
 
@@ -170,8 +170,8 @@ CEXISlippi::CEXISlippi()
 	matchmaking = std::make_unique<SlippiMatchmaking>(user.get());
 	gameFileLoader = std::make_unique<SlippiGameFileLoader>();
 	g_replayComm = std::make_unique<SlippiReplayComm>();
-	directCodes = std::make_unique<SlippiDirectCodes>("direct-codes.json");
-	teamsCodes = std::make_unique<SlippiDirectCodes>("teams-codes.json");
+	directCodes = std::make_unique<SlippiDirectCodes>(slprs_exi_device_ptr, SlippiDirectCodes::DIRECT);
+	teamsCodes = std::make_unique<SlippiDirectCodes>(slprs_exi_device_ptr, SlippiDirectCodes::TEAMS);
 
 	generator = std::default_random_engine(Common::Timer::GetTimeMs());
 
