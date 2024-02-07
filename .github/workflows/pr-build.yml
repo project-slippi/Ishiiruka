@@ -149,7 +149,7 @@ jobs:
             Remove-Item CodeSignTool.zip
           }
           ./CodeSignTool.bat sign -credential_id="${{ secrets.ES_CREDENTIAL_ID }}" -username="${{ secrets.ES_USERNAME }}" -password="${{ secrets.ES_PASSWORD }}" -totp_secret="${{ secrets.ES_TOTP_SECRET }}" -input_file_path="${{ github.workspace }}\Binary\x64\Slippi Dolphin.exe" -override="true"
-      - name: "Package ${{ matrix.build_type}} Dolphin"
+      - name: "Package ${{ matrix.build_type }} Dolphin"
         working-directory: ${{ github.workspace }}
         run: |
           $FILE_NAME="${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-${{ matrix.artifact_name }}.zip"
