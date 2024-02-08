@@ -17,6 +17,7 @@ filepath=${1:?"need a filepath"}
 echo "Attempting notarization"
 
 # Submit the DMG for notarization and wait for the flow to finish
+s_time=$(date +%s)
 response=$(xcrun notarytool submit ${filepath} \
     --wait \
     --issuer ${APPLE_ISSUER_ID} \
@@ -24,12 +25,12 @@ response=$(xcrun notarytool submit ${filepath} \
     --key ~/private_keys/AuthKey_${APPLE_API_KEY}.p8)
 
 # Get the notarization job ID from the response
-e_time=$(date +%s)
 job_id_line=$(grep -m 1 '  id:' < <(echo -e "${response}"))
 job_id=$(echo "${job_id_line}" | cut -d ":" -s -f 2 | cut -d " " -f 2)
 
 # Log some debug timing info.
-n_time=$((e_time - n_time))
+e_time=$(date +%s)
+n_time=$((e_time - s_time))
 echo "Notarization call completed after ${n_time} seconds. Job ID: ${job_id}"
 
 # Extract the status of the notarization job.
