@@ -40,7 +40,8 @@
 #endif
 
 // Shared data dirs (Sys and shared User for Linux)
-#if defined(_WIN32) || defined(LINUX_LOCAL_DEV)
+#if defined(_WIN32) || defined(LINUX_LOCAL_DEV) || defined(__FreeBSD__) \
+    || defined(__OpenBSD__) || defined(__NetBSD__)
 #define SYSDATA_DIR "Sys"
 #elif defined __APPLE__
 #define SYSDATA_DIR "Contents/Resources/Sys"

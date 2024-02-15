@@ -83,7 +83,7 @@ private:
 	void* m_native_handle;
 	VkSurfaceKHR m_surface = VK_NULL_HANDLE;
 	VkSurfaceFormatKHR m_surface_format = {};
-	VkPresentModeKHR m_present_mode = VK_PRESENT_MODE_RANGE_SIZE_KHR;
+	VkPresentModeKHR m_present_mode = VK_PRESENT_MODE_IMMEDIATE_KHR;
 	bool m_vsync_enabled;
 
 	VkSwapchainKHR m_swap_chain = VK_NULL_HANDLE;

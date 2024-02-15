@@ -47,6 +47,8 @@
 #define S_ISDIR(m) (((m)&S_IFMT) == S_IFDIR)
 #endif
 
+static std::string s_user_paths[NUM_PATH_INDICES];
+
 // This namespace has various generic functions related to files and paths.
 // The code still needs a ton of cleanup.
 // REMEMBER: strdup considered harmful!
@@ -735,7 +737,7 @@ std::string GetApplicationSupportDirectory()
 }
 #endif
 
-std::string &GetExeDirectory()
+std::string GetExeDirectory()
 {
 	static std::string DolphinPath;
 	if (DolphinPath.empty())
@@ -749,6 +751,8 @@ std::string &GetExeDirectory()
 		else
 			DolphinPath = TStrToUTF8(Dolphin_exe_Path);
 		DolphinPath = DolphinPath.substr(0, DolphinPath.find_last_of('\\'));
+#elif defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+		return "."; // Hack
 #else
 		char Dolphin_exe_Path[PATH_MAX];
 		ssize_t len = ::readlink("/proc/self/exe", Dolphin_exe_Path, sizeof(Dolphin_exe_Path));
@@ -791,16 +795,22 @@ std::string GetSysDirectory()
 {
 	std::string sysDir;
 
-#if defined(__APPLE__)
-	sysDir = GetBundleDirectory() + DIR_SEP + SYSDATA_DIR;
-#elif defined(_WIN32) || defined(LINUX_LOCAL_DEV)
+#if defined(_WIN32)
 	sysDir = GetExeDirectory() + DIR_SEP + SYSDATA_DIR;
+#elif defined(LINUX_LOCAL_DEV) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+#	ifdef INSTALLMODE
+		sysDir = s_user_paths[D_USER_IDX] + "/Sys";
+#	else
+		sysDir = GetExeDirectory() + DIR_SEP + SYSDATA_DIR;
+#	endif
+#elif defined(__APPLE__)
+	sysDir = GetBundleDirectory() + DIR_SEP + SYSDATA_DIR;
 #else
 	sysDir = SYSDATA_DIR;
 #endif
 	sysDir += DIR_SEP;
 
-	INFO_LOG(COMMON, "GetSysDirectory: Setting to %s:", sysDir.c_str());
+	INFO_LOG(COMMON, "GetSysDirectory: Setting to %s: ", sysDir.c_str());
 	return sysDir;
 }
 
@@ -817,7 +827,6 @@ std::string GetSlippiUserJSONPath()
 	return userFilePath;
 }
 
-static std::string s_user_paths[NUM_PATH_INDICES];
 static void RebuildUserDirectories(unsigned int dir_index)
 {
 	switch (dir_index)

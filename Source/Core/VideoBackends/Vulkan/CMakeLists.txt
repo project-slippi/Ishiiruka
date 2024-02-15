@@ -32,8 +32,15 @@ set(LIBS
 include_directories(${CMAKE_SOURCE_DIR}/Externals/Vulkan/Include)
 
 # Silence warnings on glslang by flagging it as a system include
+
+#if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD|OpenBSD|NetBSD")
+# Typo???
 include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/Externals/glslang/glslang/Public)
 include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/Externals/glslang/SPIRV)
+#else()
+#	include_directories(SYSTEM /usr/local/include/glslang/Public)
+#	include_directories(SYSTEM /usr/local/include/glslang/SPIRV)
+#endif()
 
 # Link against glslang, the other necessary libraries are referenced by the executable.
 add_dolphin_library(videovulkan "${SRCS}" "${LIBS}")
