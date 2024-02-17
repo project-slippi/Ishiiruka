@@ -853,6 +853,12 @@ void CEXISlippi::prepareGameInfo(u8 *payload)
 	prepareGeckoList();
 	appendWordToBuffer(&m_read_queue, (u32)geckoList.size());
 
+	for (int i = 0; i < 4; i++)
+	{
+		auto connectCode = settings->players[i].connectCode;
+		m_read_queue.insert(m_read_queue.end(), connectCode.begin(), connectCode.end());
+	}
+
 	// Initialize frame sequence index value for reading rollbacks
 	frameSeqIdx = 0;
 
