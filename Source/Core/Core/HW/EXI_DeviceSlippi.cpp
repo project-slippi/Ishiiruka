@@ -48,7 +48,7 @@
 #define SLEEP_TIME_MS 8
 #define WRITE_FILE_SLEEP_TIME_MS 85
 
-// #define LOCAL_TESTING
+#define LOCAL_TESTING
 // #define CREATE_DIFF_FILES
 
 static std::unordered_map<u8, std::string> slippi_names;
@@ -3136,6 +3136,33 @@ void CEXISlippi::handleGetPlayerSettings()
 	m_read_queue.insert(m_read_queue.end(), data_ptr, data_ptr + sizeof(SlippiExiTypes::GetPlayerSettingsResponse));
 }
 
+void CEXISlippi::handleGetRank()
+{
+	auto userInfo = user->GetUserInfo();
+	auto prevRankInfo = user->GetRankInfo();
+	auto rankInfo = user->FetchUserRank(userInfo.connectCode);
+
+	u8 rank = rankInfo.rank;
+	float ratingOrdinal = rankInfo.ratingOrdinal;
+	u8 global = rankInfo.globalPlacing;
+	u8 regional = rankInfo.regionalPlacing;
+	u8 ratingUpdateCount = rankInfo.ratingUpdateCount;
+	float ratingChange = rankInfo.ratingChange;
+	int rankChange = rankInfo.rankChange;
+
+	m_read_queue.clear();
+	m_read_queue.push_back(rank);
+
+	appendWordToBuffer(&m_read_queue, *(u32 *)&ratingOrdinal);
+
+	m_read_queue.push_back(global);
+	m_read_queue.push_back(regional);
+	m_read_queue.push_back(ratingUpdateCount);
+
+	appendWordToBuffer(&m_read_queue, *(u32 *)&ratingChange);
+	appendWordToBuffer(&m_read_queue, *(u32 *)&rankChange);
+}
+
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 {
 	u8 *memPtr = Memory::GetPointer(_uAddr);
@@ -3307,6 +3334,9 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_GET_PLAYER_SETTINGS:
 			handleGetPlayerSettings();
+			break;
+		case CMD_GET_RANK:
+			handleGetRank();
 			break;
 		case CMD_PLAY_MUSIC:
 		{
