@@ -307,6 +307,17 @@ void SConfig::SaveCoreSettings(IniFile &ini)
 	{
 		core->Set(StringFromFormat("SIDevice%i", i), m_SIDevice[i]);
 		core->Set(StringFromFormat("AdapterRumble%i", i), m_AdapterRumble[i]);
+		core->Set(StringFromFormat("AChoice%i", i), m_AChoice[i]);
+		core->Set(StringFromFormat("BChoice%i", i), m_BChoice[i]);
+		core->Set(StringFromFormat("XChoice%i", i), m_XChoice[i]);
+		core->Set(StringFromFormat("YChoice%i", i), m_YChoice[i]);
+		core->Set(StringFromFormat("ZChoice%i", i), m_ZChoice[i]);
+		core->Set(StringFromFormat("LChoice%i", i), m_LChoice[i]);
+		core->Set(StringFromFormat("RChoice%i", i), m_RChoice[i]);
+		core->Set(StringFromFormat("UpChoice%i", i), m_UpChoice[i]);
+		core->Set(StringFromFormat("RightChoice%i", i), m_RightChoice[i]);
+		core->Set(StringFromFormat("DownChoice%i", i), m_DownChoice[i]);
+		core->Set(StringFromFormat("LeftChoice%i", i), m_LeftChoice[i]);
 		core->Set(StringFromFormat("SimulateKonga%i", i), m_AdapterKonga[i]);
 	}
 	core->Set("WiiSDCard", m_WiiSDCard);
@@ -664,6 +675,17 @@ void SConfig::LoadCoreSettings(IniFile &ini)
 #else
 		core->Get(StringFromFormat("AdapterRumble%i", i), &m_AdapterRumble[i], false);
 #endif
+		core->Get(StringFromFormat("AChoice%i", i), (int *)&m_AChoice[i], (int)PAD_BUTTON_A);
+		core->Get(StringFromFormat("BChoice%i", i), (int *)&m_BChoice[i], (int)PAD_BUTTON_B);
+		core->Get(StringFromFormat("XChoice%i", i), (int *)&m_XChoice[i], (int)PAD_BUTTON_X);
+		core->Get(StringFromFormat("YChoice%i", i), (int *)&m_YChoice[i], (int)PAD_BUTTON_Y);
+		core->Get(StringFromFormat("ZChoice%i", i), (int *)&m_ZChoice[i], (int)PAD_TRIGGER_Z);
+		core->Get(StringFromFormat("LChoice%i", i), (int *)&m_LChoice[i], (int)PAD_TRIGGER_L);
+		core->Get(StringFromFormat("RChoice%i", i), (int *)&m_RChoice[i], (int)PAD_TRIGGER_R);
+		core->Get(StringFromFormat("UpChoice%i", i), (int *)&m_UpChoice[i], (int)PAD_BUTTON_UP);
+		core->Get(StringFromFormat("RightChoice%i", i), (int *)&m_RightChoice[i], (int)PAD_BUTTON_RIGHT);
+		core->Get(StringFromFormat("DownChoice%i", i), (int *)&m_DownChoice[i], (int)PAD_BUTTON_DOWN);
+		core->Get(StringFromFormat("LeftChoice%i", i), (int *)&m_LeftChoice[i], (int)PAD_BUTTON_LEFT);
 		core->Get(StringFromFormat("SimulateKonga%i", i), &m_AdapterKonga[i], false);
 	}
 	core->Get("WiiSDCard", &m_WiiSDCard, false);
