@@ -43,13 +43,14 @@ enum
 	IDM_TOGGLEMEMORY,
 	IDM_VIEWASFP,
 	IDM_VIEWASASCII,
+	IDM_VIEWASSHIFTJIS,
 	IDM_VIEWASHEX,
 };
 
 wxDEFINE_EVENT(DOLPHIN_EVT_MEMORY_VIEW_DATA_TYPE_CHANGED, wxCommandEvent);
 
-CMemoryView::CMemoryView(DebugInterface* debuginterface, wxWindow* parent)
-	: wxControl(parent, wxID_ANY), debugger(debuginterface), align(0), rowHeight(FromDIP(13)),
+CMemoryView::CMemoryView(DebugInterface *debuginterface, wxWindow *parent)
+    : wxControl(parent, wxID_ANY), debugger(debuginterface), align(0), rowHeight(FromDIP(13)),
 	m_left_col_width(FromDIP(LEFT_COL_WIDTH)), selection(0), oldSelection(0), selecting(false),
 	memory(0), curAddress(debuginterface->GetPC()), m_data_type(MemoryDataType::U8)
 {
@@ -83,6 +84,9 @@ void CMemoryView::SetDataType(MemoryDataType data_type)
 	case MemoryDataType::ASCII:
 		align = 4;
 		break;
+	case MemoryDataType::ShiftJIS:
+		align = 16;
+		break;
 	default:
 		align = 16;
 		m_last_hex_type = data_type;
@@ -103,7 +107,7 @@ int CMemoryView::YToAddress(int y)
 	return curAddress + ydiff * align;
 }
 
-void CMemoryView::OnMouseDownL(wxMouseEvent& event)
+void CMemoryView::OnMouseDownL(wxMouseEvent &event)
 {
 	int x = event.GetX();
 	int y = event.GetY();
@@ -132,7 +136,7 @@ void CMemoryView::OnMouseDownL(wxMouseEvent& event)
 	event.Skip();
 }
 
-void CMemoryView::OnMouseMove(wxMouseEvent& event)
+void CMemoryView::OnMouseMove(wxMouseEvent &event)
 {
 	wxRect rc = GetClientRect();
 
@@ -155,7 +159,7 @@ void CMemoryView::OnMouseMove(wxMouseEvent& event)
 	event.Skip();
 }
 
-void CMemoryView::OnMouseUpL(wxMouseEvent& event)
+void CMemoryView::OnMouseUpL(wxMouseEvent &event)
 {
 	if (event.m_x > m_left_col_width)
 	{
@@ -167,7 +171,7 @@ void CMemoryView::OnMouseUpL(wxMouseEvent& event)
 	event.Skip();
 }
 
-void CMemoryView::OnScrollWheel(wxMouseEvent& event)
+void CMemoryView::OnScrollWheel(wxMouseEvent &event)
 {
 	const bool scroll_down = (event.GetWheelRotation() < 0);
 	const int num_lines = event.GetLinesPerAction();
@@ -185,12 +189,12 @@ void CMemoryView::OnScrollWheel(wxMouseEvent& event)
 	event.Skip();
 }
 
-void CMemoryView::OnPopupMenu(wxCommandEvent& event)
+void CMemoryView::OnPopupMenu(wxCommandEvent &event)
 {
 	// FIXME: This is terrible. Generate events instead.
-	CFrame* cframe = wxGetApp().GetCFrame();
-	CCodeWindow* code_window = cframe->g_pCodeWindow;
-	CWatchWindow* watch_window = code_window->GetPanel<CWatchWindow>();
+	CFrame *cframe = wxGetApp().GetCFrame();
+	CCodeWindow *code_window = cframe->g_pCodeWindow;
+	CWatchWindow *watch_window = code_window->GetPanel<CWatchWindow>();
 
 	switch (event.GetId())
 	{
@@ -205,8 +209,8 @@ void CMemoryView::OnPopupMenu(wxCommandEvent& event)
 	case IDM_COPYHEX:
 	{
 		wxClipboardLocker clipboard_lock;
-		wxTheClipboard->SetData(new wxTextDataObject(
-			wxString::Format("%08x", debugger->ReadExtraMemory(memory, selection))));
+		wxTheClipboard->SetData(
+		    new wxTextDataObject(wxString::Format("%08x", debugger->ReadExtraMemory(memory, selection))));
 	}
 	break;
 #endif
@@ -231,6 +235,10 @@ void CMemoryView::OnPopupMenu(wxCommandEvent& event)
 		SetDataType(MemoryDataType::ASCII);
 		break;
 
+	case IDM_VIEWASSHIFTJIS:
+		SetDataType(MemoryDataType::ShiftJIS);
+		break;
+
 	case IDM_VIEWASHEX:
 		SetDataType(m_last_hex_type);
 		break;
@@ -241,7 +249,7 @@ void CMemoryView::OnPopupMenu(wxCommandEvent& event)
 	}
 }
 
-void CMemoryView::OnMouseDownR(wxMouseEvent& event)
+void CMemoryView::OnMouseDownR(wxMouseEvent &event)
 {
 	// popup menu
 	wxMenu menu;
@@ -255,18 +263,17 @@ void CMemoryView::OnMouseDownR(wxMouseEvent& event)
 	menu.Append(IDM_WATCHADDRESS, _("Add to &watch"));
 	menu.AppendCheckItem(IDM_TOGGLEMEMORY, _("Toggle &memory"))->Check(memory != 0);
 
-	wxMenu* viewAsSubMenu = new wxMenu;
-	viewAsSubMenu->AppendRadioItem(IDM_VIEWASFP, _("FP value"))
-		->Check(m_data_type == MemoryDataType::FloatingPoint);
-	viewAsSubMenu->AppendRadioItem(IDM_VIEWASASCII, "ASCII")
-		->Check(m_data_type == MemoryDataType::ASCII);
+	wxMenu *viewAsSubMenu = new wxMenu;
+	viewAsSubMenu->AppendRadioItem(IDM_VIEWASFP, _("FP value"))->Check(m_data_type == MemoryDataType::FloatingPoint);
+	viewAsSubMenu->AppendRadioItem(IDM_VIEWASASCII, "ASCII")->Check(m_data_type == MemoryDataType::ASCII);
+	viewAsSubMenu->AppendRadioItem(IDM_VIEWASSHIFTJIS, "ShiftJIS")->Check(m_data_type == MemoryDataType::ShiftJIS);
 	viewAsSubMenu->AppendRadioItem(IDM_VIEWASHEX, _("Hex"))->Check(IsHexMode());
 	menu.AppendSubMenu(viewAsSubMenu, _("View As:"));
 
 	PopupMenu(&menu);
 }
 
-void CMemoryView::OnPaint(wxPaintEvent& event)
+void CMemoryView::OnPaint(wxPaintEvent &event)
 {
 	wxPaintDC dc(this);
 	wxRect rc = GetClientRect();
@@ -279,7 +286,7 @@ void CMemoryView::OnPaint(wxPaintEvent& event)
 		font_width = metrics.averageWidth;
 		rowHeight = std::max(rowHeight, metrics.height);
 		if (!DebuggerFont.IsFixedWidth())
-			font_width = dc.GetTextExtent("mxx").GetWidth() / 3;  // (1em + 2ex) / 3
+			font_width = dc.GetTextExtent("mxx").GetWidth() / 3; // (1em + 2ex) / 3
 	}
 
 	const int row_start_x = m_left_col_width + 1;
@@ -306,7 +313,7 @@ void CMemoryView::OnPaint(wxPaintEvent& event)
 		int row_y = rc.height / 2 + rowHeight * row - rowHeight / 2;
 		int row_x = row_start_x;
 
-		auto draw_text = [&](const wxString& s, int offset_chars = 0, int min_length = 0) -> void {
+		auto draw_text = [&](const wxString &s, int offset_chars = 0, int min_length = 0) -> void {
 			dc.DrawText(s, row_x + font_width * offset_chars, row_y);
 			row_x += font_width * (std::max(static_cast<int>(s.size()), min_length) + offset_chars);
 		};
@@ -329,15 +336,30 @@ void CMemoryView::OnPaint(wxPaintEvent& event)
 			dc.SetBrush(rowBrush);
 
 		dc.DrawRectangle(m_left_col_width, row_y, col_width, rowHeight);
-		dc.SetTextForeground(wxColour(0x60, 0x00, 0x00));  // Dark red
+		dc.SetTextForeground(wxColour(0x60, 0x00, 0x00)); // Dark red
 		draw_text(temp);
 
 		if (!IsHexMode())
 		{
-			const std::string mem = debugger->GetRawMemoryString(memory, address);
-			dc.SetTextForeground(navy_color);
-			draw_text(StrToWxStr(mem), 2);
+			if (m_data_type == MemoryDataType::ShiftJIS)
+			{
+				std::string quadword;
+				for (unsigned int i = 0; i < align; i += sizeof(u32))
+				{
+					const std::string mem = debugger->GetRawMemoryString(memory, address + i);
+					quadword += mem + " ";
+				}
+				dc.SetTextForeground(navy_color);
+				draw_text(StrToWxStr(quadword), 2);
+			}
+			else
+			{
+				const std::string mem = debugger->GetRawMemoryString(memory, address);
+				dc.SetTextForeground(navy_color);
+				draw_text(StrToWxStr(mem), 2);
+			}
 		}
+
 		dc.SetTextForeground(*wxBLACK);
 
 		// NOTE: We can trigger a segfault inside HostIsRAMAddress (nullptr) during shutdown
@@ -353,7 +375,7 @@ void CMemoryView::OnPaint(wxPaintEvent& event)
 
 		if (m_data_type == MemoryDataType::FloatingPoint)
 		{
-			float& flt = reinterpret_cast<float&>(mem_data);
+			float &flt = reinterpret_cast<float &>(mem_data);
 			dis = StringFromFormat("f: %f", flt);
 		}
 		else if (m_data_type == MemoryDataType::ASCII)
@@ -368,11 +390,31 @@ void CMemoryView::OnPaint(wxPaintEvent& event)
 					dis += ' ';
 			}
 
-			Symbol* sym = g_symbolDB.GetSymbolFromAddr(mem_data);
+			Symbol *sym = g_symbolDB.GetSymbolFromAddr(mem_data);
 			if (sym)
 			{
 				dis += StringFromFormat(" # -> %s", sym->name.c_str());
 			}
+		}
+		else if (m_data_type == MemoryDataType::ShiftJIS)
+		{
+			u8 shiftJIS[16];
+			dis.reserve(16);
+			for (unsigned int i = 0; i < align; i += sizeof(u32))
+			{
+				if (!PowerPC::HostIsRAMAddress(address + i))
+					break;
+				u32 word = debugger->ReadExtraMemory(memory, address + i);
+				const u8 *bytes = static_cast<u8*>(static_cast<void *>(&word));
+	
+				// Reverse byte order for little endian
+				for (int j = 0; j < 4; j++)
+				{
+					// Replace null chars with space
+					shiftJIS[i+j] = (bytes[3 - j] == 0x0) ? 0x20 : bytes[3 - j];
+				}
+			}
+			dis += SHIFTJISToUTF8(std::string(shiftJIS, shiftJIS + sizeof(shiftJIS)));
 		}
 		else
 		{
@@ -387,7 +429,7 @@ void CMemoryView::OnPaint(wxPaintEvent& event)
 				case MemoryDataType::U8:
 				default:
 					dis += StringFromFormat(" %02X %02X %02X %02X", (word >> 24) & 0xFF, (word >> 16) & 0xFF,
-						(word >> 8) & 0xFF, word & 0xFF);
+					                        (word >> 8) & 0xFF, word & 0xFF);
 					break;
 				case MemoryDataType::U16:
 					dis += StringFromFormat(" %04X %04X", (word >> 16) & 0xFFFF, word & 0xFFFF);
@@ -418,7 +460,7 @@ void CMemoryView::OnPaint(wxPaintEvent& event)
 	}
 }
 
-void CMemoryView::OnResize(wxSizeEvent& event)
+void CMemoryView::OnResize(wxSizeEvent &event)
 {
 	Refresh();
 	event.Skip();
