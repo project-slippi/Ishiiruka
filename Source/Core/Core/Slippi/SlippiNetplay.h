@@ -128,6 +128,16 @@ struct ChecksumEntry
 	u32 value;
 };
 
+struct RemotePlayer
+{
+	u8 index; // port - 1
+	ENetAddress externalAddress;
+	ENetAddress localAddress;
+};
+
+// For use in std containers, we shove the u32 address and u16 port into one u64
+typedef u64 slippi_endpoint;
+
 class SlippiMatchInfo
 {
   public:
@@ -152,7 +162,7 @@ class SlippiNetplayClient
 	void SendAsync(std::unique_ptr<sf::Packet> packet);
 
 	SlippiNetplayClient(bool isDecider); // Make a dummy client
-	SlippiNetplayClient(std::vector<std::string> addrs, std::vector<u16> ports, const u8 remotePlayerCount,
+	SlippiNetplayClient(std::vector<struct RemotePlayer> remotePlayers, enet_uint32 ownExternalAddress,
 	                    const u16 localPort, bool isDecider, u8 playerIdx);
 	~SlippiNetplayClient();
 
@@ -197,6 +207,37 @@ class SlippiNetplayClient
 	u8 remoteSentChatMessageId = 0; // most recent chat message id that current player sent
 
   protected:
+	enum class EndpointType
+	{
+		ENDPOINT_TYPE_LOCAL,
+		ENDPOINT_TYPE_EXTERNAL,
+	};
+
+	class PeerManager
+	{
+	  public:
+		PeerManager(EndpointType highestPriority);
+		bool HasAnyPeers();
+		void AddPeer(EndpointType endpointType, ENetPeer *peer);
+
+		// Default constructor to satisfy use as std::map key. Do not use!
+		PeerManager();
+
+		// Whether there are any connections of the highest priority type
+		bool HasAnyHighestPriorityPeers();
+
+		// Add all connections to the input vector
+		void SelectAllPeers(std::vector<ENetPeer *> &connections);
+
+		// Add the most preferred connection to the input vector, disconnect any others
+		void SelectOnePeer(std::vector<ENetPeer *> &connections);
+
+	  protected:
+		EndpointType m_highestPriority;
+		std::vector<ENetPeer *> m_localPeers;
+		std::vector<ENetPeer *> m_externalPeers;
+	};
+
 	struct
 	{
 		std::recursive_mutex game;
@@ -208,7 +249,7 @@ class SlippiNetplayClient
 	Common::FifoQueue<std::unique_ptr<sf::Packet>, false> m_async_queue;
 
 	ENetHost *m_client = nullptr;
-	std::vector<ENetPeer *> m_server;
+	std::vector<ENetPeer *> m_connectedPeers;
 	std::thread m_thread;
 	u8 m_remotePlayerCount = 0;
 
@@ -239,7 +280,9 @@ class SlippiNetplayClient
 	bool hasGameStarted = false;
 	u8 playerIdx = 0;
 
-	std::unordered_map<std::string, std::map<ENetPeer *, bool>> activeConnections;
+	std::unordered_map<slippi_endpoint, std::pair<u8, EndpointType>> endpointToIndexAndType;
+	std::unordered_map<u8, PeerManager> indexToPeerManager;
+	std::vector<ENetPeer *> unexpectedPeers;
 
 	std::deque<std::unique_ptr<SlippiPad>> localPadQueue; // most recent inputs at start of deque
 	std::deque<std::unique_ptr<SlippiPad>>
@@ -272,6 +315,7 @@ class SlippiNetplayClient
 	unsigned int OnData(sf::Packet &packet, ENetPeer *peer);
 	void Send(sf::Packet &packet);
 	void Disconnect();
+	void SelectConnectedPeers();
 
 	bool m_is_connected = false;
 

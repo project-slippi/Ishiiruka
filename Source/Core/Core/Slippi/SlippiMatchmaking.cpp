@@ -486,12 +486,11 @@ void SlippiMatchmaking::handleMatchmaking()
 		return;
 	}
 
-	m_isSwapAttempt = false;
 	m_netplayClient = nullptr;
 
 	// Clear old users
-	m_remoteIps.clear();
 	m_playerInfo.clear();
+	m_remotePlayers.clear();
 
 	std::string matchId = getResp.value("matchId", "");
 	WARN_LOG(SLIPPI_ONLINE, "Match ID: %s", matchId.c_str());
@@ -530,40 +529,40 @@ void SlippiMatchmaking::handleMatchmaking()
 
 			if (isLocal)
 			{
-				std::vector<std::string> localIpParts;
-				SplitString(el.value("ipAddress", "1.1.1.1:123"), ':', localIpParts);
-				localExternalIp = localIpParts[0];
 				m_localPlayerIndex = playerInfo.port - 1;
+				std::string ownExIp = el.value("ipAddress", "");
+				if (!ownExIp.empty())
+				{
+					std::vector<std::string> ownExIpParts;
+					SplitString(ownExIp, ':', ownExIpParts);
+					ENetAddress addr;
+					enet_address_set_host(&addr, ownExIpParts[0].c_str());
+					m_ownExternalAddress = addr.host;
+				}
+
 			}
-		};
-
-		// Loop a second time to get the correct remote IPs
-		for (json::iterator it = queue.begin(); it != queue.end(); ++it)
-		{
-			json el = *it;
-
-			if (el.value("port", 0) - 1 == m_localPlayerIndex)
-				continue;
-
-			auto extIp = el.value("ipAddress", "1.1.1.1:123");
-			std::vector<std::string> exIpParts;
-			SplitString(extIp, ':', exIpParts);
-
-			auto lanIp = el.value("ipAddressLan", "1.1.1.1:123");
-
-			WARN_LOG(SLIPPI_ONLINE, "LAN IP: %s", lanIp.c_str());
-
-			if (exIpParts[0] != localExternalIp || lanIp.empty())
+			else
 			{
-				// If external IPs are different, just use that address
-				m_remoteIps.push_back(extIp);
-				continue;
+				struct RemotePlayer remotePlayer;
+				remotePlayer.index = playerInfo.port - 1;
+				std::string extIp = el.value("ipAddress", "");
+				if (!extIp.empty())
+				{
+					std::vector<std::string> exIpParts;
+					SplitString(extIp, ':', exIpParts);
+					enet_address_set_host(&remotePlayer.externalAddress, exIpParts[0].c_str());
+					remotePlayer.externalAddress.port = std::stoi(exIpParts[1]);
+				}
+				std::string lanIp = el.value("ipAddressLan", "");
+				if (!lanIp.empty())
+				{
+					std::vector<std::string> lanIpParts;
+					SplitString(lanIp, ':', lanIpParts);
+					enet_address_set_host(&remotePlayer.localAddress, lanIpParts[0].c_str());
+					remotePlayer.localAddress.port = std::stoi(lanIpParts[1]);
+				}
+				m_remotePlayers.push_back(remotePlayer);
 			}
-
-			// TODO: Instead of using one or the other, it might be better to try both
-
-			// If external IPs are the same, try using LAN IPs
-			m_remoteIps.push_back(lanIp);
 		}
 	}
 	m_isHost = getResp.value("isHost", false);
@@ -647,33 +646,10 @@ u8 SlippiMatchmaking::RemotePlayerCount()
 
 void SlippiMatchmaking::handleConnecting()
 {
-	auto userInfo = m_user->GetUserInfo();
-
-	m_isSwapAttempt = false;
 	m_netplayClient = nullptr;
 
-	u8 remotePlayerCount = (u8)m_remoteIps.size();
-	std::vector<std::string> remoteParts;
-	std::vector<std::string> addrs;
-	std::vector<u16> ports;
-	for (int i = 0; i < m_remoteIps.size(); i++)
-	{
-		remoteParts.clear();
-		SplitString(m_remoteIps[i], ':', remoteParts);
-		addrs.push_back(remoteParts[0]);
-		ports.push_back(std::stoi(remoteParts[1]));
-	}
-
-	std::stringstream ipLog;
-	ipLog << "Remote player IPs: ";
-	for (int i = 0; i < m_remoteIps.size(); i++)
-	{
-		ipLog << m_remoteIps[i] << ", ";
-	}
-	// INFO_LOG(SLIPPI_ONLINE, "[Matchmaking] My port: %d || %s", m_hostPort, ipLog.str());
-
 	// Is host is now used to specify who the decider is
-	auto client = std::make_unique<SlippiNetplayClient>(addrs, ports, remotePlayerCount, m_hostPort, m_isHost,
+	auto client = std::make_unique<SlippiNetplayClient>(m_remotePlayers, m_ownExternalAddress, m_hostPort, m_isHost,
 	                                                    m_localPlayerIndex);
 
 	while (!m_netplayClient)
