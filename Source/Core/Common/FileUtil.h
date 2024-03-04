@@ -141,6 +141,12 @@ std::string CreateTempDir();
 // Get a filename that can hopefully be atomically renamed to the given path.
 std::string GetTempFilenameForAtomicWrite(const std::string &path);
 
+// Converts a relative path to an absolute path if it is a relative one
+std::string GetAbsolutePathFromRelativePath(const std::string &path, const std::string &origin);
+
+// Converts String to WString
+std::wstring s2ws(const std::string &s);
+
 // Gets a set user directory path
 // Don't call prior to setting the base user directory
 const std::string &GetUserPath(unsigned int dir_index);
