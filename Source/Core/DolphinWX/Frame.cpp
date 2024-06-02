@@ -707,16 +707,17 @@ void CFrame::UpdateTitle(const std::string &str)
 		GetStatusBar()->SetStatusText(str, 0);
 
 		if (g_replayComm->getSettings().gameStation != "") {
-			std::string titleStr = StringFromFormat("%s | %s", scm_rev_str.c_str(), g_replayComm->getSettings().gameStation.c_str());
+			std::string titleStr =
+			    StringFromFormat("%s | %s", title_str.c_str(), g_replayComm->getSettings().gameStation.c_str());
 			m_RenderFrame->SetTitle(titleStr);
 			return;
 		}
 		
-		m_RenderFrame->SetTitle(scm_rev_str);
+		m_RenderFrame->SetTitle(title_str);
 	}
 	else
 	{
-		std::string titleStr = StringFromFormat("%s | %s", scm_rev_str.c_str(), str.c_str());
+		std::string titleStr = StringFromFormat("%s | %s", title_str.c_str(), str.c_str());
 		m_RenderFrame->SetTitle(titleStr);
 	}
 }

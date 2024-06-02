@@ -33,6 +33,11 @@ const std::string scm_rev_str = "Faster Melee - Slippi (" SLIPPI_REV_STR ") - Pl
 #else
 const std::string scm_rev_str = "Faster Melee - Slippi (" SLIPPI_REV_STR ")";
 #endif
+#ifdef IS_PLAYBACK
+const std::string title_str = "Faster Melee - Slippi - Playback";
+#else
+const std::string title_str = scm_rev_str;
+#endif
 const std::string scm_slippi_semver_str = SLIPPI_REV_STR;
 
 #ifdef _WIN32

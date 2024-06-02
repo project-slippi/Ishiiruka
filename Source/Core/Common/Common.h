@@ -19,6 +19,8 @@ extern const std::string scm_rev_cache_str;
 extern const std::string netplay_dolphin_ver;
 extern const std::string scm_distributor_str;
 
+extern const std::string title_str;
+
 // Force enable logging in the right modes. For some reason, something had changed
 // so that debugfast no longer logged.
 #if defined(_DEBUG) || defined(DEBUGFAST)

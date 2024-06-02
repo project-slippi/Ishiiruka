@@ -953,7 +953,7 @@ void CFrame::OnStopped()
 	SetThreadExecutionState(ES_CONTINUOUS);
 #endif
 
-	m_RenderFrame->SetTitle(StrToWxStr(scm_rev_str));
+	m_RenderFrame->SetTitle(StrToWxStr(title_str));
 
 	// Destroy the renderer frame when not rendering to main
 	m_RenderParent->Unbind(wxEVT_SIZE, &CFrame::OnRenderParentResize, this);
