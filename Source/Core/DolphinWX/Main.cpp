@@ -141,7 +141,7 @@ bool DolphinApp::OnInit()
 
 	if (m_select_video_backend && !m_video_backend_name.empty())
 		SConfig::GetInstance().m_strVideoBackend = WxStrToStr(m_video_backend_name);
-	if (m_select_slippi_port && m_slippi_port > 0 && m_slippi_port < 65536)
+	if (m_select_slippi_port && m_slippi_port >= 1024 && m_slippi_port < 65536)
 		SConfig::GetInstance().m_spectator_local_port = m_slippi_port;
 
 #ifdef IS_PLAYBACK
