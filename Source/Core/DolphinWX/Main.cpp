@@ -322,7 +322,7 @@ void DolphinApp::OnInitCmdLine(wxCmdLineParser &parser)
 	     wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
 	    {wxCMD_LINE_OPTION, "a", "audio_emulation", "Low level (LLE) or high level (HLE) audio", wxCMD_LINE_VAL_STRING,
 	     wxCMD_LINE_PARAM_OPTIONAL},
-	    {wxCMD_LINE_OPTION, "p", "slippi-port", "Port to use for the Slippi spectate server (default: 51441)",
+	    {wxCMD_LINE_OPTION, "p", "slippi-port", "Port to use for the Slippi spectate server (1024 - 65535, default: 51441)",
 	     wxCMD_LINE_VAL_NUMBER, wxCMD_LINE_PARAM_OPTIONAL},
 #ifdef IS_PLAYBACK
 	    {wxCMD_LINE_OPTION, "i", "slippi-input", "Path to Slippi replay config file (default: Slippi/playback.txt)",
