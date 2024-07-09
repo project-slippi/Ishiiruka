@@ -24,8 +24,7 @@
 const int NO_INDEX = -1;
 static const char* MC_HDR = "MC_SYSTEM_AREA";
 
-int GCMemcardDirectory::LoadGCI(const std::string& fileName, DiscIO::Country card_region,
-	bool currentGameOnly)
+int GCMemcardDirectory::LoadGCI(const std::string& fileName, DiscIO::Country card_region, bool currentGameOnly)
 {
 	File::IOFile gcifile(fileName, "rb");
 	if (gcifile)

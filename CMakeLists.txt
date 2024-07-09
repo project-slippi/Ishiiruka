@@ -15,15 +15,15 @@ option(USE_UPNP "Enables UPnP port mapping support" ON)
 option(DISABLE_WX "Disable wxWidgets (use Qt or CLI interface)" OFF)
 option(ENABLE_QT2 "Enable Qt2 (use the other experimental Qt interface)" OFF)
 option(ENABLE_PCH "Use PCH to speed up compilation" ON)
-option(ENABLE_LTO "Enables Link Time Optimization" OFF)
+option(ENABLE_LTO "Enables Link Time Optimization" ON)
 option(ENABLE_GENERIC "Enables generic build that should run on any little-endian host" OFF)
 option(ENABLE_HEADLESS "Enables running Dolphin as a headless variant" OFF)
 option(ENABLE_ALSA "Enables ALSA sound backend" ON)
 option(ENABLE_AO "Enables libao sound backend" ON)
 option(ENABLE_PULSEAUDIO "Enables PulseAudio sound backend" ON)
 option(ENABLE_OPENAL "Enables OpenAL sound backend" ON)
-option(ENABLE_LLVM "Enables LLVM support, for disassembly" ON)
-option(ENABLE_BLUEZ "Enables bluetooth support" ON)
+option(ENABLE_LLVM "Enables LLVM support, for disassembly" OFF)
+option(ENABLE_BLUEZ "Enables bluetooth support" OFF)
 
 # Maintainers: if you consider blanket disabling this for your users, please
 # consider the following points:
