@@ -145,7 +145,7 @@ if(wxWidgets_FOUND)
 	endif()
 
 	corrosion_import_crate(MANIFEST_PATH ${CMAKE_SOURCE_DIR}/Externals/SlippiRustExtensions/Cargo.toml ${RUST_FEATURES})
-	target_link_libraries("${DOLPHIN_EXE}" PUBLIC slippi-rust-extensions)
+	target_link_libraries("${DOLPHIN_EXE}" PUBLIC slippi_rust_extensions)
 
 	if(APPLE)
 		include(BundleUtilities)
