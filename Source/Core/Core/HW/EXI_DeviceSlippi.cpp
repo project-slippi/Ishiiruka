@@ -37,9 +37,8 @@
 // #include "Core/PatchEngine.h"
 #include "Core/PowerPC/PowerPC.h"
 
-// Not clean but idk a better way atm
-#include "DolphinWX/Frame.h"
-#include "DolphinWX/Main.h"
+// For LowerRenderWindow/DoExit
+#include "UICommon/UICommon.h"
 
 // The Rust library that houses a "shadow" EXI Device that we can call into.
 #include "SlippiRustExtensions.h"
@@ -1980,7 +1979,7 @@ void CEXISlippi::handleNameEntryLoad(u8 *payload)
 	INFO_LOG(SLIPPI_ONLINE, "New Idx: %d. Jis Code length: %d", curIndex, (u8)(jisCode.length() / 2));
 
 	// Write length of tag
-	m_read_queue.push_back(jisCode.length() / 2);
+	m_read_queue.push_back((u8) jisCode.length() / 2);
 	appendWordToBuffer(&m_read_queue, curIndex);
 }
 
@@ -2424,8 +2423,8 @@ void CEXISlippi::prepareOnlineMatchState()
 			else
 				rightTeamPlayers.push_back(i);
 		}
-		int leftTeamSize = leftTeamPlayers.size();
-		int rightTeamSize = rightTeamPlayers.size();
+		u8 leftTeamSize = (u8) leftTeamPlayers.size();
+		u8 rightTeamSize = (u8) rightTeamPlayers.size();
 		leftTeamPlayers.resize(4, 0);
 		rightTeamPlayers.resize(4, 0);
 		leftTeamPlayers[3] = leftTeamSize;
@@ -2508,7 +2507,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		if (oppText != "")
 			oppText += "/";
 
-		oppText += TruncateLengthChar(name, charsPerName);
+		oppText += TruncateLengthChar(name, (int) charsPerName);
 	}
 
 	oppName = ConvertStringForGame(oppText, MAX_NAME_LENGTH);
@@ -2744,7 +2743,7 @@ void CEXISlippi::preparePremadeTextLength(u8 *payload)
 
 	m_read_queue.clear();
 	// Write size to output
-	appendWordToBuffer(&m_read_queue, premadeTextData.size());
+	appendWordToBuffer(&m_read_queue, (u32) premadeTextData.size());
 }
 
 void CEXISlippi::preparePremadeTextLoad(u8 *payload)
@@ -2814,7 +2813,7 @@ void CEXISlippi::handleLogInRequest()
 	bool logInRes = user->AttemptLogin();
 	if (!logInRes)
 	{
-		main_frame->LowerRenderWindow();
+		UICommon::LowerRenderWindow();
 		user->OpenLogInPage();
 		user->ListenForLogIn();
 	}
@@ -2831,8 +2830,8 @@ void CEXISlippi::handleUpdateAppRequest()
 #ifdef _WIN32
 	if (isUpdating)
 	{
-		main_frame->LowerRenderWindow();
-		main_frame->DoExit();
+		UICommon::LowerRenderWindow();
+		UICommon::DoExit();
 	}
 #endif
 }

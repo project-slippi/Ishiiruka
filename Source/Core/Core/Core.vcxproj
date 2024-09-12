@@ -327,7 +327,6 @@
     <ClCompile Include="PowerPC\SignatureDB.cpp" />
     <ClCompile Include="Slippi\SlippiDirectCodes.cpp" />
     <ClCompile Include="Slippi\SlippiPlayback.cpp" />
-    <ClCompile Include="Slippi\SlippiTimer.cpp" />
     <ClCompile Include="Slippi\SlippiGameFileLoader.cpp" />
     <ClCompile Include="Slippi\SlippiMatchmaking.cpp" />
     <ClCompile Include="Slippi\SlippiNetplay.cpp" />

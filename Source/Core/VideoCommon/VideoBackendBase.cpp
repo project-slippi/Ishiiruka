@@ -10,6 +10,7 @@
 #include "VideoBackends/DX11/VideoBackend.h"
 #include "VideoBackends/D3D12/VideoBackend.h"
 #endif
+#include "VideoBackends/Null/VideoBackend.h"
 #include "VideoBackends/OGL/VideoBackend.h"
 #include "VideoBackends/Software/VideoBackend.h"
 #include "VideoBackends/Vulkan/VideoBackend.h"
@@ -67,7 +68,7 @@ static bool PlatformSupportsVulkan()
 
 void VideoBackendBase::PopulateList()
 {
-	// D3D11 > D3D12 > D3D9 > OGL > VULKAN > SW
+	// D3D11 > D3D12 > D3D9 > OGL > VULKAN > SW > Null
 #ifdef _WIN32
 	if (IsWindowsVistaOrGreater())
 	{
@@ -85,7 +86,7 @@ void VideoBackendBase::PopulateList()
 	// disable OGL video Backend while is merged from master
 	g_available_video_backends.push_back(std::make_unique<OGL::VideoBackend>());
 
-	// on macOS, we want to push users to use Vulkan on 10.14+ (Mojave onwards). OpenGL has been 
+	// on macOS, we want to push users to use Vulkan on 10.14+ (Mojave onwards). OpenGL has been
 	// long deprecated by Apple there and is a known stumbling block for performance for new players.
 	//
 	// That said, we still support High Sierra, which can't use Metal (it will load, but lacks certain critical pieces).
@@ -99,7 +100,7 @@ void VideoBackendBase::PopulateList()
 				g_available_video_backends.begin(),
 				std::make_unique<Vulkan::VideoBackend>()
 			);
-		} 
+		}
 		else
 #endif
         	{
@@ -109,6 +110,11 @@ void VideoBackendBase::PopulateList()
 
 	// Disable software video backend as is currently not working
 	//g_available_video_backends.push_back(std::make_unique<SW::VideoSoftware>());
+
+  // TODO: write vcxproj files for Null backend
+#ifndef _WIN32
+	g_available_video_backends.push_back(std::make_unique<Null::VideoBackend>());
+#endif
 
 	for (auto& backend : g_available_video_backends)
 	{

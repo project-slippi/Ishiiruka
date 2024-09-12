@@ -72,6 +72,7 @@ set(GUI_SRCS
 	MemcardManager.cpp
 	PatchAddEdit.cpp
 	PostProcessingConfigDiag.cpp
+	SlippiTimer.cpp
 	SoftwareVideoConfigDialog.cpp
 	TASInputDlg.cpp
 	VideoConfigDiag.cpp
@@ -79,11 +80,8 @@ set(GUI_SRCS
 	WXInputBase.cpp
 	WxUtils.cpp)
 
-set(NOGUI_SRCS Main.cpp MainNoGUI.cpp)
-
 if(USE_X11)
 	set(GUI_SRCS ${GUI_SRCS} X11Utils.cpp)
-	set(NOGUI_SRCS ${NOGUI_SRCS} X11Utils.cpp)
 endif()
 
 set(WXLIBS ${wxWidgets_LIBRARIES})
@@ -135,16 +133,6 @@ if(wxWidgets_FOUND)
 	add_executable("${DOLPHIN_EXE}" ${SRCS} ${GUI_SRCS})
 	target_link_libraries("${DOLPHIN_EXE}" ${LIBS} ${WXLIBS})
 
-	# Link SlippiRustExtensions in.
-	#
-	# (This doesn't feel perfect here, but truth be told I can't think offhand of
-	# a better location for it at the moment.)
-	set(RUST_FEATURES "")
-	if(DIS_PLAYBACK)
-		set(RUST_FEATURES "playback")
-	endif()
-
-	corrosion_import_crate(MANIFEST_PATH ${CMAKE_SOURCE_DIR}/Externals/SlippiRustExtensions/Cargo.toml ${RUST_FEATURES})
 	target_link_libraries("${DOLPHIN_EXE}" PUBLIC slippi-rust-extensions)
 
 	if(APPLE)
@@ -157,7 +145,7 @@ if(wxWidgets_FOUND)
 			MACOSX_BUNDLE true
 			MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist.in
 		)
-		
+
 		# Link MoltenVK for the Vulkan (experimental) backend; the framework is
 		# added into the bundle in Tools/deploy-mac.py due to legacy build reasons.
 		find_library(MOLTENVK libvulkan.dylib PATHS ${CMAKE_SOURCE_DIR}/Externals/MoltenVK)
@@ -249,13 +237,4 @@ if(wxWidgets_FOUND)
 	endif()
 
 	set(CPACK_PACKAGE_EXECUTABLES ${CPACK_PACKAGE_EXECUTABLES} ${DOLPHIN_EXE})
-endif()
-
-# Only build -nogui binaries when ENABLE_HEADLESS is on
-if(USE_X11 AND ENABLE_HEADLESS)
-	set(DOLPHIN_NOGUI_EXE ${DOLPHIN_EXE_BASE}-nogui)
-	add_executable(${DOLPHIN_NOGUI_EXE} ${SRCS} ${NOGUI_SRCS})
-	target_link_libraries(${DOLPHIN_NOGUI_EXE} ${LIBS} ${WXLIBS})
-	set(CPACK_PACKAGE_EXECUTABLES ${CPACK_PACKAGE_EXECUTABLES} ${DOLPHIN_NOGUI_EXE})
-	install(TARGETS ${DOLPHIN_NOGUI_EXE} RUNTIME DESTINATION ${bindir})
 endif()

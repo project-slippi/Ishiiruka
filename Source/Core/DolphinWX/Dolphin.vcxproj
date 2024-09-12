@@ -173,13 +173,11 @@
     <ClCompile Include="LogWindow.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="MainMenuBar.cpp" />
-    <ClCompile Include="MainNoGUI.cpp">
-      <ExcludedFromBuild>true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="MainToolBar.cpp" />
     <ClCompile Include="MemcardManager.cpp" />
     <ClCompile Include="NetPlay\PadMapDialog.cpp" />
     <ClCompile Include="PatchAddEdit.cpp" />
+    <ClCompile Include="SlippiTimer.cpp" />
     <ClCompile Include="SoftwareVideoConfigDialog.cpp" />
     <ClCompile Include="TASInputDlg.cpp" />
     <ClCompile Include="VideoConfigDiag.cpp" />
@@ -258,6 +256,7 @@
     <ClInclude Include="MainToolBar.h" />
     <ClInclude Include="MemcardManager.h" />
     <ClInclude Include="PatchAddEdit.h" />
+    <ClInclude Include="SlippiTimer.h" />
     <ClInclude Include="SoftwareVideoConfigDialog.h" />
     <ClInclude Include="TASInputDlg.h" />
     <ClInclude Include="VideoConfigDiag.h" />
