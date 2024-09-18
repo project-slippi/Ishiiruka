@@ -96,7 +96,7 @@ void VideoBackendBase::PopulateList()
 	// we're doing is shoving Vulkan to the front if it's macOS 10.14 or later, so it loads first.
 	if (PlatformSupportsVulkan())
 	{
-#ifdef __APPLE__
+#if defined(__APPLE__) && !defined(IS_PLAYBACK)
 		if (__builtin_available(macOS 10.14, *))
 		{
 			g_available_video_backends.emplace(g_available_video_backends.begin(),
