@@ -6,9 +6,10 @@
 
 // TODO: ugly
 #ifdef _WIN32
-#include "VideoBackends/DX9/VideoBackend.h"
-#include "VideoBackends/DX11/VideoBackend.h"
 #include "VideoBackends/D3D12/VideoBackend.h"
+#include "VideoBackends/DX11/VideoBackend.h"
+#include "VideoBackends/DX9/VideoBackend.h"
+
 #endif
 #include "VideoBackends/OGL/VideoBackend.h"
 #include "VideoBackends/Software/VideoBackend.h"
@@ -19,14 +20,15 @@
 #endif
 
 std::vector<std::unique_ptr<VideoBackendBase>> g_available_video_backends;
-VideoBackendBase* g_video_backend = nullptr;
-static VideoBackendBase* s_default_backend = nullptr;
+VideoBackendBase *g_video_backend = nullptr;
+static VideoBackendBase *s_default_backend = nullptr;
 
 #ifdef _WIN32
-#include <windows.h>
 #include <VersionHelpers.h>
-#define _WIN32_WINNT_WINTHRESHOLD           0x0A00 // Windows 10
-#define _WIN32_WINNT_WIN10                  0x0A00 // Windows 10
+#include <windows.h>
+
+#define _WIN32_WINNT_WINTHRESHOLD 0x0A00 // Windows 10
+#define _WIN32_WINNT_WIN10 0x0A00        // Windows 10
 #endif
 
 // A runtime method for determining whether to allow
@@ -38,31 +40,31 @@ static VideoBackendBase* s_default_backend = nullptr;
 static bool PlatformSupportsVulkan()
 {
 #if defined(VK_USE_PLATFORM_METAL_EXT)
-    // We want to only allow Vulkan to be loaded on macOS 14 (Mojave) or higher.
-    // Bail out if we're on macOS and can't detect it, or the version is lower.
-    //
-    // This code is borrowed liberally from mainline Dolphin.
-  id processInfo = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(
-      objc_getClass("NSProcessInfo"), sel_getUid("processInfo"));
-  if (!processInfo)
-    return false;
+	// We want to only allow Vulkan to be loaded on macOS 14 (Mojave) or higher.
+	// Bail out if we're on macOS and can't detect it, or the version is lower.
+	//
+	// This code is borrowed liberally from mainline Dolphin.
+	id processInfo =
+	    reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(objc_getClass("NSProcessInfo"), sel_getUid("processInfo"));
+	if (!processInfo)
+		return false;
 
-  struct OSVersion  // NSOperatingSystemVersion
-  {
-    size_t major_version;  // NSInteger majorVersion
-    size_t minor_version;  // NSInteger minorVersion
-    size_t patch_version;  // NSInteger patchVersion
-  };
+	struct OSVersion // NSOperatingSystemVersion
+	{
+		size_t major_version; // NSInteger majorVersion
+		size_t minor_version; // NSInteger minorVersion
+		size_t patch_version; // NSInteger patchVersion
+	};
 
-  // const bool meets_requirement = [processInfo isOperatingSystemAtLeastVersion:required_version];
-  constexpr OSVersion required_version = {10, 14, 0};
-  const bool meets_requirement = reinterpret_cast<bool (*)(id, SEL, OSVersion)>(objc_msgSend)(
-      processInfo, sel_getUid("isOperatingSystemAtLeastVersion:"), required_version);
-  return meets_requirement;
+	// const bool meets_requirement = [processInfo isOperatingSystemAtLeastVersion:required_version];
+	constexpr OSVersion required_version = {10, 14, 0};
+	const bool meets_requirement = reinterpret_cast<bool (*)(id, SEL, OSVersion)>(objc_msgSend)(
+	    processInfo, sel_getUid("isOperatingSystemAtLeastVersion:"), required_version);
+	return meets_requirement;
 #endif
 
-  // Vulkan support defaults to true (supported).
-  return true;
+	// Vulkan support defaults to true (supported).
+	return true;
 }
 
 void VideoBackendBase::PopulateList()
@@ -85,32 +87,32 @@ void VideoBackendBase::PopulateList()
 	// disable OGL video Backend while is merged from master
 	g_available_video_backends.push_back(std::make_unique<OGL::VideoBackend>());
 
-	// on macOS, we want to push users to use Vulkan on 10.14+ (Mojave onwards). OpenGL has been 
+	// on macOS, we want to push users to use Vulkan on 10.14+ (Mojave onwards). OpenGL has been
 	// long deprecated by Apple there and is a known stumbling block for performance for new players.
 	//
 	// That said, we still support High Sierra, which can't use Metal (it will load, but lacks certain critical pieces).
 	//
 	// This mirrors a recent (2021) change in mainline Dolphin, so should be relatively safe to do here as well. All
 	// we're doing is shoving Vulkan to the front if it's macOS 10.14 or later, so it loads first.
-	if(PlatformSupportsVulkan()) {
+	if (PlatformSupportsVulkan())
+	{
 #ifdef __APPLE__
-		if (__builtin_available(macOS 10.14, *)) {
-			g_available_video_backends.emplace(
-				g_available_video_backends.begin(),
-				std::make_unique<Vulkan::VideoBackend>()
-			);
-		} 
+		if (__builtin_available(macOS 10.14, *))
+		{
+			g_available_video_backends.emplace(g_available_video_backends.begin(),
+			                                   std::make_unique<Vulkan::VideoBackend>());
+		}
 		else
 #endif
-        	{
-	        	g_available_video_backends.push_back(std::make_unique<Vulkan::VideoBackend>());
-        	}
-    }
+		{
+			g_available_video_backends.push_back(std::make_unique<Vulkan::VideoBackend>());
+		}
+	}
 
 	// Disable software video backend as is currently not working
-	//g_available_video_backends.push_back(std::make_unique<SW::VideoSoftware>());
+	// g_available_video_backends.push_back(std::make_unique<SW::VideoSoftware>());
 
-	for (auto& backend : g_available_video_backends)
+	for (auto &backend : g_available_video_backends)
 	{
 		if (backend)
 		{
@@ -125,12 +127,12 @@ void VideoBackendBase::ClearList()
 	g_available_video_backends.clear();
 }
 
-void VideoBackendBase::ActivateBackend(const std::string& name)
+void VideoBackendBase::ActivateBackend(const std::string &name)
 {
 	if (name.empty()) // If nullptr, set it to the default backend (expected behavior)
 		g_video_backend = s_default_backend;
 
-	for (auto& backend : g_available_video_backends)
+	for (auto &backend : g_available_video_backends)
 		if (name == backend->GetName())
 			g_video_backend = backend.get();
 }
