@@ -969,7 +969,7 @@ void CEXISlippi::prepareCharacterFrameData(Slippi::FrameData *frame, u8 port, u8
 	source = isFollower ? frame->followers : frame->players;
 
 	// This must be updated if new data is added
-	int characterDataLen = 50;
+	int characterDataLen = 52;
 
 	// Check if player exists
 	if (!source.count(port))
@@ -1004,6 +1004,8 @@ void CEXISlippi::prepareCharacterFrameData(Slippi::FrameData *frame, u8 port, u8
 	m_read_queue.push_back(data.joystickXRaw);
 	m_read_queue.push_back(data.joystickYRaw);
 	appendWordToBuffer(&m_read_queue, *(u32 *)&data.percent);
+	m_read_queue.push_back(data.cstickXRaw);
+	m_read_queue.push_back(data.cstickYRaw);
 	// NOTE TO DEV: If you add data here, make sure to increase the size above
 }
 
@@ -3362,13 +3364,13 @@ void CEXISlippi::ConfigureJukebox()
 	// Exclusive WASAPI and the Jukebox do not play nicely, so we just don't bother enabling
 	// the Jukebox in that scenario - why bother doing the processing work when it's not even
 	// possible to play it?
-#ifdef _WIN32
+	// Jukebox will also respect no audio output
 	std::string backend = SConfig::GetInstance().sBackend;
-	if (backend.find(BACKEND_EXCLUSIVE_WASAPI) != std::string::npos)
+	if (backend.find(BACKEND_EXCLUSIVE_WASAPI) != std::string::npos ||
+	    backend.find(BACKEND_NULLSOUND) != std::string::npos)
 	{
 		return;
 	}
-#endif
 
 	bool jukeboxEnabled = SConfig::GetInstance().bSlippiJukeboxEnabled;
 	int systemVolume = SConfig::GetInstance().m_IsMuted ? 0 : SConfig::GetInstance().m_Volume;

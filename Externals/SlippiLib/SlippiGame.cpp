@@ -234,6 +234,9 @@ namespace Slippi {
 
     p.joystickYRaw = readByte(data, idx, maxSize, 0);
 
+    p.cstickXRaw = readByte(data, idx, maxSize, 0);
+    p.cstickYRaw = readByte(data, idx, maxSize, 0);
+
     // Add player data to frame
     std::unordered_map<uint8_t, PlayerFrameData>* target;
     target = isFollower ? &frame->followers : &frame->players;

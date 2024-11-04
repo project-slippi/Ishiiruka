@@ -141,6 +141,8 @@ bool DolphinApp::OnInit()
 
 	if (m_select_video_backend && !m_video_backend_name.empty())
 		SConfig::GetInstance().m_strVideoBackend = WxStrToStr(m_video_backend_name);
+	if (m_select_slippi_spectator_port && m_slippi_spectator_port >= 1024 && m_slippi_spectator_port < 65536)
+		SConfig::GetInstance().m_spectator_local_port = m_slippi_spectator_port;
 
 #ifdef IS_PLAYBACK
 	// Fallback to a default config file path if the user fails to provide one
@@ -320,6 +322,8 @@ void DolphinApp::OnInitCmdLine(wxCmdLineParser &parser)
 	     wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
 	    {wxCMD_LINE_OPTION, "a", "audio_emulation", "Low level (LLE) or high level (HLE) audio", wxCMD_LINE_VAL_STRING,
 	     wxCMD_LINE_PARAM_OPTIONAL},
+	    {wxCMD_LINE_OPTION, nullptr, "slippi-spectator-port", "Port to use for the Slippi spectate server (1024 - 65535, default: 51441)",
+	     wxCMD_LINE_VAL_NUMBER, wxCMD_LINE_PARAM_OPTIONAL},
 #ifdef IS_PLAYBACK
 	    {wxCMD_LINE_OPTION, "i", "slippi-input", "Path to Slippi replay config file (default: Slippi/playback.txt)",
 	     wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
@@ -389,6 +393,7 @@ bool DolphinApp::OnCmdLineParsed(wxCmdLineParser &parser)
 	m_confirm_stop = parser.Found("confirm", &m_confirm_setting);
 	m_select_video_backend = parser.Found("video_backend", &m_video_backend_name);
 	m_select_audio_emulation = parser.Found("audio_emulation", &m_audio_emulation_name);
+	m_select_slippi_spectator_port = parser.Found("slippi-spectator-port", &m_slippi_spectator_port);
 #ifdef IS_PLAYBACK
 	m_select_slippi_input = parser.Found("slippi-input", &m_slippi_input_name);
 	m_hide_seekbar = parser.Found("hide-seekbar");

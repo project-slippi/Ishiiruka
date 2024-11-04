@@ -89,19 +89,12 @@ jobs:
         uses: actions/cache@v3
         with:
           path: |
-            ./Tools/DX/
             ./CodeSignTool/
           key: ${{ runner.os }}-${{ secrets.CACHE_CONTROL }}
-      - name: "Download DirectX SDK"
-        working-directory: ${{ github.workspace }}
+      - name: "Install DirectX SDK Redist"
         shell: powershell
         run: |
-          if (!(Test-Path ".\Tools\DX\DXSDK_Jun10.exe" -PathType Leaf)) { Invoke-WebRequest -Uri https://github.com/project-slippi/Ishiiruka/releases/download/v2.2.5/DXSDK_Jun10.exe -UseBasicParsing -OutFile ".\Tools\DX\DXSDK_Jun10.exe" }
-      - name: "Install DirectX SDK"
-        working-directory: ${{ github.workspace }}
-        shell: cmd
-        run: |
-          .\Tools\DX\DXSDK_Jun10.exe /U /F
+          choco install directx-sdk
       - name: 'Fetch Git Tags'
         shell: bash
         if: success()
@@ -293,7 +286,7 @@ jobs:
             artifact_name: macOS-playback
             build_config: playback
     name: "macOS ${{ matrix.build_type }}"
-    runs-on: macos-11
+    runs-on: macos-13
     steps:
       - name: "Checkout"
         uses: actions/checkout@v3

@@ -9,6 +9,7 @@
 #include <thread>
 #include <utility>
 #include <vector>
+#include <Core/Slippi/SlippiNetplay.h>
 
 #include "Common/ChunkFile.h"
 #include "Common/CommonTypes.h"
@@ -189,6 +190,10 @@ void LoadFromBuffer(std::vector<u8>& buffer)
 	{
 		OSD::AddMessage("Loading savestates is disabled in multiplayer Netplay lobbies to prevent desyncs");
 		return;
+	}
+	else if (IsOnline())
+	{
+		return; // No loading states when online on slippi either
 	}
 
 	bool wasUnpaused = Core::PauseAndLock(true);
@@ -531,6 +536,10 @@ void LoadAs(const std::string& filename)
 	{
 		OSD::AddMessage("Loading savestates is disabled in multiplayer Netplay lobbies to prevent desyncs");
 		return;
+	}
+	else if (IsOnline())
+	{
+		return; // No loading states when online on slippi either
 	}
 
 	// Stop the core while we load the state
