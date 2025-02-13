@@ -13,6 +13,12 @@
 #define BUILD_TYPE_STR ""
 #endif
 
+#ifdef DEBUGFAST
+#define DEBUGFAST_INDICATOR " [DebugFast]"
+#else
+#define DEBUGFAST_INDICATOR ""
+#endif
+
 // const std::string scm_rev_str = "Ishiiruka-Dolphin"
 //#if !SCM_IS_MASTER
 //"[" SCM_BRANCH_STR "] "
@@ -32,10 +38,11 @@
 #define SLIPPI_REV_STR "3.4.5" // playback version
 #endif
 #ifdef IS_PLAYBACK
-const std::string scm_rev_str = "Faster Melee - Slippi (" SLIPPI_REV_STR ") - Playback";
+const std::string scm_rev_str = "Faster Melee - Slippi (" SLIPPI_REV_STR ") - Playback" DEBUGFAST_INDICATOR;
 #else
-const std::string scm_rev_str = "Faster Melee - Slippi (" SLIPPI_REV_STR ")";
+const std::string scm_rev_str = "Faster Melee - Slippi (" SLIPPI_REV_STR ")" DEBUGFAST_INDICATOR;
 #endif
+
 const std::string scm_slippi_semver_str = SLIPPI_REV_STR;
 
 #ifdef _WIN32
