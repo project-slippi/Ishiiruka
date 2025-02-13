@@ -511,6 +511,7 @@ void SlippiMatchmaking::handleMatchmaking()
 			playerInfo.displayName = el.value("displayName", "");
 			playerInfo.connectCode = el.value("connectCode", "");
 			playerInfo.port = el.value("port", 0);
+			playerInfo.isBot = el.value("isBot", false);
 
 			if (el["chatMessages"].is_array())
 			{

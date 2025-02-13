@@ -52,8 +52,16 @@ class CEXISlippi : public IEXIDevice
 		CMD_RECEIVE_GAME_INFO = 0x36,
 		CMD_RECEIVE_POST_FRAME_UPDATE = 0x38,
 		CMD_RECEIVE_GAME_END = 0x39,
+		CMD_RECEIVE_INITIAL_RNG = 0x3A,
+		CMD_RECEIVE_ITEM = 0x3B,
 		CMD_FRAME_BOOKEND = 0x3C,
+		CMD_GECKO_LIST = 0x3D,
 		CMD_MENU_FRAME = 0x3E,
+		CMD_RECEIVE_FOD_INFO = 0x3F,
+		CMD_RECEIVE_DL_INFO = 0x40,
+		CMD_RECEIVE_PS_INFO = 0x41,
+
+		CMD_RECEIVE_BONES = 0x60,
 
 		// Playback
 		CMD_PREPARE_REPLAY = 0x75,
@@ -210,6 +218,7 @@ class CEXISlippi : public IEXIDevice
 	void setMatchSelections(u8 *payload);
 	bool shouldSkipOnlineFrame(s32 frame, s32 finalizedFrame);
 	bool shouldAdvanceOnlineFrame(s32 frame);
+	bool opponentRunahead();
 	void handleLogInRequest();
 	void handleLogOutRequest();
 	void handleUpdateAppRequest();
