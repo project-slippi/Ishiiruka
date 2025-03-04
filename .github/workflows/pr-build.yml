@@ -174,7 +174,7 @@ jobs:
             artifact_name: linux-playback
             build_config: playback
     name: "Ubuntu ${{ matrix.build_type }}"
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: "Checkout"
         uses: actions/checkout@v3
@@ -229,7 +229,8 @@ jobs:
           libpng-dev \
           qtbase5-private-dev \
           libxxf86vm-dev \
-          x11proto-xinerama-dev
+          x11proto-xinerama-dev \
+          libfuse2
       - id: rust_ver
         name: Grab Rust Version
         shell: bash
