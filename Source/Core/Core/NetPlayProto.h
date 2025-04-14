@@ -65,6 +65,9 @@ enum
 	NP_MSG_SLIPPI_COMPLETE_STEP = 0x85,
 	NP_MSG_SLIPPI_SYNCED_STATE = 0x86,
 
+	// Hopefully this will not conflict with anything
+	NP_MSG_SLIPPI_VOICE_CHAT = 0x9F,
+
 	NP_MSG_START_GAME = 0xA0,
 	NP_MSG_CHANGE_GAME = 0xA1,
 	NP_MSG_STOP_GAME = 0xA2,

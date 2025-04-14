@@ -12,6 +12,7 @@
 #include "SlippiPremadeText.h"
 #include "VideoCommon/OnScreenDisplay.h"
 #include "VideoCommon/VideoConfig.h"
+#include "portaudio.h"
 #include <algorithm>
 #include <fstream>
 #include <memory>
@@ -37,9 +38,59 @@ static std::mutex ack_mutex;
 
 SlippiNetplayClient *SLIPPI_NETPLAY = nullptr;
 
+#define SAMPLE_RATE 44100
+#define FRAMES_PER_BUFFER 4096
+#define SAMPLE_FORMAT paFloat32
+#define VC_HEADER_SIZE 8
+#define VC_BUFSIZE (sizeof(float)*FRAMES_PER_BUFFER)
+PaStream *vcInpStream = nullptr;
+PaStream *vcOutStream = nullptr;
+
+static void pa_expect(int err, const char *msg)
+{
+    if (err == paNoError) return;
+    
+    std::cerr << msg << ": " << Pa_GetErrorText(err) << std::endl;
+    assert(err == paNoError);
+}
+
+static int pa_input_callback(
+    const void *inputBuffer,
+    void *outputBuffer,
+    unsigned long framesPerBuffer,
+    const PaStreamCallbackTimeInfo* timeInfo,
+    PaStreamCallbackFlags statusFlags,
+    void *userData
+) {
+    if (SLIPPI_NETPLAY) {
+        assert(framesPerBuffer == FRAMES_PER_BUFFER);
+        auto spac = std::make_unique<sf::Packet>();
+        
+        // ensure sample data is aligned to dword
+        u8 header[VC_HEADER_SIZE] = {NP_MSG_SLIPPI_VOICE_CHAT};
+        spac->append((const void*)header, VC_HEADER_SIZE);
+        
+        // add sample data
+        spac->append((const void*)inputBuffer, VC_BUFSIZE);
+        
+        SLIPPI_NETPLAY->SendAsync(std::move(spac));
+        printf("sent vc packet!\n");
+    }
+    return 0;
+}
+
 // called from ---GUI--- thread
 SlippiNetplayClient::~SlippiNetplayClient()
 {
+    Pa_AbortStream( vcInpStream );
+    Pa_CloseStream( vcInpStream );
+    vcInpStream = nullptr;
+    Pa_AbortStream( vcOutStream );
+    Pa_CloseStream( vcOutStream );
+    vcOutStream = nullptr;
+    Pa_Terminate();
+    printf("cleanup portaudio...\n");
+    
 	m_do_loop.Clear();
 	if (m_thread.joinable())
 		m_thread.join();
@@ -78,6 +129,59 @@ SlippiNetplayClient::SlippiNetplayClient(std::vector<std::string> addrs, std::ve
 	this->m_remotePlayerCount = remotePlayerCount;
 	this->playerIdx = playerIdx;
 
+        printf("initializing portaudio...\n");
+        PaError err = Pa_Initialize();
+        pa_expect(err, "Could not initialize PortAudio");
+        
+        const PaDeviceInfo* inp_info;
+        const PaDeviceInfo* out_info;
+        inp_info = Pa_GetDeviceInfo(4);
+        printf("input %s\n", inp_info->name);
+        out_info = Pa_GetDeviceInfo(6);
+        printf("output %s\n", out_info->name);
+        
+        PaStreamParameters inp = {
+            .device = 4,
+            .channelCount = 1,
+            .sampleFormat = SAMPLE_FORMAT,
+            .suggestedLatency = inp_info->defaultHighInputLatency,
+        };
+        PaStreamParameters out = {
+            .device = 6,
+            .channelCount = 1,
+            .sampleFormat = SAMPLE_FORMAT,
+            .suggestedLatency = out_info->defaultHighInputLatency,
+        };
+        
+        err = Pa_OpenStream(
+            &vcInpStream,
+            &inp,
+            NULL,
+            SAMPLE_RATE,
+            FRAMES_PER_BUFFER,
+            paClipOff,
+            pa_input_callback,
+            nullptr
+        );
+        pa_expect(err, "Could not open input PortAudio stream");
+        
+        err = Pa_OpenStream(
+            &vcOutStream,
+            NULL,
+            &out,
+            SAMPLE_RATE,
+            FRAMES_PER_BUFFER,
+            paClipOff,
+            nullptr,
+            nullptr
+        );
+        pa_expect(err, "Could not open output PortAudio stream");
+        
+        err = Pa_StartStream(vcInpStream);
+        pa_expect(err, "Could not start input PortAudio stream");
+        err = Pa_StartStream(vcOutStream);
+        pa_expect(err, "Could not start output PortAudio stream");
+        
 	// Set up remote player data structures
 	int j = 0;
 	for (int i = 0; i < SLIPPI_REMOTE_PLAYER_MAX; i++, j++)
@@ -188,6 +292,21 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 
 	switch (mid)
 	{
+	case NP_MSG_SLIPPI_VOICE_CHAT:
+	{
+    const u8 *data = (const u8*)packet.getData();
+    size_t data_size = packet.getDataSize(); 
+    
+    if (data_size + VC_HEADER_SIZE != VC_BUFSIZE) {
+        printf("VC packet too small!");
+    			 break;
+    }
+    
+    float *samples = (float*)(data + VC_HEADER_SIZE);
+    PaError err = Pa_WriteStream(vcOutStream, samples, FRAMES_PER_BUFFER);
+    pa_expect(err, "Could not write received vc data");
+    break;
+	}
 	case NP_MSG_SLIPPI_PAD:
 	{
 		// Fetch current time immediately for the most accurate timing calculations
