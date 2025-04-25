@@ -1,9 +1,9 @@
 #include "SlippiDirectCodes.h"
 
-#ifdef _WIN32
+/* #ifdef _WIN32
 #include "AtlBase.h"
 #include "AtlConv.h"
-#endif
+#endif*/
 
 #include "Common/CommonPaths.h"
 #include "Common/FileUtil.h"

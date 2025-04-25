@@ -22,6 +22,9 @@
 #include "DolphinWX/WxEventUtils.h"
 #include "DolphinWX/WxUtils.h"
 
+#include "portaudio.h"
+
+
 #ifndef IS_PLAYBACK
 #include "Core/HW/EXI.h"
 #include "Core/HW/EXI_DeviceSlippi.h"
@@ -48,6 +51,9 @@ void AudioConfigPane::InitializeGUI()
 	    new DolphinSlider(this, wxID_ANY, 0, 0, 100, wxDefaultPosition, wxDefaultSize, wxSL_VERTICAL | wxSL_INVERSE);
 	m_volume_text = new wxStaticText(this, wxID_ANY, "");
 	m_audio_backend_choice = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, m_audio_backend_strings);
+	m_audio_microphone_choice = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, m_audio_microphone_strings);
+	m_audio_output_choice = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, m_audio_output_strings);
+
 	m_audio_latency_spinctrl =
 	    new wxSpinCtrl(this, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, 30);
 	m_audio_latency_label = new wxStaticText(this, wxID_ANY, _("Latency:"));
@@ -86,6 +92,15 @@ void AudioConfigPane::InitializeGUI()
 	backend_grid_sizer->Add(m_audio_latency_label, wxGBPosition(2, 0), wxDefaultSpan, wxALIGN_CENTER_VERTICAL);
 	backend_grid_sizer->Add(m_audio_latency_spinctrl, wxGBPosition(2, 1), wxDefaultSpan, wxALIGN_CENTER_VERTICAL);
 
+	backend_grid_sizer->Add(new wxStaticText(this, wxID_ANY, StrToWxStr("Microphone:")), wxGBPosition(3, 0),
+	                        wxDefaultSpan,
+	                        wxALIGN_CENTER_VERTICAL);
+	backend_grid_sizer->Add(m_audio_microphone_choice, wxGBPosition(3, 1), wxDefaultSpan, wxALIGN_CENTER_VERTICAL);
+
+	backend_grid_sizer->Add(new wxStaticText(this, wxID_ANY, StrToWxStr("Audio Output:")), wxGBPosition(4, 0),
+	                        wxDefaultSpan, wxALIGN_CENTER_VERTICAL);
+	backend_grid_sizer->Add(m_audio_output_choice, wxGBPosition(4, 1), wxDefaultSpan, wxALIGN_CENTER_VERTICAL);
+
 	wxStaticBoxSizer *const backend_static_box_sizer = new wxStaticBoxSizer(wxVERTICAL, this, _("Backend Settings"));
 	backend_static_box_sizer->AddSpacer(space5);
 	backend_static_box_sizer->Add(backend_grid_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
@@ -112,6 +127,7 @@ void AudioConfigPane::LoadGUIValues()
 {
 	const SConfig &startup_params = SConfig::GetInstance();
 	PopulateBackendChoiceBox();
+	PopulateDeviceChoiceBoxes();
 	ToggleBackendSpecificControls(SConfig::GetInstance().sBackend);
 
 	// Audio DSP Engine
@@ -212,6 +228,22 @@ void AudioConfigPane::OnAudioBackendChanged(wxCommandEvent &event)
 	AudioCommon::UpdateSoundStream();
 }
 
+void AudioConfigPane::OnAudioMicrophoneChanged(wxCommandEvent &event)
+{
+
+	SConfig::GetInstance().sMicrophone = m_audio_microphone_choice->GetSelection()
+	                                      ? WxStrToStr(m_audio_microphone_choice->GetStringSelection())
+	                                      : nullptr;
+}
+
+void AudioConfigPane::OnAudioOutputChanged(wxCommandEvent &event)
+{
+
+	SConfig::GetInstance().sAudioOutput = m_audio_output_choice->GetSelection()
+	                                         ? WxStrToStr(m_audio_output_choice->GetStringSelection())
+	                                         : nullptr;
+}
+
 void AudioConfigPane::OnLatencySpinCtrlChanged(wxCommandEvent &event)
 {
 	SConfig::GetInstance().iLatency = m_audio_latency_spinctrl->GetValue();
@@ -226,4 +258,27 @@ void AudioConfigPane::PopulateBackendChoiceBox()
 
 	int num = m_audio_backend_choice->FindString(StrToWxStr(SConfig::GetInstance().sBackend));
 	m_audio_backend_choice->SetSelection(num);
+}
+
+void AudioConfigPane::PopulateDeviceChoiceBoxes()
+{
+	PaError err = Pa_Initialize();
+	assert(err == paNoError);
+	
+	int num = Pa_GetDeviceCount();
+	for (int i = 0; i < num; ++i)
+	{
+		const PaDeviceInfo *info = Pa_GetDeviceInfo(i);
+		if (info->maxInputChannels > 0)
+		{
+			m_audio_microphone_choice->Append(StrToWxStr(info->name));
+		}
+
+		if (info->maxOutputChannels > 0)
+		{
+			m_audio_output_choice->Append(StrToWxStr(info->name));
+		}
+	}
+
+	Pa_Terminate();
 }

@@ -15,8 +15,10 @@
 #include "portaudio.h"
 #include <algorithm>
 #include <fstream>
+#include <iostream>
 #include <memory>
 #include <thread>
+#include <assert.h>
 
 //#include "Common/MD5.h"
 //#include "Common/Common.h"
@@ -71,7 +73,7 @@ static int pa_input_callback(
         spac->append((const void*)header, VC_HEADER_SIZE);
         
         // add sample data
-        spac->append((const void*)inputBuffer, VC_BUFSIZE);
+        spac->append(inputBuffer, VC_BUFSIZE);
         
         SLIPPI_NETPLAY->SendAsync(std::move(spac));
         printf("sent vc packet!\n");
@@ -133,54 +135,58 @@ SlippiNetplayClient::SlippiNetplayClient(std::vector<std::string> addrs, std::ve
         PaError err = Pa_Initialize();
         pa_expect(err, "Could not initialize PortAudio");
         
-        const PaDeviceInfo* inp_info;
-        const PaDeviceInfo* out_info;
-        inp_info = Pa_GetDeviceInfo(4);
-        printf("input %s\n", inp_info->name);
-        out_info = Pa_GetDeviceInfo(6);
-        printf("output %s\n", out_info->name);
-        
-        PaStreamParameters inp = {
-            .device = 4,
-            .channelCount = 1,
-            .sampleFormat = SAMPLE_FORMAT,
-            .suggestedLatency = inp_info->defaultHighInputLatency,
-        };
-        PaStreamParameters out = {
-            .device = 6,
-            .channelCount = 1,
-            .sampleFormat = SAMPLE_FORMAT,
-            .suggestedLatency = out_info->defaultHighInputLatency,
-        };
-        
-        err = Pa_OpenStream(
-            &vcInpStream,
-            &inp,
-            NULL,
-            SAMPLE_RATE,
-            FRAMES_PER_BUFFER,
-            paClipOff,
-            pa_input_callback,
-            nullptr
-        );
-        pa_expect(err, "Could not open input PortAudio stream");
-        
-        err = Pa_OpenStream(
-            &vcOutStream,
-            NULL,
-            &out,
-            SAMPLE_RATE,
-            FRAMES_PER_BUFFER,
-            paClipOff,
-            nullptr,
-            nullptr
-        );
-        pa_expect(err, "Could not open output PortAudio stream");
-        
-        err = Pa_StartStream(vcInpStream);
-        pa_expect(err, "Could not start input PortAudio stream");
-        err = Pa_StartStream(vcOutStream);
-        pa_expect(err, "Could not start output PortAudio stream");
+        const PaDeviceInfo* inp_info = nullptr;
+        const PaDeviceInfo* out_info = nullptr;
+	    int inp_idx, out_idx;
+
+		SConfig &cfg = SConfig::GetInstance();
+		std::string inp_name = cfg.sMicrophone;
+	    std::string out_name = cfg.sAudioOutput;
+
+		int num = Pa_GetDeviceCount();
+	    for (int i = 0; i < num; ++i)
+	    {
+		    const PaDeviceInfo *info = Pa_GetDeviceInfo(i);
+			if (strcmp(info->name, inp_name.data()) == 0) {
+				inp_info = info;
+			    inp_idx = i;
+			}
+		    if (strcmp(info->name, out_name.data()) == 0) {
+				out_info = info;
+				out_idx = i;
+			}
+	    }
+
+		if (inp_info != nullptr)
+	    {
+		    PaStreamParameters inp = {0};
+		    inp.device = inp_idx;
+		    inp.channelCount = 1;
+		    inp.sampleFormat = SAMPLE_FORMAT;
+		    inp.suggestedLatency = inp_info->defaultHighInputLatency;
+
+		    err = Pa_OpenStream(&vcInpStream, &inp, NULL, SAMPLE_RATE, FRAMES_PER_BUFFER, paClipOff, pa_input_callback,
+		                        nullptr);
+		    pa_expect(err, "Could not open input PortAudio stream");
+
+		    err = Pa_StartStream(vcInpStream);
+		    pa_expect(err, "Could not start input PortAudio stream");
+	    }
+
+		if (out_info != nullptr)
+	    {
+		    PaStreamParameters out = {0};
+		    out.device = out_idx;
+		    out.channelCount = 1;
+		    out.sampleFormat = SAMPLE_FORMAT;
+		    out.suggestedLatency = out_info->defaultHighInputLatency;
+
+		    err = Pa_OpenStream(&vcOutStream, NULL, &out, SAMPLE_RATE, FRAMES_PER_BUFFER, paClipOff, nullptr, nullptr);
+		    pa_expect(err, "Could not open output PortAudio stream");
+		    
+			err = Pa_StartStream(vcOutStream);
+		    pa_expect(err, "Could not start output PortAudio stream");
+		}
         
 	// Set up remote player data structures
 	int j = 0;
@@ -294,18 +300,21 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 	{
 	case NP_MSG_SLIPPI_VOICE_CHAT:
 	{
-    const u8 *data = (const u8*)packet.getData();
-    size_t data_size = packet.getDataSize(); 
+		if (vcOutStream == nullptr)
+			break;
+
+		const u8 *data = (const u8*)packet.getData();
+		size_t data_size = packet.getDataSize(); 
     
-    if (data_size + VC_HEADER_SIZE != VC_BUFSIZE) {
-        printf("VC packet too small!");
-    			 break;
-    }
+		if (data_size + VC_HEADER_SIZE != VC_BUFSIZE) {
+			printf("VC packet too small!");
+    				 break;
+		}
     
-    float *samples = (float*)(data + VC_HEADER_SIZE);
-    PaError err = Pa_WriteStream(vcOutStream, samples, FRAMES_PER_BUFFER);
-    pa_expect(err, "Could not write received vc data");
-    break;
+		float *samples = (float*)(data + VC_HEADER_SIZE);
+		PaError err = Pa_WriteStream(vcOutStream, samples, FRAMES_PER_BUFFER);
+		pa_expect(err, "Could not write received vc data");
+		break;
 	}
 	case NP_MSG_SLIPPI_PAD:
 	{

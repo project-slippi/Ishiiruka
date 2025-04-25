@@ -62,6 +62,14 @@
         cargo build --target x86_64-pc-windows-msvc --release
       </Command>
     </PreBuildEvent>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+    <Lib>
+      <TreatLibWarningAsErrors>true</TreatLibWarningAsErrors>
+      <AdditionalDependencies>portaudio.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Users\Alex\Documents\Melee\vc\Ishiiruka\Build\x64\Release\portaudio\bin</AdditionalLibraryDirectories>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleasePlayback|x64'">
     <ClCompile>

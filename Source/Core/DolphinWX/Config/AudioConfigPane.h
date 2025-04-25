@@ -26,24 +26,32 @@ private:
 	void BindEvents();
 
 	void PopulateBackendChoiceBox();
+	void PopulateDeviceChoiceBoxes();
 	void ToggleBackendSpecificControls(const std::string& backend);
 
 	void OnDSPEngineRadioBoxChanged(wxCommandEvent&);
 	void OnDPL2DecoderCheckBoxChanged(wxCommandEvent&);
 	void OnVolumeSliderChanged(wxCommandEvent&);
 	void OnAudioBackendChanged(wxCommandEvent&);
+	void OnAudioMicrophoneChanged(wxCommandEvent&);
+	void OnAudioOutputChanged(wxCommandEvent &);
+
 	void OnLatencySpinCtrlChanged(wxCommandEvent&);
 	void OnTimeStretchingCheckBoxChanged(wxCommandEvent&);
 	void OnRS_Hack_checkboxChanged(wxCommandEvent&);
 
 	wxArrayString m_dsp_engine_strings;
 	wxArrayString m_audio_backend_strings;
+	wxArrayString m_audio_microphone_strings;
+	wxArrayString m_audio_output_strings;
 
 	wxRadioBox* m_dsp_engine_radiobox;
 	wxCheckBox* m_dpl2_decoder_checkbox;
 	DolphinSlider* m_volume_slider;
 	wxStaticText* m_volume_text;
 	wxChoice* m_audio_backend_choice;
+	wxChoice *m_audio_microphone_choice;
+	wxChoice *m_audio_output_choice;
 	wxSpinCtrl* m_audio_latency_spinctrl;
 	wxCheckBox* m_time_stretching_checkbox;
 	wxCheckBox* m_RS_Hack_checkbox;
