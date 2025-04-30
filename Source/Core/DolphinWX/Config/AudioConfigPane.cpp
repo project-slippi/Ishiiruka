@@ -171,6 +171,14 @@ void AudioConfigPane::BindEvents()
 	m_audio_backend_choice->Bind(wxEVT_CHOICE, &AudioConfigPane::OnAudioBackendChanged, this);
 	m_audio_backend_choice->Bind(wxEVT_UPDATE_UI, &WxEventUtils::OnEnableIfCoreNotRunning);
 
+	m_audio_backend_choice->Bind(wxEVT_CHOICE, &AudioConfigPane::OnAudioBackendChanged, this);
+	m_audio_backend_choice->Bind(wxEVT_UPDATE_UI, &WxEventUtils::OnEnableIfCoreNotRunning);
+
+	m_audio_microphone_choice->Bind(wxEVT_CHOICE, &AudioConfigPane::OnAudioMicrophoneChanged, this);
+	m_audio_microphone_choice->Bind(wxEVT_UPDATE_UI, &WxEventUtils::OnEnableIfCoreNotRunning);
+	m_audio_output_choice->Bind(wxEVT_CHOICE, &AudioConfigPane::OnAudioOutputChanged, this);
+	m_audio_output_choice->Bind(wxEVT_UPDATE_UI, &WxEventUtils::OnEnableIfCoreNotRunning);
+
 	m_audio_latency_spinctrl->Bind(wxEVT_SPINCTRL, &AudioConfigPane::OnLatencySpinCtrlChanged, this);
 	m_audio_latency_spinctrl->Bind(wxEVT_UPDATE_UI, &WxEventUtils::OnEnableIfCoreNotRunning);
 	m_time_stretching_checkbox->Bind(wxEVT_CHECKBOX, &AudioConfigPane::OnTimeStretchingCheckBoxChanged, this);
@@ -230,7 +238,7 @@ void AudioConfigPane::OnAudioBackendChanged(wxCommandEvent &event)
 
 void AudioConfigPane::OnAudioMicrophoneChanged(wxCommandEvent &event)
 {
-
+    std::cout << "SETTING MICROPHONE TO " << WxStrToStr(m_audio_microphone_choice->GetStringSelection()) << "\n";
 	SConfig::GetInstance().sMicrophone = m_audio_microphone_choice->GetSelection()
 	                                      ? WxStrToStr(m_audio_microphone_choice->GetStringSelection())
 	                                      : nullptr;
@@ -238,6 +246,7 @@ void AudioConfigPane::OnAudioMicrophoneChanged(wxCommandEvent &event)
 
 void AudioConfigPane::OnAudioOutputChanged(wxCommandEvent &event)
 {
+    std::cout << "SETTING AUDIO OUTPUT TO " << WxStrToStr(m_audio_output_choice->GetStringSelection()) << "\n";
 
 	SConfig::GetInstance().sAudioOutput = m_audio_output_choice->GetSelection()
 	                                         ? WxStrToStr(m_audio_output_choice->GetStringSelection())
