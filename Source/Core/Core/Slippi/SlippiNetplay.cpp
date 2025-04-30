@@ -48,6 +48,9 @@ SlippiNetplayClient *SLIPPI_NETPLAY = nullptr;
 PaStream *vcInpStream = nullptr;
 PaStream *vcOutStream = nullptr;
 
+#ifdef _WIN32
+#define pa_expect(err, msg) assert(err == paNoError)
+#else
 static void pa_expect(int err, const char *msg)
 {
     if (err == paNoError) return;
@@ -55,6 +58,7 @@ static void pa_expect(int err, const char *msg)
     std::cerr << msg << ": " << Pa_GetErrorText(err) << std::endl;
     assert(err == paNoError);
 }
+#endif
 
 static int pa_input_callback(
     const void *inputBuffer,
@@ -147,13 +151,16 @@ SlippiNetplayClient::SlippiNetplayClient(std::vector<std::string> addrs, std::ve
     for (int i = 0; i < num; ++i)
     {
         const PaDeviceInfo *info = Pa_GetDeviceInfo(i);
+		INFO_LOG(SLIPPI_ONLINE, "CHECKING %i: %s", i, info->name);
         if (strcmp(info->name, inp_name.data()) == 0) {
             inp_info = info;
             inp_idx = i;
+			INFO_LOG(SLIPPI_ONLINE, "FOUND INPUT");
         }
         if (strcmp(info->name, out_name.data()) == 0) {
             out_info = info;
             out_idx = i;
+			INFO_LOG(SLIPPI_ONLINE, "FOUND OUTPUT");
         }
     }
 
@@ -163,9 +170,15 @@ SlippiNetplayClient::SlippiNetplayClient(std::vector<std::string> addrs, std::ve
         inp.device = inp_idx;
         inp.channelCount = 1;
         inp.sampleFormat = SAMPLE_FORMAT;
-        inp.suggestedLatency = inp_info->defaultHighInputLatency;
+        inp.suggestedLatency = inp_info->defaultLowInputLatency;
     
+        INFO_LOG(SLIPPI_ONLINE, "Opening audio input device '%s'", inp_info->name);
+
         err = Pa_OpenStream(&vcInpStream, &inp, NULL, SAMPLE_RATE, FRAMES_PER_BUFFER, paClipOff, pa_input_callback, nullptr);
+		if (err != paNoError)
+			ERROR_LOG(SLIPPI_ONLINE, "Error opening audio input device '%s': %s", inp_info->name,
+			          Pa_GetErrorText(err));
+
         pa_expect(err, "Could not open input PortAudio stream");
     
         err = Pa_StartStream(vcInpStream);
@@ -180,9 +193,15 @@ SlippiNetplayClient::SlippiNetplayClient(std::vector<std::string> addrs, std::ve
         out.device = out_idx;
         out.channelCount = 1;
         out.sampleFormat = SAMPLE_FORMAT;
-        out.suggestedLatency = out_info->defaultHighInputLatency;
+        out.suggestedLatency = out_info->defaultLowOutputLatency;
+
+        INFO_LOG(SLIPPI_ONLINE, "Opening audio output device '%s'", out_info->name);
 
         err = Pa_OpenStream(&vcOutStream, NULL, &out, SAMPLE_RATE, FRAMES_PER_BUFFER, paClipOff, nullptr, nullptr);
+		if (err != paNoError)
+			ERROR_LOG(SLIPPI_ONLINE, "Error opening audio output device '%s': %s", out_info->name,
+			          Pa_GetErrorText(err));
+
         pa_expect(err, "Could not open output PortAudio stream");
         
         err = Pa_StartStream(vcOutStream);

@@ -273,8 +273,24 @@ void AudioConfigPane::PopulateDeviceChoiceBoxes()
 {
 	PaError err = Pa_Initialize();
 	assert(err == paNoError);
+
+	int h = Pa_GetHostApiCount();
+	INFO_LOG(COMMON, "HOST COUNT %i", h);
+	for (int i = 0; i < h; ++i)
+	{
+		const PaHostApiInfo *info = Pa_GetHostApiInfo(i);
+		INFO_LOG(COMMON, "API NAME: %s", info->name);
+		const PaDeviceInfo *ipt = Pa_GetDeviceInfo(info->defaultInputDevice);
+		const PaDeviceInfo *out = Pa_GetDeviceInfo(info->defaultOutputDevice);
+		if (ipt)
+			INFO_LOG(COMMON, "IPT: %s", ipt->name);
+		if (out)
+			INFO_LOG(COMMON, "OUT: %s", out->name);
+	}
 	
 	int num = Pa_GetDeviceCount();
+	INFO_LOG(SLIPPI_ONLINE, "DEVICE COUNT %i", num);
+
 	for (int i = 0; i < num; ++i)
 	{
 		const PaDeviceInfo *info = Pa_GetDeviceInfo(i);
