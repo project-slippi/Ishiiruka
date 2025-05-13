@@ -316,7 +316,6 @@ jobs:
         run: |
           rm '/usr/local/bin/2to3' || true
           echo "HOMEBREW_NO_AUTO_UPDATE=1" >> $GITHUB_ENV
-          brew upgrade cmake
           brew install \
           ffmpeg@2.8 \
           libpng \
@@ -325,6 +324,7 @@ jobs:
           sound-touch \
           hidapi \
           python@3.10
+#         brew upgrade cmake
       - id: rust_ver
         name: Grab Rust Version
         shell: bash
