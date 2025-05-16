@@ -182,7 +182,6 @@ public:
     // of use is to simultaneously deallocate everything at once
     // by calling pop(), and to not have to solve memory leak problems.
     //
-
 protected:
     friend struct tHeader;
     
@@ -240,7 +239,7 @@ protected:
 
     int numCalls;           // just an interesting statistic
     size_t totalBytes;      // just an interesting statistic
-private:
+public:
     TPoolAllocator& operator=(const TPoolAllocator&);  // don't allow assignment operator
     TPoolAllocator(const TPoolAllocator&);  // don't allow default copy constructor
 };
