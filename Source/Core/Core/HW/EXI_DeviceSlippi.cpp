@@ -3196,6 +3196,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 	{
 		m_slippiserver->write(&memPtr[0], _uSize);
 		g_needInputForFrame = true;
+		return;
 	}
 
 	INFO_LOG(EXPANSIONINTERFACE, "EXI SLIPPI DMAWrite: addr: 0x%08x size: %d, bufLoc:[%02x %02x %02x %02x %02x]",
