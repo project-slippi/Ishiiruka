@@ -48,7 +48,7 @@
 #define SLEEP_TIME_MS 8
 #define WRITE_FILE_SLEEP_TIME_MS 85
 
-// #define LOCAL_TESTING
+ #define LOCAL_TESTING
 // #define CREATE_DIFF_FILES
 
 static std::unordered_map<u8, std::string> slippi_names;
@@ -3119,6 +3119,30 @@ void CEXISlippi::handleCompleteSet(const SlippiExiTypes::ReportSetCompletionQuer
 	}
 }
 
+void CEXISlippi::handleMatchStatusUpdate(const SlippiExiTypes::ReportMatchStatusUpdateQuery& query)
+{
+	auto lastMatchId = recentMmResult.id;
+	if (lastMatchId.find("mode.ranked") == std::string::npos)
+	{
+		return; // Only report match status updates for ranked matches
+	}
+
+	auto statusMapRes = statusIdxMap.find(query.statusIdx);
+	if (statusMapRes == statusIdxMap.end())
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Invalid status index: %d", query.statusIdx);
+		return; // Invalid status index
+	}
+
+	auto statusString = statusMapRes->second;
+
+	INFO_LOG(SLIPPI_ONLINE, "Reporting match status update: %s, Status: %s", lastMatchId.c_str(), statusString.c_str());
+
+	slprs_exi_device_report_match_status_update(
+		slprs_exi_device_ptr, lastMatchId.c_str(), statusString.c_str()
+	);
+}
+
 void CEXISlippi::handleGetPlayerSettings()
 {
 	m_read_queue.clear();
@@ -3330,6 +3354,9 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_REPORT_SET_COMPLETE:
 			handleCompleteSet(SlippiExiTypes::Convert<SlippiExiTypes::ReportSetCompletionQuery>(&memPtr[bufLoc]));
+			break;
+		case CMD_REPORT_MATCH_STATUS_UPDATE:
+			handleMatchStatusUpdate(SlippiExiTypes::Convert<SlippiExiTypes::ReportMatchStatusUpdateQuery>(&memPtr[bufLoc]));
 			break;
 		case CMD_GET_PLAYER_SETTINGS:
 			handleGetPlayerSettings();
