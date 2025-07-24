@@ -60,7 +60,7 @@ jobs:
       DXSDK_DIR: "C:\\Program Files (x86)\\Microsoft DirectX SDK (June 2010)\\"
       ES_USERNAME: ${{ secrets.ES_USERNAME }}
     name: "Windows ${{ matrix.build_type }}"
-    runs-on: windows-2019
+    runs-on: windows-2022
     steps:
       - name: "Checkout"
         uses: actions/checkout@v3

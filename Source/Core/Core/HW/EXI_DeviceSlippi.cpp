@@ -153,12 +153,12 @@ CEXISlippi::CEXISlippi()
 	// https://github.com/dolphin-emu/dolphin/blob/7f450f1d7e7d37bd2300f3a2134cb443d07251f9/Source/Core/Core/Movie.cpp#L246-L249
 	std::string isoPath = SConfig::GetInstance().m_strFilename;
 
-	// @TODO: Eventually we should move `GetSlippiUserJSONPath` out of the File module.
-	std::string userJSONPath = File::GetSlippiUserJSONPath();
+	// @TODO: Eventually we should move `GetSlippiUserConfigFolder` out of the File module.
+	std::string userConfigFolder = File::GetSlippiUserConfigFolder();
 
 	SlippiRustEXIConfig slprs_exi_config;
 	slprs_exi_config.iso_path = isoPath.c_str();
-	slprs_exi_config.user_json_path = userJSONPath.c_str();
+	slprs_exi_config.user_config_folder = userConfigFolder.c_str();
 	slprs_exi_config.scm_slippi_semver_str = scm_slippi_semver_str.c_str();
 	slprs_exi_config.osd_add_msg_fn = OSDMessageHandler;
 
@@ -170,8 +170,8 @@ CEXISlippi::CEXISlippi()
 	matchmaking = std::make_unique<SlippiMatchmaking>(user.get());
 	gameFileLoader = std::make_unique<SlippiGameFileLoader>();
 	g_replayComm = std::make_unique<SlippiReplayComm>();
-	directCodes = std::make_unique<SlippiDirectCodes>("direct-codes.json");
-	teamsCodes = std::make_unique<SlippiDirectCodes>("teams-codes.json");
+	directCodes = std::make_unique<SlippiDirectCodes>(slprs_exi_device_ptr, SlippiDirectCodes::DIRECT);
+	teamsCodes = std::make_unique<SlippiDirectCodes>(slprs_exi_device_ptr, SlippiDirectCodes::TEAMS);
 
 	generator = std::default_random_engine(Common::Timer::GetTimeMs());
 
@@ -2053,6 +2053,7 @@ void CEXISlippi::prepareOnlineMatchState()
 	u8 remotePlayersReady = 0;
 
 	auto userInfo = user->GetUserInfo();
+	u16 alt_stage_mode = 0;
 
 	if (mmState == SlippiMatchmaking::ProcessState::CONNECTION_SUCCESS)
 	{
@@ -2304,6 +2305,7 @@ void CEXISlippi::prepareOnlineMatchState()
 
 			// Stage selected by this player, use that selection
 			stageId = selections->stageId;
+			alt_stage_mode = selections->alt_stage_mode;
 			break;
 		}
 
@@ -2437,6 +2439,12 @@ void CEXISlippi::prepareOnlineMatchState()
 		u8 *gameBitField3 = (u8 *)&onlineMatchBlock[2];
 		*gameBitField3 = pauseAllowed ? *gameBitField3 & 0xF7 : *gameBitField3 | 0x8;
 		//*gameBitField3 = *gameBitField3 | 0x8;
+
+		// Overwrite alt_stage_mode if in ranked
+		if (!pauseAllowed)
+		{
+			alt_stage_mode = 0;
+		}
 
 		// Group players into left/right side for team splash screen display
 		for (int i = 0; i < 4; i++)
@@ -2579,6 +2587,9 @@ void CEXISlippi::prepareOnlineMatchState()
 	std::string matchId = recentMmResult.id;
 	matchId.resize(51);
 	m_read_queue.insert(m_read_queue.end(), matchId.begin(), matchId.end());
+
+	// Add alt stage mode to output
+	m_read_queue.push_back(static_cast<u8>(alt_stage_mode));
 }
 
 u16 CEXISlippi::getRandomStage()
@@ -2613,6 +2624,7 @@ void CEXISlippi::setMatchSelections(u8 *payload)
 	s.stageId = Common::swap16(&payload[4]);
 	u8 stageSelectOption = payload[6];
 	// u8 onlineMode = payload[7];
+	s.alt_stage_mode = payload[8];
 
 	s.isStageSelected = stageSelectOption == 1 || stageSelectOption == 3;
 	if (stageSelectOption == 3)
@@ -2620,8 +2632,8 @@ void CEXISlippi::setMatchSelections(u8 *payload)
 		// If stage requested is random, select a random stage
 		s.stageId = getRandomStage();
 	}
-	INFO_LOG(SLIPPI, "LPS set char: %d, iSS: %d, %d, stage: %d, team: %d", s.isCharacterSelected, stageSelectOption,
-	         s.isStageSelected, s.stageId, s.teamId);
+	INFO_LOG(SLIPPI, "LPS set char: %d, iSS: %d, %d, stage: %d, alt stage: %d, team: %d", 
+		s.isCharacterSelected, stageSelectOption, s.isStageSelected, s.stageId, s.alt_stage_mode, s.teamId);
 
 	s.rngOffset = generator() % 0xFFFF;
 

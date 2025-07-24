@@ -5,3 +5,6 @@
 [submodule "Externals/SlippiRustExtensions"]
 	path = Externals/SlippiRustExtensions
 	url = https://github.com/project-slippi/slippi-rust-extensions.git
+[submodule "Externals/corrosion"]
+	path = Externals/corrosion
+	url = https://github.com/corrosion-rs/corrosion
