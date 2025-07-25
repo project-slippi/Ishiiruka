@@ -48,7 +48,7 @@
 #define SLEEP_TIME_MS 8
 #define WRITE_FILE_SLEEP_TIME_MS 85
 
- #define LOCAL_TESTING
+// #define LOCAL_TESTING
 // #define CREATE_DIFF_FILES
 
 static std::unordered_map<u8, std::string> slippi_names;
@@ -167,7 +167,7 @@ CEXISlippi::CEXISlippi()
 	m_slippiserver = SlippiSpectateServer::getInstance();
 	user = std::make_unique<SlippiUser>(slprs_exi_device_ptr);
 	g_playbackStatus = std::make_unique<SlippiPlaybackStatus>();
-	matchmaking = std::make_unique<SlippiMatchmaking>(user.get());
+	matchmaking = std::make_unique<SlippiMatchmaking>(slprs_exi_device_ptr, user.get());
 	gameFileLoader = std::make_unique<SlippiGameFileLoader>();
 	g_replayComm = std::make_unique<SlippiReplayComm>();
 	directCodes = std::make_unique<SlippiDirectCodes>(slprs_exi_device_ptr, SlippiDirectCodes::DIRECT);
@@ -316,7 +316,7 @@ CEXISlippi::~CEXISlippi()
 	{
 		ERROR_LOG(SLIPPI_ONLINE, "Exit during in-progress ranked game: %s", activeMatchId.c_str());
 
-		slprs_exi_device_report_match_abandonment(slprs_exi_device_ptr, activeMatchId.c_str());
+		slprs_exi_device_report_match_status(slprs_exi_device_ptr, activeMatchId.c_str(), "abandoned", false);
 	}
 	handleConnectionCleanup();
 
@@ -2918,7 +2918,7 @@ void CEXISlippi::handleConnectionCleanup()
 	cleanup.detach();
 
 	// Reset matchmaking
-	matchmaking = std::make_unique<SlippiMatchmaking>(user.get());
+	matchmaking = std::make_unique<SlippiMatchmaking>(slprs_exi_device_ptr, user.get());
 
 	// Disconnect netplay client
 	slippi_netplay = nullptr;
@@ -3127,7 +3127,8 @@ void CEXISlippi::handleCompleteSet(const SlippiExiTypes::ReportSetCompletionQuer
 
 		auto userInfo = user->GetUserInfo();
 
-		slprs_exi_device_report_match_completion(slprs_exi_device_ptr, lastMatchId.c_str(), query.endMode);
+		auto status = query.endMode == 0 ? "normal_completion" : "abnormal_completion";
+		slprs_exi_device_report_match_status(slprs_exi_device_ptr, lastMatchId.c_str(), status, true);
 	}
 }
 
@@ -3150,8 +3151,9 @@ void CEXISlippi::handleMatchStatusUpdate(const SlippiExiTypes::ReportMatchStatus
 
 	INFO_LOG(SLIPPI_ONLINE, "Reporting match status update: %s, Status: %s", lastMatchId.c_str(), statusString.c_str());
 
-	slprs_exi_device_report_match_status_update(
-		slprs_exi_device_ptr, lastMatchId.c_str(), statusString.c_str()
+	// Report asynchronously when called from the game
+	slprs_exi_device_report_match_status(
+		slprs_exi_device_ptr, lastMatchId.c_str(), statusString.c_str(), true
 	);
 }
 
