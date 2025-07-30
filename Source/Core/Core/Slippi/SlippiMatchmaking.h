@@ -19,7 +19,7 @@ using json = nlohmann::json;
 class SlippiMatchmaking
 {
   public:
-	SlippiMatchmaking(SlippiUser *user);
+	SlippiMatchmaking(uintptr_t rs_exi_device_ptr, SlippiUser *user);
 	~SlippiMatchmaking();
 
 	enum OnlinePlayMode
@@ -103,6 +103,10 @@ class SlippiMatchmaking
 	bool m_isHost;
 
 	std::unique_ptr<SlippiNetplayClient> m_netplayClient;
+
+	// A pointer to a "shadow" EXI Device that lives on the Rust side of things.
+	// Do *not* do any cleanup of this! The EXI device will handle it.
+	uintptr_t slprs_exi_device_ptr;
 
 	const std::unordered_map<ProcessState, bool> searchingStates = {
 	    {ProcessState::INITIALIZING, true},

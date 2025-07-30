@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+#include "SlippiRustExtensions.h"
+
 #if defined __linux__ && HAVE_ALSA
 #elif defined __APPLE__
 #include <arpa/inet.h>
@@ -25,11 +27,13 @@ std::string MmMessageType::CREATE_TICKET = "create-ticket";
 std::string MmMessageType::CREATE_TICKET_RESP = "create-ticket-resp";
 std::string MmMessageType::GET_TICKET_RESP = "get-ticket-resp";
 
-SlippiMatchmaking::SlippiMatchmaking(SlippiUser *user)
+SlippiMatchmaking::SlippiMatchmaking(uintptr_t rs_exi_device_ptr, SlippiUser *user)
 {
 	m_user = user;
 	m_state = ProcessState::IDLE;
 	m_errorMsg = "";
+
+	slprs_exi_device_ptr = rs_exi_device_ptr;
 
 	m_client = nullptr;
 	m_server = nullptr;
@@ -604,6 +608,9 @@ void SlippiMatchmaking::handleMatchmaking()
 
 	// Disconnect and destroy enet client to mm server
 	terminateMmConnection();
+
+	// Report to backend that we are attempting to connect to this match
+	slprs_exi_device_report_match_status(slprs_exi_device_ptr, matchId.c_str(), "connecting", true);
 
 	m_state = ProcessState::OPPONENT_CONNECTING;
 	ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Opponent found. isDecider: %s", m_isHost ? "true" : "false");

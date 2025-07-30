@@ -167,7 +167,7 @@ CEXISlippi::CEXISlippi()
 	m_slippiserver = SlippiSpectateServer::getInstance();
 	user = std::make_unique<SlippiUser>(slprs_exi_device_ptr);
 	g_playbackStatus = std::make_unique<SlippiPlaybackStatus>();
-	matchmaking = std::make_unique<SlippiMatchmaking>(user.get());
+	matchmaking = std::make_unique<SlippiMatchmaking>(slprs_exi_device_ptr, user.get());
 	gameFileLoader = std::make_unique<SlippiGameFileLoader>();
 	g_replayComm = std::make_unique<SlippiReplayComm>();
 	directCodes = std::make_unique<SlippiDirectCodes>(slprs_exi_device_ptr, SlippiDirectCodes::DIRECT);
@@ -316,7 +316,7 @@ CEXISlippi::~CEXISlippi()
 	{
 		ERROR_LOG(SLIPPI_ONLINE, "Exit during in-progress ranked game: %s", activeMatchId.c_str());
 
-		slprs_exi_device_report_match_abandonment(slprs_exi_device_ptr, activeMatchId.c_str());
+		slprs_exi_device_report_match_status(slprs_exi_device_ptr, activeMatchId.c_str(), "abandoned", false);
 	}
 	handleConnectionCleanup();
 
@@ -2918,7 +2918,7 @@ void CEXISlippi::handleConnectionCleanup()
 	cleanup.detach();
 
 	// Reset matchmaking
-	matchmaking = std::make_unique<SlippiMatchmaking>(user.get());
+	matchmaking = std::make_unique<SlippiMatchmaking>(slprs_exi_device_ptr, user.get());
 
 	// Disconnect netplay client
 	slippi_netplay = nullptr;
@@ -3127,8 +3127,34 @@ void CEXISlippi::handleCompleteSet(const SlippiExiTypes::ReportSetCompletionQuer
 
 		auto userInfo = user->GetUserInfo();
 
-		slprs_exi_device_report_match_completion(slprs_exi_device_ptr, lastMatchId.c_str(), query.endMode);
+		auto status = query.endMode == 0 ? "normal_completion" : "abnormal_completion";
+		slprs_exi_device_report_match_status(slprs_exi_device_ptr, lastMatchId.c_str(), status, true);
 	}
+}
+
+void CEXISlippi::handleMatchStatusUpdate(const SlippiExiTypes::ReportMatchStatusUpdateQuery& query)
+{
+	auto lastMatchId = recentMmResult.id;
+	if (lastMatchId.find("mode.ranked") == std::string::npos)
+	{
+		return; // Only report match status updates for ranked matches
+	}
+
+	auto statusMapRes = statusIdxMap.find(query.statusIdx);
+	if (statusMapRes == statusIdxMap.end())
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Invalid status index: %d", query.statusIdx);
+		return; // Invalid status index
+	}
+
+	auto statusString = statusMapRes->second;
+
+	INFO_LOG(SLIPPI_ONLINE, "Reporting match status update: %s, Status: %s", lastMatchId.c_str(), statusString.c_str());
+
+	// Report asynchronously when called from the game
+	slprs_exi_device_report_match_status(
+		slprs_exi_device_ptr, lastMatchId.c_str(), statusString.c_str(), true
+	);
 }
 
 void CEXISlippi::handleGetPlayerSettings()
@@ -3342,6 +3368,9 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_REPORT_SET_COMPLETE:
 			handleCompleteSet(SlippiExiTypes::Convert<SlippiExiTypes::ReportSetCompletionQuery>(&memPtr[bufLoc]));
+			break;
+		case CMD_REPORT_MATCH_STATUS_UPDATE:
+			handleMatchStatusUpdate(SlippiExiTypes::Convert<SlippiExiTypes::ReportMatchStatusUpdateQuery>(&memPtr[bufLoc]));
 			break;
 		case CMD_GET_PLAYER_SETTINGS:
 			handleGetPlayerSettings();
