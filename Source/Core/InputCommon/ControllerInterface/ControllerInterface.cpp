@@ -3,6 +3,7 @@
 // Refer to the license.txt file included.
 
 #include <mutex>
+#include <functional>
 
 #include "Common/Thread.h"
 #include "InputCommon/ControllerInterface/ControllerInterface.h"
@@ -33,7 +34,13 @@
 #include "InputCommon/ControllerInterface/Pipes/Pipes.h"
 #endif
 
+#include "InputCommon/InputConfig.h"
+#include "InputCommon/ControllerEmu.h"
+#include "Core/HW/GCPad.h"
+
 using namespace ciface::ExpressionParser;
+
+extern bool g_needInputForFrame; // from EXI_DeviceSlippi.cpp
 
 namespace
 {
@@ -212,6 +219,8 @@ void ControllerInterface::UpdateInput()
 		std::lock_guard<std::mutex> lk(m_devices_mutex, std::adopt_lock);
 		for (const auto& d : m_devices)
 			d->UpdateInput();
+
+		g_needInputForFrame = false;
 	}
 }
 

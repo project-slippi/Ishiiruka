@@ -3,6 +3,7 @@
 // Refer to the license.txt file included.
 
 #include <array>
+#include <cmath>
 #include <cstdlib>
 #include <fcntl.h>
 #include <iostream>
@@ -163,8 +164,9 @@ s32 PipeDevice::readFromPipe(PIPE_FD file_descriptor, char *in_buffer, size_t si
 void PipeDevice::UpdateInput()
 {
   bool finished = false;
+  bool wait_for_inputs = SConfig::GetInstance().m_blockingPipes && g_needInputForFrame;
   #ifndef _WIN32
-  if(SConfig::GetInstance().m_blockingPipes && g_needInputForFrame)
+  if(wait_for_inputs)
   {
     fd_set set;
     FD_ZERO (&set);
@@ -198,7 +200,7 @@ void PipeDevice::UpdateInput()
       m_buf.erase(0, newline + 1);
       newline = m_buf.find("\n");
     }
-  } while(!finished && g_needInputForFrame && SConfig::GetInstance().m_blockingPipes);
+  } while(!finished && wait_for_inputs);
 }
 
 void PipeDevice::AddAxis(const std::string& name, double value)
@@ -213,9 +215,42 @@ void PipeDevice::AddAxis(const std::string& name, double value)
   AddAnalogInputs(ax_lo, ax_hi);
 }
 
+u8 FloatToU8(double value)
+{
+  // Match the empirical behavior of the named pipes.
+  s8 raw = static_cast<s8>(std::floor((value - 0.5) * 254));
+  return reinterpret_cast<u8 &>(raw);
+}
+
 void PipeDevice::SetAxis(const std::string& entry, double value)
 {
   value = MathUtil::Clamp(value, 0.0, 1.0);
+
+  if (entry.compare("MAIN X") == 0)
+  {
+    m_current_pad.padBuf[2] = FloatToU8(value);
+  }
+  if (entry.compare("MAIN Y") == 0)
+  {
+    m_current_pad.padBuf[3] = FloatToU8(value);
+  }
+  if (entry.compare("C X") == 0)
+  {
+    m_current_pad.padBuf[4] = FloatToU8(value);
+  }
+  if (entry.compare("C Y") == 0)
+  {
+    m_current_pad.padBuf[5] = FloatToU8(value);
+  }
+  if (entry.compare("L") == 0)
+  {
+    m_current_pad.padBuf[6] = u8 (value * 255);
+  }
+  if (entry.compare("R") == 0)
+  {
+    m_current_pad.padBuf[7] = u8 (value * 255);
+  }
+
   double hi = std::max(0.0, value - 0.5) * 2.0;
   double lo = (0.5 - std::min(0.5, value)) * 2.0;
   auto search_hi = m_axes.find(entry + " +");
@@ -230,7 +265,8 @@ bool PipeDevice::ParseCommand(const std::string& command)
 {
   if(command == "FLUSH")
   {
-    g_needInputForFrame = false;
+    // Let ControllerInterface::UpdateInputs clear the g_needInputForFrame
+    // flag after all PipeDevices have been queried.
     return true;
   }
   std::vector<std::string> tokens;
@@ -239,6 +275,7 @@ bool PipeDevice::ParseCommand(const std::string& command)
     return false;
   if (tokens[0] == "PRESS" || tokens[0] == "RELEASE")
   {
+    SetButtonState(tokens[1], tokens[0]);
     auto search = m_buttons.find(tokens[1]);
     if (search != m_buttons.end())
       search->second->SetState(tokens[0] == "PRESS" ? 1.0 : 0.0);
@@ -248,7 +285,7 @@ bool PipeDevice::ParseCommand(const std::string& command)
     if (tokens.size() == 3)
     {
       double value = StringToDouble(tokens[2]);
-      SetAxis(tokens[1], (value / 2.0) + 0.5);
+      SetAxis(tokens[1], value);
     }
     else if (tokens.size() == 4)
     {
@@ -260,5 +297,87 @@ bool PipeDevice::ParseCommand(const std::string& command)
   }
   return false;
 }
+
+SlippiPad PipeDevice::GetSlippiPad()
+{
+  return m_current_pad;
+}
+
+void PipeDevice::SetButtonState(const std::string& button, const std::string& press)
+{
+  u8 mask = 0x00;
+  int index = 0;
+  bool is_press = press == "PRESS";
+
+  if (button.compare("A") == 0)
+  {
+    mask = 0x01;
+    index = 0;
+  }
+  if (button.compare("B") == 0)
+  {
+    mask = 0x02;
+    index = 0;
+  }
+  if (button.compare("X") == 0)
+  {
+    mask = 0x04;
+    index = 0;
+  }
+  if (button.compare("Y") == 0)
+  {
+    mask = 0x08;
+    index = 0;
+  }
+  if (button.compare("L") == 0)
+  {
+    mask = 0x40;
+    index = 1;
+  }
+  if (button.compare("R") == 0)
+  {
+    mask = 0x20;
+    index = 1;
+  }
+  if (button.compare("START") == 0)
+  {
+    mask = 0x10;
+    index = 0;
+  }
+  if (button.compare("D_LEFT") == 0)
+  {
+    mask = 0x01;
+    index = 1;
+  }
+  if (button.compare("D_RIGHT") == 0)
+  {
+    mask = 0x02;
+    index = 1;
+  }
+  if (button.compare("D_DOWN") == 0)
+  {
+    mask = 0x04;
+    index = 1;
+  }
+  if (button.compare("D_UP") == 0)
+  {
+    mask = 0x08;
+    index = 1;
+  }
+  if (button.compare("Z") == 0)
+  {
+    mask = 0x10;
+    index = 1;
+  }
+  if (is_press)
+  {
+    m_current_pad.padBuf[index] |= mask;
+  }
+  else
+  {
+    m_current_pad.padBuf[index] &= ~(mask);
+  }
+}
+
 }
 }

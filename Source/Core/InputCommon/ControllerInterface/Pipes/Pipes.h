@@ -13,6 +13,8 @@
 #include <unistd.h>
 #endif
 
+#include "Core/Slippi/SlippiPad.h"
+
 extern bool g_needInputForFrame;
 
 namespace ciface
@@ -47,6 +49,7 @@ public:
   void UpdateInput() override;
   std::string GetName() const override { return m_name; }
   std::string GetSource() const override { return "Pipe"; }
+  SlippiPad GetSlippiPad();
 private:
   class PipeInput : public Input
   {
@@ -64,12 +67,17 @@ private:
   bool ParseCommand(const std::string& command);
   void SetAxis(const std::string& entry, double value);
   s32 readFromPipe(PIPE_FD file_descriptor, char *in_buffer, size_t size);
+  void SetButtonState(const std::string& button, const std::string& press);
 
   const PIPE_FD m_fd;
   const std::string m_name;
   std::string m_buf;
   std::map<std::string, PipeInput*> m_buttons;
   std::map<std::string, PipeInput*> m_axes;
+
+  // This is used for an alternative input method that writes the controller
+  // state directly into game memory; see EXI_DeviceSlippi::prepareOverwriteInputs()
+  SlippiPad m_current_pad;
 };
 }
 }

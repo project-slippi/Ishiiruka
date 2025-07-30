@@ -31,6 +31,7 @@
 
 #include "Core/HW/EXI_DeviceSlippi.h"
 #include "Core/HW/SystemTimers.h"
+#include "Core/HW/GCPad.h"
 #include "Core/State.h"
 
 #include "Core/GeckoCode.h"
@@ -40,6 +41,10 @@
 // Not clean but idk a better way atm
 #include "DolphinWX/Frame.h"
 #include "DolphinWX/Main.h"
+
+#include "InputCommon/InputConfig.h"
+#include "InputCommon/ControllerInterface/ControllerInterface.h"
+#include "InputCommon/ControllerInterface/Pipes/Pipes.h"
 
 // The Rust library that houses a "shadow" EXI Device that we can call into.
 #include "SlippiRustExtensions.h"
@@ -3199,6 +3204,57 @@ void CEXISlippi::handleGetPlayerSettings()
 	m_read_queue.insert(m_read_queue.end(), data_ptr, data_ptr + sizeof(SlippiExiTypes::GetPlayerSettingsResponse));
 }
 
+std::map<int, SlippiPad> GetSlippiPads(ControllerInterface& controller_interface)
+{
+	std::map<int, SlippiPad> pads;
+
+  for(int i = 0; i < 4; i++)
+  {
+    const auto device_type = SConfig::GetInstance().m_SIDevice[i];
+    if (device_type != SIDEVICE_GC_CONTROLLER)
+      continue;
+
+    ciface::Core::DeviceQualifier& dq = Pad::GetConfig()->GetController(i)->default_device;
+    std::shared_ptr<ciface::Core::Device> d = controller_interface.FindDevice(dq);
+
+    if (d->GetSource() == "Pipe")
+    {
+      ciface::Pipes::PipeDevice* pd = (ciface::Pipes::PipeDevice*)d.get();
+      pads[i] = pd->GetSlippiPad();
+    }
+  }
+  return pads;
+}
+
+void CEXISlippi::prepareOverwriteInputs()
+{
+	m_read_queue.clear();
+	// If blocking pipe input is configured, this will block until pipe input is sent for this frame
+	g_controller_interface.UpdateInput();
+	std::map<int, SlippiPad> pads =	GetSlippiPads(g_controller_interface);
+
+	// Insert the pads
+	for (int i = 0; i < 4; i++)
+	{
+		if (pads.count(i) != 0)
+		{
+			// Do overwrite this port
+			m_read_queue.push_back(1);
+			for (int j = 0; j < SLIPPI_PAD_DATA_SIZE; j++)
+			{
+				m_read_queue.push_back(pads[i].padBuf[j]);
+			}
+		}
+		else
+		{
+			// Don't overwrite this port
+			m_read_queue.push_back(0);
+			appendWordToBuffer(&m_read_queue, 0);
+			appendWordToBuffer(&m_read_queue, 0);
+		}
+	}
+}
+
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 {
 	u8 *memPtr = Memory::GetPointer(_uAddr);
@@ -3390,6 +3446,14 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			slprs_jukebox_set_melee_music_volume(slprs_exi_device_ptr, args.volume);
 			break;
 		}
+		case CMD_OVERWRITE_INPUTS:
+			// Overwrite controller states from Pipe inputs used by bots.
+			// A custom gecko code is required; see
+			// https://github.com/project-slippi/slippi-ssbm-asm/tree/feature/ai-inputs
+      // This is needed when using the fast-forward code from the same repo, as
+      // it bypasses dolphin's normal way of feeding inputs into the game.
+			prepareOverwriteInputs();
+			break;
 		default:
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "");
 			m_slippiserver->write(&memPtr[bufLoc], payloadLen + 1);
