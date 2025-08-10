@@ -103,7 +103,7 @@ void SlippiNetplayConfigPane::InitializeGUI()
 
 	m_slippi_show_player_rank =
 	    new wxCheckBox(this, wxID_ANY, _("Show your rank (Character Select and Ranked Setup Screen)"));
-	m_slippi_show_opponent_rank = new wxCheckBox(this, wxID_ANY, _("Show opponent's rank (Ranked Setup Screen"));
+	m_slippi_show_opponent_rank = new wxCheckBox(this, wxID_ANY, _("Show opponent's rank (Ranked Setup Screen)"));
 
 	m_slippi_jukebox_enabled_checkbox = new wxCheckBox(this, wxID_ANY, _("Enable Music"));
 
