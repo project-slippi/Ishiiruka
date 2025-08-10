@@ -2148,6 +2148,8 @@ void CEXISlippi::prepareOnlineMatchState()
 	std::string oppName = "";
 	std::string p1Name = "";
 	std::string p2Name = "";
+	u8 localRank = 0;
+	u8 oppRank = 0;
 	u8 chatMessageId = 0;
 	u8 chatMessagePlayerIdx = 0;
 	u8 sentChatMessageId = 0;
@@ -2160,6 +2162,8 @@ void CEXISlippi::prepareOnlineMatchState()
 	// in CSS p1 is always current player and p2 is opponent
 	localPlayerName = p1Name = userInfo.displayName;
 	oppName = p2Name = "Player 2";
+	localRank = 8;
+	oppRank = 15;
 #endif
 
 	SlippiDesyncRecoveryResp desync_recovery;
@@ -2487,6 +2491,16 @@ void CEXISlippi::prepareOnlineMatchState()
 	m_read_queue.push_back((u8)sentChatMessageId);
 	m_read_queue.push_back((u8)chatMessageId);
 	m_read_queue.push_back((u8)chatMessagePlayerIdx);
+
+	bool isRanked = lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::RANKED;
+	if (isRanked)
+	{
+		localRank = (u8)matchmaking->GetPlayerRank(localPlayerIndex);
+		oppRank = (u8)matchmaking->GetPlayerRank(remotePlayerIndex);
+	}
+
+	m_read_queue.push_back(localRank);
+	m_read_queue.push_back(oppRank);
 
 	// Add player groupings for VS splash screen
 	leftTeamPlayers.resize(4, 0);
@@ -3199,6 +3213,30 @@ void CEXISlippi::handleGetPlayerSettings()
 	m_read_queue.insert(m_read_queue.end(), data_ptr, data_ptr + sizeof(SlippiExiTypes::GetPlayerSettingsResponse));
 }
 
+void CEXISlippi::handleGetRank()
+{
+	RustRankInfo rank_info = slprs_get_rank_info(slprs_exi_device_ptr);
+	m_read_queue.clear();
+
+	// Determine rank info visibility
+	u8 local_rank_enabled = static_cast<u8>(SConfig::GetInstance().bSlippiPlayerRankDisplay);
+	u8 opp_rank_enabled = static_cast<u8>(SConfig::GetInstance().bSlippiOpponentRankDisplay);
+	u8 rank_visibility = local_rank_enabled | (opp_rank_enabled << 1);
+
+	// Push rank data header
+	m_read_queue.push_back(rank_visibility);
+	m_read_queue.push_back(static_cast<u8>(rank_info.fetch_status));
+
+	// ERROR_LOG_FMT(SLIPPI_ONLINE, "Update count: {}", rank_info.rating_update_count);
+
+	// Push rank data
+	m_read_queue.push_back(static_cast<u8>(rank_info.rank));
+	appendWordToBuffer(&m_read_queue, *(u32 *)(&rank_info.rating_ordinal));
+	appendWordToBuffer(&m_read_queue, static_cast<u32>(rank_info.rating_update_count));
+	appendWordToBuffer(&m_read_queue, *(u32 *)(&rank_info.rating_change));
+	m_read_queue.push_back(static_cast<u8>(rank_info.rank_change));
+}
+
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 {
 	u8 *memPtr = Memory::GetPointer(_uAddr);
@@ -3388,6 +3426,16 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		{
 			auto args = SlippiExiTypes::Convert<SlippiExiTypes::ChangeMusicVolumeQuery>(&memPtr[bufLoc]);
 			slprs_jukebox_set_melee_music_volume(slprs_exi_device_ptr, args.volume);
+			break;
+		}
+		case CMD_GET_RANK:
+		{
+			handleGetRank();
+			break;
+		}
+		case CMD_FETCH_RANK:
+		{
+			slprs_fetch_match_result(slprs_exi_device_ptr, recentMmResult.id.c_str());
 			break;
 		}
 		default:

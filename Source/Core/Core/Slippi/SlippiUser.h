@@ -33,6 +33,11 @@ class SlippiUser
 		std::vector<std::string> chatMessages;
 
 		bool isBot = false;
+
+		float rankedRating = 0;
+		int rankedUpdateCount = 0;
+		int rankedGlobalPlacement = 0;
+		int rankedRegionalPlacement = 0;
 	};
 
 	SlippiUser(uintptr_t rs_exi_device_ptr);
