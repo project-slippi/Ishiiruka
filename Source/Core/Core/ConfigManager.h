@@ -150,6 +150,8 @@ struct SConfig : NonCopyable
 	bool bAdapterWarning = true;
 
 	bool bReduceTimingDispersion = false;
+	bool bSlippiPlayerRankDisplay = true;
+	bool bSlippiOpponentRankDisplay = true;
 	bool bSlippiJukeboxEnabled = true;
 	int iSlippiJukeboxVolume = 100;
 

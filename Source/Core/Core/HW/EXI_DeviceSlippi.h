@@ -92,6 +92,7 @@ class CEXISlippi : public IEXIDevice
 		CMD_GP_FETCH_STEP = 0xC1,
 		CMD_REPORT_SET_COMPLETE = 0xC2,
 		CMD_GET_PLAYER_SETTINGS = 0xC3,
+		CMD_REPORT_MATCH_STATUS_UPDATE = 0xC4,
 
 		// Misc
 		CMD_LOG_MESSAGE = 0xD0,
@@ -105,6 +106,9 @@ class CEXISlippi : public IEXIDevice
 		CMD_CHANGE_MUSIC_VOLUME = 0xD8,
 		CMD_PREMADE_TEXT_LENGTH = 0xE1,
 		CMD_PREMADE_TEXT_LOAD = 0xE2,
+		CMD_GET_RANK = 0xE3,
+		CMD_FETCH_RANK = 0xE4,
+		CMD_GET_RANK_VISIBILITY = 0xE5
 	};
 
 	enum
@@ -113,6 +117,29 @@ class CEXISlippi : public IEXIDevice
 		FRAME_RESP_CONTINUE = 1,
 		FRAME_RESP_TERMINATE = 2,
 		FRAME_RESP_FASTFORWARD = 3,
+	};
+
+	// This is a mapping of u8s to status updates such that we dont have to send
+	// strings from the game
+	std::unordered_map<u8, std::string> statusIdxMap = {
+		{1, "connecting"},
+		{10, "game_setup_1"},
+		{11, "game_setup_2"},
+		{12, "game_setup_3"},
+		{13, "game_setup_4"}, // These are just here if we ever have longer than bo3s
+		{14, "game_setup_5"},
+		{15, "game_setup_6"},
+		{16, "game_setup_7"}, // Surely we never have more than bo7s
+		{20, "game_start_1"},
+		{21, "game_start_2"},
+		{22, "game_start_3"},
+		{23, "game_start_4"},
+		{24, "game_start_5"},
+		{25, "game_start_6"},
+		{26, "game_start_7"},
+		{30, "normal_completion"},
+		{31, "abnormal_completion"},
+		{40, "abandoned"},
 	};
 
 	std::unordered_map<u8, u32> payloadSizes = {
@@ -136,7 +163,7 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_LOAD_SAVESTATE, 32},
 	    {CMD_GET_MATCH_STATE, 0},
 	    {CMD_FIND_OPPONENT, 19},
-	    {CMD_SET_MATCH_SELECTIONS, 8},
+	    {CMD_SET_MATCH_SELECTIONS, 9},
 	    {CMD_SEND_CHAT_MESSAGE, 2},
 	    {CMD_OPEN_LOGIN, 0},
 	    {CMD_LOGOUT, 0},
@@ -151,6 +178,7 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_GP_FETCH_STEP, static_cast<u32>(sizeof(SlippiExiTypes::GpFetchStepQuery) - 1)},
 	    {CMD_REPORT_SET_COMPLETE, static_cast<u32>(sizeof(SlippiExiTypes::ReportSetCompletionQuery) - 1)},
 	    {CMD_GET_PLAYER_SETTINGS, 0},
+	    {CMD_REPORT_MATCH_STATUS_UPDATE, static_cast<u32>(sizeof(SlippiExiTypes::ReportMatchStatusUpdateQuery) - 1)},
 
 	    // Misc
 	    {CMD_LOG_MESSAGE, 0xFFFF}, // Variable size... will only work if by itself
@@ -164,6 +192,9 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_CHANGE_MUSIC_VOLUME, static_cast<u32>(sizeof(SlippiExiTypes::ChangeMusicVolumeQuery) - 1)},
 	    {CMD_PREMADE_TEXT_LENGTH, 0x2},
 	    {CMD_PREMADE_TEXT_LOAD, 0x2},
+	    {CMD_GET_RANK, 0x0},
+	    {CMD_FETCH_RANK, 0x0},
+	    {CMD_GET_RANK_VISIBILITY, 0x0},
 	};
 
 	struct WriteMessage
@@ -230,7 +261,9 @@ class CEXISlippi : public IEXIDevice
 	void handleGamePrepStepComplete(const SlippiExiTypes::GpCompleteStepQuery &query);
 	void prepareGamePrepOppStep(const SlippiExiTypes::GpFetchStepQuery &query);
 	void handleCompleteSet(const SlippiExiTypes::ReportSetCompletionQuery &query);
+	void handleMatchStatusUpdate(const SlippiExiTypes::ReportMatchStatusUpdateQuery &query);
 	void handleGetPlayerSettings();
+	void handleGetRank();
 
 	// replay playback stuff
 	void prepareGameInfo(u8 *payload);

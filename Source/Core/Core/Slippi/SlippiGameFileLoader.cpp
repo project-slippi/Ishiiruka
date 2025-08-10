@@ -32,6 +32,18 @@ u32 SlippiGameFileLoader::LoadFile(std::string fileName, std::string &data)
 		return (u32)data.size();
 	}
 
+	if (grpsx_strings.count(fileName))
+	{
+		std::vector<u8> buf;
+		FileMon::ReadFileWithName(fileName, buf);
+		std::string contents(buf.begin(), buf.end());
+
+		fileCache[fileName] = contents;
+		data = fileCache[fileName];
+		INFO_LOG(SLIPPI, "Preloaded Transformation: %s -> %d", fileName.c_str(), (u32)data.size());
+		return (u32)data.size();
+	}
+
 	INFO_LOG(SLIPPI, "Loading file: %s", fileName.c_str());
 
 	std::string gameFilePath = getFilePath(fileName);

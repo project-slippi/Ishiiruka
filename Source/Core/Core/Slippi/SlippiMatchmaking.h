@@ -19,7 +19,7 @@ using json = nlohmann::json;
 class SlippiMatchmaking
 {
   public:
-	SlippiMatchmaking(SlippiUser *user);
+	SlippiMatchmaking(uintptr_t rs_exi_device_ptr, SlippiUser *user);
 	~SlippiMatchmaking();
 
 	enum OnlinePlayMode
@@ -38,6 +38,30 @@ class SlippiMatchmaking
 		OPPONENT_CONNECTING,
 		CONNECTION_SUCCESS,
 		ERROR_ENCOUNTERED,
+	};
+
+	enum SlippiRank
+	{
+		Unranked,
+		Bronze1,
+		Bronze2,
+		Bronze3,
+		Silver1,
+		Silver2,
+		Silver3,
+		Gold1,
+		Gold2,
+		Gold3,
+		Platinum1,
+		Platinum2,
+		Platinum3,
+		Diamond1,
+		Diamond2,
+		Diamond3,
+		Master1,
+		Master2,
+		Master3,
+		Grandmaster
 	};
 
 	struct MatchSearchSettings
@@ -62,6 +86,7 @@ class SlippiMatchmaking
 	int LocalPlayerIndex();
 	std::vector<SlippiUser::UserInfo> GetPlayerInfo();
 	std::string GetPlayerName(u8 port);
+	SlippiRank GetPlayerRank(u8 port);
 	std::vector<u16> GetStages();
 	u8 RemotePlayerCount();
 	MatchmakeResult GetMatchmakeResult();
@@ -103,6 +128,10 @@ class SlippiMatchmaking
 	bool m_isHost;
 
 	std::unique_ptr<SlippiNetplayClient> m_netplayClient;
+
+	// A pointer to a "shadow" EXI Device that lives on the Rust side of things.
+	// Do *not* do any cleanup of this! The EXI device will handle it.
+	uintptr_t slprs_exi_device_ptr;
 
 	const std::unordered_map<ProcessState, bool> searchingStates = {
 	    {ProcessState::INITIALIZING, true},

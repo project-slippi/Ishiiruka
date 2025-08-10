@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+#include "SlippiRustExtensions.h"
+
 #if defined __linux__ && HAVE_ALSA
 #elif defined __APPLE__
 #include <arpa/inet.h>
@@ -25,11 +27,13 @@ std::string MmMessageType::CREATE_TICKET = "create-ticket";
 std::string MmMessageType::CREATE_TICKET_RESP = "create-ticket-resp";
 std::string MmMessageType::GET_TICKET_RESP = "get-ticket-resp";
 
-SlippiMatchmaking::SlippiMatchmaking(SlippiUser *user)
+SlippiMatchmaking::SlippiMatchmaking(uintptr_t rs_exi_device_ptr, SlippiUser *user)
 {
 	m_user = user;
 	m_state = ProcessState::IDLE;
 	m_errorMsg = "";
+
+	slprs_exi_device_ptr = rs_exi_device_ptr;
 
 	m_client = nullptr;
 	m_server = nullptr;
@@ -527,6 +531,15 @@ void SlippiMatchmaking::handleMatchmaking()
 				playerInfo.chatMessages = m_user->GetDefaultChatMessages();
 			}
 
+			json rankEl = el["rank"];
+			if (rankEl.is_object())
+			{
+				playerInfo.rankedRating = rankEl.value("rating", 0.0f);
+				playerInfo.rankedUpdateCount = rankEl.value("updateCount", 0);
+				playerInfo.rankedGlobalPlacement = rankEl.value("globalPlacement", 0);
+				playerInfo.rankedRegionalPlacement = rankEl.value("regionalPlacement", 0);
+			}
+
 			m_playerInfo.push_back(playerInfo);
 
 			if (isLocal)
@@ -605,6 +618,12 @@ void SlippiMatchmaking::handleMatchmaking()
 	// Disconnect and destroy enet client to mm server
 	terminateMmConnection();
 
+	// If ranked, report to backend that we are attempting to connect to this match
+	if (matchId.find("mode.ranked") != std::string::npos)
+	{
+		slprs_exi_device_report_match_status(slprs_exi_device_ptr, matchId.c_str(), "connecting", true);
+	}
+
 	m_state = ProcessState::OPPONENT_CONNECTING;
 	ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Opponent found. isDecider: %s", m_isHost ? "true" : "false");
 }
@@ -622,6 +641,125 @@ std::vector<SlippiUser::UserInfo> SlippiMatchmaking::GetPlayerInfo()
 std::vector<u16> SlippiMatchmaking::GetStages()
 {
 	return m_allowedStages;
+}
+
+// This is kind of duplicate code from what exists in rust. Maybe eventually it should be remove
+// and exist only on the rust side
+SlippiMatchmaking::SlippiRank SlippiMatchmaking::GetPlayerRank(u8 port)
+{
+	if (port >= m_playerInfo.size())
+	{
+		return SlippiRank::Unranked;
+	}
+
+	auto info = m_playerInfo[port];
+
+	float rating = info.rankedRating;
+	int updateCount = info.rankedUpdateCount;
+	int global = info.rankedGlobalPlacement;
+	int regional = info.rankedRegionalPlacement;
+
+	if (updateCount < 5)
+	{
+		return SlippiRank::Unranked;
+	}
+
+	if (rating <= 765.42f)
+	{
+		return SlippiRank::Bronze1;
+	}
+
+	if (rating > 765.43f && rating <= 913.71f)
+	{
+		return SlippiRank::Bronze2;
+	}
+
+	if (rating > 913.72f && rating <= 1054.86f)
+	{
+		return SlippiRank::Bronze3;
+	}
+
+	if (rating > 1054.87f && rating <= 1188.87f)
+	{
+		return SlippiRank::Silver1;
+	}
+
+	if (rating > 1188.88f && rating <= 1315.74f)
+	{
+		return SlippiRank::Silver2;
+	}
+
+	if (rating > 1315.75f && rating <= 1435.47f)
+	{
+		return SlippiRank::Silver3;
+	}
+
+	if (rating > 1435.48f && rating <= 1548.06f)
+	{
+		return SlippiRank::Gold1;
+	}
+
+	if (rating > 1548.07f && rating <= 1653.51f)
+	{
+		return SlippiRank::Gold2;
+	}
+
+	if (rating > 1653.52f && rating <= 1751.82f)
+	{
+		return SlippiRank::Gold3;
+	}
+
+	if (rating > 1751.83f && rating <= 1842.99f)
+	{
+		return SlippiRank::Platinum1;
+	}
+
+	if (rating > 1843.0f && rating <= 1927.02f)
+	{
+		return SlippiRank::Platinum2;
+	}
+
+	if (rating > 1927.03f && rating <= 2003.91f)
+	{
+		return SlippiRank::Platinum3;
+	}
+
+	if (rating > 2003.92f && rating <= 2073.66f)
+	{
+		return SlippiRank::Diamond1;
+	}
+
+	if (rating > 2073.67f && rating <= 2136.27f)
+	{
+		return SlippiRank::Diamond2;
+	}
+
+	if (rating > 2136.28f && rating <= 2191.74f)
+	{
+		return SlippiRank::Diamond3;
+	}
+
+	if (rating >= 2191.75f && global > 0 && regional > 0)
+	{
+		return SlippiRank::Grandmaster;
+	}
+
+	if (rating > 2191.75f && rating <= 2274.99f)
+	{
+		return SlippiRank::Master1;
+	}
+
+	if (rating > 2275.0f && rating <= 2350.0f)
+	{
+		return SlippiRank::Master2;
+	}
+
+	if (rating > 2350.0f)
+	{
+		return SlippiRank::Master3;
+	}
+
+	return SlippiRank::Unranked;
 }
 
 SlippiMatchmaking::MatchmakeResult SlippiMatchmaking::GetMatchmakeResult()

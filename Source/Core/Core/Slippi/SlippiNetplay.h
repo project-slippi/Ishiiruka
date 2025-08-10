@@ -83,6 +83,7 @@ class SlippiPlayerSelections
 
 	u16 stageId = 0;
 	bool isStageSelected = false;
+	u8 alt_stage_mode{};
 
 	u32 rngOffset = 0;
 
@@ -97,6 +98,7 @@ class SlippiPlayerSelections
 		{
 			this->stageId = s.stageId;
 			this->isStageSelected = true;
+			this->alt_stage_mode = s.alt_stage_mode;
 		}
 
 		if (s.isCharacterSelected)
