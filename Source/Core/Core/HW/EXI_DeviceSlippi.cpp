@@ -2162,8 +2162,8 @@ void CEXISlippi::prepareOnlineMatchState()
 	// in CSS p1 is always current player and p2 is opponent
 	localPlayerName = p1Name = userInfo.displayName;
 	oppName = p2Name = "Player 2";
-	localRank = 8;
-	oppRank = 15;
+	p1Rank = 8;
+	p2Rank = 15;
 #endif
 
 	SlippiDesyncRecoveryResp desync_recovery;
@@ -2495,6 +2495,8 @@ void CEXISlippi::prepareOnlineMatchState()
 	bool isRanked = lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::RANKED;
 	if (isRanked)
 	{
+		// This has to be outside the player ready block because in game setup 2 the players are not
+		// ready at the start
 		bool showLocaLRank = SConfig::GetInstance().bSlippiPlayerRankDisplay;
 		bool showOppRank = SConfig::GetInstance().bSlippiOpponentRankDisplay;
 
