@@ -2148,8 +2148,8 @@ void CEXISlippi::prepareOnlineMatchState()
 	std::string oppName = "";
 	std::string p1Name = "";
 	std::string p2Name = "";
-	u8 localRank = 0;
-	u8 oppRank = 0;
+	s8 p1Rank = 0;
+	s8 p2Rank = 0;
 	u8 chatMessageId = 0;
 	u8 chatMessagePlayerIdx = 0;
 	u8 sentChatMessageId = 0;
@@ -2495,12 +2495,19 @@ void CEXISlippi::prepareOnlineMatchState()
 	bool isRanked = lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::RANKED;
 	if (isRanked)
 	{
-		localRank = (u8)matchmaking->GetPlayerRank(localPlayerIndex);
-		oppRank = (u8)matchmaking->GetPlayerRank(remotePlayerIndex);
+		bool showLocaLRank = SConfig::GetInstance().bSlippiPlayerRankDisplay;
+		bool showOppRank = SConfig::GetInstance().bSlippiOpponentRankDisplay;
+
+		std::array<s8, 2> ranks = {0, 0};
+		ranks[localPlayerIndex] = showLocaLRank ? matchmaking->GetPlayerRank(localPlayerIndex) : -1;
+		ranks[remotePlayerIndex] = showOppRank ? matchmaking->GetPlayerRank(remotePlayerIndex) : -1;
+
+		p1Rank = ranks[0];
+		p2Rank = ranks[1];
 	}
 
-	m_read_queue.push_back(localRank);
-	m_read_queue.push_back(oppRank);
+	m_read_queue.push_back(p1Rank);
+	m_read_queue.push_back(p2Rank);
 
 	// Add player groupings for VS splash screen
 	leftTeamPlayers.resize(4, 0);
