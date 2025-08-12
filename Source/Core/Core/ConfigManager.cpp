@@ -295,6 +295,8 @@ void SConfig::SaveCoreSettings(IniFile &ini)
 	core->Set("SlippiReplayDir", m_strSlippiReplayDir);
 	core->Set("SlippiReplayRegenerateDir", m_strSlippiRegenerateReplayDir);
 	core->Set("SlippiPlaybackDisplayFrameIndex", m_slippiEnableFrameIndex);
+	core->Set("SlippiPlayerRankDisplay", bSlippiPlayerRankDisplay);
+	core->Set("SlippiOpponentRankDisplay", bSlippiOpponentRankDisplay);
 	core->Set("BlockingPipes", m_blockingPipes);
 	core->Set("MemcardAPath", m_strMemoryCardA);
 	core->Set("MemcardBPath", m_strMemoryCardB);
@@ -646,6 +648,8 @@ void SConfig::LoadCoreSettings(IniFile &ini)
 	if (m_strSlippiRegenerateReplayDir.empty())
 		m_strSlippiRegenerateReplayDir = default_regenerate_dir;
 	core->Get("SlippiPlaybackDisplayFrameIndex", &m_slippiEnableFrameIndex, false);
+	core->Get("SlippiPlayerRankDisplay", &bSlippiPlayerRankDisplay, true);
+	core->Get("SlippiOpponentRankDisplay", &bSlippiOpponentRankDisplay, true);
 	core->Get("BlockingPipes", &m_blockingPipes, false);
 	core->Get("MemcardAPath", &m_strMemoryCardA);
 	core->Get("MemcardBPath", &m_strMemoryCardB);
