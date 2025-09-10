@@ -534,6 +534,7 @@ void SlippiNetplayClient::writeToPacket(sf::Packet &packet, SlippiPlayerSelectio
 	packet << s.stageId << s.isStageSelected;
 	packet << s.rngOffset;
 	packet << s.teamId;
+	packet << s.alt_stage_mode;
 }
 
 void SlippiNetplayClient::WriteChatMessageToPacket(sf::Packet &packet, int messageId, u8 playerIdx)
@@ -635,6 +636,11 @@ std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::readSelectionsFromP
 		s->error = true;
 	}
 	if (!(packet >> s->teamId))
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Received invalid player selection");
+		s->error = true;
+	}
+	if (!(packet >> s->alt_stage_mode))
 	{
 		ERROR_LOG(SLIPPI_ONLINE, "Received invalid player selection");
 		s->error = true;

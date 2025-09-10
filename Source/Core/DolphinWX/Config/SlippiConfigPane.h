@@ -42,6 +42,10 @@ class SlippiNetplayConfigPane final : public wxPanel
 	void OnQuickChatChanged(wxCommandEvent &event);
 	void OnReduceTimingDispersionToggle(wxCommandEvent &event);
 	void PopulateEnableChatChoiceBox();
+	void OnToggleJukeboxEnabled(wxCommandEvent &event);
+	void OnJukeboxVolumeUpdate(wxCommandEvent &event);
+	void OnToggleShowPlayerRank(wxCommandEvent &event);
+	void OnToggleShowOpponentRank(wxCommandEvent &event);
 
 	wxArrayString m_slippi_enable_quick_chat_strings;
 
@@ -59,11 +63,12 @@ class SlippiNetplayConfigPane final : public wxPanel
 
 	wxCheckBox *m_reduce_timing_dispersion_checkbox;
 
-	void OnToggleJukeboxEnabled(wxCommandEvent &event);
+	wxCheckBox *m_slippi_show_player_rank;
+	wxCheckBox *m_slippi_show_opponent_rank;
+
 	wxCheckBox *m_slippi_jukebox_enabled_checkbox;
 	DolphinSlider *m_slippi_jukebox_volume_slider;
 	wxStaticText *m_jukebox_volume_text;
-	void OnJukeboxVolumeUpdate(wxCommandEvent &event);
 };
 
 class SlippiPlaybackConfigPane final : public wxPanel

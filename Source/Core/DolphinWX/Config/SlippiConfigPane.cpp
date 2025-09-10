@@ -101,6 +101,10 @@ void SlippiNetplayConfigPane::InitializeGUI()
 	    _("Make inputs feel more console-like for overclocked GCC to USB "
 	      "adapters at the cost of 1.6ms of input lag (2ms for single-port official adapter)."));
 
+	m_slippi_show_player_rank =
+	    new wxCheckBox(this, wxID_ANY, _("Show your rank (Character Select and Ranked Setup Screen)"));
+	m_slippi_show_opponent_rank = new wxCheckBox(this, wxID_ANY, _("Show opponent's rank (Ranked Setup Screen)"));
+
 	m_slippi_jukebox_enabled_checkbox = new wxCheckBox(this, wxID_ANY, _("Enable Music"));
 
 	// WASAPI does not work with this and we want a note for the user.
@@ -180,6 +184,17 @@ void SlippiNetplayConfigPane::InitializeGUI()
 	main_sizer->Add(sbSlippiInputSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	main_sizer->AddSpacer(space5);
 
+	wxStaticBoxSizer *const sbRankSettings =
+	    new wxStaticBoxSizer(wxVERTICAL, this, _("Rank Settings"));
+	sbRankSettings->AddSpacer(space5);
+	sbRankSettings->Add(m_slippi_show_player_rank, 0, wxLEFT | wxRIGHT, space5);
+	sbRankSettings->AddSpacer(space5);
+	sbRankSettings->Add(m_slippi_show_opponent_rank, 0, wxLEFT | wxRIGHT, space5);
+	sbRankSettings->AddSpacer(space5);
+
+	main_sizer->Add(sbRankSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
+	main_sizer->AddSpacer(space5);
+
 	wxStaticBoxSizer *const sbSlippiJukeboxSettings =
 	    new wxStaticBoxSizer(wxVERTICAL, this, _("Slippi Jukebox Settings (Beta)"));
 	sbSlippiJukeboxSettings->AddSpacer(space5);
@@ -233,6 +248,9 @@ void SlippiNetplayConfigPane::LoadGUIValues()
 
 	m_reduce_timing_dispersion_checkbox->SetValue(startup_params.bReduceTimingDispersion);
 
+	m_slippi_show_player_rank->SetValue(startup_params.bSlippiPlayerRankDisplay);
+	m_slippi_show_opponent_rank->SetValue(startup_params.bSlippiOpponentRankDisplay);
+
 	m_slippi_jukebox_enabled_checkbox->SetValue(enableJukebox);
 	m_slippi_jukebox_volume_slider->SetValue(startup_params.iSlippiJukeboxVolume);
 	m_jukebox_volume_text->SetLabel(wxString::Format("%d %%", startup_params.iSlippiJukeboxVolume));
@@ -266,6 +284,9 @@ void SlippiNetplayConfigPane::BindEvents()
 
 	m_reduce_timing_dispersion_checkbox->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnReduceTimingDispersionToggle,
 	                                          this);
+
+	m_slippi_show_player_rank->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnToggleShowPlayerRank, this);
+	m_slippi_show_opponent_rank->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnToggleShowOpponentRank, this);
 
 	m_slippi_jukebox_enabled_checkbox->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnToggleJukeboxEnabled, this);
 	m_slippi_jukebox_volume_slider->Bind(wxEVT_SLIDER, &SlippiNetplayConfigPane::OnJukeboxVolumeUpdate, this);
@@ -351,6 +372,16 @@ void SlippiNetplayConfigPane::OnNetplayLanIpChanged(wxCommandEvent &event)
 void SlippiNetplayConfigPane::OnReduceTimingDispersionToggle(wxCommandEvent &event)
 {
 	SConfig::GetInstance().bReduceTimingDispersion = m_reduce_timing_dispersion_checkbox->GetValue();
+}
+
+void SlippiNetplayConfigPane::OnToggleShowPlayerRank(wxCommandEvent &event)
+{
+	SConfig::GetInstance().bSlippiPlayerRankDisplay = m_slippi_show_player_rank->GetValue();
+}
+
+void SlippiNetplayConfigPane::OnToggleShowOpponentRank(wxCommandEvent &event)
+{
+	SConfig::GetInstance().bSlippiOpponentRankDisplay = m_slippi_show_opponent_rank->GetValue();
 }
 
 void SlippiNetplayConfigPane::OnToggleJukeboxEnabled(wxCommandEvent &event)

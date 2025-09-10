@@ -804,15 +804,18 @@ std::string GetSysDirectory()
 	return sysDir;
 }
 
+// This returns the folder where certain configuration files are stored (i.e,
+// `user.json`, etc). 
+//
 // On Linux platforms, the user.json file lives in the XDG_CONFIG_HOME/SlippiOnline
 // directory in order to deal with the fact that we want the configuration for AppImage
 // builds to be mutable.
-std::string GetSlippiUserJSONPath()
+std::string GetSlippiUserConfigFolder()
 {
 #if defined(__APPLE__)
-	std::string userFilePath = File::GetApplicationSupportDirectory() + "/Slippi/user.json";
+	std::string userFilePath = File::GetApplicationSupportDirectory() + "/Slippi";
 #else
-	std::string userFilePath = File::GetUserPath(F_USERJSON_IDX);
+	std::string userFilePath = File::GetUserPath(D_SLIPPI_IDX);
 #endif
 	return userFilePath;
 }
