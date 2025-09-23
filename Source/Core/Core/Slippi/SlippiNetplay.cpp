@@ -924,6 +924,15 @@ void SlippiNetplayClient::ThreadFunc()
 	{
 		for (int i = 0; i < m_server.size(); i++)
 		{
+#ifdef __APPLE__
+			// Apple systems don't support SO_PRIORITY on BSD sockets, but they do support a flag for
+            // marking sockets as a specific type of traffic. `NET_SERVICE_TYPE_RV` should roughly
+            // correspond to "low delay tolerant, low-medium loss tolerant, elastic flow, variable
+            // packet interval, rate and size".
+			int srv_type = NET_SERVICE_TYPE_RV;
+			setsockopt(m_server[i]->host->socket, SOL_SOCKET, SO_NET_SERVICE_TYPE, &srv_type, sizeof(srv_type));
+#endif
+
 #ifdef __linux__
 			// highest priority
 			int priority = 7;
