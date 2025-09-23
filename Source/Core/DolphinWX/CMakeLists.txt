@@ -117,7 +117,7 @@ if(APPLE)
 endif()
 
 if(APPLE)
-	set(DOLPHIN_EXE_BASE "Slippi Dolphin")
+	set(DOLPHIN_EXE_BASE "SlippiDolphin")
 else()
 	set(DOLPHIN_EXE_BASE dolphin-emu)
 endif()
@@ -149,7 +149,7 @@ if(wxWidgets_FOUND)
 
 	if(APPLE)
 		include(BundleUtilities)
-		set(BUNDLE_PATH ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/"${DOLPHIN_EXE}".app)
+        set(BUNDLE_PATH ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/"Slippi Dolphin".app)
 		string(REPLACE "\"" "" BUNDLE_PATH_NO_QUOTES ${BUNDLE_PATH})
 
 		# Ask for an application bundle.
