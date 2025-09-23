@@ -346,6 +346,7 @@ jobs:
           CERTIFICATE_MACOS_APPLICATION: ${{ secrets.CERTIFICATE_MACOS_APPLICATION }}
         run: |
           export LIBRARY_PATH=$LIBRARY_PATH:/usr/local/lib
+          export CMAKE_POLICY_VERSION_MINIMUM=3.5
           chmod +x ./build-mac.sh && ./build-mac.sh ${{ matrix.build_config }}
           mkdir artifact
           FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-${{ matrix.artifact_name }}
