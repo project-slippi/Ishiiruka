@@ -2657,8 +2657,8 @@ void CEXISlippi::setMatchSelections(u8 *payload)
 		// If stage requested is random, select a random stage
 		s.stageId = getRandomStage();
 	}
-	INFO_LOG(SLIPPI, "LPS set char: %d, iSS: %d, %d, stage: %d, alt stage: %d, team: %d", 
-		s.isCharacterSelected, stageSelectOption, s.isStageSelected, s.stageId, s.alt_stage_mode, s.teamId);
+	INFO_LOG(SLIPPI, "LPS set char: %d, iSS: %d, %d, stage: %d, alt stage: %d, team: %d", s.isCharacterSelected,
+	         stageSelectOption, s.isStageSelected, s.stageId, s.alt_stage_mode, s.teamId);
 
 	s.rngOffset = generator() % 0xFFFF;
 
@@ -3157,7 +3157,7 @@ void CEXISlippi::handleCompleteSet(const SlippiExiTypes::ReportSetCompletionQuer
 	}
 }
 
-void CEXISlippi::handleMatchStatusUpdate(const SlippiExiTypes::ReportMatchStatusUpdateQuery& query)
+void CEXISlippi::handleMatchStatusUpdate(const SlippiExiTypes::ReportMatchStatusUpdateQuery &query)
 {
 	auto lastMatchId = recentMmResult.id;
 	if (lastMatchId.find("mode.ranked") == std::string::npos)
@@ -3177,9 +3177,7 @@ void CEXISlippi::handleMatchStatusUpdate(const SlippiExiTypes::ReportMatchStatus
 	INFO_LOG(SLIPPI_ONLINE, "Reporting match status update: %s, Status: %s", lastMatchId.c_str(), statusString.c_str());
 
 	// Report asynchronously when called from the game
-	slprs_exi_device_report_match_status(
-		slprs_exi_device_ptr, lastMatchId.c_str(), statusString.c_str(), true
-	);
+	slprs_exi_device_report_match_status(slprs_exi_device_ptr, lastMatchId.c_str(), statusString.c_str(), true);
 }
 
 void CEXISlippi::handleGetPlayerSettings()
@@ -3419,7 +3417,8 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			handleCompleteSet(SlippiExiTypes::Convert<SlippiExiTypes::ReportSetCompletionQuery>(&memPtr[bufLoc]));
 			break;
 		case CMD_REPORT_MATCH_STATUS_UPDATE:
-			handleMatchStatusUpdate(SlippiExiTypes::Convert<SlippiExiTypes::ReportMatchStatusUpdateQuery>(&memPtr[bufLoc]));
+			handleMatchStatusUpdate(
+			    SlippiExiTypes::Convert<SlippiExiTypes::ReportMatchStatusUpdateQuery>(&memPtr[bufLoc]));
 			break;
 		case CMD_GET_PLAYER_SETTINGS:
 			handleGetPlayerSettings();
