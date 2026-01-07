@@ -326,6 +326,8 @@ jobs:
           sound-touch \
           hidapi \
           python@3.10
+          brew uninstall cmake
+          brew install performous/pinned_cmake3/cmake@3.31.7-3.31.7
 #         brew upgrade cmake
       - id: rust_ver
         name: Grab Rust Version
