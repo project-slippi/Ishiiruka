@@ -117,7 +117,7 @@ if(APPLE)
 endif()
 
 if(APPLE)
-	set(DOLPHIN_EXE_BASE "Slippi_Dolphin")
+	set(DOLPHIN_EXE_BASE "Slippi Dolphin")
 else()
 	set(DOLPHIN_EXE_BASE dolphin-emu)
 endif()
