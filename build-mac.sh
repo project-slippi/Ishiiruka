@@ -1,7 +1,7 @@
 #!/bin/bash -e
 # build-mac.sh
 
-CMAKE_FLAGS='-DCMAKE_POLICY_VERSION_MINIMUM=3.5'
+CMAKE_FLAGS=''
 
 PLAYBACK_CODES_PATH="./Data/PlaybackGeckoCodes/"
 
