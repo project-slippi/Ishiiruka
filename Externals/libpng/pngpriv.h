@@ -418,18 +418,22 @@
     */
 #  include <float.h>
 
-#  if (defined(__MWERKS__) && defined(macintosh)) || defined(applec) || \
-    defined(THINK_C) || defined(__SC__) || defined(TARGET_OS_MAC)
+/* This has to change for modern macOS/Clang - see: https://github.com/pnggroup/libpng/commit/893b8113f04d408cc6177c6de19c9889a48faa24 */
+/* If you want to build this project on older version of macOS, you may need to revert this check. */
+/*#  if (defined(__MWERKS__) && defined(macintosh)) || defined(applec) || \
+    defined(THINK_C) || defined(__SC__) || defined(TARGET_OS_MAC)*/
      /* We need to check that <math.h> hasn't already been included earlier
       * as it seems it doesn't agree with <fp.h>, yet we should really use
       * <fp.h> if possible.
       */
-#    if !defined(__MATH_H__) && !defined(__MATH_H) && !defined(__cmath__)
+/*#    if !defined(__MATH_H__) && !defined(__MATH_H) && !defined(__cmath__)
 #      include <fp.h>
 #    endif
 #  else
 #    include <math.h>
-#  endif
+#  endif*/
+# include <math.h>
+
 #  if defined(_AMIGA) && defined(__SASC) && defined(_M68881)
      /* Amiga SAS/C: We must include builtin FPU functions when compiling using
       * MATH=68881
