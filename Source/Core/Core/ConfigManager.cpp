@@ -262,6 +262,7 @@ void SConfig::SaveCoreSettings(IniFile &ini)
 	core->Set("CPUThread", bCPUThread);
 	core->Set("DSPHLE", bDSPHLE);
 	core->Set("SyncOnSkipIdle", bSyncGPUOnSkipIdleHack);
+	core->Set("SkipIdle", bSkipIdle);
 	core->Set("SyncGPU", bSyncGPU);
 	core->Set("SyncGpuMaxDistance", iSyncGpuMaxDistance);
 	core->Set("SyncGpuMinDistance", iSyncGpuMinDistance);
@@ -615,6 +616,7 @@ void SConfig::LoadCoreSettings(IniFile &ini)
 	core->Get("TimingVariance", &iTimingVariance, 8);
 	core->Get("CPUThread", &bCPUThread, true);
 	core->Get("SyncOnSkipIdle", &bSyncGPUOnSkipIdleHack, true);
+	core->Get("SkipIdle", &bSkipIdle, true);
 	core->Get("DefaultISO", &m_strDefaultISO);
 	core->Get("BootDefaultISO", &bBootDefaultISO, false);
 	core->Get("DVDRoot", &m_strDVDRoot);
@@ -838,6 +840,7 @@ void SConfig::LoadDefaults()
 	bCPUThread = true;
 #endif
 	bSyncGPUOnSkipIdleHack = true;
+	bSkipIdle = true;
 	bRunCompareServer = false;
 	bDSPHLE = true;
 	bFastmem = true;

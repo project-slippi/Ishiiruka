@@ -62,6 +62,12 @@ typedef x86_thread_state64_t SContext;
 #define CTX_R14 __r14
 #define CTX_R15 __r15
 #define CTX_RIP __rip
+#elif _M_ARM_64
+#include <signal.h>
+typedef _STRUCT_MCONTEXT64 SContext;
+#define CTX_REG(x) __ss.__x[x]
+#define CTX_SP __ss.__sp
+#define CTX_PC __ss.__pc
 #else
 #error No context definition for architecture
 #endif

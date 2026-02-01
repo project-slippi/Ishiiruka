@@ -213,7 +213,7 @@ elseif(_ARCH_64 AND (
 	${CMAKE_SYSTEM_PROCESSOR} MATCHES "^x86" OR
 	${CMAKE_SYSTEM_PROCESSOR} MATCHES "i.86" OR
 	${CMAKE_SYSTEM_PROCESSOR} MATCHES "amd64" OR
-	APPLE
+	(APPLE AND CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
 ))
 	set(_M_X86 1)
 	set(_M_X86_64 1)
@@ -229,7 +229,7 @@ elseif(_ARCH_64 AND (
 			set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -nopie")
 		endif()
 	endif()
-elseif(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "aarch64")
+elseif(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "aarch64" OR ${CMAKE_SYSTEM_PROCESSOR} STREQUAL "arm64")
 	set(_M_ARM 1)
 	set(_M_ARM_64 1)
 	add_definitions(-D_M_ARM=1 -D_M_ARM_64=1)
@@ -298,35 +298,31 @@ if(APPLE)
 		set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH};/usr")
 	endif()
 
-	# Identify the target system:
-	# Ask for 64-bit binary.
-	set(TARGET_FLAGS "-arch x86_64")
-	# Minimum OS X version.
-	# This is inserted into the Info.plist as well.
-	# Note that the SDK determines the maximum version of which optional
-	# features can be used, not the minimum required version to run.
+	# Identify the target system and minimum OS X version.
 	set(OSX_MIN_VERSION "10.13")
 	# set(CMAKE_OSX_SYSROOT "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk")
 	set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13")
-	set(TARGET_FLAGS "${TARGET_FLAGS} -mmacosx-version-min=${OSX_MIN_VERSION}")
+	if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+		set(TARGET_FLAGS "-arch x86_64 -mmacosx-version-min=${OSX_MIN_VERSION}")
+		set(TARGET_FLAGS "${TARGET_FLAGS} -mssse3 -march=core2")
+	elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
+		set(TARGET_FLAGS "-arch arm64 -mmacosx-version-min=${OSX_MIN_VERSION}")
+	else()
+		message(FATAL_ERROR "Unsupported macOS architecture: ${CMAKE_SYSTEM_PROCESSOR}")
+	endif()
 	# Do not warn about frameworks that are not available on all architectures.
-	# This avoids a warning when linking with QuickTime.
 	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-no_arch_warnings")
-	# Specify target CPUs.
-	set(TARGET_FLAGS "${TARGET_FLAGS} -mssse3")
-	set(TARGET_FLAGS "${TARGET_FLAGS} -march=core2")
 	# Target flags apply to both C and C++ compilation.
-	# CMake passes these to the compiler on the link command line as well.
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${TARGET_FLAGS}")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TARGET_FLAGS} -D__ASSERT_MACROS_DEFINE_VERSIONS_WITHOUT_UNDERSCORES=1")
 
 	# Linker flags.
-	# Drop unreachable code and data.
 	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-dead_strip,-dead_strip_dylibs")
-	# Reserve the minimum size for the zero page.
-	# Our JIT requires virtual memory space below 2GB, while the default zero
-	# page on x86_64 is 4GB in size.
-	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-segalign,0x1000,-pagezero_size,0x1000")
+	if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+		# Reserve the minimum size for the zero page (x86_64 only).
+		# Our JIT requires virtual memory space below 2GB.
+		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-segalign,0x1000,-pagezero_size,0x1000")
+	endif()
 
 	find_library(APPKIT_LIBRARY AppKit)
 	find_library(APPSERV_LIBRARY ApplicationServices)

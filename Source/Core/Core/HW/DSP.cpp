@@ -486,6 +486,12 @@ void UpdateAudioDMA()
 	}
 }
 
+void FlushInstantDMA(u32 addr)
+{
+	// No-op: ARAM DMA is completed asynchronously via CoreTiming. JIT may call this on dcbi.
+	(void)addr;
+}
+
 static void Do_ARAM_DMA()
 {
 	g_dspState.DMAState = 1;

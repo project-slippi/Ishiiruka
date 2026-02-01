@@ -100,6 +100,12 @@ void UninstallExceptionHandler()
 
 #elif defined(__APPLE__) && !defined(USE_SIGACTION_ON_APPLE)
 
+#if _M_X86_64
+#include <mach/i386/thread_status.h>
+#elif _M_ARM_64
+#include <mach/arm/thread_status.h>
+#endif
+
 static void CheckKR(const char* name, kern_return_t kr)
 {
 	if (kr)
@@ -108,6 +114,7 @@ static void CheckKR(const char* name, kern_return_t kr)
 	}
 }
 
+#if _M_X86_64
 static void ExceptionThread(mach_port_t port)
 {
 	Common::SetCurrentThreadName("Mach exception thread");
@@ -137,22 +144,16 @@ static void ExceptionThread(mach_port_t port)
 #pragma pack()
 	memset(&msg_in, 0xee, sizeof(msg_in));
 	memset(&msg_out, 0xee, sizeof(msg_out));
-	//mach_msg_header_t* send_msg = nullptr;
 	mach_msg_size_t send_size = 0;
 	mach_msg_option_t option = MACH_RCV_MSG;
 	while (true)
 	{
-		// If this isn't the first run, send the reply message.  Then, receive
-		// a message: either a mach_exception_raise_state RPC due to
-		// thread_set_exception_ports, or MACH_NOTIFY_NO_SENDERS due to
-		// mach_port_request_notification.
 		CheckKR("mach_msg_overwrite",
 			mach_msg_overwrite(&msg_out.Head, option, send_size, sizeof(msg_in), port,
 				MACH_MSG_TIMEOUT_NONE, MACH_PORT_NULL, &msg_in.Head, 0));
 
 		if (msg_in.Head.msgh_id == MACH_NOTIFY_NO_SENDERS)
 		{
-			// the other thread exited
 			mach_port_destroy(mach_task_self(), port);
 			return;
 		}
@@ -170,10 +171,8 @@ static void ExceptionThread(mach_port_t port)
 		}
 
 		x86_thread_state64_t* state = (x86_thread_state64_t*)msg_in.old_state;
-
 		bool ok = JitInterface::HandleFault((uintptr_t)msg_in.code[1], state);
 
-		// Set up the reply.
 		msg_out.Head.msgh_bits = MACH_MSGH_BITS(MACH_MSGH_BITS_REMOTE(msg_in.Head.msgh_bits), 0);
 		msg_out.Head.msgh_remote_port = msg_in.Head.msgh_remote_port;
 		msg_out.Head.msgh_local_port = MACH_PORT_NULL;
@@ -188,36 +187,123 @@ static void ExceptionThread(mach_port_t port)
 		}
 		else
 		{
-			// Pass the exception to the next handler (debugger or crash).
 			msg_out.RetCode = KERN_FAILURE;
 			msg_out.flavor = 0;
 			msg_out.new_stateCnt = 0;
 		}
 		msg_out.Head.msgh_size =
 			offsetof(__typeof__(msg_out), new_state) + msg_out.new_stateCnt * sizeof(natural_t);
-
-		//send_msg = &msg_out.Head;
 		send_size = msg_out.Head.msgh_size;
 		option |= MACH_SEND_MSG;
 	}
 }
+#elif _M_ARM_64
+static void ExceptionThread(mach_port_t port)
+{
+	Common::SetCurrentThreadName("Mach exception thread");
+#pragma pack(4)
+	struct
+	{
+		mach_msg_header_t Head;
+		NDR_record_t NDR;
+		exception_type_t exception;
+		mach_msg_type_number_t codeCnt;
+		int64_t code[2];
+		int flavor;
+		mach_msg_type_number_t old_stateCnt;
+		natural_t old_state[ARM_THREAD_STATE64_COUNT];
+		mach_msg_trailer_t trailer;
+	} msg_in;
+
+	struct
+	{
+		mach_msg_header_t Head;
+		NDR_record_t NDR;
+		kern_return_t RetCode;
+		int flavor;
+		mach_msg_type_number_t new_stateCnt;
+		natural_t new_state[ARM_THREAD_STATE64_COUNT];
+	} msg_out;
+#pragma pack()
+	memset(&msg_in, 0xee, sizeof(msg_in));
+	memset(&msg_out, 0xee, sizeof(msg_out));
+	mach_msg_size_t send_size = 0;
+	mach_msg_option_t option = MACH_RCV_MSG;
+	while (true)
+	{
+		CheckKR("mach_msg_overwrite",
+			mach_msg_overwrite(&msg_out.Head, option, send_size, sizeof(msg_in), port,
+				MACH_MSG_TIMEOUT_NONE, MACH_PORT_NULL, &msg_in.Head, 0));
+
+		if (msg_in.Head.msgh_id == MACH_NOTIFY_NO_SENDERS)
+		{
+			mach_port_destroy(mach_task_self(), port);
+			return;
+		}
+
+		if (msg_in.Head.msgh_id != 2406)
+		{
+			PanicAlert("unknown message received");
+			return;
+		}
+
+		if (msg_in.flavor != ARM_THREAD_STATE64)
+		{
+			PanicAlert("unknown flavor %d (expected %d)", msg_in.flavor, ARM_THREAD_STATE64);
+			return;
+		}
+
+		// SContext on ARM64 is _STRUCT_MCONTEXT64; build it from thread state (__ss).
+		SContext ctx;
+		memset(&ctx, 0, sizeof(ctx));
+		ctx.__ss = *(arm_thread_state64_t*)msg_in.old_state;
+		bool ok = JitInterface::HandleFault((uintptr_t)msg_in.code[1], &ctx);
+
+		msg_out.Head.msgh_bits = MACH_MSGH_BITS(MACH_MSGH_BITS_REMOTE(msg_in.Head.msgh_bits), 0);
+		msg_out.Head.msgh_remote_port = msg_in.Head.msgh_remote_port;
+		msg_out.Head.msgh_local_port = MACH_PORT_NULL;
+		msg_out.Head.msgh_id = msg_in.Head.msgh_id + 100;
+		msg_out.NDR = msg_in.NDR;
+		if (ok)
+		{
+			msg_out.RetCode = KERN_SUCCESS;
+			msg_out.flavor = ARM_THREAD_STATE64;
+			msg_out.new_stateCnt = ARM_THREAD_STATE64_COUNT;
+			memcpy(msg_out.new_state, &ctx.__ss, ARM_THREAD_STATE64_COUNT * sizeof(natural_t));
+		}
+		else
+		{
+			msg_out.RetCode = KERN_FAILURE;
+			msg_out.flavor = 0;
+			msg_out.new_stateCnt = 0;
+		}
+		msg_out.Head.msgh_size =
+			offsetof(__typeof__(msg_out), new_state) + msg_out.new_stateCnt * sizeof(natural_t);
+		send_size = msg_out.Head.msgh_size;
+		option |= MACH_SEND_MSG;
+	}
+}
+#endif
 
 void InstallExceptionHandler()
 {
+#if _M_X86_64
+	const thread_state_flavor_t flavor = x86_THREAD_STATE64;
+#elif _M_ARM_64
+	const thread_state_flavor_t flavor = ARM_THREAD_STATE64;
+#else
+	#error Unsupported Apple architecture for Mach exception handler
+#endif
 	mach_port_t port;
 	CheckKR("mach_port_allocate",
 		mach_port_allocate(mach_task_self(), MACH_PORT_RIGHT_RECEIVE, &port));
 	std::thread exc_thread(ExceptionThread, port);
 	exc_thread.detach();
-	// Obtain a send right for thread_set_exception_ports to copy...
 	CheckKR("mach_port_insert_right",
 		mach_port_insert_right(mach_task_self(), port, port, MACH_MSG_TYPE_MAKE_SEND));
-	// Mach tries the following exception ports in order: thread, task, host.
-	// Debuggers set the task port, so we grab the thread port.
 	CheckKR("thread_set_exception_ports",
 		thread_set_exception_ports(mach_thread_self(), EXC_MASK_BAD_ACCESS, port,
-			EXCEPTION_STATE | MACH_EXCEPTION_CODES, x86_THREAD_STATE64));
-	// ...and get rid of our copy so that MACH_NOTIFY_NO_SENDERS works.
+			EXCEPTION_STATE | MACH_EXCEPTION_CODES, flavor));
 	CheckKR("mach_port_mod_refs",
 		mach_port_mod_refs(mach_task_self(), port, MACH_PORT_RIGHT_SEND, -1));
 	mach_port_t previous;

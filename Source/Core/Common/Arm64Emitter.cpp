@@ -6,6 +6,7 @@
 #include <cstring>
 #include <vector>
 
+#include "Common/Align.h"
 #include "Common/Arm64Emitter.h"
 #include "Common/Assert.h"
 #include "Common/CommonTypes.h"
@@ -1993,7 +1994,7 @@ void ARM64XEmitter::ABI_PushRegisters(BitSet32 registers)
 		bool first = true;
 
 		// Stack is required to be quad-word aligned.
-		u32 stack_size = ROUND_UP(num_regs * 8, 16);
+		u32 stack_size = Common::AlignUp(static_cast<u32>(num_regs * 8), 16u);
 		u32 current_offset = 0;
 		std::vector<ARM64Reg> reg_pair;
 

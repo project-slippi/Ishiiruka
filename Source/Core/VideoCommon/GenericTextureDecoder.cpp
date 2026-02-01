@@ -15,17 +15,36 @@
 // Official SVN repository and contact information can be found at
 // http://code.google.com/p/dolphin-emu/
 
-#include "Common.h"
+#include "Common/Common.h"
 //#include "VideoCommon.h" // to get debug logs
 
-#include "CPUDetect.h"
+#include "Common/CPUDetect.h"
 #include "TextureDecoder.h"
+#include "VideoConfig.h"
+#ifndef USE_OPENCL
+// Stub when OpenCL is not in the build (e.g. ARM64 macOS)
+static PC_TexFormat TexDecoder_Decode_OpenCL(u8* dst, const u8* src, int width, int height,
+                                             int texformat, int tlutaddr, TlutFormat tlutfmt,
+                                             bool rgba)
+{
+	(void)dst;
+	(void)src;
+	(void)width;
+	(void)height;
+	(void)texformat;
+	(void)tlutaddr;
+	(void)tlutfmt;
+	(void)rgba;
+	return PC_TEX_FMT_NONE;
+}
+#else
 #include "OpenCL.h"
 #include "OpenCL/OCLTextureDecoder.h"
-#include "VideoConfig.h"
+#endif
 
 #include "LookUpTables.h"
 
+#include <algorithm>
 #include <cmath>
 
 
@@ -39,7 +58,7 @@ extern const unsigned char sfont_raw[][9*10];
 
 // TRAM
 // STATE_TO_SAVE
- GC_ALIGNED16(u8 texMem[TMEM_SIZE]);
+alignas(16) u8 texMem[TMEM_SIZE];
 
 
 // Gamecube/Wii texture decoder
@@ -47,7 +66,7 @@ extern const unsigned char sfont_raw[][9*10];
 // Decodes all known Gamecube/Wii texture formats.
 // by ector
 
-s32 TexDecoder_GetTexelSizeInNibbles(s32 format)
+u32 TexDecoder_GetTexelSizeInNibbles(u32 format)
 {
 	switch (format & 0x3f) {
 	case GX_TF_I4: return 1;   
@@ -84,12 +103,12 @@ s32 TexDecoder_GetTexelSizeInNibbles(s32 format)
 	}
 }
 
-s32 TexDecoder_GetTextureSizeInBytes(s32 width, s32 height, s32 format)
+u32 TexDecoder_GetTextureSizeInBytes(u32 width, u32 height, u32 format)
 {
 	return (width * height * TexDecoder_GetTexelSizeInNibbles(format)) / 2;
 }
 
-s32 TexDecoder_GetBlockWidthInTexels(u32 format)
+u32 TexDecoder_GetBlockWidthInTexels(u32 format)
 {
 	switch (format)
 	{
@@ -126,7 +145,7 @@ s32 TexDecoder_GetBlockWidthInTexels(u32 format)
 	}
 }
 
-s32 TexDecoder_GetBlockHeightInTexels(u32 format)
+u32 TexDecoder_GetBlockHeightInTexels(u32 format)
 {
 	switch (format)
 	{
@@ -164,7 +183,7 @@ s32 TexDecoder_GetBlockHeightInTexels(u32 format)
 }
 
 //returns bytes
-s32 TexDecoder_GetPaletteSize(s32 format)
+u32 TexDecoder_GetPaletteSize(u32 format)
 {
 	switch (format)
 	{
@@ -173,6 +192,52 @@ s32 TexDecoder_GetPaletteSize(s32 format)
 	case GX_TF_C14X2: return 16384 * 2;
 	default:
 		return 0;
+	}
+}
+
+u32 TexDecoder_GetEfbCopyBaseFormat(u32 format)
+{
+	switch (format)
+	{
+	case GX_TF_I4:
+	case GX_CTF_Z4:
+	case GX_CTF_R4:
+		return GX_TF_I4;
+	case GX_TF_I8:
+	case GX_CTF_A8:
+	case GX_CTF_R8:
+	case GX_CTF_G8:
+	case GX_CTF_B8:
+	case GX_TF_Z8:
+	case GX_CTF_Z8H:
+	case GX_CTF_Z8M:
+	case GX_CTF_Z8L:
+		return GX_TF_I8;
+	case GX_TF_IA4:
+	case GX_CTF_RA4:
+		return GX_TF_IA4;
+	case GX_TF_IA8:
+	case GX_TF_Z16:
+	case GX_CTF_RA8:
+	case GX_CTF_RG8:
+	case GX_CTF_GB8:
+	case GX_CTF_Z16R:
+	case GX_CTF_Z16L:
+		return GX_TF_IA8;
+	case GX_TF_RGB565:
+		return GX_TF_RGB565;
+	case GX_TF_RGB5A3:
+		return GX_TF_RGB5A3;
+	case GX_TF_RGBA8:
+	case GX_TF_Z24X8:
+	case GX_CTF_YUVA8:
+		return GX_TF_RGBA8;
+	case GX_TF_C4:
+	case GX_TF_C8:
+	case GX_TF_C14X2:
+	case GX_TF_CMPR:
+	default:
+		return format & 0xf;
 	}
 }
 
@@ -648,6 +713,13 @@ PC_TexFormat GetPC_TexFormat(s32 texformat, s32 tlutfmt)
 	return PC_TEX_FMT_NONE;
 }
 
+// Public API matching TextureDecoder.h (used by OGL/Vulkan TextureCache)
+PC_TexFormat GetPC_TexFormat(u32 texformat, TlutFormat tlutfmt, bool compressed_supported)
+{
+	(void)compressed_supported;
+	return GetPC_TexFormat(static_cast<s32>(texformat), static_cast<s32>(tlutfmt));
+}
+
 
 //switch endianness, unswizzle
 //TODO: to save memory, don't blindly convert everything to argb8888
@@ -1058,7 +1130,7 @@ void TexDecoder_SetTexFmtOverlayOptions(bool enable, bool center)
 	TexFmt_Overlay_Center = center;
 }
 
-PC_TexFormat TexDecoder_Decode(u8 *dst, const u8 *src, s32 width, s32 height, s32 texformat, s32 tlutaddr, s32 tlutfmt,bool rgbaOnly)
+PC_TexFormat TexDecoder_Decode(u8 *dst, const u8 *src, u32 width, u32 height, u32 texformat, u32 tlutaddr, TlutFormat tlutfmt, bool rgbaOnly, bool compressed_supported)
 {
 	PC_TexFormat retval = TexDecoder_Decode_OpenCL(dst, src,
 		width, height, texformat, tlutaddr, tlutfmt, rgbaOnly);
@@ -1071,8 +1143,8 @@ PC_TexFormat TexDecoder_Decode(u8 *dst, const u8 *src, s32 width, s32 height, s3
 	if ((!TexFmt_Overlay_Enable)|| (retval == PC_TEX_FMT_NONE))
 		return retval;
 
-	s32 w = min(width, 40);
-	s32 h = min(height, 10);
+	s32 w = std::min(width, 40u);
+	s32 h = std::min(height, 10u);
 
 	s32 xoff = (width - w) >> 1;
 	s32 yoff = (height - h) >> 1;
@@ -1144,7 +1216,7 @@ PC_TexFormat TexDecoder_Decode(u8 *dst, const u8 *src, s32 width, s32 height, s3
 
 
 
-void TexDecoder_DecodeTexel(u8 *dst, const u8 *src, s32 s, s32 t, s32 imageWidth, s32 texformat, s32 tlutaddr, s32 tlutfmt)
+void TexDecoder_DecodeTexel(u8 *dst, const u8 *src, u32 s, u32 t, u32 imageWidth, u32 texformat, const u16 *tlut, TlutFormat tlutfmt)
 {
 	/* General formula for computing texture offset
 	// 
@@ -1173,17 +1245,16 @@ void TexDecoder_DecodeTexel(u8 *dst, const u8 *src, s32 s, s32 t, s32 imageWidth
 			u32 offset = base + (blkOff >> 1);
 
 			u8 val = (*(src + offset) >> rs) & 0xF;
-			u16 *tlut = (u16*)(texMem + tlutaddr);
 
 			switch (tlutfmt)
 			{
-			case 0:
+			case GX_TL_IA8:
 				*((u32*)dst) = decodeIA8Swapped(tlut[val]);
 				break;
-			case 1:
+			case GX_TL_RGB565:
 				*((u32*)dst) = decode565RGBA(Common::swap16(tlut[val]));
 				break;
-			case 2:
+			case GX_TL_RGB5A3:
 				*((u32*)dst) = decode5A3RGBA(Common::swap16(tlut[val]));
 				break;
 			}
@@ -1238,17 +1309,16 @@ void TexDecoder_DecodeTexel(u8 *dst, const u8 *src, s32 s, s32 t, s32 imageWidth
 			u32 blkOff = (blkT << 3) + blkS;
 
 			u8 val = *(src + base + blkOff);
-			u16 *tlut = (u16*)(texMem + tlutaddr);
 
 			switch (tlutfmt)
 			{
-			case 0:
+			case GX_TL_IA8:
 				*((u32*)dst) = decodeIA8Swapped(tlut[val]);
 				break;
-			case 1:
+			case GX_TL_RGB565:
 				*((u32*)dst) = decode565RGBA(Common::swap16(tlut[val]));
 				break;
-			case 2:
+			case GX_TL_RGB5A3:
 				*((u32*)dst) = decode5A3RGBA(Common::swap16(tlut[val]));
 				break;
 			}
@@ -1303,17 +1373,16 @@ void TexDecoder_DecodeTexel(u8 *dst, const u8 *src, s32 s, s32 t, s32 imageWidth
 			const u16* valAddr = (u16*)(src + offset);
 
 			u16 val = Common::swap16(*valAddr) & 0x3FFF;
-			u16 *tlut = (u16*)(texMem + tlutaddr);
 
 			switch (tlutfmt)
 			{
-			case 0:
+			case GX_TL_IA8:
 				*((u32*)dst) = decodeIA8Swapped(tlut[val]);
 				break;
-			case 1:
+			case GX_TL_RGB565:
 				*((u32*)dst) = decode565RGBA(Common::swap16(tlut[val]));
 				break;
-			case 2:
+			case GX_TL_RGB5A3:
 				*((u32*)dst) = decode5A3RGBA(Common::swap16(tlut[val]));
 				break;
 			}
@@ -1436,7 +1505,7 @@ void TexDecoder_DecodeTexel(u8 *dst, const u8 *src, s32 s, s32 t, s32 imageWidth
 	}
 }
 
-void TexDecoder_DecodeTexelRGBA8FromTmem(u8 *dst, const u8 *src_ar, const u8* src_gb, s32 s, s32 t, s32 imageWidth)
+void TexDecoder_DecodeTexelRGBA8FromTmem(u8 *dst, const u8 *src_ar, const u8* src_gb, u32 s, u32 t, u32 imageWidth)
 {
 	u16 sBlk = s >> 2;
 	u16 tBlk = t >> 2;
@@ -1458,14 +1527,15 @@ void TexDecoder_DecodeTexelRGBA8FromTmem(u8 *dst, const u8 *src_ar, const u8* sr
 	dst[2] = val_addr_gb[1]; // B
 }
 
-PC_TexFormat TexDecoder_DecodeRGBA8FromTmem(u8* dst, const u8 *src_ar, const u8 *src_gb, s32 width, s32 height)
+PC_TexFormat TexDecoder_DecodeRGBA8FromTmem(u32* dst, const u8 *src_ar, const u8 *src_gb, u32 width, u32 height)
 {
 	// TODO for someone who cares: Make this less slow!
-	for (s32 y = 0; y < height; ++y)
-		for (s32 x = 0; x < width; ++x)
+	u8* dst8 = reinterpret_cast<u8*>(dst);
+	for (u32 y = 0; y < height; ++y)
+		for (u32 x = 0; x < width; ++x)
 		{
-			TexDecoder_DecodeTexelRGBA8FromTmem(dst, src_ar, src_gb, x, y, width-1);
-			dst += 4;
+			TexDecoder_DecodeTexelRGBA8FromTmem(dst8, src_ar, src_gb, x, y, width - 1);
+			dst8 += 4;
 		}
 
 	return PC_TEX_FMT_RGBA32;

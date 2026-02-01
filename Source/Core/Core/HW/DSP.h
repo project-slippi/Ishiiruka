@@ -81,4 +81,7 @@ u8* GetARAMPtr();
 void UpdateAudioDMA();
 void UpdateDSPSlice(int cycles);
 
+// Called from JIT when dcbi touches DSP-related state (no-op in current design)
+void FlushInstantDMA(u32 addr);
+
 }  // end of namespace DSP

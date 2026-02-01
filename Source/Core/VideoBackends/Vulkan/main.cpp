@@ -437,7 +437,12 @@ void VideoBackend::PrepareWindow(void *window_handle)
 	id view = reinterpret_cast<id>(window_handle);
 
 	CGRect (*sendRectFn)(id receiver, SEL operation);
+#if defined(__aarch64__) || defined(__arm64__)
+	// ARM64 uses objc_msgSend for struct returns; objc_msgSend_stret is x86-only.
+	sendRectFn = (CGRect(*)(id, SEL))objc_msgSend;
+#else
 	sendRectFn = (CGRect(*)(id, SEL))objc_msgSend_stret;
+#endif
 	CGRect frame = sendRectFn(view, sel_getUid("frame"));
 
 	Class SLPMetalLayerViewClass = getSLPMetalLayerViewClassType();

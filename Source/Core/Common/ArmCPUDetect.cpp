@@ -6,34 +6,49 @@
 #include <sstream>
 #include <string>
 #include <unistd.h>
-#include <asm/hwcap.h>
-#include <sys/auxv.h>
 
 #include "Common/CommonTypes.h"
 #include "Common/CPUDetect.h"
 #include "Common/StringUtil.h"
 
-const char procfile[] = "/proc/cpuinfo";
+#if defined(__linux__)
+#include <asm/hwcap.h>
+#include <sys/auxv.h>
+#endif
+
+#if defined(__APPLE__)
+#include <sys/sysctl.h>
+#endif
 
 static std::string GetCPUString()
 {
-	const std::string marker = "Hardware\t: ";
 	std::string cpu_string = "Unknown";
 
+#if defined(__linux__)
+	const char procfile[] = "/proc/cpuinfo";
+	const std::string marker = "Hardware\t: ";
 	std::string line;
 	std::ifstream file(procfile);
 
-	if (!file)
-		return cpu_string;
-
-	while (std::getline(file, line))
+	if (file)
 	{
-		if (line.find(marker) != std::string::npos)
+		while (std::getline(file, line))
 		{
-			cpu_string = line.substr(marker.length());
-			break;
+			if (line.find(marker) != std::string::npos)
+			{
+				cpu_string = line.substr(marker.length());
+				break;
+			}
 		}
 	}
+#elif defined(__APPLE__)
+	char model[256];
+	size_t len = sizeof(model);
+	if (sysctlbyname("machdep.cpu.brand_string", model, &len, nullptr, 0) == 0)
+		cpu_string = model;
+	else if (sysctlbyname("hw.model", model, &len, nullptr, 0) == 0)
+		cpu_string = model;
+#endif
 
 	return cpu_string;
 }
@@ -60,6 +75,7 @@ void CPUInfo::Detect()
 	num_cores = sysconf(_SC_NPROCESSORS_CONF);
 	strncpy(cpu_string, GetCPUString().c_str(), sizeof(cpu_string));
 
+#if defined(__linux__)
 	unsigned long hwcaps = getauxval(AT_HWCAP);
 	bFP = hwcaps & HWCAP_FP;
 	bASIMD = hwcaps & HWCAP_ASIMD;
@@ -67,6 +83,22 @@ void CPUInfo::Detect()
 	bCRC32 = hwcaps & HWCAP_CRC32;
 	bSHA1 = hwcaps & HWCAP_SHA1;
 	bSHA2 = hwcaps & HWCAP_SHA2;
+#elif defined(__APPLE__)
+	// macOS does not expose AT_HWCAP; Apple Silicon has standard ARMv8 features.
+	bFP = true;
+	bASIMD = true;
+	bAES = true;
+	bCRC32 = true;
+	bSHA1 = true;
+	bSHA2 = true;
+#else
+	bFP = true;
+	bASIMD = true;
+	bAES = false;
+	bCRC32 = false;
+	bSHA1 = false;
+	bSHA2 = false;
+#endif
 }
 
 // Turn the CPU info into a string we can show
