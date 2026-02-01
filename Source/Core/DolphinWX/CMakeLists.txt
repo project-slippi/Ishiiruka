@@ -160,9 +160,26 @@ if(wxWidgets_FOUND)
 		
 		# Link MoltenVK for the Vulkan (experimental) backend; the framework is
 		# added into the bundle in Tools/deploy-mac.py due to legacy build reasons.
-		find_library(MOLTENVK libvulkan.dylib PATHS ${CMAKE_SOURCE_DIR}/Externals/MoltenVK)
-		message("MoltenVK Path: ${MOLTENVK}")
-		target_link_libraries("${DOLPHIN_EXE}" ${MOLTENVK})
+		# On Apple Silicon the bundled Externals/MoltenVK is x86_64-only; use Vulkan SDK or system.
+		if(CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+			# Prefer VULKAN_SDK (e.g. from LunarG macOS SDK installer) so we get arm64 libvulkan.dylib.
+			# Unset cache so a re-run of cmake with VULKAN_SDK set picks up the SDK instead of cached Externals path.
+			if(DEFINED ENV{VULKAN_SDK})
+				unset(MOLTENVK CACHE)
+				find_library(MOLTENVK libvulkan.dylib PATHS "$ENV{VULKAN_SDK}/lib" "$ENV{VULKAN_SDK}/macOS/lib" NO_DEFAULT_PATH)
+			endif()
+			if(NOT MOLTENVK)
+				find_library(MOLTENVK NAMES vulkan libvulkan.dylib)
+			endif()
+		else()
+			find_library(MOLTENVK libvulkan.dylib PATHS ${CMAKE_SOURCE_DIR}/Externals/MoltenVK)
+		endif()
+		if(NOT MOLTENVK)
+			message(WARNING "MoltenVK/libvulkan.dylib not found. Vulkan backend will not link. On Apple Silicon, install Vulkan SDK and set VULKAN_SDK.")
+		else()
+			message(STATUS "MoltenVK Path: ${MOLTENVK}")
+			target_link_libraries("${DOLPHIN_EXE}" ${MOLTENVK})
+		endif()
 
 		# get rid of any old copies
 		file (REMOVE_RECURSE ${BUNDLE_PATH}/Contents/Resources/Sys)

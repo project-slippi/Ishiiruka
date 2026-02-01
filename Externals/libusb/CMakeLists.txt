@@ -66,14 +66,20 @@ if(UNIX)
         libusb/os/poll_posix.c
         libusb/os/threads_posix.c
     )
-    find_package(Threads REQUIRED)
-    if(THREADS_HAVE_PTHREAD_ARG)
-      target_compile_options(usb PUBLIC "-pthread")
+    if(APPLE)
+        # macOS: pthread is in the system runtime; FindThreads try_compile often fails with Xcode
+        target_compile_options(usb PUBLIC "-pthread")
+        set(THREADS_POSIX TRUE)
+    else()
+        find_package(Threads REQUIRED)
+        if(THREADS_HAVE_PTHREAD_ARG)
+          target_compile_options(usb PUBLIC "-pthread")
+        endif()
+        if(CMAKE_THREAD_LIBS_INIT)
+          target_link_libraries(usb PRIVATE "${CMAKE_THREAD_LIBS_INIT}")
+        endif()
+        set(THREADS_POSIX TRUE)
     endif()
-    if(CMAKE_THREAD_LIBS_INIT)
-      target_link_libraries(usb PRIVATE "${CMAKE_THREAD_LIBS_INIT}")
-    endif()
-    set(THREADS_POSIX TRUE)
 elseif(WIN32)
     target_sources(usb PRIVATE
         libusb/os/poll_windows.c
