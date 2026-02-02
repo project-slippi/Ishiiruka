@@ -310,16 +310,16 @@ void CEXIIPL::TransferByte(u8& _uByte)
 		{
 		case REGION_RTC:
 			if (IsWriteCommand())
-				m_RTC[(m_uAddress & 0x03) + m_uRWOffset] = _uByte;
+				m_RTC[((m_uAddress & 0x03) + m_uRWOffset) % 4] = _uByte;
 			else
-				_uByte = m_RTC[(m_uAddress & 0x03) + m_uRWOffset];
+				_uByte = m_RTC[((m_uAddress & 0x03) + m_uRWOffset) % 4];
 			break;
 
 		case REGION_SRAM:
 			if (IsWriteCommand())
-				g_SRAM.p_SRAM[(m_uAddress & 0x3F) + m_uRWOffset] = _uByte;
+				g_SRAM.p_SRAM[((m_uAddress & 0x3F) + m_uRWOffset) % 64] = _uByte;
 			else
-				_uByte = g_SRAM.p_SRAM[(m_uAddress & 0x3F) + m_uRWOffset];
+				_uByte = g_SRAM.p_SRAM[((m_uAddress & 0x3F) + m_uRWOffset) % 64];
 			break;
 
 		case REGION_UART:
@@ -365,7 +365,7 @@ void CEXIIPL::TransferByte(u8& _uByte)
 			{
 				if (!IsWriteCommand())
 				{
-					u32 position = ((m_uAddress >> 6) & ROM_MASK) + m_uRWOffset;
+					u32 position = (((m_uAddress >> 6) & ROM_MASK) + m_uRWOffset) % ROM_SIZE;
 
 					// Technically we should descramble here iff descrambling logic is enabled.
 					// At the moment, we pre-decrypt the whole thing and

@@ -289,7 +289,7 @@ jobs:
             artifact_name: macOS-playback
             build_config: playback
     name: "macOS ${{ matrix.build_type }}"
-    runs-on: macos-13
+    runs-on: macos-15-intel
     steps:
       - name: "Checkout"
         uses: actions/checkout@v3
@@ -326,6 +326,8 @@ jobs:
           sound-touch \
           hidapi \
           python@3.10
+          brew uninstall cmake
+          brew install performous/pinned_cmake3/cmake@3.31.7
 #         brew upgrade cmake
       - id: rust_ver
         name: Grab Rust Version
