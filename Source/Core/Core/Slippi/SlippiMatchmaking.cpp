@@ -280,6 +280,33 @@ void SlippiMatchmaking::startMatchmaking()
 	m_client = nullptr;
 
 	int retryCount = 0;
+
+	// If IsFixedRules mode, don't allow ISO's that are known to desync
+	if (IsFixedRulesMode(m_searchSettings.mode))
+	{
+		auto check = slprs_get_iso_md5_check(slprs_exi_device_ptr);
+		while (check.result == 0)
+		{
+			Common::SleepCurrentThread(500);
+			retryCount++;
+			if (retryCount > 10)
+			{
+				m_state = ProcessState::ERROR_ENCOUNTERED;
+				m_errorMsg = "Could not validate ISO";
+				return;
+			}
+			check = slprs_get_iso_md5_check(slprs_exi_device_ptr);
+		}
+
+		if (check.result == 2)
+		{
+			m_state = ProcessState::ERROR_ENCOUNTERED;
+			m_errorMsg = "Cannot queue for this mode with a modded ISO known to desync";
+			return;
+		}
+	}
+	
+	retryCount = 0;
 	auto userInfo = m_user->GetUserInfo();
 	while (m_client == nullptr && retryCount < 15)
 	{
