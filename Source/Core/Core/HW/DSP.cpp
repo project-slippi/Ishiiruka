@@ -450,9 +450,30 @@ void UpdateDSPSlice(int cycles)
 	}
 }
 
+#define OPTIMIZATION__ASSUME_NO_DMA_RACE 1
+
+// Possibly Melee-specific optimisation:
+// 
+// UpdateAudioDMA is called as the the audio samples are DMAd away from a buffer over time
+// A 5ms long DMA is initiated every 5ms
+// 
+// We used to only forward the 5ms when the 5ms were fully transferred, (remaining block count 
+// zero), which is bad for latency.
+// The "technically correct" approach is to transmit the small data payloads as they arrive
+// But this is only necessary if the game makes the adventurous choice of modifying the DMA buffer
+// as it's being read from by the hardware, as a very low latency ring buffer approach would.
+// 
+// Melee doesn't do that, it just uses 2 buffers and alternates between them.
+// So, we can just forward the whole 5ms the moment the first samples from the new 5ms buffer
+// show up (remaining block count newly non-zero) and save 5ms.
+
 // This happens at 4 khz, since 32 bytes at 4khz = 4 bytes at 32 khz (16bit stereo pcm)
 void UpdateAudioDMA()
 {
+	#if OPTIMIZATION__ASSUME_NO_DMA_RACE
+	static bool armed = false;
+	#endif
+
 	static short zero_samples[8 * 2] = { 0 };
 	if (g_audioDMA.AudioDMAControl.Enable)
 	{
@@ -462,6 +483,15 @@ void UpdateAudioDMA()
 
 		if (g_audioDMA.remaining_blocks_count != 0)
 		{
+			#if OPTIMIZATION__ASSUME_NO_DMA_RACE
+			if (armed)
+			{
+				void *address = Memory::GetPointer(g_audioDMA.SourceAddress);
+				AudioCommon::SendAIBuffer((short *)address, g_audioDMA.AudioDMAControl.NumBlocks * 8);
+				armed = false;
+			}
+			#endif
+
 			g_audioDMA.remaining_blocks_count--;
 			g_audioDMA.current_source_address += 32;
 		}
@@ -473,9 +503,12 @@ void UpdateAudioDMA()
 
 			if (g_audioDMA.remaining_blocks_count != 0)
 			{
-				// We make the samples ready as soon as possible
+				#if OPTIMIZATION__ASSUME_NO_DMA_RACE
+				armed = true;
+				#else
 				void* address = Memory::GetPointer(g_audioDMA.SourceAddress);
 				AudioCommon::SendAIBuffer((short*)address, g_audioDMA.AudioDMAControl.NumBlocks * 8);
+				#endif
 			}
 			GenerateDSPInterrupt(DSP::INT_AID);
 		}
