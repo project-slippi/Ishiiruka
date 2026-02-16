@@ -36,6 +36,7 @@
 #include "Core/HW/ProcessorInterface.h"
 #include "Core/PowerPC/JitInterface.h"
 #include "Core/PowerPC/PowerPC.h"
+#include "Core/HW/SystemTimers.h"
 
 namespace DSP
 {
@@ -361,29 +362,20 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 	mmio->Register(
 		base | AUDIO_DMA_CONTROL_LEN, MMIO::DirectRead<u16>(&g_audioDMA.AudioDMAControl.Hex),
 		MMIO::ComplexWrite<u16>([](u32, u16 val) {
-		bool already_enabled = g_audioDMA.AudioDMAControl.Enable;
+
+		// current & remaining variables unused when pushing everything from DMA start bit writes, but let's keep the initial values synced anyway...
 		g_audioDMA.AudioDMAControl.Hex = val;
+		g_audioDMA.current_source_address = g_audioDMA.SourceAddress;
+		g_audioDMA.remaining_blocks_count = g_audioDMA.AudioDMAControl.NumBlocks;
 
-		// Only load new values if were not already doing a DMA transfer,
-		// otherwise just let the new values be autoloaded in when the
-		// current transfer ends.
-		if (!already_enabled && g_audioDMA.AudioDMAControl.Enable)
-		{
-			g_audioDMA.current_source_address = g_audioDMA.SourceAddress;
-			g_audioDMA.remaining_blocks_count = g_audioDMA.AudioDMAControl.NumBlocks;
+		void* address = Memory::GetPointer(g_audioDMA.SourceAddress);
+		AudioCommon::SendAIBuffer((short*)address, g_audioDMA.AudioDMAControl.NumBlocks * 8);
 
-			INFO_LOG(AUDIO_INTERFACE, "Audio DMA configured: %i blocks from 0x%08x",
-				g_audioDMA.AudioDMAControl.NumBlocks, g_audioDMA.SourceAddress);
-
-			// We make the samples ready as soon as possible
-			void* address = Memory::GetPointer(g_audioDMA.SourceAddress);
-			AudioCommon::SendAIBuffer((short*)address, g_audioDMA.AudioDMAControl.NumBlocks * 8);
-
-			// TODO: need hardware tests for the timing of this interrupt.
-			// Sky Crawlers crashes at boot if this is scheduled less than 87 cycles in the future.
-			// Other Namco games crash too, see issue 9509. For now we will just push it to 200 cycles
-			CoreTiming::ScheduleEvent(200, et_GenerateDSPInterrupt, INT_AID);
-		}
+		// AID interrupts will be scheduled on multiples of 5ms. Pace origin doesn't matter, only the period being 5ms
+		u64 ticks = CoreTiming::GetTicks();
+		const u64 cpu5Ms = 5 * SystemTimers::GetTicksPerSecond() / 1000;
+		const u64 ticksInFuture = ticks / cpu5Ms * cpu5Ms + cpu5Ms - ticks; // next multiple of 5 cpu ms after current tick
+		CoreTiming::ScheduleEvent(ticksInFuture, et_GenerateDSPInterrupt, INT_AID);
 	}));
 
 	// Audio DMA blocks remaining is invalid to write to, and requires logic on
@@ -447,75 +439,6 @@ void UpdateDSPSlice(int cycles)
 	else
 	{
 		dsp_emulator->DSP_Update(cycles);
-	}
-}
-
-#define OPTIMIZATION__ASSUME_NO_DMA_RACE 1
-
-// Possibly Melee-specific optimisation:
-// 
-// UpdateAudioDMA is called as the the audio samples are DMAd away from a buffer over time
-// A 5ms long DMA is initiated every 5ms
-// 
-// We used to only forward the 5ms when the 5ms were fully transferred, (remaining block count 
-// zero), which is bad for latency.
-// The "technically correct" approach is to transmit the small data payloads as they arrive
-// But this is only necessary if the game makes the adventurous choice of modifying the DMA buffer
-// as it's being read from by the hardware, as a very low latency ring buffer approach would.
-// 
-// Melee doesn't do that, it just uses 2 buffers and alternates between them.
-// So, we can just forward the whole 5ms the moment the first samples from the new 5ms buffer
-// show up (remaining block count newly non-zero) and save 5ms.
-
-// This happens at 4 khz, since 32 bytes at 4khz = 4 bytes at 32 khz (16bit stereo pcm)
-void UpdateAudioDMA()
-{
-	#if OPTIMIZATION__ASSUME_NO_DMA_RACE
-	static bool armed = false;
-	#endif
-
-	static short zero_samples[8 * 2] = { 0 };
-	if (g_audioDMA.AudioDMAControl.Enable)
-	{
-		// Read audio at g_audioDMA.current_source_address in RAM and push onto an
-		// external audio fifo in the emulator, to be mixed with the disc
-		// streaming output.
-
-		if (g_audioDMA.remaining_blocks_count != 0)
-		{
-			#if OPTIMIZATION__ASSUME_NO_DMA_RACE
-			if (armed)
-			{
-				void *address = Memory::GetPointer(g_audioDMA.SourceAddress);
-				AudioCommon::SendAIBuffer((short *)address, g_audioDMA.AudioDMAControl.NumBlocks * 8);
-				armed = false;
-			}
-			#endif
-
-			g_audioDMA.remaining_blocks_count--;
-			g_audioDMA.current_source_address += 32;
-		}
-
-		if (g_audioDMA.remaining_blocks_count == 0)
-		{
-			g_audioDMA.current_source_address = g_audioDMA.SourceAddress;
-			g_audioDMA.remaining_blocks_count = g_audioDMA.AudioDMAControl.NumBlocks;
-
-			if (g_audioDMA.remaining_blocks_count != 0)
-			{
-				#if OPTIMIZATION__ASSUME_NO_DMA_RACE
-				armed = true;
-				#else
-				void* address = Memory::GetPointer(g_audioDMA.SourceAddress);
-				AudioCommon::SendAIBuffer((short*)address, g_audioDMA.AudioDMAControl.NumBlocks * 8);
-				#endif
-			}
-			GenerateDSPInterrupt(DSP::INT_AID);
-		}
-	}
-	else
-	{
-		AudioCommon::SendAIBuffer(&zero_samples[0], 8);
 	}
 }
 
