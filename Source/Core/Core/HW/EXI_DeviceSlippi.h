@@ -315,6 +315,7 @@ class CEXISlippi : public IEXIDevice
 	};
 
 	RotationState rotationState;
+	bool rotationGameActive = false; // true while a rotation game is in progress
 	bool isRotationMode() const;
 	void advanceRotation(s8 winnerIdx, s8 lrasInitiator);
 	void resetRotationState();

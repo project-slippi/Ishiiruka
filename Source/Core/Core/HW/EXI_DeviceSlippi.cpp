@@ -48,7 +48,7 @@
 #define SLEEP_TIME_MS 8
 #define WRITE_FILE_SLEEP_TIME_MS 85
 
-#define LOCAL_TESTING
+// #define LOCAL_TESTING
 // #define CREATE_DIFF_FILES
 
 static std::unordered_map<u8, std::string> slippi_names;
@@ -2450,6 +2450,8 @@ void CEXISlippi::prepareOnlineMatchState()
 				onlineMatchBlock[0x69 + spectatorIdx * 0x24] = i; // same team
 			}
 
+			rotationGameActive = true;
+
 			INFO_LOG(SLIPPI_ONLINE, "Rotation: active=[%d,%d] waiting=[%d,%d] gamesPlayed=%d",
 			         rotationState.activePlayers[0], rotationState.activePlayers[1],
 			         rotationState.waitingPlayers[0], rotationState.waitingPlayers[1],
@@ -3062,6 +3064,7 @@ bool CEXISlippi::isRotationMode() const
 void CEXISlippi::resetRotationState()
 {
 	rotationState = RotationState();
+	rotationGameActive = false;
 }
 
 void CEXISlippi::advanceRotation(s8 winnerIdx, s8 lrasInitiator)
@@ -3197,11 +3200,9 @@ void CEXISlippi::handleReportGame(const SlippiExiTypes::ReportGameQuery &query)
 			slippi_netplay->SendSyncedGameState(s);
 	}
 
-	// Advance rotation after game ends
-	if (isRotationMode())
-	{
-		advanceRotation(winnerIdx, lrasInitiator);
-	}
+	// Note: Rotation advancement is now handled in CMD_RECEIVE_GAME_END (0x39)
+	// which fires reliably from the recording system, unlike CMD_REPORT_GAME
+	// which depends on the ASM engine loop's game-over confirmation.
 
 #ifndef LOCAL_TESTING
 	slprs_exi_device_log_game_report(slprs_exi_device_ptr, gameReport);
@@ -3464,6 +3465,38 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			m_slippiserver->write(&memPtr[bufLoc], payloadLen + 1);
 			m_slippiserver->endGame();
 			slprs_exi_device_reporter_push_replay_data(slprs_exi_device_ptr, &memPtr[bufLoc], payloadLen + 1);
+
+			// Advance rotation on game end using placement data from the recording system
+			if (isRotationMode() && rotationGameActive)
+			{
+				rotationGameActive = false;
+
+				// Payload: [cmd(1)] [endMethod(1)] [lrasInitiator(1)] [placements(4)]
+				u8 *gameEndPayload = &memPtr[bufLoc];
+				s8 lrasInit = (s8)gameEndPayload[2];
+				// placements[i] = finishing position for port i (0 = 1st place)
+				// Determine winner: the active player with the better (lower) placement wins
+				u8 p0 = rotationState.activePlayers[0];
+				u8 p1 = rotationState.activePlayers[1];
+				s8 placement0 = (s8)gameEndPayload[3 + p0];
+				s8 placement1 = (s8)gameEndPayload[3 + p1];
+
+				s8 winnerIdx = -1;
+				if (placement0 >= 0 && placement1 >= 0)
+				{
+					winnerIdx = (placement0 < placement1) ? 0 : 1;
+				}
+				else if (placement0 >= 0)
+				{
+					winnerIdx = 0;
+				}
+				else if (placement1 >= 0)
+				{
+					winnerIdx = 1;
+				}
+
+				advanceRotation(winnerIdx, lrasInit);
+			}
 			break;
 		case CMD_PREPARE_REPLAY:
 			// log.open("log.txt");
