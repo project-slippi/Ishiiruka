@@ -28,6 +28,7 @@ class SlippiMatchmaking
 		UNRANKED = 1,
 		DIRECT = 2,
 		TEAMS = 3,
+		ROTATION = 4,
 	};
 
 	enum ProcessState

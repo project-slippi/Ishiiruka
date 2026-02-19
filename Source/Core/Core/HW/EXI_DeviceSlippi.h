@@ -303,6 +303,22 @@ class CEXISlippi : public IEXIDevice
 	u32 stallFrameCount = 0;
 	bool isConnectionStalled = false;
 
+	// Rotation mode state
+	struct RotationState
+	{
+		// Which 2 of the 4 player indices are currently fighting
+		u8 activePlayers[2] = {0, 1};
+		// Which 2 are spectating (waiting queue — front of queue plays next)
+		u8 waitingPlayers[2] = {2, 3};
+		// Number of games played in this rotation session
+		u32 gamesPlayed = 0;
+	};
+
+	RotationState rotationState;
+	bool isRotationMode() const;
+	void advanceRotation(s8 winnerIdx, s8 lrasInitiator);
+	void resetRotationState();
+
 	std::vector<u8> m_read_queue;
 	std::unique_ptr<Slippi::SlippiGame> m_current_game = nullptr;
 	SlippiSpectateServer *m_slippiserver = nullptr;

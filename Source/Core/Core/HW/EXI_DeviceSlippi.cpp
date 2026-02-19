@@ -48,7 +48,7 @@
 #define SLEEP_TIME_MS 8
 #define WRITE_FILE_SLEEP_TIME_MS 85
 
-// #define LOCAL_TESTING
+#define LOCAL_TESTING
 // #define CREATE_DIFF_FILES
 
 static std::unordered_map<u8, std::string> slippi_names;
@@ -1832,7 +1832,7 @@ void CEXISlippi::startFindMatch(u8 *payload)
 		std::string utf8Code = SHIFTJISToUTF8(shiftJisCode);
 		directCodes->AddOrUpdateCode(utf8Code);
 	}
-	else if (search.mode == SlippiMatchmaking::TEAMS)
+	else if (search.mode == SlippiMatchmaking::TEAMS || search.mode == SlippiMatchmaking::ROTATION)
 	{
 		std::string utf8Code = SHIFTJISToUTF8(shiftJisCode);
 		teamsCodes->AddOrUpdateCode(utf8Code);
@@ -1842,8 +1842,14 @@ void CEXISlippi::startFindMatch(u8 *payload)
 	// search.connectCode = SHIFTJISToUTF8(shiftJisCode).c_str();
 	search.connectCode = shiftJisCode;
 
-	// Store this search so we know what was queued for
+	// Store this search so we know what was queued for (preserve real mode before backend mapping)
 	lastSearch = search;
+
+	// Reset rotation state on new search
+	if (search.mode == SlippiMatchmaking::ROTATION)
+	{
+		resetRotationState();
+	}
 
 	// While we do have another condition that checks characters after being connected, it's nice to give
 	// someone an early error before they even queue so that they wont enter the queue and make someone
@@ -1865,10 +1871,11 @@ void CEXISlippi::startFindMatch(u8 *payload)
 			return;
 		}
 	}
-	else if (search.mode == SlippiMatchmaking::OnlinePlayMode::TEAMS)
+	else if (search.mode == SlippiMatchmaking::OnlinePlayMode::TEAMS ||
+	         search.mode == SlippiMatchmaking::OnlinePlayMode::ROTATION)
 	{
 		auto isMex = SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_MEX;
-		// Some special handling for teams since it is being heavily used for unranked
+		// Some special handling for teams/rotation since it is being heavily used for unranked
 		if (localSelections.characterId >= 26 && !isMex)
 		{
 			forcedError = "The character you selected is not allowed in this mode";
@@ -1885,6 +1892,12 @@ void CEXISlippi::startFindMatch(u8 *payload)
 			ERROR_LOG(SLIPPI_ONLINE, "Failed to initialize enet res: %d", res);
 
 		isEnetInitialized = true;
+	}
+
+	// For Rotation mode, send TEAMS to the backend (backend doesn't know about ROTATION)
+	if (search.mode == SlippiMatchmaking::OnlinePlayMode::ROTATION)
+	{
+		search.mode = SlippiMatchmaking::OnlinePlayMode::TEAMS;
 	}
 
 	matchmaking->FindMatch(search);
@@ -1919,7 +1932,7 @@ void CEXISlippi::handleNameEntryLoad(u8 *payload)
 	u8 curMode = payload[30];
 
 	auto codeHistory = directCodes.get();
-	if (curMode == SlippiMatchmaking::TEAMS)
+	if (curMode == SlippiMatchmaking::TEAMS || curMode == SlippiMatchmaking::ROTATION)
 	{
 		codeHistory = teamsCodes.get();
 	}
@@ -2231,6 +2244,8 @@ void CEXISlippi::prepareOnlineMatchState()
 
 	if (localPlayerReady && remotePlayersReady)
 	{
+		INFO_LOG(SLIPPI_ONLINE, "Match prep: lastSearch.mode=%d, isRotation=%d",
+		         (int)lastSearch.mode, isRotationMode() ? 1 : 0);
 		auto isDecider = slippi_netplay->IsDecider();
 		u8 remotePlayerCount = matchmaking->RemotePlayerCount();
 		auto matchInfo = slippi_netplay->GetMatchInfo();
@@ -2261,7 +2276,10 @@ void CEXISlippi::prepareOnlineMatchState()
 			rps[i].isCharacterSelected = true;
 		}
 
-		remotePlayerCount = lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::TEAMS ? 3 : 1;
+		remotePlayerCount = (lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::TEAMS ||
+		                    lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::ROTATION)
+		                       ? 3
+		                       : 1;
 
 		oppName = std::string("Player");
 #endif
@@ -2339,7 +2357,8 @@ void CEXISlippi::prepareOnlineMatchState()
 				return;
 			}
 		}
-		else if (lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::TEAMS)
+		else if (lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::TEAMS ||
+		         lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::ROTATION)
 		{
 			auto isMex = SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_MEX;
 
@@ -2409,8 +2428,34 @@ void CEXISlippi::prepareOnlineMatchState()
 			onlineMatchBlock[0x69 + (s->playerIdx) * 0x24] = teamId;
 		}
 
-		// Handle Singles/Teams specific logic
-		if (remotePlayerCount <= 2)
+		// Handle Singles/Teams/Rotation specific logic
+		if (isRotationMode())
+		{
+			onlineMatchBlock[0x8] = 1; // is Teams = true (for spectator camera)
+
+			// Configure active vs spectating players
+			for (int i = 0; i < 2; i++)
+			{
+				u8 activeIdx = rotationState.activePlayers[i];
+				u8 spectatorIdx = rotationState.waitingPlayers[i];
+
+				// Active player: human, 4 stocks, team i
+				onlineMatchBlock[0x61 + activeIdx * 0x24] = 0;   // playerType = human
+				onlineMatchBlock[0x62 + activeIdx * 0x24] = 4;   // stocks
+				onlineMatchBlock[0x69 + activeIdx * 0x24] = i;   // teamId (0 or 1)
+
+				// Spectator: not present (type 3 = None)
+				onlineMatchBlock[0x61 + spectatorIdx * 0x24] = 3; // playerType = none
+				onlineMatchBlock[0x62 + spectatorIdx * 0x24] = 0; // stocks = 0
+				onlineMatchBlock[0x69 + spectatorIdx * 0x24] = i; // same team
+			}
+
+			INFO_LOG(SLIPPI_ONLINE, "Rotation: active=[%d,%d] waiting=[%d,%d] gamesPlayed=%d",
+			         rotationState.activePlayers[0], rotationState.activePlayers[1],
+			         rotationState.waitingPlayers[0], rotationState.waitingPlayers[1],
+			         rotationState.gamesPlayed);
+		}
+		else if (remotePlayerCount <= 2)
 		{
 			onlineMatchBlock[0x8] = 0; // is Teams = false
 
@@ -2439,14 +2484,16 @@ void CEXISlippi::prepareOnlineMatchState()
 		*stage = Common::swap16(stageId);
 
 		// Turn pause off in unranked/ranked, on in other modes
-		auto pauseAllowed = lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::DIRECT;
+		auto pauseAllowed = lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::DIRECT ||
+		                    lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::ROTATION;
 		u8 *gameBitField3 = (u8 *)&onlineMatchBlock[2];
 		*gameBitField3 = pauseAllowed ? *gameBitField3 & 0xF7 : *gameBitField3 | 0x8;
 		//*gameBitField3 = *gameBitField3 | 0x8;
 
 		// Overwrite alt_stage_mode if in ranked
 		auto stage_selection_mode = lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::DIRECT ||
-		                            lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::TEAMS;
+		                            lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::TEAMS ||
+		                            lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::ROTATION;
 		if (!stage_selection_mode)
 		{
 			alt_stage_mode = 0;
@@ -2476,11 +2523,33 @@ void CEXISlippi::prepareOnlineMatchState()
 
 		for (int i = 0; i < 4; i++)
 		{
+			// In rotation mode, don't restore stocks for spectating players (they must stay at 0)
+			if (isRotationMode())
+			{
+				bool isSpectator = (i == rotationState.waitingPlayers[0] ||
+				                    i == rotationState.waitingPlayers[1]);
+				if (isSpectator)
+					continue;
+			}
+
 			onlineMatchBlock[0x62 + i * 0x24] = desync_recovery.state.fighters[i].stocks_remaining;
 
 			u16 *current_health = reinterpret_cast<u16 *>(&onlineMatchBlock[0x70 + i * 0x24]);
 			*current_health = Common::swap16(desync_recovery.state.fighters[i].current_health);
 		}
+	}
+
+	if (isRotationMode())
+	{
+		INFO_LOG(SLIPPI_ONLINE, "Rotation final match block - stocks: p0=%d p1=%d p2=%d p3=%d, "
+		         "playerType: p0=%d p1=%d p2=%d p3=%d, teams: p0=%d p1=%d p2=%d p3=%d, isTeams=%d",
+		         onlineMatchBlock[0x62], onlineMatchBlock[0x62 + 0x24],
+		         onlineMatchBlock[0x62 + 2*0x24], onlineMatchBlock[0x62 + 3*0x24],
+		         onlineMatchBlock[0x61], onlineMatchBlock[0x61 + 0x24],
+		         onlineMatchBlock[0x61 + 2*0x24], onlineMatchBlock[0x61 + 3*0x24],
+		         onlineMatchBlock[0x69], onlineMatchBlock[0x69 + 0x24],
+		         onlineMatchBlock[0x69 + 2*0x24], onlineMatchBlock[0x69 + 3*0x24],
+		         onlineMatchBlock[0x8]);
 	}
 
 	// Add rng offset to output
@@ -2540,7 +2609,15 @@ void CEXISlippi::prepareOnlineMatchState()
 
 	// Create the opponent string using the names of all players on opposing teams
 	std::vector<std::string> opponentNames = {};
-	if (matchmaking->RemotePlayerCount() == 1)
+	if (isRotationMode())
+	{
+		// In rotation mode, opponent is the other active player
+		u8 otherActive = (localPlayerIndex == rotationState.activePlayers[0])
+		                     ? rotationState.activePlayers[1]
+		                     : rotationState.activePlayers[0];
+		opponentNames.push_back(matchmaking->GetPlayerName(otherActive));
+	}
+	else if (matchmaking->RemotePlayerCount() == 1)
 	{
 		opponentNames.push_back(matchmaking->GetPlayerName(remotePlayerIndex));
 	}
@@ -2905,6 +2982,9 @@ void CEXISlippi::prepareOnlineStatus()
 	auto userInfo = user->GetUserInfo();
 
 	u8 appState = 0;
+#ifdef LOCAL_TESTING
+	appState = 1; // Force logged-in state for local testing
+#else
 	if (isLoggedIn)
 	{
 		// Check if we have the latest version, and if not, indicate we need to update
@@ -2913,6 +2993,7 @@ void CEXISlippi::prepareOnlineStatus()
 
 		appState = latestVersion > currentVersion ? 2 : 1;
 	}
+#endif
 
 	m_read_queue.push_back(appState);
 
@@ -2960,6 +3041,9 @@ void CEXISlippi::handleConnectionCleanup()
 	// Reset any selection overwrites
 	overwrite_selections.clear();
 
+	// Note: rotation state is NOT reset here — it persists across games in a session.
+	// It is only reset in startFindMatch() when a new search begins.
+
 	// Reset play session
 	isPlaySessionActive = false;
 
@@ -2968,6 +3052,71 @@ void CEXISlippi::handleConnectionCleanup()
 #endif
 
 	ERROR_LOG(SLIPPI_ONLINE, "Connection cleanup completed...");
+}
+
+bool CEXISlippi::isRotationMode() const
+{
+	return lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::ROTATION;
+}
+
+void CEXISlippi::resetRotationState()
+{
+	rotationState = RotationState();
+}
+
+void CEXISlippi::advanceRotation(s8 winnerIdx, s8 lrasInitiator)
+{
+	// winnerIdx maps to team: team 0 = activePlayers[0], team 1 = activePlayers[1]
+	// If winnerIdx is -1 (no contest / LRAS), use lrasInitiator to determine loser.
+	// If both are -1 (timeout/draw), keep same matchup (no rotation).
+	if (winnerIdx < 0)
+	{
+		if (lrasInitiator >= 0)
+		{
+			// The LRAS initiator is the loser. Determine which active player they are.
+			if (lrasInitiator == rotationState.activePlayers[0])
+				winnerIdx = 1; // activePlayers[1] wins
+			else if (lrasInitiator == rotationState.activePlayers[1])
+				winnerIdx = 0; // activePlayers[0] wins
+			else
+			{
+				// LRAS initiator is a spectator, no rotation
+				INFO_LOG(SLIPPI_ONLINE, "Rotation: LRAS by spectator, no rotation");
+				return;
+			}
+		}
+		else
+		{
+			// No winner and no LRAS initiator — keep same matchup
+			INFO_LOG(SLIPPI_ONLINE, "Rotation: no winner, keeping same matchup");
+			return;
+		}
+	}
+
+	u8 winnerPort = rotationState.activePlayers[0];
+	u8 loserPort = rotationState.activePlayers[1];
+
+	if (winnerIdx == 1)
+	{
+		winnerPort = rotationState.activePlayers[1];
+		loserPort = rotationState.activePlayers[0];
+	}
+
+	// Next waiting player comes in, loser goes to back of waiting queue
+	u8 nextPlayer = rotationState.waitingPlayers[0];
+	u8 remainingWaiter = rotationState.waitingPlayers[1];
+
+	rotationState.activePlayers[0] = winnerPort;
+	rotationState.activePlayers[1] = nextPlayer;
+	rotationState.waitingPlayers[0] = remainingWaiter;
+	rotationState.waitingPlayers[1] = loserPort;
+
+	rotationState.gamesPlayed++;
+
+	INFO_LOG(SLIPPI_ONLINE, "Rotation advanced: active=[%d,%d] waiting=[%d,%d] gamesPlayed=%d",
+	         rotationState.activePlayers[0], rotationState.activePlayers[1],
+	         rotationState.waitingPlayers[0], rotationState.waitingPlayers[1],
+	         rotationState.gamesPlayed);
 }
 
 void CEXISlippi::prepareNewSeed()
@@ -3046,6 +3195,12 @@ void CEXISlippi::handleReportGame(const SlippiExiTypes::ReportGameQuery &query)
 
 		if (slippi_netplay)
 			slippi_netplay->SendSyncedGameState(s);
+	}
+
+	// Advance rotation after game ends
+	if (isRotationMode())
+	{
+		advanceRotation(winnerIdx, lrasInitiator);
 	}
 
 #ifndef LOCAL_TESTING
