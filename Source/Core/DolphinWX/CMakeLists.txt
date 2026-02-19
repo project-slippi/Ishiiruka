@@ -117,9 +117,11 @@ if(APPLE)
 endif()
 
 if(APPLE)
-	set(DOLPHIN_EXE_BASE "Slippi Dolphin")
+	set(DOLPHIN_EXE_BASE SlippiDolphin)
+	set(DOLPHIN_EXE_OUTPUT_NAME "Slippi Dolphin")
 else()
 	set(DOLPHIN_EXE_BASE dolphin-emu)
+	set(DOLPHIN_EXE_OUTPUT_NAME "")
 endif()
 
 set(DOLPHIN_EXE ${DOLPHIN_EXE_BASE})
@@ -132,8 +134,11 @@ if(GETTEXT_MSGMERGE_EXECUTABLE AND GETTEXT_MSGFMT_EXECUTABLE AND wxWidgets_FOUND
 endif()
 
 if(wxWidgets_FOUND)
-	add_executable("${DOLPHIN_EXE}" ${SRCS} ${GUI_SRCS})
-	target_link_libraries("${DOLPHIN_EXE}" ${LIBS} ${WXLIBS})
+	add_executable(${DOLPHIN_EXE} ${SRCS} ${GUI_SRCS})
+	if(DOLPHIN_EXE_OUTPUT_NAME)
+		set_target_properties(${DOLPHIN_EXE} PROPERTIES OUTPUT_NAME "${DOLPHIN_EXE_OUTPUT_NAME}")
+	endif()
+	target_link_libraries(${DOLPHIN_EXE} PRIVATE ${LIBS} ${WXLIBS})
 
 	# Link SlippiRustExtensions in.
 	#
@@ -145,12 +150,12 @@ if(wxWidgets_FOUND)
 	endif()
 
 	corrosion_import_crate(MANIFEST_PATH ${CMAKE_SOURCE_DIR}/Externals/SlippiRustExtensions/Cargo.toml ${RUST_FEATURES})
-	target_link_libraries("${DOLPHIN_EXE}" PUBLIC slippi_rust_extensions)
+	target_link_libraries(${DOLPHIN_EXE} PRIVATE slippi_rust_extensions)
 
 	if(APPLE)
 		include(BundleUtilities)
-		set(BUNDLE_PATH ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/"${DOLPHIN_EXE}".app)
-		string(REPLACE "\"" "" BUNDLE_PATH_NO_QUOTES ${BUNDLE_PATH})
+		set(BUNDLE_PATH "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${DOLPHIN_EXE_OUTPUT_NAME}.app")
+		set(BUNDLE_PATH_NO_QUOTES ${BUNDLE_PATH})
 
 		# Ask for an application bundle.
 		set_target_properties(${DOLPHIN_EXE} PROPERTIES
@@ -162,7 +167,7 @@ if(wxWidgets_FOUND)
 		# added into the bundle in Tools/deploy-mac.py due to legacy build reasons.
 		find_library(MOLTENVK libvulkan.dylib PATHS ${CMAKE_SOURCE_DIR}/Externals/MoltenVK)
 		message("MoltenVK Path: ${MOLTENVK}")
-		target_link_libraries("${DOLPHIN_EXE}" ${MOLTENVK})
+		target_link_libraries(${DOLPHIN_EXE} PRIVATE ${MOLTENVK})
 
 		# get rid of any old copies
 		file (REMOVE_RECURSE ${BUNDLE_PATH}/Contents/Resources/Sys)
