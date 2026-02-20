@@ -2610,40 +2610,59 @@ void CEXISlippi::prepareOnlineMatchState()
 	}
 
 	// Create the opponent string using the names of all players on opposing teams
-	std::vector<std::string> opponentNames = {};
+	std::string oppText = "";
 	if (isRotationMode())
 	{
-		// In rotation mode, opponent is the other active player
-		u8 otherActive = (localPlayerIndex == rotationState.activePlayers[0])
-		                     ? rotationState.activePlayers[1]
-		                     : rotationState.activePlayers[0];
-		opponentNames.push_back(matchmaking->GetPlayerName(otherActive));
-	}
-	else if (matchmaking->RemotePlayerCount() == 1)
-	{
-		opponentNames.push_back(matchmaking->GetPlayerName(remotePlayerIndex));
+		// In rotation mode, show matchup info:
+		// - If local player is active: "OPP|N:NEXT"
+		// - If local player is spectating: "NAME vs NAME"
+		u8 a0 = rotationState.activePlayers[0];
+		u8 a1 = rotationState.activePlayers[1];
+		u8 nextUp = rotationState.waitingPlayers[0];
+		bool localIsActive = (localPlayerIndex == a0 || localPlayerIndex == a1);
+
+		if (localIsActive)
+		{
+			u8 otherActive = (localPlayerIndex == a0) ? a1 : a0;
+			auto oppPlayerName = matchmaking->GetPlayerName(otherActive);
+			auto nextPlayerName = matchmaking->GetPlayerName(nextUp);
+			oppText = TruncateLengthChar(oppPlayerName, 6) + "|N:" + TruncateLengthChar(nextPlayerName, 5);
+		}
+		else
+		{
+			auto name0 = matchmaking->GetPlayerName(a0);
+			auto name1 = matchmaking->GetPlayerName(a1);
+			oppText = TruncateLengthChar(name0, 5) + " vs " + TruncateLengthChar(name1, 5);
+		}
 	}
 	else
 	{
-		int teamIdx = onlineMatchBlock[0x69 + localPlayerIndex * 0x24];
-		for (int i = 0; i < 4; i++)
+		std::vector<std::string> opponentNames = {};
+		if (matchmaking->RemotePlayerCount() == 1)
 		{
-			if (localPlayerIndex == i || onlineMatchBlock[0x69 + i * 0x24] == teamIdx)
-				continue;
-
-			opponentNames.push_back(matchmaking->GetPlayerName(i));
+			opponentNames.push_back(matchmaking->GetPlayerName(remotePlayerIndex));
 		}
-	}
+		else
+		{
+			int teamIdx = onlineMatchBlock[0x69 + localPlayerIndex * 0x24];
+			for (int i = 0; i < 4; i++)
+			{
+				if (localPlayerIndex == i || onlineMatchBlock[0x69 + i * 0x24] == teamIdx)
+					continue;
 
-	auto numOpponents = opponentNames.size() == 0 ? 1 : opponentNames.size();
-	auto charsPerName = (MAX_NAME_LENGTH - (numOpponents - 1)) / numOpponents;
-	std::string oppText = "";
-	for (auto &name : opponentNames)
-	{
-		if (oppText != "")
-			oppText += "/";
+				opponentNames.push_back(matchmaking->GetPlayerName(i));
+			}
+		}
 
-		oppText += TruncateLengthChar(name, charsPerName);
+		auto numOpponents = opponentNames.size() == 0 ? 1 : opponentNames.size();
+		auto charsPerName = (MAX_NAME_LENGTH - (numOpponents - 1)) / numOpponents;
+		for (auto &name : opponentNames)
+		{
+			if (oppText != "")
+				oppText += "/";
+
+			oppText += TruncateLengthChar(name, charsPerName);
+		}
 	}
 
 	oppName = ConvertStringForGame(oppText, MAX_NAME_LENGTH);
@@ -3020,6 +3039,23 @@ void doConnectionCleanup(std::unique_ptr<SlippiMatchmaking> mm, std::unique_ptr<
 void CEXISlippi::handleConnectionCleanup()
 {
 	ERROR_LOG(SLIPPI_ONLINE, "Connection cleanup started...");
+
+	// In rotation mode, keep the connection alive between games.
+	// Keep character selections so the next game starts automatically.
+	if (isRotationMode() && rotationState.gamesPlayed > 0)
+	{
+		// Reset stage so a new random stage is picked, but keep character selected
+		localSelections.isStageSelected = false;
+
+		// Reset stage pool so a new random stage is picked
+		stagePool.clear();
+
+		// Reset any selection overwrites
+		overwrite_selections.clear();
+
+		ERROR_LOG(SLIPPI_ONLINE, "Rotation: keeping connection alive, preserving character selections");
+		return;
+	}
 
 	// Handle destructors in a separate thread to not block the main thread
 	std::thread cleanup(doConnectionCleanup, std::move(matchmaking), std::move(slippi_netplay));
