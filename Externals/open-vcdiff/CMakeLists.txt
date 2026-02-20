@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 2.8.12)
+cmake_minimum_required (VERSION 3.5.0)
 
 project (open-vcdiff CXX C)
 set (VERSION 0.8.4)

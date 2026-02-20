@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.5.0)
 project(semver)
 set(VERSION_MAJOR   "1")
 set(VERSION_MINOR   "1")

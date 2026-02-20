@@ -1,7 +1,3 @@
-#include <string>
-#include <codecvt>
-#include <locale>
-
 #include "SlippiGame.h"
 
 namespace Slippi {

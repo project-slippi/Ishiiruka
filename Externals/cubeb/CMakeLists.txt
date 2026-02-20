@@ -1,7 +1,7 @@
 # TODO
 # - backend selection via command line, rather than simply detecting headers.
 
-cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.5.0 FATAL_ERROR)
 project(cubeb
   VERSION 0.0.0)
 
