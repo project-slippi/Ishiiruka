@@ -36,7 +36,7 @@ if(ENABLE_PCH)
 endif(ENABLE_PCH)
 macro(add_dolphin_library lib srcs libs)
 	add_library(${lib} STATIC ${srcs})
-	target_link_libraries(${lib} PUBLIC ${libs})
+	target_link_libraries(${lib} PRIVATE ${libs})
 	if(ENABLE_PCH)
 		add_dependencies(${lib} pch)
 		set_source_files_properties(

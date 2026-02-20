@@ -133,7 +133,7 @@ endif()
 
 if(wxWidgets_FOUND)
 	add_executable("${DOLPHIN_EXE}" ${SRCS} ${GUI_SRCS})
-	target_link_libraries("${DOLPHIN_EXE}" PUBLIC ${LIBS} ${WXLIBS})
+	target_link_libraries("${DOLPHIN_EXE}" PRIVATE ${LIBS} ${WXLIBS})
 
 	# Link SlippiRustExtensions in.
 	#
@@ -145,7 +145,7 @@ if(wxWidgets_FOUND)
 	endif()
 
 	corrosion_import_crate(MANIFEST_PATH ${CMAKE_SOURCE_DIR}/Externals/SlippiRustExtensions/Cargo.toml ${RUST_FEATURES})
-	target_link_libraries("${DOLPHIN_EXE}" PUBLIC slippi_rust_extensions)
+	target_link_libraries("${DOLPHIN_EXE}" PRIVATE slippi_rust_extensions)
 
 	if(APPLE)
 		include(BundleUtilities)
@@ -162,7 +162,7 @@ if(wxWidgets_FOUND)
 		# added into the bundle in Tools/deploy-mac.py due to legacy build reasons.
 		find_library(MOLTENVK libvulkan.dylib PATHS ${CMAKE_SOURCE_DIR}/Externals/MoltenVK)
 		message("MoltenVK Path: ${MOLTENVK}")
-		target_link_libraries("${DOLPHIN_EXE}" PUBLIC ${MOLTENVK})
+		target_link_libraries("${DOLPHIN_EXE}" PRIVATE ${MOLTENVK})
 
 		# get rid of any old copies
 		file (REMOVE_RECURSE ${BUNDLE_PATH}/Contents/Resources/Sys)
@@ -255,7 +255,7 @@ endif()
 if(USE_X11 AND ENABLE_HEADLESS)
 	set(DOLPHIN_NOGUI_EXE ${DOLPHIN_EXE_BASE}-nogui)
 	add_executable(${DOLPHIN_NOGUI_EXE} ${SRCS} ${NOGUI_SRCS})
-	target_link_libraries(${DOLPHIN_NOGUI_EXE} PUBLIC ${LIBS} ${WXLIBS})
+	target_link_libraries(${DOLPHIN_NOGUI_EXE} PRIVATE ${LIBS} ${WXLIBS})
 	set(CPACK_PACKAGE_EXECUTABLES ${CPACK_PACKAGE_EXECUTABLES} ${DOLPHIN_NOGUI_EXE})
 	install(TARGETS ${DOLPHIN_NOGUI_EXE} RUNTIME DESTINATION ${bindir})
 endif()
