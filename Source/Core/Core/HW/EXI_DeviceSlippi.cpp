@@ -2321,31 +2321,30 @@ void CEXISlippi::prepareOnlineMatchState()
 			onlineMatchBlock[0x69 + (s->playerIdx) * 0x24] = teamId;
 		}
 
-		// Handle Singles/Teams specific logic
-		if (remotePlayerCount <= 2)
+		// Handle character coloring. This normally wouldn't be necessary but in the case where one person selects Zelda
+		// and one person selects Sheik of the same color, the game wont automatically force the color changes
+		std::unordered_map<u16, u8> colorCounts;
+		for (size_t i = 0; i < orderedSelections.size(); i++)
 		{
-			onlineMatchBlock[0x8] = 0; // is Teams = false
+			const auto &s = orderedSelections[i];
 
-			// Set p3/p4 player type to none
-			onlineMatchBlock[0x61 + 2 * 0x24] = 3;
-			onlineMatchBlock[0x61 + 3 * 0x24] = 3;
+			// Make key including char id and char color
+			u8 charId = s->characterId == 0x13 ? 0x12 : s->characterId; // Force Sheik to count with Zelda
+			u16 key = static_cast<u16>(charId) << 8 | static_cast<u16>(s->characterColor);
 
-			// Make one character lighter if same character, same color
-			bool isSheikVsZelda = lps.characterId == 0x12 && rps[0].characterId == 0x13 ||
-			                      lps.characterId == 0x13 && rps[0].characterId == 0x12;
-			bool charMatch = lps.characterId == rps[0].characterId || isSheikVsZelda;
-			bool colMatch = lps.characterColor == rps[0].characterColor;
-
-			onlineMatchBlock[0x67 + 0x24] = charMatch && colMatch ? 1 : 0;
+			// Set the shade of the fighter and increment the count
+			u8 &count = colorCounts[key];
+			onlineMatchBlock[0x67 + (0x24 * i)] = count;
+			count += 1;
 		}
-		else
-		{
-			onlineMatchBlock[0x8] = 1; // is Teams = true
 
-			// Set p3/p4 player type to human
-			onlineMatchBlock[0x61 + 2 * 0x24] = 0;
-			onlineMatchBlock[0x61 + 3 * 0x24] = 0;
-		}
+		// Set teams mode
+		onlineMatchBlock[0x8] = lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::TEAMS ? 1 : 0;
+		//onlineMatchBlock[0x8] = remotePlayerCount >= 2 ? 1 : 0; // TODO: If we dont set it to teams, it crashes sometimes
+
+		// Set p3/p4 player type to human or none depending on the amount of players
+		onlineMatchBlock[0x61 + 2 * 0x24] = remotePlayerCount >= 2 ? 0 : 3;
+		onlineMatchBlock[0x61 + 3 * 0x24] = remotePlayerCount >= 3 ? 0 : 3;
 
 		u16 *stage = (u16 *)&onlineMatchBlock[0xE];
 		*stage = Common::swap16(stageId);
