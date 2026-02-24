@@ -2136,9 +2136,6 @@ void CEXISlippi::prepareOnlineMatchState()
 		localPlayerName = p1Name = userInfo.displayName;
 	}
 
-	std::vector<u8> leftTeamPlayers = {};
-	std::vector<u8> rightTeamPlayers = {};
-
 	// NOTICE_LOG(SLIPPI_ONLINE, "%d, %d", localPlayerReady, remotePlayersReady);
 
 	if (localPlayerReady && remotePlayersReady)
@@ -2363,22 +2360,6 @@ void CEXISlippi::prepareOnlineMatchState()
 			alt_stage_mode = 0;
 		}
 
-		// Group players into left/right side for team splash screen display
-		for (int i = 0; i < 4; i++)
-		{
-			int teamId = onlineMatchBlock[0x69 + i * 0x24];
-			if (teamId == lps.teamId)
-				leftTeamPlayers.push_back(i);
-			else
-				rightTeamPlayers.push_back(i);
-		}
-		int leftTeamSize = leftTeamPlayers.size();
-		int rightTeamSize = rightTeamPlayers.size();
-		leftTeamPlayers.resize(4, 0);
-		rightTeamPlayers.resize(4, 0);
-		leftTeamPlayers[3] = leftTeamSize;
-		rightTeamPlayers[3] = rightTeamSize;
-
 		// Handle desync recovery. The default values in desync_recovery.state are 480 seconds (8 min timer) and
 		// 4-stock/0 percent damage for the fighters. That means if we are not in a desync recovery state, the
 		// state of the timer and fighters will be restored to the defaults
@@ -2423,12 +2404,6 @@ void CEXISlippi::prepareOnlineMatchState()
 
 	m_read_queue.push_back(p1Rank);
 	m_read_queue.push_back(p2Rank);
-
-	// Add player groupings for VS splash screen
-	leftTeamPlayers.resize(4, 0);
-	rightTeamPlayers.resize(4, 0);
-	m_read_queue.insert(m_read_queue.end(), leftTeamPlayers.begin(), leftTeamPlayers.end());
-	m_read_queue.insert(m_read_queue.end(), rightTeamPlayers.begin(), rightTeamPlayers.end());
 
 	// Add names to output
 	// Always send static local player name
