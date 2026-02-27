@@ -2375,6 +2375,20 @@ void CEXISlippi::prepareOnlineMatchState()
 		}
 	}
 
+	// Configure items for party mode. Have to reset things when not party mode.
+	onlineMatchBlock[0xB] = 0xFF; // Items off
+	u64 new_items_value = 0xF80000000F000000; // Default value (all items off)
+	if (lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::PARTY)
+	{
+		// Set the items bitfield. There are 31 bits each representing one item that can be enabled
+		new_items_value |= static_cast<u64>(recentMmResult.items) << 28;
+
+		// Set item frequency to high
+		onlineMatchBlock[0xB] = 3;
+	}
+	u64 *item_bits = reinterpret_cast<u64 *>(&onlineMatchBlock[0x23]);
+	*item_bits = Common::swap64(new_items_value);
+
 	// Add rng offset to output
 	appendWordToBuffer(&m_read_queue, rngOffset);
 
@@ -2391,11 +2405,11 @@ void CEXISlippi::prepareOnlineMatchState()
 	{
 		// This has to be outside the player ready block because in game setup 2 the players are not
 		// ready at the start
-		bool showLocaLRank = SConfig::GetInstance().bSlippiPlayerRankDisplay;
+		bool showLocalRank = SConfig::GetInstance().bSlippiPlayerRankDisplay;
 		bool showOppRank = SConfig::GetInstance().bSlippiOpponentRankDisplay;
 
 		std::array<s8, 2> ranks = {0, 0};
-		ranks[localPlayerIndex] = showLocaLRank ? matchmaking->GetPlayerRank(localPlayerIndex) : -1;
+		ranks[localPlayerIndex] = showLocalRank ? matchmaking->GetPlayerRank(localPlayerIndex) : -1;
 		ranks[remotePlayerIndex] = showOppRank ? matchmaking->GetPlayerRank(remotePlayerIndex) : -1;
 
 		p1Rank = ranks[0];
