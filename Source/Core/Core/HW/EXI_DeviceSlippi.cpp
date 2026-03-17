@@ -2399,6 +2399,24 @@ void CEXISlippi::prepareOnlineMatchState()
 		}
 	}
 
+	// Configure mode, timer, stocks, etc
+	if (lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::PARTY)
+	{
+		onlineMatchBlock[0x0] = 0x12; // Time mode, 4 char players in UI, count down timer
+		onlineMatchBlock[0x3] = 0xCC; // Show score UI
+		u32 *match_timer = reinterpret_cast<u32 *>(&onlineMatchBlock[0x10]);
+		*match_timer = Common::swap32(5 * 60); // 5 Minute timer
+	}
+	else
+	{
+		// Reset everything. I still feel like maybe the onlineMatchBlock should not be static so we don't have to reset
+		// states like this but I'm a bit worried about making that change and causing weird bugs.
+		onlineMatchBlock[0x0] = 0x32; // Stock mode, 4 char players in UI, count down timer
+		onlineMatchBlock[0x3] = 0x4C; // Hide score UI
+		u32 *match_timer = reinterpret_cast<u32 *>(&onlineMatchBlock[0x10]);
+		*match_timer = Common::swap32(8 * 60); // 8 Minute timer
+	}
+
 	// Configure items for party mode. Have to reset things when not party mode.
 	onlineMatchBlock[0xB] = 0xFF; // Items off
 	u64 new_items_value = 0xF80000000F000000; // Default value (all items off)
