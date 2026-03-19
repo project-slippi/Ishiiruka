@@ -2326,8 +2326,9 @@ void CEXISlippi::prepareOnlineMatchState()
 				continue;
 			}
 
-			auto teamId = s->teamId;
-			if (areAllSameTeam)
+			auto isTeams = lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::TEAMS;
+			auto teamId = isTeams ? s->teamId : 0;
+			if (isTeams && areAllSameTeam)
 			{
 				// Overwrite teamId. Color is overwritten by ASM
 				teamId = teamAssignments[s->playerIdx];
@@ -2482,20 +2483,18 @@ void CEXISlippi::prepareOnlineMatchState()
 
 	// Create the opponent string using the names of all players on opposing teams
 	std::vector<std::string> opponentNames = {};
-	if (matchmaking->RemotePlayerCount() == 1)
+	int teamIdx = onlineMatchBlock[0x69 + localPlayerIndex * 0x24];
+	for (int i = 0; i < 4; i++)
 	{
-		opponentNames.push_back(matchmaking->GetPlayerName(remotePlayerIndex));
-	}
-	else
-	{
-		int teamIdx = onlineMatchBlock[0x69 + localPlayerIndex * 0x24];
-		for (int i = 0; i < 4; i++)
-		{
-			if (localPlayerIndex == i || onlineMatchBlock[0x69 + i * 0x24] == teamIdx)
-				continue;
+		auto isTeams = lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::TEAMS;
+		auto isSameTeam = onlineMatchBlock[0x69 + i * 0x24] == teamIdx;
+		auto playerIsHuman = onlineMatchBlock[0x61 + i * 0x24] == 0;
+		if (localPlayerIndex == i || !playerIsHuman || (isSameTeam && isTeams))
+			continue;
 
-			opponentNames.push_back(matchmaking->GetPlayerName(i));
-		}
+		auto name = matchmaking->GetPlayerName(i);
+		if (name != "")
+			opponentNames.push_back(name);
 	}
 
 	auto numOpponents = opponentNames.size() == 0 ? 1 : opponentNames.size();
