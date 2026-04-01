@@ -2418,10 +2418,10 @@ void CEXISlippi::prepareOnlineMatchState()
 		*match_timer = Common::swap32(8 * 60); // 8 Minute timer
 	}
 
-	// Configure items for party mode. Have to reset things when not party mode.
+	// Configure items. Have to reset things when there are no items.
 	onlineMatchBlock[0xB] = 0xFF; // Items off
 	u64 new_items_value = 0xF80000000F000000; // Default value (all items off)
-	if (lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::PARTY)
+	if (recentMmResult.items != 0)
 	{
 		// Set the items bitfield. There are 31 bits each representing one item that can be enabled
 		new_items_value |= static_cast<u64>(recentMmResult.items) << 28;
