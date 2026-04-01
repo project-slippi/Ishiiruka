@@ -2034,7 +2034,16 @@ void CEXISlippi::prepareOnlineMatchState()
 #else
 		auto status = slippi_netplay->GetSlippiConnectStatus();
 		bool isConnected = status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED;
+
+		// If any players are disconnected and the match state is being requested (we are in a lobby),
+		// we should just disconnect. This allows for games to finish with a disconnected player but
+		// after that the "lobby" is terminated.
+		if (slippi_netplay->GetActivePlayerIndices().size() != matchmaking->RemotePlayerCount())
+		{
+			isConnected = false;
+		}
 #endif
+
 		if (isConnected)
 		{
 			auto matchInfo = slippi_netplay->GetMatchInfo();
