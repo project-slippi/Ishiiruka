@@ -1575,6 +1575,7 @@ void CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)
 
 	std::unique_ptr<SlippiRemotePadOutput> results[SLIPPI_REMOTE_PLAYER_MAX];
 
+	s32 latestFrameFromOpps = Slippi::GAME_FIRST_FRAME - 1;
 	u32 lastChecksumFrame = 0;
 	u32 lastChecksum = 0;
 	for (int i = 0; i < remotePlayerCount; i++)
@@ -1586,8 +1587,12 @@ void CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)
 		}
 		// results[i] = slippi_netplay->GetFakePadOutput(frame);
 
-		lastChecksumFrame = static_cast<u32>(results[i]->checksumFrame);
-		lastChecksum = results[i]->checksum;
+		if (results[i]->latestFrame > latestFrameFromOpps)
+		{
+			lastChecksumFrame = static_cast<u32>(results[i]->checksumFrame);
+			lastChecksum = results[i]->checksum;
+			latestFrameFromOpps = results[i]->latestFrame;
+		}
 	}
 
 	for (int i = 0; i < remotePlayerCount; i++)
@@ -1604,7 +1609,7 @@ void CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)
 		// This is sorta jank but we loop again to overwrite values on any disconnected pads to prevent checksum
 		// issues and prevent stalling due to old pad data. We are essentially "tricking" the ASM side here
 		// and likely a better solution would be for the ASM side to know who is disconnected and handle it accordingly
-		results[i]->latestFrame = frame;
+		results[i]->latestFrame = latestFrameFromOpps;
 		appendWordToBuffer(&m_read_queue, lastChecksumFrame);
 		appendWordToBuffer(&m_read_queue, lastChecksum);
 	}
