@@ -15,6 +15,7 @@
 #include <SlippiLib/SlippiGame.h>
 #include <SFML/Network/Packet.hpp>
 #include <array>
+#include <atomic>
 #include <deque>
 #include <map>
 #include <memory>
@@ -187,8 +188,6 @@ class SlippiNetplayClient
 	std::unique_ptr<SlippiRemotePadOutput> GetSlippiRemotePad(int index, int maxFrameCount);
 	void DropOldRemoteInputs(int32_t finalizedFrame);
 	std::unordered_map<u8, bool> GetActivePlayerIndices();
-	bool AreAllConnectionsDisconnected();
-	bool AreAllPeersDisconnectedForKey(const std::string &key);
 	SlippiMatchInfo *GetMatchInfo();
 	int32_t GetSlippiLatestRemoteFrame(int maxFrameCount);
 	SlippiPlayerSelections GetSlippiRemoteChatMessage(bool isChatEnabled);
@@ -253,7 +252,16 @@ class SlippiNetplayClient
 		bool isDisconnected = false;
 	};
 
+	// Owned by the network thread (constructor + ThreadFunc + Send/OnData which run on the
+	// network thread via the SendAsync queue). Do not read from other threads — use the
+	// playerActive atomics below for cross-thread checks of liveness.
 	std::unordered_map<std::string, std::map<ENetPeer *, ActiveConnectionInfo>> activeConnections;
+
+	// Lock-free view of which global player indices still have at least one live peer.
+	// Written by the network thread when activeConnections changes, read from any thread
+	// (notably the main/EXI thread via GetActivePlayerIndices).
+	static constexpr int SLIPPI_PLAYER_COUNT_MAX = SLIPPI_REMOTE_PLAYER_MAX + 1;
+	std::atomic<bool> playerActive[SLIPPI_PLAYER_COUNT_MAX] = {};
 
 	std::deque<std::unique_ptr<SlippiPad>> localPadQueue; // most recent inputs at start of deque
 	std::deque<std::unique_ptr<SlippiPad>>
@@ -286,6 +294,9 @@ class SlippiNetplayClient
 	unsigned int OnData(sf::Packet &packet, ENetPeer *peer);
 	void Send(sf::Packet &packet);
 	void Disconnect();
+	// Network-thread only — call from inside ThreadFunc.
+	bool AreAllConnectionsDisconnected();
+	bool AreAllPeersDisconnectedForKey(const std::string &key);
 
 	bool m_is_connected = false;
 
