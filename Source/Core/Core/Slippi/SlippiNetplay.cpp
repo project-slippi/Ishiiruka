@@ -13,6 +13,7 @@
 #include "VideoCommon/OnScreenDisplay.h"
 #include "VideoCommon/VideoConfig.h"
 #include <algorithm>
+#include <climits>
 #include <fstream>
 #include <memory>
 #include <thread>
@@ -91,7 +92,7 @@ SlippiNetplayClient::SlippiNetplayClient(std::vector<std::string> addrs, std::ve
 		this->frameOffsetData[i] = FrameOffsetData();
 		this->lastFrameTiming[i] = FrameTiming();
 		this->pingUs[i] = 0;
-		this->lastFrameAcked[i] = 0;
+		this->lastFrameAcked[i] = Slippi::GAME_FIRST_FRAME - 1;
 	}
 
 	SLIPPI_NETPLAY = std::move(this);
@@ -1159,13 +1160,28 @@ void SlippiNetplayClient::SendSlippiPad(std::unique_ptr<SlippiPad> pad)
 		localPadQueue.push_front(std::move(pad));
 	}
 
-	// Remove pad reports that have been received and acked
-	int minAckFrame = lastFrameAcked[0];
-	for (int i = 1; i < m_remotePlayerCount; i++)
+	// Remove pad reports that have been received and acked. Skip disconnected players,
+	// otherwise their lastFrameAcked is stuck and minAckFrame never advances
+	auto activePlayers = GetActivePlayerIndices();
+	int minAckFrame = INT_MAX;
+	for (int i = 0; i < m_remotePlayerCount; i++)
 	{
+		if (!activePlayers[matchInfo.remotePlayerSelections[i].playerIdx])
+			continue;
 		if (lastFrameAcked[i] < minAckFrame)
 			minAckFrame = lastFrameAcked[i];
 	}
+
+	// Cap how far behind minAckFrame is allowed to fall. This protects against a peer
+	// that stops acking. The value used should be sensibly large enough to prevent
+	// any issues
+	if (!localPadQueue.empty())
+	{
+		int currentFrame = localPadQueue.front()->frame;
+		int minimumAllowed = currentFrame - (ROLLBACK_MAX_FRAMES * 2 + 2);
+		minAckFrame = std::max(minAckFrame, minimumAllowed);
+	}
+
 	// INFO_LOG(SLIPPI_ONLINE, "Checking to drop local inputs, oldest frame: %d | minAckFrame: %d | %d, %d, %d",
 	//         localPadQueue.back()->frame, minAckFrame, lastFrameAcked[0], lastFrameAcked[1], lastFrameAcked[2]);
 	while (!localPadQueue.empty() && localPadQueue.back()->frame < minAckFrame)

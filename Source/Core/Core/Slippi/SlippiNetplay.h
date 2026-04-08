@@ -12,6 +12,7 @@
 #include "Core/NetPlayProto.h"
 #include "Core/Slippi/SlippiPad.h"
 #include "InputCommon/GCPadStatus.h"
+#include <SlippiLib/SlippiGame.h>
 #include <SFML/Network/Packet.hpp>
 #include <array>
 #include <deque>
@@ -26,6 +27,7 @@
 #include <Qos2.h>
 #endif
 
+#define ROLLBACK_MAX_FRAMES 7
 #define SLIPPI_ONLINE_LOCKSTEP_INTERVAL 30 // Number of frames to wait before attempting to time-sync
 #define SLIPPI_PING_DISPLAY_INTERVAL 60
 #define SLIPPI_REMOTE_PLAYER_MAX 3
