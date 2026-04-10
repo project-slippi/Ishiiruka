@@ -33,6 +33,7 @@
 #define SLIPPI_PING_DISPLAY_INTERVAL 60
 #define SLIPPI_REMOTE_PLAYER_MAX 3
 #define SLIPPI_REMOTE_PLAYER_COUNT 3
+#define SLIPPI_PLAYER_COUNT_MAX (SLIPPI_REMOTE_PLAYER_MAX + 1)
 
 struct SlippiRemotePadOutput
 {
@@ -260,7 +261,6 @@ class SlippiNetplayClient
 	// Lock-free view of which global player indices still have at least one live peer.
 	// Written by the network thread when activeConnections changes, read from any thread
 	// (notably the main/EXI thread via GetActivePlayerIndices).
-	static constexpr int SLIPPI_PLAYER_COUNT_MAX = SLIPPI_REMOTE_PLAYER_MAX + 1;
 	std::atomic<bool> playerActive[SLIPPI_PLAYER_COUNT_MAX] = {};
 
 	std::deque<std::unique_ptr<SlippiPad>> localPadQueue; // most recent inputs at start of deque

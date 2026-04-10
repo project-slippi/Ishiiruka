@@ -92,7 +92,7 @@ SlippiNetplayClient::SlippiNetplayClient(std::vector<std::string> addrs, std::ve
 		this->frameOffsetData[i] = FrameOffsetData();
 		this->lastFrameTiming[i] = FrameTiming();
 		this->pingUs[i] = 0;
-		this->lastFrameAcked[i] = Slippi::GAME_FIRST_FRAME - 1;
+		this->lastFrameAcked[i] = 0; // First frame should be 1 in this context so 0 is the correct reset (I think)
 	}
 
 	SLIPPI_NETPLAY = std::move(this);

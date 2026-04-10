@@ -1595,6 +1595,32 @@ void CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)
 		}
 	}
 
+	// Determine whether each remote fighter should be despawned due to disconnect. This needs
+	// to be computed before the loop below overwrites the disconnected players' latestFrame.
+	// We want the signal to be synchronized across clients, so we wait until
+	// (2*ROLLBACK_MAX_FRAMES + 2) frames have passed since the last input we received from the
+	// disconnected player, then advance to the next frame that is a multiple of
+	// SLIPPI_DESPAWN_FRAME_INTERVAL. This gives us a window where slightly different last
+	// received frames might still work out to the same despawn frame
+	constexpr s32 SLIPPI_DESPAWN_FRAME_INTERVAL = 30;
+	u8 shouldDespawn[SLIPPI_REMOTE_PLAYER_MAX] = {0, 0, 0};
+	for (int i = 0; i < remotePlayerCount; i++)
+	{
+		if (!results[i]->isDisconnected)
+			continue;
+
+		s32 lastInputFrame = results[i]->latestFrame;
+		s32 thresholdFrame = lastInputFrame + 2 * ROLLBACK_MAX_FRAMES + 2;
+
+		// Round up to the next frame that is a multiple of the despawn interval
+		s32 despawnFrame =
+		    ((thresholdFrame + SLIPPI_DESPAWN_FRAME_INTERVAL - 1) / SLIPPI_DESPAWN_FRAME_INTERVAL) *
+		    SLIPPI_DESPAWN_FRAME_INTERVAL;
+
+		if (frame >= despawnFrame)
+			shouldDespawn[i] = 1;
+	}
+
 	for (int i = 0; i < remotePlayerCount; i++)
 	{
 		if (!results[i]->isDisconnected)
@@ -1667,6 +1693,12 @@ void CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)
 		tx.resize(SLIPPI_PAD_FULL_SIZE * ROLLBACK_MAX_FRAMES, 0);
 
 		m_read_queue.insert(m_read_queue.end(), tx.begin(), tx.end());
+	}
+
+	// Append the per-remote-player should-despawn flags
+	for (int i = 0; i < SLIPPI_REMOTE_PLAYER_MAX; i++)
+	{
+		m_read_queue.push_back(shouldDespawn[i]);
 	}
 
 	// ERROR_LOG(SLIPPI_ONLINE, "EXI: [%d] %X %X %X %X %X %X %X %X", latestFrame, m_read_queue[5], m_read_queue[6],

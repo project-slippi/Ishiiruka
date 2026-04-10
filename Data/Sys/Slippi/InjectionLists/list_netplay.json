@@ -515,7 +515,7 @@
    "InjectionAddress": "801A4CB4",
    "Name": "Required: Slippi Recording",
    "Codetype": "Auto",
-   "Annotation": "Common/AllocBuffer.asm",
+   "Annotation": "Common/AllocSceneBuffer.asm",
    "Tags": ""
   },
   {
@@ -1146,6 +1146,13 @@
    "Name": "Required: Slippi Online",
    "Codetype": "Auto",
    "Annotation": "Online/Menus/InGame/ParseNumbersBetter.asm",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "80178088",
+   "Name": "Required: Slippi Online",
+   "Codetype": "Auto",
+   "Annotation": "Online/Menus/ResultsScreen/ControlAllPanels.asm",
    "Tags": ""
   },
   {
