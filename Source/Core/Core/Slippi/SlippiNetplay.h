@@ -155,7 +155,8 @@ class SlippiNetplayClient
 
 	SlippiNetplayClient(bool isDecider); // Make a dummy client
 	SlippiNetplayClient(std::vector<std::string> addrs, std::vector<u16> ports, const u8 remotePlayerCount,
-	                    const u16 localPort, bool isDecider, u8 playerIdx);
+	                    const u16 localPort, bool isDecider, u8 playerIdx,
+	                    std::array<bool, SLIPPI_REMOTE_PLAYER_MAX> remotePlayerIsBot = {});
 	~SlippiNetplayClient();
 
 	// Slippi Online
@@ -259,6 +260,7 @@ class SlippiNetplayClient
 	FrameOffsetData frameOffsetData[SLIPPI_REMOTE_PLAYER_MAX];
 	FrameTiming lastFrameTiming[SLIPPI_REMOTE_PLAYER_MAX];
 	std::array<Common::FifoQueue<FrameTiming, false>, SLIPPI_REMOTE_PLAYER_MAX> ackTimers;
+	std::array<bool, SLIPPI_REMOTE_PLAYER_MAX> remotePlayerIsBot{};
 
 	SlippiConnectStatus slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_UNSET;
 	std::vector<int> failedConnections;

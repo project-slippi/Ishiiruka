@@ -9,6 +9,7 @@
 #include "Common/Timer.h"
 #include "Core/ConfigManager.h"
 #include "Core/Core.h"
+#include "Core/Slippi/SlippiNetplayTiming.h"
 #include "SlippiPremadeText.h"
 #include "VideoCommon/OnScreenDisplay.h"
 #include "VideoCommon/VideoConfig.h"
@@ -66,7 +67,8 @@ SlippiNetplayClient::~SlippiNetplayClient()
 
 // called from ---SLIPPI EXI--- thread
 SlippiNetplayClient::SlippiNetplayClient(std::vector<std::string> addrs, std::vector<u16> ports,
-                                         const u8 remotePlayerCount, const u16 localPort, bool isDecider, u8 playerIdx)
+                                         const u8 remotePlayerCount, const u16 localPort, bool isDecider, u8 playerIdx,
+                                         std::array<bool, SLIPPI_REMOTE_PLAYER_MAX> remotePlayerIsBot)
 #ifdef _WIN32
     : m_qos_handle(nullptr)
     , m_qos_flow_id(0)
@@ -77,6 +79,7 @@ SlippiNetplayClient::SlippiNetplayClient(std::vector<std::string> addrs, std::ve
 	this->isDecider = isDecider;
 	this->m_remotePlayerCount = remotePlayerCount;
 	this->playerIdx = playerIdx;
+	this->remotePlayerIsBot = remotePlayerIsBot;
 
 	// Set up remote player data structures
 	int j = 0;
@@ -1425,21 +1428,7 @@ int32_t SlippiNetplayClient::GetSlippiLatestRemoteFrame(int maxFrameCount)
 // return the smallest time offset among all remote players
 s32 SlippiNetplayClient::CalcTimeOffsetUs()
 {
-	bool empty = true;
-	for (int i = 0; i < m_remotePlayerCount; i++)
-	{
-		if (!frameOffsetData[i].buf.empty())
-		{
-			empty = false;
-			break;
-		}
-	}
-	if (empty)
-	{
-		return 0;
-	}
-
-	std::vector<int> offsets;
+	std::vector<SlippiTimeOffset> offsets;
 	for (int i = 0; i < m_remotePlayerCount; i++)
 	{
 		if (frameOffsetData[i].buf.empty())
@@ -1448,38 +1437,12 @@ s32 SlippiNetplayClient::CalcTimeOffsetUs()
 		std::vector<s32> buf;
 		std::copy(frameOffsetData[i].buf.begin(), frameOffsetData[i].buf.end(), std::back_inserter(buf));
 
-		// TODO: Does this work?
-		std::sort(buf.begin(), buf.end());
-
-		int bufSize = (int)buf.size();
-		int offset = (int)((1.0f / 3.0f) * bufSize);
-		int end = bufSize - offset;
-
-		int sum = 0;
-		for (int i = offset; i < end; i++)
-		{
-			sum += buf[i];
-		}
-
-		int count = end - offset;
-		if (count <= 0)
-		{
-			return 0; // What do I return here?
-		}
-
-		s32 result = sum / count;
+		SlippiTimeOffset result = {CalcSlippiPlayerTimeOffsetUs(buf), remotePlayerIsBot[i]};
 		offsets.push_back(result);
 	}
 
-	s32 minOffset = offsets.front();
-	for (int i = 1; i < offsets.size(); i++)
-	{
-		if (offsets[i] < minOffset)
-			minOffset = offsets[i];
-	}
-
 	// INFO_LOG(SLIPPI_ONLINE, "Time offsets, [0]: %d, [1]: %d, [2]: %d", offsets[0], offsets[1], offsets[2]);
-	return minOffset;
+	return SelectSlippiTimeOffsetUs(offsets);
 }
 
 bool SlippiNetplayClient::IsWaitingForDesyncRecovery()
