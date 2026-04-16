@@ -775,9 +775,6 @@
     <ClCompile Include="Slippi\SlippiNetplay.cpp">
       <Filter>Slippi</Filter>
     </ClCompile>
-    <ClCompile Include="Slippi\SlippiNetplayTiming.cpp">
-      <Filter>Slippi</Filter>
-    </ClCompile>
     <ClCompile Include="Slippi\SlippiGameFileLoader.cpp">
       <Filter>Slippi</Filter>
     </ClCompile>
@@ -1332,9 +1329,6 @@
     </ClInclude>
     <ClInclude Include="DSP\Jit\DSPEmitter.h" />
     <ClInclude Include="Slippi\SlippiReplayComm.h">
-      <Filter>Slippi</Filter>
-    </ClInclude>
-    <ClInclude Include="Slippi\SlippiNetplayTiming.h">
       <Filter>Slippi</Filter>
     </ClInclude>
     <ClInclude Include="Slippi\SlippiPad.h">

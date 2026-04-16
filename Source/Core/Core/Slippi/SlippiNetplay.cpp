@@ -9,7 +9,6 @@
 #include "Common/Timer.h"
 #include "Core/ConfigManager.h"
 #include "Core/Core.h"
-#include "Core/Slippi/SlippiNetplayTiming.h"
 #include "SlippiPremadeText.h"
 #include "VideoCommon/OnScreenDisplay.h"
 #include "VideoCommon/VideoConfig.h"
@@ -1428,7 +1427,8 @@ int32_t SlippiNetplayClient::GetSlippiLatestRemoteFrame(int maxFrameCount)
 // return the smallest time offset among all remote players
 s32 SlippiNetplayClient::CalcTimeOffsetUs()
 {
-	std::vector<SlippiTimeOffset> offsets;
+	std::vector<int> humanOffsets;
+	std::vector<int> botOffsets;
 	for (int i = 0; i < m_remotePlayerCount; i++)
 	{
 		if (frameOffsetData[i].buf.empty())
@@ -1437,12 +1437,47 @@ s32 SlippiNetplayClient::CalcTimeOffsetUs()
 		std::vector<s32> buf;
 		std::copy(frameOffsetData[i].buf.begin(), frameOffsetData[i].buf.end(), std::back_inserter(buf));
 
-		SlippiTimeOffset result = {CalcSlippiPlayerTimeOffsetUs(buf), remotePlayerIsBot[i]};
-		offsets.push_back(result);
+		// TODO: Does this work?
+		std::sort(buf.begin(), buf.end());
+
+		int bufSize = (int)buf.size();
+		int offset = (int)((1.0f / 3.0f) * bufSize);
+		int end = bufSize - offset;
+
+		int sum = 0;
+		for (int i = offset; i < end; i++)
+		{
+			sum += buf[i];
+		}
+
+		int count = end - offset;
+		if (count <= 0)
+		{
+			return 0; // What do I return here?
+		}
+
+		s32 result = sum / count;
+		if (remotePlayerIsBot[i])
+			botOffsets.push_back(result);
+		else
+			humanOffsets.push_back(result);
+	}
+
+	const auto& offsets = humanOffsets.empty() ? botOffsets : humanOffsets;
+	if (offsets.empty())
+	{
+		return 0;
+	}
+
+	s32 minOffset = offsets.front();
+	for (int i = 1; i < offsets.size(); i++)
+	{
+		if (offsets[i] < minOffset)
+			minOffset = offsets[i];
 	}
 
 	// INFO_LOG(SLIPPI_ONLINE, "Time offsets, [0]: %d, [1]: %d, [2]: %d", offsets[0], offsets[1], offsets[2]);
-	return SelectSlippiTimeOffsetUs(offsets);
+	return minOffset;
 }
 
 bool SlippiNetplayClient::IsWaitingForDesyncRecovery()

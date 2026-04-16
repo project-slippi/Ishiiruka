@@ -193,7 +193,6 @@ set(SRCS	ActionReplay.cpp
 			Slippi/SlippiGameFileLoader.cpp
 			Slippi/SlippiMatchmaking.cpp
 			Slippi/SlippiNetplay.cpp
-			Slippi/SlippiNetplayTiming.cpp
 			Slippi/SlippiPad.cpp
 			Slippi/SlippiPlayback.cpp
 			Slippi/SlippiReplayComm.cpp
