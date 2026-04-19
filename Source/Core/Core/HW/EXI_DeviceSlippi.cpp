@@ -1665,7 +1665,7 @@ void CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)
 
 	for (int i = 0; i < remotePlayerCount; i++)
 	{
-		results[i] = slippi_netplay->GetSlippiRemotePad(i, ROLLBACK_MAX_FRAMES);
+		results[i] = slippi_netplay->GetSlippiRemotePad(i, ROLLBACK_MAX_FRAMES, frame);
 		// results[i] = slippi_netplay->GetFakePadOutput(frame);
 
 		// INFO_LOG(SLIPPI_ONLINE, "Sending checksum values: [%d] %08x", results[i]->checksumFrame,

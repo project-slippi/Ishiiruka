@@ -182,7 +182,7 @@ class SlippiNetplayClient
 	void SendSyncedGameState(SlippiSyncedGameState &s);
 	bool GetGamePrepResults(u8 stepIdx, SlippiGamePrepStepResults &res);
 	std::unique_ptr<SlippiRemotePadOutput> GetFakePadOutput(int frame);
-	std::unique_ptr<SlippiRemotePadOutput> GetSlippiRemotePad(int index, int maxFrameCount);
+	std::unique_ptr<SlippiRemotePadOutput> GetSlippiRemotePad(int index, int maxFrameCount, s32 targetFrame = -1);
 	void DropOldRemoteInputs(int32_t finalizedFrame);
 	SlippiMatchInfo *GetMatchInfo();
 	int32_t GetSlippiLatestRemoteFrame(int maxFrameCount);

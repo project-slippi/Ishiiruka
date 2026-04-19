@@ -1331,7 +1331,8 @@ std::unique_ptr<SlippiRemotePadOutput> SlippiNetplayClient::GetFakePadOutput(int
 	return std::move(padOutput);
 }
 
-std::unique_ptr<SlippiRemotePadOutput> SlippiNetplayClient::GetSlippiRemotePad(int index, int maxFrameCount)
+std::unique_ptr<SlippiRemotePadOutput> SlippiNetplayClient::GetSlippiRemotePad(int index, int maxFrameCount,
+                                                                               s32 targetFrame)
 {
 	std::lock_guard<std::mutex> lk(pad_mutex); // TODO: Is this the correct lock?
 
@@ -1354,6 +1355,29 @@ std::unique_ptr<SlippiRemotePadOutput> SlippiNetplayClient::GetSlippiRemotePad(i
 	padOutput->latestFrame = 0;
 	padOutput->checksumFrame = remote_checksums[index].frame;
 	padOutput->checksum = remote_checksums[index].value;
+
+	if (targetFrame >= 0 && remotePlayerIsBot[index])
+	{
+		auto firstFrame = remotePadQueue[index].begin();
+		while (firstFrame != remotePadQueue[index].end() && (*firstFrame)->frame > targetFrame)
+			++firstFrame;
+
+		for (auto it = firstFrame; it != remotePadQueue[index].end(); ++it)
+		{
+			if ((*it)->frame > padOutput->latestFrame)
+				padOutput->latestFrame = (*it)->frame;
+
+			auto padIt = std::begin((*it)->padBuf);
+			padOutput->data.insert(padOutput->data.end(), padIt, padIt + SLIPPI_PAD_FULL_SIZE);
+
+			inputCount++;
+			if (inputCount >= maxFrameCount)
+				return std::move(padOutput);
+		}
+
+		if (inputCount > 0)
+			return std::move(padOutput);
+	}
 
 	// Copy inputs from the remote pad queue to the output. We iterate backwards because
 	// we want to get the oldest frames possible (will have been cleared to contain the last
