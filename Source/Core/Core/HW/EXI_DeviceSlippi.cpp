@@ -1387,7 +1387,7 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 		handleSendInputs(frame, delay, finalizedFrame, finalizedFrameChecksum, inputs);
 	}
 
-	prepareOpponentInputs(frame, shouldSkip, delay);
+	prepareOpponentInputs(frame, shouldSkip);
 }
 
 bool CEXISlippi::shouldSkipOnlineFrame(s32 frame, s32 finalizedFrame)
@@ -1488,7 +1488,7 @@ bool CEXISlippi::shouldSkipOnlineFrame(s32 frame, s32 finalizedFrame)
 	return false;
 }
 
-bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame, u8 delay)
+bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame)
 {
 	const bool isLocalPlayerBot = localPlayerIsBot();
 
@@ -1518,8 +1518,7 @@ bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame, u8 delay)
 		auto offsetUs = slippi_netplay->CalcTimeOffsetUs();
 		if (isLocalPlayerBot)
 		{
-			constexpr int defaultOnlineDelay = 2;
-			offsetUs -= std::max<int>(0, delay - defaultOnlineDelay) * frameTime;
+			offsetUs -= SConfig::GetInstance().m_slippiOnlineDelay * frameTime;
 		}
 
 		// Dynamically adjust emulation speed in order to fine-tune time sync to reduce one sided rollbacks even more
@@ -1652,7 +1651,7 @@ bool CEXISlippi::opponentRunahead()
 	return true;
 }
 
-void CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip, u8 delay)
+void CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)
 {
 	m_read_queue.clear();
 
@@ -1670,7 +1669,7 @@ void CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip, u8 delay)
 	{
 		frameResult = 3; // Indicates we have disconnected
 	}
-	else if (shouldAdvanceOnlineFrame(frame, delay))
+	else if (shouldAdvanceOnlineFrame(frame))
 	{
 		frameResult = 4;
 	}
