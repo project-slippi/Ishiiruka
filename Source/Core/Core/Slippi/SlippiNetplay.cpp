@@ -1451,11 +1451,10 @@ int32_t SlippiNetplayClient::GetSlippiLatestRemoteFrame(int maxFrameCount)
 // return the smallest time offset among all remote players
 s32 SlippiNetplayClient::CalcTimeOffsetUs()
 {
-	std::vector<int> humanOffsets;
-	std::vector<int> botOffsets;
+	std::vector<int> offsets;
 	for (int i = 0; i < m_remotePlayerCount; i++)
 	{
-		if (frameOffsetData[i].buf.empty())
+		if (frameOffsetData[i].buf.empty() || remotePlayerIsBot[i])
 			continue;
 
 		std::vector<s32> buf;
@@ -1481,13 +1480,9 @@ s32 SlippiNetplayClient::CalcTimeOffsetUs()
 		}
 
 		s32 result = sum / count;
-		if (remotePlayerIsBot[i])
-			botOffsets.push_back(result);
-		else
-			humanOffsets.push_back(result);
+		offsets.push_back(result);
 	}
 
-	const auto& offsets = humanOffsets.empty() ? botOffsets : humanOffsets;
 	if (offsets.empty())
 	{
 		return 0;
