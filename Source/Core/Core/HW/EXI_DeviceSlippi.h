@@ -239,7 +239,7 @@ class CEXISlippi : public IEXIDevice
 	bool isDisconnected();
 	bool isSlippiChatEnabled();
 	void handleOnlineInputs(u8 *payload);
-	void prepareOpponentInputs(s32 frame, bool shouldSkip);
+	void prepareOpponentInputs(s32 frame, bool shouldSkip, u8 delay);
 	void handleSendInputs(s32 frame, u8 delay, s32 checksumFrame, u32 checksum, u8 *inputs);
 	void handleCaptureSavestate(u8 *payload);
 	void handleLoadSavestate(u8 *payload);
@@ -248,7 +248,8 @@ class CEXISlippi : public IEXIDevice
 	void prepareOnlineMatchState();
 	void setMatchSelections(u8 *payload);
 	bool shouldSkipOnlineFrame(s32 frame, s32 finalizedFrame);
-	bool shouldAdvanceOnlineFrame(s32 frame);
+	bool shouldAdvanceOnlineFrame(s32 frame, u8 delay);
+	bool localPlayerIsBot();
 	bool opponentRunahead();
 	void handleLogInRequest();
 	void handleLogOutRequest();
