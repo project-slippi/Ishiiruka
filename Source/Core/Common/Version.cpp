@@ -34,7 +34,7 @@
 #ifdef IS_PLAYBACK
 const std::string scm_rev_str = "Faster Melee - Slippi (" SLIPPI_REV_STR ") - Playback";
 #else
-const std::string scm_rev_str = "Faster Melee - Slippi (" SLIPPI_REV_STR ")";
+const std::string scm_rev_str = "Faster Melee - Slippi (" SLIPPI_REV_STR ") - bot doubles test v3";
 #endif
 const std::string scm_slippi_semver_str = SLIPPI_REV_STR;
 
