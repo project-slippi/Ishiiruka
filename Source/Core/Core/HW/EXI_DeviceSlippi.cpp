@@ -1433,10 +1433,6 @@ bool CEXISlippi::shouldSkipOnlineFrame(s32 frame, s32 finalizedFrame)
 
 	stallFrameCount = 0;
 
-	const bool isLocalPlayerBot = localPlayerIsBot();
-	if (isLocalPlayerBot)
-		return false;
-
 	s32 frameTime = 16683;
 	s32 t1 = 10000;
 	s32 t2 = (2 * frameTime) + t1;
@@ -1525,7 +1521,7 @@ bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame)
 		// Modify emulation speed up to a max of 1% at 3 frames offset or more. Don't slow down the front instance as
 		// much because we want to prioritize performance for the fast PC
 		float deviation = 0;
-		float maxSlowDownAmount = isLocalPlayerBot ? 0.0f : 0.005f;
+		float maxSlowDownAmount = 0.005f;
 		float maxSpeedUpAmount = 0.01f;
 		int slowDownFrameWindow = 3;
 		int speedUpFrameWindow = 3;
@@ -1578,7 +1574,7 @@ bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame)
 			isCurrentlyAdvancing = true;
 
 			// On early frames, don't advance any frames. Let the stalling logic handle the initial sync
-			int maxAdvFrames = isLocalPlayerBot || frame > 120 ? 3 : 0;
+			int maxAdvFrames = frame > 120 ? 3 : 0;
 			framesToAdvance = ((-offsetUs - t1) / frameTime) + 1;
 			framesToAdvance = framesToAdvance > maxAdvFrames ? maxAdvFrames : framesToAdvance;
 
