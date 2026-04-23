@@ -13,6 +13,7 @@
 #include "VideoCommon/OnScreenDisplay.h"
 #include "VideoCommon/VideoConfig.h"
 #include <algorithm>
+#include <cstring>
 #include <fstream>
 #include <memory>
 #include <thread>
@@ -1125,8 +1126,25 @@ void SlippiNetplayClient::SendSlippiPad(std::unique_ptr<SlippiPad> pad)
 
 	if (pad)
 	{
-		// Add latest local pad report to queue
-		localPadQueue.push_front(std::move(pad));
+		bool alreadyQueued = false;
+		for (const auto& queuedPad : localPadQueue)
+		{
+			if (queuedPad->frame != pad->frame)
+				continue;
+
+			alreadyQueued = true;
+			if (std::memcmp(queuedPad->padBuf, pad->padBuf, SLIPPI_PAD_DATA_SIZE) != 0)
+			{
+				WARN_LOG(SLIPPI_ONLINE, "Dropping changed duplicate local input for frame %d", pad->frame);
+			}
+			break;
+		}
+
+		if (!alreadyQueued)
+		{
+			// Add latest local pad report to queue
+			localPadQueue.push_front(std::move(pad));
+		}
 	}
 
 	// Remove pad reports that have been received and acked
