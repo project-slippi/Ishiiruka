@@ -1470,9 +1470,19 @@ int32_t SlippiNetplayClient::GetSlippiLatestRemoteFrame(int maxFrameCount)
 s32 SlippiNetplayClient::CalcTimeOffsetUs()
 {
 	std::vector<int> offsets;
+	bool hasHumanOffset = false;
 	for (int i = 0; i < m_remotePlayerCount; i++)
 	{
-		if (frameOffsetData[i].buf.empty() || remotePlayerIsBot[i])
+		if (!frameOffsetData[i].buf.empty() && !remotePlayerIsBot[i])
+		{
+			hasHumanOffset = true;
+			break;
+		}
+	}
+
+	for (int i = 0; i < m_remotePlayerCount; i++)
+	{
+		if (frameOffsetData[i].buf.empty() || (hasHumanOffset && remotePlayerIsBot[i]))
 			continue;
 
 		std::vector<s32> buf;
