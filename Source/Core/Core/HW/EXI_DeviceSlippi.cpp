@@ -1613,9 +1613,8 @@ void CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)
 		s32 thresholdFrame = lastInputFrame + 2 * ROLLBACK_MAX_FRAMES + 2;
 
 		// Round up to the next frame that is a multiple of the despawn interval
-		s32 despawnFrame =
-		    ((thresholdFrame + SLIPPI_DESPAWN_FRAME_INTERVAL - 1) / SLIPPI_DESPAWN_FRAME_INTERVAL) *
-		    SLIPPI_DESPAWN_FRAME_INTERVAL;
+		s32 despawnFrame = ((thresholdFrame + SLIPPI_DESPAWN_FRAME_INTERVAL - 1) / SLIPPI_DESPAWN_FRAME_INTERVAL) *
+		                   SLIPPI_DESPAWN_FRAME_INTERVAL;
 
 		if (frame >= despawnFrame)
 			shouldDespawn[i] = 1;
@@ -2408,7 +2407,8 @@ void CEXISlippi::prepareOnlineMatchState()
 
 		// Set teams mode
 		onlineMatchBlock[0x8] = lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::TEAMS ? 1 : 0;
-		//onlineMatchBlock[0x8] = remotePlayerCount >= 2 ? 1 : 0; // TODO: If we dont set it to teams, it crashes sometimes
+		// onlineMatchBlock[0x8] = remotePlayerCount >= 2 ? 1 : 0; // TODO: If we dont set it to teams, it crashes
+		// sometimes
 
 		// Set p3/p4 player type to human or none depending on the amount of players
 		onlineMatchBlock[0x61 + 2 * 0x24] = remotePlayerCount >= 2 ? 0 : 3;
@@ -2465,7 +2465,7 @@ void CEXISlippi::prepareOnlineMatchState()
 	}
 
 	// Configure items. Have to reset things when there are no items.
-	onlineMatchBlock[0xB] = 0xFF; // Items off
+	onlineMatchBlock[0xB] = 0xFF;             // Items off
 	u64 new_items_value = 0xF80000000F000000; // Default value (all items off)
 	if (recentMmResult.items != 0)
 	{
