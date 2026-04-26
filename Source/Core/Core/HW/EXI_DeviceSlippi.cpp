@@ -1258,9 +1258,11 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 			availableSavestates.push_back(std::make_unique<SlippiSavestate>());
 		}
 
-		// Reset stall counter
-		isConnectionStalled = false;
-		stallFrameCount = 0;
+		// Reset per-player stall counters
+		for (int i = 0; i < SLIPPI_REMOTE_PLAYER_MAX; i++)
+		{
+			stallFrameCounts[i] = 0;
+		}
 
 		// Reset skip variables
 		framesToSkip = 0;
@@ -1313,37 +1315,52 @@ bool CEXISlippi::shouldSkipOnlineFrame(s32 frame, s32 finalizedFrame)
 		return false;
 	}
 
-	if (isConnectionStalled)
+	// Check each active remote player individually. If any single player is short on
+	// new inputs we still skip the frame, but we only force-disconnect the specific
+	// player(s) whose stall counter exceeds the threshold. In a 1v1 this collapses to
+	// the previous behavior (sole opponent gets dropped → connectionDisconnected path
+	// fires next frame). In multiplayer, the despawn/continue path takes over.
+	// ROLLBACK_MAX_FRAMES is our look-ahead limit: see the prior comment block in git
+	// history for the savestate math.
+	bool anyPlayerNeedsInputs = false;
+	u8 remotePlayerCount = matchmaking->RemotePlayerCount();
+	for (u8 i = 0; i < remotePlayerCount; i++)
 	{
-		return false;
-	}
-
-	// Return true if we are too far ahead for rollback. ROLLBACK_MAX_FRAMES is the number of frames
-	// we can receive for the opponent at one time and is our "look-ahead" limit
-	// Example: finalizedFrame = 100 means the last savestate we need is 101. We can then store
-	// states 101 to 107 before running out of savestates. So 107 - 100 = 7. We need to make sure
-	// we have enough inputs to finalize to not overflow the available states, so if our latest frame
-	// is 101, we can't let frame 109 be created. 101 - 100 >= 109 - 100 - 7 : 1 >= 2 (false).
-	// It has to work this way because we only have room to move our states forward by one for frame 108
-	s32 latestRemoteFrame = slippi_netplay->GetSlippiLatestRemoteFrame(ROLLBACK_MAX_FRAMES);
-	auto hasEnoughNewInputs = latestRemoteFrame - finalizedFrame >= (frame - finalizedFrame - ROLLBACK_MAX_FRAMES);
-	if (!hasEnoughNewInputs)
-	{
-		stallFrameCount++;
-		if (stallFrameCount > 60 * 7)
+		auto pad = slippi_netplay->GetSlippiRemotePad(i, ROLLBACK_MAX_FRAMES);
+		if (pad->isDisconnected)
 		{
-			// 7 second stall will disconnect game
-			isConnectionStalled = true;
+			stallFrameCounts[i] = 0;
+			continue;
+		}
+
+		s32 latestRemoteFrame = pad->latestFrame;
+		bool hasEnoughNewInputs =
+		    latestRemoteFrame - finalizedFrame >= (frame - finalizedFrame - ROLLBACK_MAX_FRAMES);
+		if (hasEnoughNewInputs)
+		{
+			stallFrameCounts[i] = 0;
+			continue;
+		}
+
+		stallFrameCounts[i]++;
+		anyPlayerNeedsInputs = true;
+
+		if (stallFrameCounts[i] > 60 * 7)
+		{
+			WARN_LOG(SLIPPI_ONLINE, "Force-disconnecting player %d after 7s stall (frame: %d | latest: %d)",
+			         pad->playerIdx, frame, latestRemoteFrame);
+			slippi_netplay->ForceDisconnectPlayer(pad->playerIdx);
+			stallFrameCounts[i] = 0;
+			continue;
 		}
 
 		WARN_LOG(SLIPPI_ONLINE,
-		         "Halting for one frame due to rollback limit (frame: %d | latest: %d | finalized: %d)...", frame,
-		         latestRemoteFrame, finalizedFrame);
-
-		return true;
+		         "Halting for one frame due to rollback limit (frame: %d | latest: %d | finalized: %d | player: %d)...",
+		         frame, latestRemoteFrame, finalizedFrame, pad->playerIdx);
 	}
 
-	stallFrameCount = 0;
+	if (anyPlayerNeedsInputs)
+		return true;
 
 	s32 frameTime = 16683;
 	s32 t1 = 10000;
@@ -1508,9 +1525,6 @@ bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame)
 
 void CEXISlippi::handleSendInputs(s32 frame, u8 delay, s32 checksumFrame, u32 checksum, u8 *inputs)
 {
-	if (isConnectionStalled)
-		return;
-
 	// On the first frame sent, we need to queue up empty dummy pads for as many
 	//	frames as we have delay
 	if (frame == 1)
@@ -1559,7 +1573,7 @@ void CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)
 		// for when the frame inputs are requested on a rollback
 		frameResult = 2;
 	}
-	else if (state != SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED || isConnectionStalled)
+	else if (state != SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED)
 	{
 		frameResult = 3; // Indicates we have disconnected
 	}

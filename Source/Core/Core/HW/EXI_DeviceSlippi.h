@@ -299,8 +299,7 @@ class CEXISlippi : public IEXIDevice
 	std::vector<u8> playbackSavestatePayload;
 	std::vector<u8> geckoList;
 
-	u32 stallFrameCount = 0;
-	bool isConnectionStalled = false;
+	u32 stallFrameCounts[SLIPPI_REMOTE_PLAYER_MAX] = {};
 
 	std::vector<u8> m_read_queue;
 	std::unique_ptr<Slippi::SlippiGame> m_current_game = nullptr;

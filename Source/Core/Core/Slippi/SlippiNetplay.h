@@ -189,6 +189,7 @@ class SlippiNetplayClient
 	std::unique_ptr<SlippiRemotePadOutput> GetSlippiRemotePad(int index, int maxFrameCount);
 	void DropOldRemoteInputs(int32_t finalizedFrame);
 	std::unordered_map<u8, bool> GetActivePlayerIndices();
+	void ForceDisconnectPlayer(u8 playerIdx);
 	SlippiMatchInfo *GetMatchInfo();
 	int32_t GetSlippiLatestRemoteFrame(int maxFrameCount);
 	SlippiPlayerSelections GetSlippiRemoteChatMessage(bool isChatEnabled);
@@ -259,8 +260,10 @@ class SlippiNetplayClient
 	std::unordered_map<std::string, std::map<ENetPeer *, ActiveConnectionInfo>> activeConnections;
 
 	// Lock-free view of which global player indices still have at least one live peer.
-	// Written by the network thread when activeConnections changes, read from any thread
-	// (notably the main/EXI thread via GetActivePlayerIndices).
+	// Written by the network thread when activeConnections changes, and by the EXI
+	// thread via ForceDisconnectPlayer. Read from any thread (notably the main/EXI
+	// thread via GetActivePlayerIndices). The network thread also uses this to drive
+	// per-peer ENet disconnects for players force-dropped from the EXI side.
 	std::atomic<bool> playerActive[SLIPPI_PLAYER_COUNT_MAX] = {};
 
 	std::deque<std::unique_ptr<SlippiPad>> localPadQueue; // most recent inputs at start of deque
@@ -280,7 +283,7 @@ class SlippiNetplayClient
 	FrameTiming lastFrameTiming[SLIPPI_REMOTE_PLAYER_MAX];
 	std::array<Common::FifoQueue<FrameTiming, false>, SLIPPI_REMOTE_PLAYER_MAX> ackTimers;
 
-	SlippiConnectStatus slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_UNSET;
+	std::atomic<SlippiConnectStatus> slippiConnectStatus{SlippiConnectStatus::NET_CONNECT_STATUS_UNSET};
 	std::vector<int> failedConnections;
 	SlippiMatchInfo matchInfo;
 
