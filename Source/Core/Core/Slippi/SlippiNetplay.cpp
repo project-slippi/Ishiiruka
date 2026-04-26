@@ -16,6 +16,7 @@
 #include <cstring>
 #include <fstream>
 #include <memory>
+#include <sstream>
 #include <thread>
 
 //#include "Common/MD5.h"
@@ -319,6 +320,14 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 				ERROR_LOG(SLIPPI_ONLINE,
 				          "Netplay packet too small to read pad buffer. Size: %d, Inputs: %d, MinSize: %d",
 				          (int)packet.getDataSize(), inputsToCopy, padDataOffset + inputsToCopy * SLIPPI_PAD_DATA_SIZE);
+				ERROR_LOG(SLIPPI_ONLINE,
+				          "[Diag][PadPacketTooSmall] pIdx=%d packetPlayerPort=%d frame=%d headFrame=%d queueSize=%zu "
+				          "front=%d back=%d padDataOffset=%d packetSize=%d remoteBot=%d lastAck=%d pingUs=%llu",
+				          pIdx, packetPlayerPort, frame, headFrame, remotePadQueue[pIdx].size(),
+				          remotePadQueue[pIdx].empty() ? -1 : remotePadQueue[pIdx].front()->frame,
+				          remotePadQueue[pIdx].empty() ? -1 : remotePadQueue[pIdx].back()->frame, padDataOffset,
+				          (int)packet.getDataSize(), remotePlayerIsBot[pIdx], lastFrameAcked[pIdx],
+				          (unsigned long long)pingUs[pIdx]);
 				break;
 			}
 
@@ -1464,6 +1473,132 @@ int32_t SlippiNetplayClient::GetSlippiLatestRemoteFrame(int maxFrameCount)
 	}
 
 	return lowestFrame;
+}
+
+int32_t SlippiNetplayClient::GetLatestRemoteFrameForBotType(bool isBot)
+{
+	std::lock_guard<std::mutex> lk(pad_mutex);
+
+	int lowestFrame = 0;
+	bool isFrameSet = false;
+	for (int i = 0; i < m_remotePlayerCount; i++)
+	{
+		if (remotePlayerIsBot[i] != isBot)
+			continue;
+
+		const int f = remotePadQueue[i].empty() ? 0 : remotePadQueue[i].front()->frame;
+		if (f < lowestFrame || !isFrameSet)
+		{
+			lowestFrame = f;
+			isFrameSet = true;
+		}
+	}
+
+	return isFrameSet ? lowestFrame : -1;
+}
+
+void SlippiNetplayClient::DebugDumpPadQueues(const char* context, s32 frame, s32 finalizedFrame)
+{
+	std::lock_guard<std::mutex> lk(pad_mutex);
+
+	for (int i = 0; i < m_remotePlayerCount; i++)
+	{
+		INFO_LOG(SLIPPI_ONLINE,
+		         "[Diag][PadQueue] context=%s frame=%d finalized=%d pIdx=%d isBot=%d queueSize=%zu front=%d back=%d "
+		         "checksumFrame=%d checksum=%08x lastAck=%d offsetSamples=%zu pingUs=%llu",
+		         context, frame, finalizedFrame, i, remotePlayerIsBot[i], remotePadQueue[i].size(),
+		         remotePadQueue[i].empty() ? -1 : remotePadQueue[i].front()->frame,
+		         remotePadQueue[i].empty() ? -1 : remotePadQueue[i].back()->frame, remote_checksums[i].frame,
+		         remote_checksums[i].value, lastFrameAcked[i], frameOffsetData[i].buf.size(),
+		         (unsigned long long)pingUs[i]);
+	}
+}
+
+std::string SlippiNetplayClient::DebugPadQueueSummary(s32 targetFrame, int maxFrameCount)
+{
+	std::lock_guard<std::mutex> lk(pad_mutex);
+
+	std::ostringstream ss;
+	ss << "remoteCount=" << static_cast<int>(m_remotePlayerCount) << " target=" << targetFrame
+	   << " max=" << maxFrameCount;
+
+	for (int i = 0; i < m_remotePlayerCount; i++)
+	{
+		int copied = 0;
+		s32 latest = 0;
+		size_t bytes = 0;
+
+		if (!remotePadQueue[i].empty())
+		{
+			if (targetFrame >= 0 && remotePlayerIsBot[i])
+			{
+				auto firstFrame = remotePadQueue[i].begin();
+				while (firstFrame != remotePadQueue[i].end() && (*firstFrame)->frame > targetFrame)
+					++firstFrame;
+
+				for (auto it = firstFrame; it != remotePadQueue[i].end(); ++it)
+				{
+					latest = std::max(latest, (*it)->frame);
+					bytes += SLIPPI_PAD_FULL_SIZE;
+					copied++;
+					if (copied >= maxFrameCount)
+						break;
+				}
+			}
+
+			if (copied == 0)
+			{
+				for (auto it = remotePadQueue[i].rbegin(); it != remotePadQueue[i].rend(); ++it)
+				{
+					latest = std::max(latest, (*it)->frame);
+					bytes += SLIPPI_PAD_FULL_SIZE;
+					copied++;
+					if (copied >= maxFrameCount)
+						break;
+				}
+			}
+		}
+
+		ss << " r" << i << "{bot=" << remotePlayerIsBot[i] << ",size=" << remotePadQueue[i].size()
+		   << ",front=" << (remotePadQueue[i].empty() ? -1 : remotePadQueue[i].front()->frame)
+		   << ",back=" << (remotePadQueue[i].empty() ? -1 : remotePadQueue[i].back()->frame)
+		   << ",latest=" << latest << ",copied=" << copied << ",bytes=" << bytes
+		   << ",chkFrame=" << remote_checksums[i].frame << ",chk=" << std::hex << remote_checksums[i].value
+		   << std::dec << ",ack=" << lastFrameAcked[i] << "}";
+	}
+
+	return ss.str();
+}
+
+std::string SlippiNetplayClient::DebugTimingSummary()
+{
+	std::lock_guard<std::mutex> lk(ack_mutex);
+
+	std::ostringstream ss;
+	for (int i = 0; i < m_remotePlayerCount; i++)
+	{
+		const auto& offsets = frameOffsetData[i].buf;
+		s32 minOffset = 0;
+		s32 maxOffset = 0;
+		s32 avgOffset = 0;
+		if (!offsets.empty())
+		{
+			minOffset = *std::min_element(offsets.begin(), offsets.end());
+			maxOffset = *std::max_element(offsets.begin(), offsets.end());
+
+			s64 total = 0;
+			for (auto offset : offsets)
+				total += offset;
+			avgOffset = static_cast<s32>(total / static_cast<s64>(offsets.size()));
+		}
+
+		ss << " r" << i << "{bot=" << remotePlayerIsBot[i] << ",samples=" << offsets.size()
+		   << ",min=" << minOffset << ",avg=" << avgOffset << ",max=" << maxOffset
+		   << ",lastTimingFrame=" << lastFrameTiming[i].frame << ",pingUs="
+		   << static_cast<unsigned long long>(pingUs[i]) << "}";
+	}
+
+	return ss.str();
 }
 
 // return the smallest time offset among all remote players

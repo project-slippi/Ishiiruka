@@ -186,6 +186,10 @@ class SlippiNetplayClient
 	void DropOldRemoteInputs(int32_t finalizedFrame);
 	SlippiMatchInfo *GetMatchInfo();
 	int32_t GetSlippiLatestRemoteFrame(int maxFrameCount);
+	int32_t GetLatestRemoteFrameForBotType(bool isBot);
+	void DebugDumpPadQueues(const char* context, s32 frame, s32 finalizedFrame);
+	std::string DebugPadQueueSummary(s32 targetFrame, int maxFrameCount);
+	std::string DebugTimingSummary();
 	SlippiPlayerSelections GetSlippiRemoteChatMessage(bool isChatEnabled);
 	u8 GetSlippiRemoteSentChatMessage(bool isChatEnabled);
 	s32 CalcTimeOffsetUs();
