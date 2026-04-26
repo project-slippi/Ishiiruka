@@ -1156,6 +1156,13 @@
    "Tags": ""
   },
   {
+   "InjectionAddress": "8017A890",
+   "Name": "Required: Slippi Online",
+   "Codetype": "Auto",
+   "Annotation": "Online/Menus/ResultsScreen/MoveScaleTable.asm",
+   "Tags": ""
+  },
+  {
    "InjectionAddress": "8025B8A4",
    "Name": "Required: Slippi Online",
    "Codetype": "Auto",
