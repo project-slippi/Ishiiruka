@@ -1156,6 +1156,13 @@
    "Tags": ""
   },
   {
+   "InjectionAddress": "8017900C",
+   "Name": "Required: Slippi Online",
+   "Codetype": "Auto",
+   "Annotation": "Online/Menus/ResultsScreen/GrayPanelsForRemotePlayers.asm",
+   "Tags": ""
+  },
+  {
    "InjectionAddress": "8017A890",
    "Name": "Required: Slippi Online",
    "Codetype": "Auto",
@@ -1412,6 +1419,13 @@
    "Name": "Required: Slippi Online",
    "Codetype": "Auto",
    "Annotation": "Online/Static/SaveState.asm",
+   "Tags": ""
+  },
+  {
+   "InjectionAddress": "8000568C",
+   "Name": "Required: Slippi Online",
+   "Codetype": "Auto",
+   "Annotation": "Online/Static/StaticData.asm",
    "Tags": ""
   },
   {
