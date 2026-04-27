@@ -1614,9 +1614,16 @@ int32_t SlippiNetplayClient::GetSlippiLatestRemoteFrame(int maxFrameCount)
 // return the smallest time offset among all remote players
 s32 SlippiNetplayClient::CalcTimeOffsetUs()
 {
+	// Skip disconnected peers. Their frameOffsetData buffer freezes at the time of disconnect (writes only
+	// happen on pad receive), so including their stale samples would distort time-sync for the rest of the
+	// match — particularly bad in 4p where the game continues after one peer drops.
 	bool empty = true;
 	for (int i = 0; i < m_remotePlayerCount; i++)
 	{
+		auto remotePlayerIdx = matchInfo.remotePlayerSelections[i].playerIdx;
+		if (!playerActive[remotePlayerIdx].load(std::memory_order_acquire))
+			continue;
+
 		if (!frameOffsetData[i].buf.empty())
 		{
 			empty = false;
@@ -1631,6 +1638,10 @@ s32 SlippiNetplayClient::CalcTimeOffsetUs()
 	std::vector<int> offsets;
 	for (int i = 0; i < m_remotePlayerCount; i++)
 	{
+		auto remotePlayerIdx = matchInfo.remotePlayerSelections[i].playerIdx;
+		if (!playerActive[remotePlayerIdx].load(std::memory_order_acquire))
+			continue;
+			
 		if (frameOffsetData[i].buf.empty())
 			continue;
 
