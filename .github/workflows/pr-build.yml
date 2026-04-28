@@ -329,6 +329,13 @@ jobs:
           brew uninstall cmake
           brew install performous/pinned_cmake3/cmake@3.31.7
 #         brew upgrade cmake
+          # ffmpeg@2.8's bottle has /usr/local/Cellar/x265/4.2/... baked into its
+          # load commands, but Homebrew now installs a newer x265. Symlink the
+          # missing Cellar dir to whatever x265 is actually installed so
+          # deploy-mac.py can resolve the dylib.
+          if [ ! -d /usr/local/Cellar/x265/4.2 ] && [ -d "$(brew --prefix x265)" ]; then
+            ln -s "$(brew --prefix x265)" /usr/local/Cellar/x265/4.2
+          fi
       - id: rust_ver
         name: Grab Rust Version
         shell: bash
