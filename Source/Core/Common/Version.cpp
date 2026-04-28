@@ -27,7 +27,7 @@
 // if releasing both builds, use `release: {combined_version}` or `release: {netplay_version} | {playback_version}`
 // for releasing a single build, use `release(netplay): {netplay_version}` or `release(playback): {playback_version}`
 #ifndef IS_PLAYBACK
-#define SLIPPI_REV_STR "3.5.3-dev.1" // netplay version
+#define SLIPPI_REV_STR "3.5.2" // netplay version
 #else
 #define SLIPPI_REV_STR "3.5.2" // playback version
 #endif
