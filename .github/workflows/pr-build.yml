@@ -319,7 +319,6 @@ jobs:
           rm '/usr/local/bin/2to3' || true
           echo "HOMEBREW_NO_AUTO_UPDATE=1" >> $GITHUB_ENV
           brew install \
-          ffmpeg@2.8 \
           libpng \
           pkgconfig \
           libao \
