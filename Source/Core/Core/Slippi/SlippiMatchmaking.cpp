@@ -90,7 +90,8 @@ std::unique_ptr<SlippiNetplayClient> SlippiMatchmaking::GetNetplayClient()
 
 bool SlippiMatchmaking::IsFixedRulesMode(SlippiMatchmaking::OnlinePlayMode mode)
 {
-	return mode == SlippiMatchmaking::OnlinePlayMode::UNRANKED || mode == SlippiMatchmaking::OnlinePlayMode::RANKED;
+	return mode == SlippiMatchmaking::OnlinePlayMode::UNRANKED || mode == SlippiMatchmaking::OnlinePlayMode::RANKED ||
+	       mode == SlippiMatchmaking::OnlinePlayMode::PARTY;
 }
 
 void SlippiMatchmaking::sendMessage(json msg)
@@ -305,7 +306,7 @@ void SlippiMatchmaking::startMatchmaking()
 			return;
 		}
 	}
-	
+
 	retryCount = 0;
 	auto userInfo = m_user->GetUserInfo();
 	while (m_client == nullptr && retryCount < 15)
