@@ -19,7 +19,6 @@
 #include "Core/Slippi/SlippiSpectate.h"
 #include "Core/Slippi/SlippiUser.h"
 
-#define ROLLBACK_MAX_FRAMES 7
 #define MAX_NAME_LENGTH 15
 #define MAX_MESSAGE_LENGTH 25
 #define CONNECT_CODE_LENGTH 8
@@ -300,8 +299,7 @@ class CEXISlippi : public IEXIDevice
 	std::vector<u8> playbackSavestatePayload;
 	std::vector<u8> geckoList;
 
-	u32 stallFrameCount = 0;
-	bool isConnectionStalled = false;
+	u32 stallFrameCounts[SLIPPI_REMOTE_PLAYER_MAX] = {};
 
 	std::vector<u8> m_read_queue;
 	std::unique_ptr<Slippi::SlippiGame> m_current_game = nullptr;

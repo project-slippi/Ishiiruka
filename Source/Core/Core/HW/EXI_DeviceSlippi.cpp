@@ -49,7 +49,6 @@
 #define WRITE_FILE_SLEEP_TIME_MS 85
 
 // #define LOCAL_TESTING
-// #define CREATE_DIFF_FILES
 
 static std::unordered_map<u8, std::string> slippi_names;
 static std::unordered_map<u8, std::string> slippi_connect_codes;
@@ -200,93 +199,6 @@ CEXISlippi::CEXISlippi()
 	    0x1F, // Battlefield
 	    0x20, // Final Destination
 	};
-
-#ifdef CREATE_DIFF_FILES
-	// MnMaAll.usd
-	std::string origStr;
-	std::string modifiedStr;
-	File::ReadFileToString("C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\MnMaAll.usd", origStr);
-	File::ReadFileToString("C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\MnMaAll-new.usd",
-	                       modifiedStr);
-	std::vector<u8> orig(origStr.begin(), origStr.end());
-	std::vector<u8> modified(modifiedStr.begin(), modifiedStr.end());
-	auto diff = processDiff2(orig, modified);
-	File::WriteStringToFile(diff, "C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\MnMaAll.usd.diff");
-	File::WriteStringToFile(diff, "C:\\Dolphin\\IshiiDev\\Sys\\GameFiles\\GALE01\\MnMaAll.usd.diff");
-
-	//// MnExtAll.usd
-	// File::ReadFileToString("C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\CSS\\MnExtAll.usd", origStr);
-	// File::ReadFileToString("C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\CSS\\MnExtAll-new.usd", modifiedStr);
-	// orig = std::vector<u8>(origStr.begin(), origStr.end());
-	// modified = std::vector<u8>(modifiedStr.begin(), modifiedStr.end());
-	// diff = processDiff(orig, modified);
-	// File::WriteStringToFile(diff, "C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\CSS\\MnExtAll.usd.diff");
-	// File::WriteStringToFile(diff, "C:\\Dolphin\\IshiiDev\\Sys\\GameFiles\\GALE01\\MnExtAll.usd.diff");
-
-	// SdMenu.usd
-	File::ReadFileToString("C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\SdMenu.usd", origStr);
-	File::ReadFileToString("C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\SdMenu-new.usd", modifiedStr);
-	orig = std::vector<u8>(origStr.begin(), origStr.end());
-	modified = std::vector<u8>(modifiedStr.begin(), modifiedStr.end());
-	diff = processDiff2(orig, modified);
-	File::WriteStringToFile(diff, "C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\SdMenu.usd.diff");
-	File::WriteStringToFile(diff, "C:\\Dolphin\\IshiiDev\\Sys\\GameFiles\\GALE01\\SdMenu.usd.diff");
-
-	//// MnSlChr.usd
-	// std::string origStr;
-	// std::string modifiedStr;
-	// File::ReadFileToString("D:\\Melee\\MnSlChr.usd", origStr);
-	// File::ReadFileToString("D:\\Melee\\MnSlChr.new.usd", modifiedStr);
-	// orig = std::vector<u8>(origStr.begin(), origStr.end());
-	// modified = std::vector<u8>(modifiedStr.begin(), modifiedStr.end());
-	// diff = processDiff(orig, modified);
-	// File::WriteStringToFile(diff, "D:\\Melee\\MnSlChr.usd.diff");
-	// File::WriteStringToFile(diff, "D:\\GitHub\\Ishiiruka\\Binary\\x64\\Sys\\GameFiles\\GALE01\\MnSlChr.usd.diff");
-
-	// Japanese Files
-	// MnMaAll.dat
-	File::ReadFileToString("C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\MnMaAll.dat", origStr);
-	File::ReadFileToString("C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\MnMaAll-new.dat",
-	                       modifiedStr);
-	orig = std::vector<u8>(origStr.begin(), origStr.end());
-	modified = std::vector<u8>(modifiedStr.begin(), modifiedStr.end());
-	diff = processDiff2(orig, modified);
-	File::WriteStringToFile(diff, "C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\MnMaAll.dat.diff");
-	File::WriteStringToFile(diff, "C:\\Dolphin\\IshiiDev\\Sys\\GameFiles\\GALE01\\MnMaAll.dat.diff");
-
-	//// MnExtAll.dat
-	// File::ReadFileToString("C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\CSS\\MnExtAll.dat", origStr);
-	// File::ReadFileToString("C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\CSS\\MnExtAll-new.dat", modifiedStr);
-	// orig = std::vector<u8>(origStr.begin(), origStr.end());
-	// modified = std::vector<u8>(modifiedStr.begin(), modifiedStr.end());
-	// diff = processDiff(orig, modified);
-	// File::WriteStringToFile(diff, "C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\CSS\\MnExtAll.dat.diff");
-	// File::WriteStringToFile(diff, "C:\\Dolphin\\IshiiDev\\Sys\\GameFiles\\GALE01\\MnExtAll.dat.diff");
-
-	// SdMenu.dat
-	File::ReadFileToString("C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\SdMenu.dat", origStr);
-	File::ReadFileToString("C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\SdMenu-new.dat", modifiedStr);
-	orig = std::vector<u8>(origStr.begin(), origStr.end());
-	modified = std::vector<u8>(modifiedStr.begin(), modifiedStr.end());
-	diff = processDiff2(orig, modified);
-	File::WriteStringToFile(diff, "C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\SdMenu.dat.diff");
-	File::WriteStringToFile(diff, "C:\\Dolphin\\IshiiDev\\Sys\\GameFiles\\GALE01\\SdMenu.dat.diff");
-
-	//// MnSlChr.usd
-	// File::ReadFileToString("D:\\Melee\\MnSlChr.dat", origStr);
-	// File::ReadFileToString("D:\\Melee\\MnSlChr.new.dat", modifiedStr);
-	// orig = std::vector<u8>(origStr.begin(), origStr.end());
-	// modified = std::vector<u8>(modifiedStr.begin(), modifiedStr.end());
-	// diff = processDiff2(orig, modified);
-	// File::WriteStringToFile(diff, "D:\\Melee\\MnSlChr.dat.diff");
-	// File::WriteStringToFile(diff, "D:\\GitHub\\Ishiiruka\\Binary\\x64\\Sys\\GameFiles\\GALE01\\MnSlChr.dat.diff");
-
-	// TEMP - Restore orig
-	// std::string stateString;
-	// decoder.Decode((char *)orig.data(), orig.size(), diff, &stateString);
-	// File::WriteStringToFile(stateString,
-	//                        "C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\MnMaAll-restored.usd");
-#endif
 
 	//    auto spt = SlippiPremadeText();
 	//    spt.GetPremadeTextData(SlippiPremadeText::SPT_CHAT_P1, "Rapito", "Test");
@@ -1346,9 +1258,11 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 			availableSavestates.push_back(std::make_unique<SlippiSavestate>());
 		}
 
-		// Reset stall counter
-		isConnectionStalled = false;
-		stallFrameCount = 0;
+		// Reset per-player stall counters
+		for (int i = 0; i < SLIPPI_REMOTE_PLAYER_MAX; i++)
+		{
+			stallFrameCounts[i] = 0;
+		}
 
 		// Reset skip variables
 		framesToSkip = 0;
@@ -1401,37 +1315,52 @@ bool CEXISlippi::shouldSkipOnlineFrame(s32 frame, s32 finalizedFrame)
 		return false;
 	}
 
-	if (isConnectionStalled)
+	// Check each active remote player individually. If any single player is short on
+	// new inputs we still skip the frame, but we only force-disconnect the specific
+	// player(s) whose stall counter exceeds the threshold. In a 1v1 this collapses to
+	// the previous behavior (sole opponent gets dropped → connectionDisconnected path
+	// fires next frame). In multiplayer, the despawn/continue path takes over.
+	// ROLLBACK_MAX_FRAMES is our look-ahead limit: see the prior comment block in git
+	// history for the savestate math.
+	bool anyPlayerNeedsInputs = false;
+	u8 remotePlayerCount = matchmaking->RemotePlayerCount();
+	for (u8 i = 0; i < remotePlayerCount; i++)
 	{
-		return false;
-	}
-
-	// Return true if we are too far ahead for rollback. ROLLBACK_MAX_FRAMES is the number of frames
-	// we can receive for the opponent at one time and is our "look-ahead" limit
-	// Example: finalizedFrame = 100 means the last savestate we need is 101. We can then store
-	// states 101 to 107 before running out of savestates. So 107 - 100 = 7. We need to make sure
-	// we have enough inputs to finalize to not overflow the available states, so if our latest frame
-	// is 101, we can't let frame 109 be created. 101 - 100 >= 109 - 100 - 7 : 1 >= 2 (false).
-	// It has to work this way because we only have room to move our states forward by one for frame 108
-	s32 latestRemoteFrame = slippi_netplay->GetSlippiLatestRemoteFrame(ROLLBACK_MAX_FRAMES);
-	auto hasEnoughNewInputs = latestRemoteFrame - finalizedFrame >= (frame - finalizedFrame - ROLLBACK_MAX_FRAMES);
-	if (!hasEnoughNewInputs)
-	{
-		stallFrameCount++;
-		if (stallFrameCount > 60 * 7)
+		auto pad = slippi_netplay->GetSlippiRemotePad(i, ROLLBACK_MAX_FRAMES);
+		if (pad->isDisconnected)
 		{
-			// 7 second stall will disconnect game
-			isConnectionStalled = true;
+			stallFrameCounts[i] = 0;
+			continue;
+		}
+
+		s32 latestRemoteFrame = pad->latestFrame;
+		bool hasEnoughNewInputs =
+		    latestRemoteFrame - finalizedFrame >= (frame - finalizedFrame - ROLLBACK_MAX_FRAMES);
+		if (hasEnoughNewInputs)
+		{
+			stallFrameCounts[i] = 0;
+			continue;
+		}
+
+		stallFrameCounts[i]++;
+		anyPlayerNeedsInputs = true;
+
+		if (stallFrameCounts[i] > 60 * 7)
+		{
+			WARN_LOG(SLIPPI_ONLINE, "Force-disconnecting player %d after 7s stall (frame: %d | latest: %d)",
+			         pad->playerIdx, frame, latestRemoteFrame);
+			slippi_netplay->ForceDisconnectPlayer(pad->playerIdx);
+			stallFrameCounts[i] = 0;
+			continue;
 		}
 
 		WARN_LOG(SLIPPI_ONLINE,
-		         "Halting for one frame due to rollback limit (frame: %d | latest: %d | finalized: %d)...", frame,
-		         latestRemoteFrame, finalizedFrame);
-
-		return true;
+		         "Halting for one frame due to rollback limit (frame: %d | latest: %d | finalized: %d | player: %d)...",
+		         frame, latestRemoteFrame, finalizedFrame, pad->playerIdx);
 	}
 
-	stallFrameCount = 0;
+	if (anyPlayerNeedsInputs)
+		return true;
 
 	s32 frameTime = 16683;
 	s32 t1 = 10000;
@@ -1552,10 +1481,11 @@ bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame)
 		fallFarBehindCounter += offsetUs < -t2 ? 1 : 0;
 
 		bool isSlow = (offsetUs < -t1 && fallBehindCounter > 50) || (offsetUs < -t2 && fallFarBehindCounter > 15);
-		if (isSlow && lastSearch.mode != SlippiMatchmaking::OnlinePlayMode::TEAMS)
+		if (isSlow && matchmaking->RemotePlayerCount() == 1)
 		{
-			// We don't show this message for teams because it seems to false positive a lot there, maybe because the
-			// min offset is always selected? Idk I feel like doubles has some perf issues I don't understand atm.
+			// Only show this in 1v1. With more peers, CalcTimeOffsetUs returns the min across peers, which biases
+			// negative as the peer count grows and false-positives this warning. The message text ("if this appears
+			// with most opponents") also only makes sense in 1v1.
 			OSD::AddTypedMessage(
 			    OSD::MessageType::PerformanceWarning,
 			    "\nPossible poor match performance detected.\nIf this message appears with most opponents, your "
@@ -1596,9 +1526,6 @@ bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame)
 
 void CEXISlippi::handleSendInputs(s32 frame, u8 delay, s32 checksumFrame, u32 checksum, u8 *inputs)
 {
-	if (isConnectionStalled)
-		return;
-
 	// On the first frame sent, we need to queue up empty dummy pads for as many
 	//	frames as we have delay
 	if (frame == 1)
@@ -1647,7 +1574,7 @@ void CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)
 		// for when the frame inputs are requested on a rollback
 		frameResult = 2;
 	}
-	else if (state != SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED || isConnectionStalled)
+	else if (state != SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED)
 	{
 		frameResult = 3; // Indicates we have disconnected
 	}
@@ -1663,16 +1590,70 @@ void CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)
 
 	std::unique_ptr<SlippiRemotePadOutput> results[SLIPPI_REMOTE_PLAYER_MAX];
 
+	s32 latestFrameFromOpps = Slippi::GAME_FIRST_FRAME - 1;
+	u32 lastChecksumFrame = 0;
+	u32 lastChecksum = 0;
 	for (int i = 0; i < remotePlayerCount; i++)
 	{
 		results[i] = slippi_netplay->GetSlippiRemotePad(i, ROLLBACK_MAX_FRAMES);
+		if (results[i]->isDisconnected)
+		{
+			continue;
+		}
 		// results[i] = slippi_netplay->GetFakePadOutput(frame);
 
-		// INFO_LOG(SLIPPI_ONLINE, "Sending checksum values: [%d] %08x", results[i]->checksumFrame,
-		// results[i]->checksum);
-		appendWordToBuffer(&m_read_queue, static_cast<u32>(results[i]->checksumFrame));
-		appendWordToBuffer(&m_read_queue, results[i]->checksum);
+		if (results[i]->latestFrame > latestFrameFromOpps)
+		{
+			lastChecksumFrame = static_cast<u32>(results[i]->checksumFrame);
+			lastChecksum = results[i]->checksum;
+			latestFrameFromOpps = results[i]->latestFrame;
+		}
 	}
+
+	// Determine whether each remote fighter should be despawned due to disconnect. This needs
+	// to be computed before the loop below overwrites the disconnected players' latestFrame.
+	// We want the signal to be synchronized across clients, so we wait until
+	// (2*ROLLBACK_MAX_FRAMES + 2) frames have passed since the last input we received from the
+	// disconnected player, then advance to the next frame that is a multiple of
+	// SLIPPI_DESPAWN_FRAME_INTERVAL. This gives us a window where slightly different last
+	// received frames might still work out to the same despawn frame
+	constexpr s32 SLIPPI_DESPAWN_FRAME_INTERVAL = 30;
+	u8 shouldDespawn[SLIPPI_REMOTE_PLAYER_MAX] = {0, 0, 0};
+	for (int i = 0; i < remotePlayerCount; i++)
+	{
+		if (!results[i]->isDisconnected)
+			continue;
+
+		s32 lastInputFrame = results[i]->latestFrame;
+		s32 thresholdFrame = lastInputFrame + 2 * ROLLBACK_MAX_FRAMES + 2;
+
+		// Round up to the next frame that is a multiple of the despawn interval
+		s32 despawnFrame = ((thresholdFrame + SLIPPI_DESPAWN_FRAME_INTERVAL - 1) / SLIPPI_DESPAWN_FRAME_INTERVAL) *
+		                   SLIPPI_DESPAWN_FRAME_INTERVAL;
+
+		if (frame >= despawnFrame)
+			shouldDespawn[i] = 1;
+	}
+
+	for (int i = 0; i < remotePlayerCount; i++)
+	{
+		if (!results[i]->isDisconnected)
+		{
+			// INFO_LOG(SLIPPI_ONLINE, "Sending checksum values: [%d] %08x", results[i]->checksumFrame,
+			// results[i]->checksum);
+			appendWordToBuffer(&m_read_queue, static_cast<u32>(results[i]->checksumFrame));
+			appendWordToBuffer(&m_read_queue, results[i]->checksum);
+			continue;
+		}
+
+		// This is sorta jank but we loop again to overwrite values on any disconnected pads to prevent checksum
+		// issues and prevent stalling due to old pad data. We are essentially "tricking" the ASM side here
+		// and likely a better solution would be for the ASM side to know who is disconnected and handle it accordingly
+		results[i]->latestFrame = latestFrameFromOpps;
+		appendWordToBuffer(&m_read_queue, lastChecksumFrame);
+		appendWordToBuffer(&m_read_queue, lastChecksum);
+	}
+
 	for (int i = remotePlayerCount; i < SLIPPI_REMOTE_PLAYER_MAX; i++)
 	{
 		// Send dummy data for unused players
@@ -1726,6 +1707,12 @@ void CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)
 		tx.resize(SLIPPI_PAD_FULL_SIZE * ROLLBACK_MAX_FRAMES, 0);
 
 		m_read_queue.insert(m_read_queue.end(), tx.begin(), tx.end());
+	}
+
+	// Append the per-remote-player should-despawn flags
+	for (int i = 0; i < SLIPPI_REMOTE_PLAYER_MAX; i++)
+	{
+		m_read_queue.push_back(shouldDespawn[i]);
 	}
 
 	// ERROR_LOG(SLIPPI_ONLINE, "EXI: [%d] %X %X %X %X %X %X %X %X", latestFrame, m_read_queue[5], m_read_queue[6],
@@ -2098,7 +2085,16 @@ void CEXISlippi::prepareOnlineMatchState()
 #else
 		auto status = slippi_netplay->GetSlippiConnectStatus();
 		bool isConnected = status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED;
+
+		// If any players are disconnected and the match state is being requested (we are in a lobby),
+		// we should just disconnect. This allows for games to finish with a disconnected player but
+		// after that the "lobby" is terminated.
+		if (slippi_netplay->GetActivePlayerIndices().size() != matchmaking->RemotePlayerCount())
+		{
+			isConnected = false;
+		}
 #endif
+
 		if (isConnected)
 		{
 			auto matchInfo = slippi_netplay->GetMatchInfo();
@@ -2223,9 +2219,6 @@ void CEXISlippi::prepareOnlineMatchState()
 		// in CSS p1 is always current player and p2 is opponent
 		localPlayerName = p1Name = userInfo.displayName;
 	}
-
-	std::vector<u8> leftTeamPlayers = {};
-	std::vector<u8> rightTeamPlayers = {};
 
 	// NOTICE_LOG(SLIPPI_ONLINE, "%d, %d", localPlayerReady, remotePlayersReady);
 
@@ -2393,8 +2386,9 @@ void CEXISlippi::prepareOnlineMatchState()
 				continue;
 			}
 
-			auto teamId = s->teamId;
-			if (areAllSameTeam)
+			auto isTeams = lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::TEAMS;
+			auto teamId = isTeams ? s->teamId : 0;
+			if (isTeams && areAllSameTeam)
 			{
 				// Overwrite teamId. Color is overwritten by ASM
 				teamId = teamAssignments[s->playerIdx];
@@ -2409,31 +2403,31 @@ void CEXISlippi::prepareOnlineMatchState()
 			onlineMatchBlock[0x69 + (s->playerIdx) * 0x24] = teamId;
 		}
 
-		// Handle Singles/Teams specific logic
-		if (remotePlayerCount <= 2)
+		// Handle character coloring. This normally wouldn't be necessary but in the case where one person selects Zelda
+		// and one person selects Sheik of the same color, the game wont automatically force the color changes
+		std::unordered_map<u16, u8> colorCounts;
+		for (size_t i = 0; i < orderedSelections.size(); i++)
 		{
-			onlineMatchBlock[0x8] = 0; // is Teams = false
+			const auto &s = orderedSelections[i];
 
-			// Set p3/p4 player type to none
-			onlineMatchBlock[0x61 + 2 * 0x24] = 3;
-			onlineMatchBlock[0x61 + 3 * 0x24] = 3;
+			// Make key including char id and char color
+			u8 charId = s->characterId == 0x13 ? 0x12 : s->characterId; // Force Sheik to count with Zelda
+			u16 key = static_cast<u16>(charId) << 8 | static_cast<u16>(s->characterColor);
 
-			// Make one character lighter if same character, same color
-			bool isSheikVsZelda = lps.characterId == 0x12 && rps[0].characterId == 0x13 ||
-			                      lps.characterId == 0x13 && rps[0].characterId == 0x12;
-			bool charMatch = lps.characterId == rps[0].characterId || isSheikVsZelda;
-			bool colMatch = lps.characterColor == rps[0].characterColor;
-
-			onlineMatchBlock[0x67 + 0x24] = charMatch && colMatch ? 1 : 0;
+			// Set the shade of the fighter and increment the count
+			u8 &count = colorCounts[key];
+			onlineMatchBlock[0x67 + (0x24 * i)] = count;
+			count += 1;
 		}
-		else
-		{
-			onlineMatchBlock[0x8] = 1; // is Teams = true
 
-			// Set p3/p4 player type to human
-			onlineMatchBlock[0x61 + 2 * 0x24] = 0;
-			onlineMatchBlock[0x61 + 3 * 0x24] = 0;
-		}
+		// Set teams mode
+		onlineMatchBlock[0x8] = lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::TEAMS ? 1 : 0;
+		// onlineMatchBlock[0x8] = remotePlayerCount >= 2 ? 1 : 0; // TODO: If we dont set it to teams, it crashes
+		// sometimes
+
+		// Set p3/p4 player type to human or none depending on the amount of players
+		onlineMatchBlock[0x61 + 2 * 0x24] = remotePlayerCount >= 2 ? 0 : 3;
+		onlineMatchBlock[0x61 + 3 * 0x24] = remotePlayerCount >= 3 ? 0 : 3;
 
 		u16 *stage = (u16 *)&onlineMatchBlock[0xE];
 		*stage = Common::swap16(stageId);
@@ -2452,22 +2446,6 @@ void CEXISlippi::prepareOnlineMatchState()
 			alt_stage_mode = 0;
 		}
 
-		// Group players into left/right side for team splash screen display
-		for (int i = 0; i < 4; i++)
-		{
-			int teamId = onlineMatchBlock[0x69 + i * 0x24];
-			if (teamId == lps.teamId)
-				leftTeamPlayers.push_back(i);
-			else
-				rightTeamPlayers.push_back(i);
-		}
-		int leftTeamSize = leftTeamPlayers.size();
-		int rightTeamSize = rightTeamPlayers.size();
-		leftTeamPlayers.resize(4, 0);
-		rightTeamPlayers.resize(4, 0);
-		leftTeamPlayers[3] = leftTeamSize;
-		rightTeamPlayers[3] = rightTeamSize;
-
 		// Handle desync recovery. The default values in desync_recovery.state are 480 seconds (8 min timer) and
 		// 4-stock/0 percent damage for the fighters. That means if we are not in a desync recovery state, the
 		// state of the timer and fighters will be restored to the defaults
@@ -2482,6 +2460,38 @@ void CEXISlippi::prepareOnlineMatchState()
 			*current_health = Common::swap16(desync_recovery.state.fighters[i].current_health);
 		}
 	}
+
+	// Configure mode, timer, stocks, etc
+	if (lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::PARTY)
+	{
+		onlineMatchBlock[0x0] = 0x12; // Time mode, 4 char players in UI, count down timer
+		onlineMatchBlock[0x3] = 0xCC; // Show score UI
+		u32 *match_timer = reinterpret_cast<u32 *>(&onlineMatchBlock[0x10]);
+		*match_timer = Common::swap32(5 * 60); // 5 Minute timer
+	}
+	else
+	{
+		// Reset everything. I still feel like maybe the onlineMatchBlock should not be static so we don't have to reset
+		// states like this but I'm a bit worried about making that change and causing weird bugs.
+		onlineMatchBlock[0x0] = 0x32; // Stock mode, 4 char players in UI, count down timer
+		onlineMatchBlock[0x3] = 0x4C; // Hide score UI
+		u32 *match_timer = reinterpret_cast<u32 *>(&onlineMatchBlock[0x10]);
+		*match_timer = Common::swap32(8 * 60); // 8 Minute timer
+	}
+
+	// Configure items. Have to reset things when there are no items.
+	onlineMatchBlock[0xB] = 0xFF;             // Items off
+	u64 new_items_value = 0xF80000000F000000; // Default value (all items off)
+	if (recentMmResult.items != 0)
+	{
+		// Set the items bitfield. There are 31 bits each representing one item that can be enabled
+		new_items_value |= static_cast<u64>(recentMmResult.items) << 28;
+
+		// Set item frequency to high
+		onlineMatchBlock[0xB] = 3;
+	}
+	u64 *item_bits = reinterpret_cast<u64 *>(&onlineMatchBlock[0x23]);
+	*item_bits = Common::swap64(new_items_value);
 
 	// Add rng offset to output
 	appendWordToBuffer(&m_read_queue, rngOffset);
@@ -2499,11 +2509,11 @@ void CEXISlippi::prepareOnlineMatchState()
 	{
 		// This has to be outside the player ready block because in game setup 2 the players are not
 		// ready at the start
-		bool showLocaLRank = SConfig::GetInstance().bSlippiPlayerRankDisplay;
+		bool showLocalRank = SConfig::GetInstance().bSlippiPlayerRankDisplay;
 		bool showOppRank = SConfig::GetInstance().bSlippiOpponentRankDisplay;
 
 		std::array<s8, 2> ranks = {0, 0};
-		ranks[localPlayerIndex] = showLocaLRank ? matchmaking->GetPlayerRank(localPlayerIndex) : -1;
+		ranks[localPlayerIndex] = showLocalRank ? matchmaking->GetPlayerRank(localPlayerIndex) : -1;
 		ranks[remotePlayerIndex] = showOppRank ? matchmaking->GetPlayerRank(remotePlayerIndex) : -1;
 
 		p1Rank = ranks[0];
@@ -2512,12 +2522,6 @@ void CEXISlippi::prepareOnlineMatchState()
 
 	m_read_queue.push_back(p1Rank);
 	m_read_queue.push_back(p2Rank);
-
-	// Add player groupings for VS splash screen
-	leftTeamPlayers.resize(4, 0);
-	rightTeamPlayers.resize(4, 0);
-	m_read_queue.insert(m_read_queue.end(), leftTeamPlayers.begin(), leftTeamPlayers.end());
-	m_read_queue.insert(m_read_queue.end(), rightTeamPlayers.begin(), rightTeamPlayers.end());
 
 	// Add names to output
 	// Always send static local player name
@@ -2540,20 +2544,18 @@ void CEXISlippi::prepareOnlineMatchState()
 
 	// Create the opponent string using the names of all players on opposing teams
 	std::vector<std::string> opponentNames = {};
-	if (matchmaking->RemotePlayerCount() == 1)
+	int teamIdx = onlineMatchBlock[0x69 + localPlayerIndex * 0x24];
+	for (int i = 0; i < 4; i++)
 	{
-		opponentNames.push_back(matchmaking->GetPlayerName(remotePlayerIndex));
-	}
-	else
-	{
-		int teamIdx = onlineMatchBlock[0x69 + localPlayerIndex * 0x24];
-		for (int i = 0; i < 4; i++)
-		{
-			if (localPlayerIndex == i || onlineMatchBlock[0x69 + i * 0x24] == teamIdx)
-				continue;
+		auto isTeams = lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::TEAMS;
+		auto isSameTeam = onlineMatchBlock[0x69 + i * 0x24] == teamIdx;
+		auto playerIsHuman = onlineMatchBlock[0x61 + i * 0x24] == 0;
+		if (localPlayerIndex == i || !playerIsHuman || (isSameTeam && isTeams))
+			continue;
 
-			opponentNames.push_back(matchmaking->GetPlayerName(i));
-		}
+		auto name = matchmaking->GetPlayerName(i);
+		if (name != "")
+			opponentNames.push_back(name);
 	}
 
 	auto numOpponents = opponentNames.size() == 0 ? 1 : opponentNames.size();
