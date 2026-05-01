@@ -1149,7 +1149,7 @@
    "Tags": ""
   },
   {
-   "InjectionAddress": "80178088",
+   "InjectionAddress": "80179378",
    "Name": "Required: Slippi Online",
    "Codetype": "Auto",
    "Annotation": "Online/Menus/ResultsScreen/ControlAllPanels.asm",
