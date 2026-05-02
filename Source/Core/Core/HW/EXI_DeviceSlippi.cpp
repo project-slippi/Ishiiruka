@@ -2378,6 +2378,8 @@ void CEXISlippi::prepareOnlineMatchState()
 		};
 		auto teamAssignments = teamAssignmentPermutations[rngOffset % teamAssignmentPermutations.size()];
 
+		auto isTeams = lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::TEAMS;
+
 		// Overwrite player character choices
 		for (auto &s : orderedSelections)
 		{
@@ -2386,7 +2388,6 @@ void CEXISlippi::prepareOnlineMatchState()
 				continue;
 			}
 
-			auto isTeams = lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::TEAMS;
 			auto teamId = isTeams ? s->teamId : 0;
 			if (isTeams && areAllSameTeam)
 			{
@@ -2406,13 +2407,20 @@ void CEXISlippi::prepareOnlineMatchState()
 		// Handle character coloring. This normally wouldn't be necessary but in the case where one person selects Zelda
 		// and one person selects Sheik of the same color, the game wont automatically force the color changes
 		std::unordered_map<u16, u8> colorCounts;
-		for (size_t i = 0; i < orderedSelections.size(); i++)
+		for (int i = 0; i < SLIPPI_PLAYER_COUNT_MAX; i++)
 		{
-			const auto &s = orderedSelections[i];
+			if (onlineMatchBlock[0x61 + i * 0x24] != 0)
+				continue;
 
-			// Make key including char id and char color
-			u8 charId = s->characterId == 0x13 ? 0x12 : s->characterId; // Force Sheik to count with Zelda
-			u16 key = static_cast<u16>(charId) << 8 | static_cast<u16>(s->characterColor);
+			// Use onlineMatchBlock for charId and color because it may have just been overwritten by team assignment
+			// logic
+			u8 charId = onlineMatchBlock[0x60 + i * 0x24];
+			u8 color = onlineMatchBlock[0x63 + i * 0x24];
+			u8 teamId = onlineMatchBlock[0x69 + i * 0x24];
+
+			// Make key including char id and char color (or teams id if teams)
+			charId = charId == 0x13 ? 0x12 : charId; // Force Sheik to count with Zelda
+			u16 key = static_cast<u16>(charId) << 8 | static_cast<u16>(isTeams ? teamId : color);
 
 			// Set the shade of the fighter and increment the count
 			u8 &count = colorCounts[key];
