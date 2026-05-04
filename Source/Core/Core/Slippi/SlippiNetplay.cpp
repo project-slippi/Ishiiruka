@@ -1586,31 +1586,6 @@ SlippiMatchInfo *SlippiNetplayClient::GetMatchInfo()
 	return &matchInfo;
 }
 
-int32_t SlippiNetplayClient::GetSlippiLatestRemoteFrame(int maxFrameCount)
-{
-	// Return the lowest frame among remote queues
-	int lowestFrame = 0;
-	bool isFrameSet = false;
-	for (int i = 0; i < m_remotePlayerCount; i++)
-	{
-		auto remotePlayerIdx = matchInfo.remotePlayerSelections[i].playerIdx;
-		if (!playerActive[remotePlayerIdx].load(std::memory_order_acquire))
-		{
-			continue;
-		}
-
-		auto rp = GetSlippiRemotePad(i, maxFrameCount);
-		int f = rp->latestFrame;
-		if (f < lowestFrame || !isFrameSet)
-		{
-			lowestFrame = f;
-			isFrameSet = true;
-		}
-	}
-
-	return lowestFrame;
-}
-
 // return the smallest time offset among all remote players
 s32 SlippiNetplayClient::CalcTimeOffsetUs()
 {
