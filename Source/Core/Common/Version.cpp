@@ -5,24 +5,6 @@
 #include "Common/Common.h"
 #include "Common/scmrev.h"
 
-#ifdef _DEBUG
-#define BUILD_TYPE_STR "Debug "
-#elif defined DEBUGFAST
-#define BUILD_TYPE_STR "DebugFast "
-#else
-#define BUILD_TYPE_STR ""
-#endif
-
-// const std::string scm_rev_str = "Ishiiruka-Dolphin"
-//#if !SCM_IS_MASTER
-//"[" SCM_BRANCH_STR "] "
-//#endif
-//
-//#ifdef __INTEL_COMPILER
-//" " BUILD_TYPE_STR " " SCM_DESC_STR "-ICC";
-//#else
-//" " BUILD_TYPE_STR " " SCM_DESC_STR;
-//#endif
 // release commit notes
 // if releasing both builds, use `release: {combined_version}` or `release: {netplay_version} | {playback_version}`
 // for releasing a single build, use `release(netplay): {netplay_version}` or `release(playback): {playback_version}`
@@ -31,10 +13,19 @@
 #else
 #define SLIPPI_REV_STR "3.6.0" // playback version
 #endif
-#ifdef IS_PLAYBACK
-const std::string scm_rev_str = "Faster Melee - Slippi (" SLIPPI_REV_STR ") - Playback";
+
+#ifdef DEBUGFAST
+#define DEBUGFAST_STR " [DEBUGFAST]"
+#elif _DEBUG
+#define DEBUGFAST_STR " [DEBUG]"
 #else
-const std::string scm_rev_str = "Faster Melee - Slippi (" SLIPPI_REV_STR ")";
+#define DEBUGFAST_STR ""
+#endif
+
+#ifdef IS_PLAYBACK
+const std::string scm_rev_str = "Faster Melee - Slippi (" SLIPPI_REV_STR ") - Playback" DEBUGFAST_STR;
+#else
+const std::string scm_rev_str = "Faster Melee - Slippi (" SLIPPI_REV_STR ")" DEBUGFAST_STR;
 #endif
 const std::string scm_slippi_semver_str = SLIPPI_REV_STR;
 
