@@ -252,7 +252,19 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 		// initiate the disconnect
 		std::stringstream keyStrm;
 		keyStrm << peer->address.host << "-" << peer->address.port;
-		if (activeConnections[keyStrm.str()].size() > 1 && playerIdx <= pIdx)
+		int liveConnCount = 0;
+		bool isCurrentActive = false;
+		for (auto &c : activeConnections[keyStrm.str()])
+		{
+			if (c.second.isDisconnected)
+				continue;
+
+			if (c.first == peer)
+				isCurrentActive = true;
+
+			liveConnCount++;
+		}
+		if (isCurrentActive && liveConnCount > 1 && playerIdx < packetPlayerPort)
 		{
 			m_server[connIdx] = peer;
 			INFO_LOG(SLIPPI_ONLINE,
@@ -260,13 +272,17 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 			         "connections. oppIdx: %d. pIdx: %d",
 			         peer->address.host, peer->address.port, peer, pIdx, playerIdx);
 
-			for (auto activeConn : activeConnections[keyStrm.str()])
+			for (auto &activeConn : activeConnections[keyStrm.str()])
 			{
 				if (activeConn.first == peer)
 					continue;
+				if (activeConn.second.isDisconnected)
+					continue;
 
-				// Tell our peer to terminate this connection
+				// Tell our peer to terminate this connection. Mark it locally as disconnected
+				// immediately so we stop counting it before the ENET DISCONNECT event lands.
 				enet_peer_disconnect(activeConn.first, 0);
+				activeConn.second.isDisconnected = true;
 			}
 		}
 
