@@ -1334,8 +1334,7 @@ bool CEXISlippi::shouldSkipOnlineFrame(s32 frame, s32 finalizedFrame)
 		}
 
 		s32 latestRemoteFrame = pad->latestFrame;
-		bool hasEnoughNewInputs =
-		    latestRemoteFrame - finalizedFrame >= (frame - finalizedFrame - ROLLBACK_MAX_FRAMES);
+		bool hasEnoughNewInputs = latestRemoteFrame - finalizedFrame >= (frame - finalizedFrame - ROLLBACK_MAX_FRAMES);
 		if (hasEnoughNewInputs)
 		{
 			stallFrameCounts[i] = 0;

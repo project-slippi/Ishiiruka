@@ -12,8 +12,8 @@
 #include "Core/NetPlayProto.h"
 #include "Core/Slippi/SlippiPad.h"
 #include "InputCommon/GCPadStatus.h"
-#include <SlippiLib/SlippiGame.h>
 #include <SFML/Network/Packet.hpp>
+#include <SlippiLib/SlippiGame.h>
 #include <array>
 #include <atomic>
 #include <deque>
