@@ -12,8 +12,8 @@
 #include "Core/NetPlayProto.h"
 #include "Core/Slippi/SlippiPad.h"
 #include "InputCommon/GCPadStatus.h"
-#include <SlippiLib/SlippiGame.h>
 #include <SFML/Network/Packet.hpp>
+#include <SlippiLib/SlippiGame.h>
 #include <array>
 #include <atomic>
 #include <deque>
@@ -191,7 +191,6 @@ class SlippiNetplayClient
 	std::unordered_map<u8, bool> GetActivePlayerIndices();
 	void ForceDisconnectPlayer(u8 playerIdx);
 	SlippiMatchInfo *GetMatchInfo();
-	int32_t GetSlippiLatestRemoteFrame(int maxFrameCount);
 	SlippiPlayerSelections GetSlippiRemoteChatMessage(bool isChatEnabled);
 	u8 GetSlippiRemoteSentChatMessage(bool isChatEnabled);
 	s32 CalcTimeOffsetUs();
