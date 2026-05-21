@@ -1,43 +1,19 @@
 #include "SlippiReplayComm.h"
 
-#include <cctype>
 #include <memory>
 
 #include "Common/CommonPaths.h"
 #include "Common/FileUtil.h"
 #include "Common/Logging/LogManager.h"
-#include "Core/ConfigManager.h"
 
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 std::unique_ptr<SlippiReplayComm> g_replayComm;
 
-// https://stackoverflow.com/questions/216823/whats-the-best-way-to-trim-stdstring
-// trim from start (in place)
-static inline void ltrim(std::string &s)
+SlippiReplayComm::SlippiReplayComm(const std::string &config_file_path)
+    : configFilePath(config_file_path)
 {
-	s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](int ch) { return !std::isspace(ch); }));
-}
-
-// trim from end (in place)
-static inline void rtrim(std::string &s)
-{
-	s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) { return !std::isspace(ch); }).base(), s.end());
-}
-
-// trim from both ends (in place)
-static inline void trim(std::string &s)
-{
-	ltrim(s);
-	rtrim(s);
-}
-
-SlippiReplayComm::SlippiReplayComm()
-{
-	INFO_LOG(EXPANSIONINTERFACE, "SlippiReplayComm: Using playback config path: %s",
-	         SConfig::GetInstance().m_strSlippiInput.c_str());
-	configFilePath = SConfig::GetInstance().m_strSlippiInput.c_str();
 }
 
 SlippiReplayComm::~SlippiReplayComm() {}
@@ -140,7 +116,7 @@ std::unique_ptr<Slippi::SlippiGame> SlippiReplayComm::loadGame()
 		current = ws;
 	}
 
-	return std::move(result);
+	return result;
 }
 
 void SlippiReplayComm::loadFile()
