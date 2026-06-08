@@ -1285,6 +1285,18 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 
 	if (isDisconnected())
 	{
+		// Both clients reach this path when a poor-performance termination fires: the initiating
+		// side set the reason locally, the other side received it over the disconnect. Show the
+		// message on both ends rather than only where the debt happened to cross the threshold first.
+		if (slippi_netplay->GetDisconnectReason() == SlippiNetplayClient::SlippiDisconnectReason::POOR_PERFORMANCE)
+		{
+			OSD::AddTypedMessage(
+			    OSD::MessageType::PoorPerformanceTermination,
+			    "\nThe match has been terminated due to poor network quality.\nIf you see this message in most "
+			    "of your matches, you probably shouldn't be playing ranked.",
+			    15000, OSD::Color::RED);
+		}
+
 		m_read_queue.push_back(3); // Indicate we disconnected
 		return;
 	}
@@ -1344,7 +1356,7 @@ void CEXISlippi::handlePoorMatchPerformance(s32 frame)
 	s32 terminateThreshold = 30;
 	s32 debt;
 	if (ratio >= 1.75)
-		debt = 15; // Severe: terminate on the first instance
+		debt = 15; // Severe
 	else if (ratio >= 1.50)
 		debt = 8; // Bad
 	else if (ratio >= 1.10)
@@ -1357,15 +1369,14 @@ void CEXISlippi::handlePoorMatchPerformance(s32 frame)
 	         terminateThreshold);
 	if (perfDebt >= terminateThreshold)
 	{
-		// Clean up and tell server about the poor performance
+		// Tell the server about the poor performance, then drop all remote players with a
+		// POOR_PERFORMANCE reason. Flipping the connection to DISCONNECTED lets the existing
+		// disconnect-detection path end the game naturally (next handleOnlineInputs sees
+		// isDisconnected()), same as a real disconnect. The reason rides the disconnect to the
+		// peer so both clients surface the OSD message from the shared disconnect path below.
 		slprs_exi_device_report_match_status(slprs_exi_device_ptr, recentMmResult.id.c_str(), "poor_performance", true);
-		slippi_netplay->ForceDisconnect();
+		slippi_netplay->ForceDisconnect(SlippiNetplayClient::SlippiDisconnectReason::POOR_PERFORMANCE);
 		ERROR_LOG(SLIPPI_ONLINE, "Match terminated due to poor performance. %d/%d", perfDebt, terminateThreshold);
-		OSD::AddTypedMessage(
-		    OSD::MessageType::PoorPerformanceTermination,
-		    "\nThe match has been terminated due to poor network quality.\nIf you see this message in most "
-		    "of your matches, you probably shouldn't be playing ranked.",
-		    15000, OSD::Color::RED);
 	}
 }
 
