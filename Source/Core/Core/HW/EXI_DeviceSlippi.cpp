@@ -1556,11 +1556,13 @@ bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame)
 		fallFarBehindCounter += offsetUs < -t2 ? 1 : 0;
 
 		bool isSlow = (offsetUs < -t1 && fallBehindCounter > 50) || (offsetUs < -t2 && fallFarBehindCounter > 15);
-		if (isSlow && matchmaking->RemotePlayerCount() == 1)
+		if (isSlow && matchmaking->RemotePlayerCount() == 1 &&
+		    lastSearch.mode != SlippiMatchmaking::OnlinePlayMode::RANKED)
 		{
 			// Only show this in 1v1. With more peers, CalcTimeOffsetUs returns the min across peers, which biases
 			// negative as the peer count grows and false-positives this warning. The message text ("if this appears
-			// with most opponents") also only makes sense in 1v1.
+			// with most opponents") also only makes sense in 1v1. Don't show in ranked because we have the poor
+			// match logic running there which has its own message
 			OSD::AddTypedMessage(
 			    OSD::MessageType::PerformanceWarning,
 			    "\nPossible poor match performance detected.\nIf this message appears with most opponents, your "
