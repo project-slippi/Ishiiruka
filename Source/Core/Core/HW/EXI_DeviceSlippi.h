@@ -120,6 +120,7 @@ class CEXISlippi : public IEXIDevice
 
 	// This is a mapping of u8s to status updates such that we dont have to send
 	// strings from the game
+	// clang-format off
 	std::unordered_map<u8, std::string> statusIdxMap = {
 		{1, "connecting"},
 		{10, "game_setup_1"},
@@ -140,6 +141,7 @@ class CEXISlippi : public IEXIDevice
 		{31, "abnormal_completion"},
 		{40, "abandoned"},
 	};
+	// clang-format on
 
 	std::unordered_map<u8, u32> payloadSizes = {
 	    // The actual size of this command will be sent in one byte
