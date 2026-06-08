@@ -1567,6 +1567,17 @@ void SlippiNetplayClient::ForceDisconnectPlayer(u8 playerIdx)
 		ENetUtil::WakeupThread(m_client);
 }
 
+// Force-disconnect every remote player. Delegates to ForceDisconnectPlayer so the liveness
+// flip, peer teardown, and network-thread wakeup all reuse the same logic; the final call
+// transitions the overall status to DISCONNECTED once no remote players remain active.
+void SlippiNetplayClient::ForceDisconnect()
+{
+	for (u8 i = 0; i < m_remotePlayerCount; i++)
+	{
+		ForceDisconnectPlayer(matchInfo.remotePlayerSelections[i].playerIdx);
+	}
+}
+
 // Network-thread only (called from ThreadFunc disconnect handler).
 bool SlippiNetplayClient::AreAllPeersDisconnectedForKey(const std::string &key)
 {

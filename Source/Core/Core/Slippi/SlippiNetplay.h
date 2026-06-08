@@ -190,6 +190,7 @@ class SlippiNetplayClient
 	void DropOldRemoteInputs(int32_t finalizedFrame);
 	std::unordered_map<u8, bool> GetActivePlayerIndices();
 	void ForceDisconnectPlayer(u8 playerIdx);
+	void ForceDisconnect();
 	SlippiMatchInfo *GetMatchInfo();
 	SlippiPlayerSelections GetSlippiRemoteChatMessage(bool isChatEnabled);
 	u8 GetSlippiRemoteSentChatMessage(bool isChatEnabled);

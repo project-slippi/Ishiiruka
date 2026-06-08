@@ -1359,7 +1359,7 @@ void CEXISlippi::handlePoorMatchPerformance(s32 frame)
 	{
 		// Clean up and tell server about the poor performance
 		slprs_exi_device_report_match_status(slprs_exi_device_ptr, recentMmResult.id.c_str(), "poor_performance", true);
-		handleConnectionCleanup();
+		slippi_netplay->ForceDisconnect();
 		ERROR_LOG(SLIPPI_ONLINE, "Match terminated due to poor performance. %d/%d", perfDebt, terminateThreshold);
 		OSD::AddTypedMessage(
 		    OSD::MessageType::PoorPerformanceTermination,
