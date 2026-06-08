@@ -713,8 +713,13 @@ void SlippiNetplayClient::Disconnect()
 	{
 		for (auto peer : conn.second)
 		{
-			INFO_LOG(SLIPPI_ONLINE, "[Netplay] Disconnecting peer %d", peer.first->address.port);
-			enet_peer_disconnect(peer.first, 0);
+			// Carry the pending reason (default 0 = unspecified) so an intentional teardown such as a
+			// poor-performance termination reaches the peer. In 1v1, ForceDisconnect flips the status to
+			// DISCONNECTED before the network loop's force-kick runs, so this teardown call is the one
+			// that actually reaches the peer — it must forward the reason rather than send 0.
+			u32 reason = m_pendingDisconnectReason.load(std::memory_order_acquire);
+			INFO_LOG(SLIPPI_ONLINE, "[Netplay] Disconnecting peer %d with reason %u", peer.first->address.port, reason);
+			enet_peer_disconnect(peer.first, reason);
 		}
 	}
 
@@ -1020,7 +1025,7 @@ void SlippiNetplayClient::ThreadFunc()
 					continue;
 				INFO_LOG(SLIPPI_ONLINE, "[Netplay] Force-disconnecting ENet peer %x:%d for player %d",
 				         peerEntry.first->address.host, peerEntry.first->address.port, peerEntry.second.playerIdx);
-				enet_peer_disconnect(peerEntry.first, 0);
+				enet_peer_disconnect(peerEntry.first, m_pendingDisconnectReason.load(std::memory_order_acquire));
 				peerEntry.second.isDisconnected = true;
 			}
 		}
@@ -1082,6 +1087,12 @@ void SlippiNetplayClient::ThreadFunc()
 						break;
 					}
 				}
+
+				// Capture any reason the peer encoded in the disconnect data (e.g. poor performance) so the
+				// EXI thread can surface the same UI we'd show on the initiating side. Only a deliberate
+				// disconnect sends a non-zero value; organic disconnects send 0.
+				if (isConnectedClient && netEvent.data != 0)
+					m_disconnectReason.store(netEvent.data, std::memory_order_release);
 
 				INFO_LOG(SLIPPI_ONLINE,
 				         "[Netplay] Disconnect late %x:%d. %x. All peers disconnected: %s. Is connected client: %s",
@@ -1565,6 +1576,27 @@ void SlippiNetplayClient::ForceDisconnectPlayer(u8 playerIdx)
 	// the status flip without waiting for its 250ms enet_host_service timeout.
 	if (m_client)
 		ENetUtil::WakeupThread(m_client);
+}
+
+// Force-disconnect every remote player. Delegates to ForceDisconnectPlayer so the liveness
+// flip, peer teardown, and network-thread wakeup all reuse the same logic; the final call
+// transitions the overall status to DISCONNECTED once no remote players remain active.
+void SlippiNetplayClient::ForceDisconnect(SlippiDisconnectReason reason)
+{
+	// Record the reason both for our own UI (we never receive a disconnect event from ourselves)
+	// and for the network thread to forward to the peer via the enet_peer_disconnect data field.
+	m_pendingDisconnectReason.store(static_cast<u32>(reason), std::memory_order_release);
+	m_disconnectReason.store(static_cast<u32>(reason), std::memory_order_release);
+
+	for (u8 i = 0; i < m_remotePlayerCount; i++)
+	{
+		ForceDisconnectPlayer(matchInfo.remotePlayerSelections[i].playerIdx);
+	}
+}
+
+SlippiNetplayClient::SlippiDisconnectReason SlippiNetplayClient::GetDisconnectReason()
+{
+	return static_cast<SlippiDisconnectReason>(m_disconnectReason.load(std::memory_order_acquire));
 }
 
 // Network-thread only (called from ThreadFunc disconnect handler).
