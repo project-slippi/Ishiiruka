@@ -1264,6 +1264,9 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 			stallFrameCounts[i] = 0;
 		}
 
+		lastIntervalTimeUs = 0;
+		perfDebt = 0;
+
 		// Reset skip variables
 		framesToSkip = 0;
 		isCurrentlySkipping = false;
@@ -1297,11 +1300,73 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 	}
 	else
 	{
+		// Consider disconnecting from a match if performance is poor
+		handlePoorMatchPerformance(frame);
+
 		// Send the input for this frame along with everything that has yet to be acked
 		handleSendInputs(frame, delay, finalizedFrame, finalizedFrameChecksum, inputs);
 	}
 
 	prepareOpponentInputs(frame, shouldSkip);
+}
+
+void CEXISlippi::handlePoorMatchPerformance(s32 frame)
+{
+	// Only handle poor match performance in ranked. In other modes players can just manually leave. Plus
+	// ranked is mostly where it matters
+	if (lastSearch.mode != SlippiMatchmaking::OnlinePlayMode::RANKED)
+		return;
+
+	u64 intervalFrames = 150; // Check every 2.5 seconds
+	u64 frameTimeUs = 16683;
+
+	// Skip the first 50 frames of the game and check timing info every interval
+	if ((frame + (intervalFrames - 50)) % intervalFrames != 0)
+		return;
+
+	auto curTimeUs = Common::Timer::GetTimeUs();
+
+	// Iniitalize the first instance
+	if (lastIntervalTimeUs == 0)
+	{
+		lastIntervalTimeUs = curTimeUs;
+		return; // We will start processing the next time
+	}
+
+	auto expectedTimeUs = frameTimeUs * intervalFrames;
+	double ratio = static_cast<double>(curTimeUs - lastIntervalTimeUs) / static_cast<double>(expectedTimeUs);
+	lastIntervalTimeUs = curTimeUs;
+
+	// Leaky accumulator: each interval adds "debt" proportional to how far over the expected duration we ran,
+	// and healthy intervals pay it back down. We only terminate once enough debt builds up, so a single hitch
+	// (local or otherwise) is survivable but sustained degradation isn't. The decay keeps this independent of
+	// match length: scattered blips drain away before they can accumulate to the termination threshold.
+	s32 terminateThreshold = 30;
+	s32 debt;
+	if (ratio >= 1.75)
+		debt = 15; // Severe: terminate on the first instance
+	else if (ratio >= 1.50)
+		debt = 8; // Bad
+	else if (ratio >= 1.10)
+		debt = 4; // Mild
+	else
+		debt = -1; // Healthy interval, pay down accumulated debt
+
+	perfDebt = std::max(0, perfDebt + debt);
+	INFO_LOG(SLIPPI_ONLINE, "Modifying performance debt by %d. Currently at: %d/%d", debt, perfDebt,
+	         terminateThreshold);
+	if (perfDebt >= terminateThreshold)
+	{
+		// Clean up and tell server about the poor performance
+		slprs_exi_device_report_match_status(slprs_exi_device_ptr, recentMmResult.id.c_str(), "poor_performance", true);
+		handleConnectionCleanup();
+		ERROR_LOG(SLIPPI_ONLINE, "Match terminated due to poor performance. %d/%d", perfDebt, terminateThreshold);
+		OSD::AddTypedMessage(
+		    OSD::MessageType::PoorPerformanceTermination,
+		    "\nThe match has been terminated due to poor network quality.\nIf you see this message in most "
+		    "of your matches, you probably shouldn't be playing ranked.",
+		    15000, OSD::Color::RED);
+	}
 }
 
 bool CEXISlippi::shouldSkipOnlineFrame(s32 frame, s32 finalizedFrame)
