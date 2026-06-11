@@ -1288,7 +1288,8 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 		// Both clients reach this path when a poor-performance termination fires: the initiating
 		// side set the reason locally, the other side received it over the disconnect. Show the
 		// message on both ends rather than only where the debt happened to cross the threshold first.
-		if (slippi_netplay->GetDisconnectReason() == SlippiNetplayClient::SlippiDisconnectReason::POOR_PERFORMANCE)
+		if (slippi_netplay &&
+		    slippi_netplay->GetDisconnectReason() == SlippiNetplayClient::SlippiDisconnectReason::POOR_PERFORMANCE)
 		{
 			OSD::AddTypedMessage(
 			    OSD::MessageType::PoorPerformanceTermination,
