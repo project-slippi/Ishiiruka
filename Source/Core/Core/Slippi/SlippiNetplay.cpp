@@ -429,6 +429,8 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 		ackTimers[pIdx].Pop();
 
 		pingUs[pIdx] = Common::Timer::GetTimeUs() - sendTime;
+		pingSampleSumUs.fetch_add(pingUs[pIdx], std::memory_order_relaxed);
+		pingSampleCount.fetch_add(1, std::memory_order_relaxed);
 		if (g_ActiveConfig.bShowNetPlayPing && frame % SLIPPI_PING_DISPLAY_INTERVAL == 0 && pIdx == 0)
 		{
 			std::stringstream pingDisplay;
@@ -1633,6 +1635,22 @@ SlippiMatchInfo *SlippiNetplayClient::GetMatchInfo()
 }
 
 // return the smallest time offset among all remote players
+// Drains the ping accumulator and returns the average ping (in ms) across all measurements taken
+// since the last call. Returns 0 if there were no measurements (e.g. a full stall), which callers
+// should treat as "no signal" rather than a great connection — the speed ratio check covers that
+// case. The two exchanges aren't atomic as a pair, so a sample landing between them can be
+// attributed to the wrong interval; at one sample per frame that skews an interval average by a
+// negligible amount and is not worth a lock.
+double SlippiNetplayClient::GetAndResetAvgPingMs()
+{
+	u64 sumUs = pingSampleSumUs.exchange(0, std::memory_order_relaxed);
+	u64 count = pingSampleCount.exchange(0, std::memory_order_relaxed);
+	if (count == 0)
+		return 0.0;
+
+	return static_cast<double>(sumUs) / static_cast<double>(count) / 1000.0;
+}
+
 s32 SlippiNetplayClient::CalcTimeOffsetUs()
 {
 	// Skip disconnected peers. Their frameOffsetData buffer freezes at the time of disconnect (writes only

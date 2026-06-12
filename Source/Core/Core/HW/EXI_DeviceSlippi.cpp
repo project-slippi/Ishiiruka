@@ -1343,6 +1343,9 @@ void CEXISlippi::handlePoorMatchPerformance(s32 frame)
 	if (lastIntervalTimeUs == 0)
 	{
 		lastIntervalTimeUs = curTimeUs;
+		// Discard ping samples collected before this point so the first processed interval's
+		// average covers exactly one interval instead of everything since connection start
+		slippi_netplay->GetAndResetAvgPingMs();
 		return; // We will start processing the next time
 	}
 
@@ -1355,19 +1358,40 @@ void CEXISlippi::handlePoorMatchPerformance(s32 frame)
 	// (local or otherwise) is survivable but sustained degradation isn't. The decay keeps this independent of
 	// match length: scattered blips drain away before they can accumulate to the termination threshold.
 	s32 terminateThreshold = 30;
-	s32 debt;
+	s32 speedDebt;
 	if (ratio >= 1.75)
-		debt = 15; // Severe
+		speedDebt = 15; // Severe
 	else if (ratio >= 1.50)
-		debt = 8; // Bad
+		speedDebt = 8; // Bad
 	else if (ratio >= 1.10)
-		debt = 4; // Mild
+		speedDebt = 4; // Mild
 	else
-		debt = -1; // Healthy interval, pay down accumulated debt
+		speedDebt = -1; // Healthy interval, pay down accumulated debt
+
+	// High ping feeds the same accumulator. Averaging over the interval (~150 samples) means a brief
+	// spike gets diluted while sustained high ping keeps every interval elevated. The mild tier starts
+	// just above the 90ms "playable" line and pays in slowly: against the -1 decay, a connection
+	// oscillating around 90 must spend over two thirds of its time above the line to net-accumulate.
+	// An average of 0 means no acks arrived this interval; the speed ratio handles that case.
+	double avgPingMs = slippi_netplay->GetAndResetAvgPingMs();
+	s32 pingDebt;
+	if (avgPingMs >= 200)
+		pingDebt = 15; // Severe
+	else if (avgPingMs >= 120)
+		pingDebt = 8; // Bad
+	else if (avgPingMs >= 90)
+		pingDebt = 4; // Mild
+	else
+		pingDebt = -1; // Healthy interval, pay down accumulated debt
+
+	// Take the worse of the two signals rather than summing: a network problem often inflates both
+	// (waiting on remote inputs stretches the interval and delays acks), so summing would double-count
+	// a single underlying cause
+	s32 debt = std::max(speedDebt, pingDebt);
 
 	perfDebt = std::max(0, perfDebt + debt);
-	INFO_LOG(SLIPPI_ONLINE, "Modifying performance debt by %d. Currently at: %d/%d", debt, perfDebt,
-	         terminateThreshold);
+	INFO_LOG(SLIPPI_ONLINE, "Modifying performance debt by %d (speed: %d, ping: %d, avgPingMs: %.1f). Currently at: %d/%d",
+	         debt, speedDebt, pingDebt, avgPingMs, perfDebt, terminateThreshold);
 	if (perfDebt >= terminateThreshold)
 	{
 		// Tell the server about the poor performance, then drop all remote players with a
