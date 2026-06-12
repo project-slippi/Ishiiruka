@@ -1634,7 +1634,6 @@ SlippiMatchInfo *SlippiNetplayClient::GetMatchInfo()
 	return &matchInfo;
 }
 
-// return the smallest time offset among all remote players
 // Drains the ping accumulator and returns the average ping (in ms) across all measurements taken
 // since the last call. Returns 0 if there were no measurements (e.g. a full stall), which callers
 // should treat as "no signal" rather than a great connection — the speed ratio check covers that
@@ -1651,6 +1650,7 @@ double SlippiNetplayClient::GetAndResetAvgPingMs()
 	return static_cast<double>(sumUs) / static_cast<double>(count) / 1000.0;
 }
 
+// return the smallest time offset among all remote players
 s32 SlippiNetplayClient::CalcTimeOffsetUs()
 {
 	// Skip disconnected peers. Their frameOffsetData buffer freezes at the time of disconnect (writes only
