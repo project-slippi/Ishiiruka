@@ -208,6 +208,13 @@ class CEXISlippi : public IEXIDevice
 	// This should be cleaned up in any destructor!
 	uintptr_t slprs_exi_device_ptr;
 
+	// Discord RPC is configured once, on the first DMAWrite, since the config
+	// isn't readable when this device is constructed. Latch so we only do it once.
+	bool m_discord_rpc_configured = false;
+	// Cached enable flag, so the per-frame matchmaking push is skipped entirely
+	// when Discord RPC is disabled and the feature costs nothing.
+	bool m_discord_rpc_enabled = false;
+
 	// .slp File creation stuff
 	u32 writtenByteCount = 0;
 
