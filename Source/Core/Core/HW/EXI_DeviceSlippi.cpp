@@ -237,6 +237,11 @@ CEXISlippi::~CEXISlippi()
 	// Kill threads to prevent cleanup crash
 	g_playbackStatus->resetPlayback();
 
+	// Cancel the scene poll before the Rust device is destroyed, so a pending
+	// CoreTiming event can't fire against a freed pointer.
+	if (m_discord_scene_event)
+		CoreTiming::RemoveEvent(m_discord_scene_event);
+
 	// Instruct the Rust EXI device to shut down/drop everything.
 	slprs_exi_device_destroy(slprs_exi_device_ptr);
 
@@ -2147,6 +2152,44 @@ void CEXISlippi::prepareOnlineMatchState()
 
 	m_read_queue.push_back(mmState); // Matchmaking State
 
+	// Push the current matchmaking state to Discord Rich Presence so menu and
+	// queue presence is driven by C++ state instead of reading RAM. Skipped
+	// entirely when the feature is off so it costs nothing on this hot path.
+	if (m_discord_rpc_enabled)
+	{
+		std::string discordOppName = "";
+		s8 discordOppRank = -1;
+
+		// Look up the opponent only in a real 1v1 match. Player info isn't
+		// populated before then, and teams has no single opponent.
+		if (matchmaking && (mmState == SlippiMatchmaking::ProcessState::OPPONENT_CONNECTING ||
+		                    mmState == SlippiMatchmaking::ProcessState::CONNECTION_SUCCESS))
+		{
+			auto discordPlayers = matchmaking->GetPlayerInfo();
+			std::string discordLocalCode = user->GetUserInfo().connectCode;
+			int discordRemoteCount = 0;
+			u8 discordOppIdx = 0;
+			for (u8 i = 0; i < discordPlayers.size(); i++)
+			{
+				if (discordPlayers[i].connectCode != discordLocalCode)
+				{
+					discordRemoteCount++;
+					discordOppIdx = i;
+				}
+			}
+
+			if (discordRemoteCount == 1)
+			{
+				discordOppName = matchmaking->GetPlayerName(discordOppIdx);
+				discordOppRank = static_cast<s8>(matchmaking->GetPlayerRank(discordOppIdx));
+			}
+		}
+
+		slprs_exi_device_update_matchmaking_state(slprs_exi_device_ptr, static_cast<u8>(mmState),
+		                                          static_cast<u8>(lastSearch.mode), discordOppName.c_str(),
+		                                          discordOppRank);
+	}
+
 	u8 localPlayerReady = localSelections.isCharacterSelected;
 	u8 remotePlayersReady = 0;
 
@@ -3367,10 +3410,91 @@ void CEXISlippi::handleGetRank()
 	m_read_queue.push_back(static_cast<u8>(rank_info.rank_change));
 }
 
+// Drive menu, character-select and offline-scene presence by reading the Melee
+// scene state once per frame and forwarding it over the same FFI as matchmaking
+// state, so the presence layer never sees a memory pointer. The matchmaking push
+// only covers the online flow; this covers character select, stage select,
+// Training and the other offline modes.
+void CEXISlippi::DiscordSceneUpdate(u64 userdata, s64 cyclesLate)
+{
+	auto self = reinterpret_cast<CEXISlippi *>(userdata);
+
+	// Scene controller: major scene at +0x00, minor scene at +0x03.
+	const u8 *scene = Memory::GetPointer(0x80479D30);
+	if (scene)
+	{
+		const u8 majorScene = scene[0];
+		const u8 minorScene = scene[3];
+
+		// Character select (Versus, Training and Versus-Online all use minor 0x00):
+		// the character under each port's cursor. One 0x24-byte card per port; the
+		// player type is at +0x01 (0 = human, 1 = CPU, 3 = empty) and the character
+		// at +0x04, which tracks the cursor live.
+		u8 localPort = 0;
+		u8 cssCharIds[4] = {0xFF, 0xFF, 0xFF, 0xFF};
+		if (minorScene == 0x00)
+		{
+			const u8 *port = Memory::GetPointer(0x804D6598);
+			localPort = port ? port[0] : 0;
+
+			const u8 *cards = Memory::GetPointer(0x803F0E06);
+			if (cards)
+			{
+				for (u8 p = 0; p < 4; p++)
+				{
+					const u32 off = p * 0x24;
+					if (cards[off + 0x01] == 0x03)
+						continue; // empty / disabled port stays 0xFF
+					cssCharIds[p] = cards[off + 0x04];
+				}
+			}
+		}
+
+		// Loaded stage (internal id, a small u32). Only populated once a stage loads,
+		// so only read it past the menus; high bytes set means stale, treat as none.
+		u8 stageId = 0;
+		if (minorScene != 0x00)
+		{
+			const u8 *stage = Memory::GetPointer(0x8049E750);
+			if (stage && stage[0] == 0 && stage[1] == 0 && stage[2] == 0)
+				stageId = stage[3];
+		}
+
+		slprs_exi_device_update_scene_state(self->slprs_exi_device_ptr, majorScene, minorScene, cssCharIds, localPort,
+		                                    stageId);
+	}
+
+	// Re-arm for the next frame.
+	CoreTiming::ScheduleEvent(SystemTimers::GetTicksPerSecond() / 60 - cyclesLate, self->m_discord_scene_event,
+	                          userdata);
+}
+
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 {
 	u8 *memPtr = Memory::GetPointer(_uAddr);
 	// INFO_LOG(SLIPPI, "DMA Write: %x, Size: %d", _uAddr, _uSize);
+
+	// Configure Discord Rich Presence the first time we get here. Menu / queue /
+	// matchmaking presence is pushed via slprs_exi_device_update_matchmaking_state,
+	// and the in-game half rides the replay-data path, so no memory pointer is
+	// needed.
+	if (!m_discord_rpc_configured)
+	{
+		m_discord_rpc_enabled = SConfig::GetInstance().bSlippiEnableDiscordRpc;
+		bool showLocalRank = SConfig::GetInstance().bSlippiPlayerRankDisplay;
+		slprs_exi_device_configure_discord_rpc(slprs_exi_device_ptr, m_discord_rpc_enabled, showLocalRank);
+		m_discord_rpc_configured = true;
+
+		// Drive menu, character-select and offline-scene presence by polling the
+		// Melee scene state once per frame; the matchmaking push only covers the
+		// online flow.
+		if (m_discord_rpc_enabled)
+		{
+			m_discord_scene_event = CoreTiming::RegisterEvent("SlippiDiscordScene", DiscordSceneUpdate);
+			CoreTiming::ScheduleEvent(SystemTimers::GetTicksPerSecond() / 60, m_discord_scene_event,
+			                          reinterpret_cast<u64>(this));
+		}
+	}
 
 	u32 bufLoc = 0;
 
