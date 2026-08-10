@@ -490,7 +490,7 @@ void Renderer::DrawDebugText()
 
 	if (g_ActiveConfig.bOverlayProjStats)
 		final_cyan += Statistics::ToStringProj();
-
+#ifndef IS_PLAYBACK
 	if(GCAdapter::IsReadingAtReducedRate() && SConfig::GetInstance().bAdapterWarning)
 	{
 		final_yellow +=
@@ -505,6 +505,7 @@ void Renderer::DrawDebugText()
 			"\n"
 			"For more help, please ask in the official Slippi Discord server.";
 	}
+#endif
 	
 	// and then the text
 	RenderText(final_cyan, 20, 20, 0xFF00FFFF);

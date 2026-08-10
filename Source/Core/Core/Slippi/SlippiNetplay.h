@@ -13,7 +13,9 @@
 #include "Core/Slippi/SlippiPad.h"
 #include "InputCommon/GCPadStatus.h"
 #include <SFML/Network/Packet.hpp>
+#include <SlippiLib/SlippiGame.h>
 #include <array>
+#include <atomic>
 #include <deque>
 #include <map>
 #include <memory>
@@ -26,10 +28,12 @@
 #include <Qos2.h>
 #endif
 
+#define ROLLBACK_MAX_FRAMES 7
 #define SLIPPI_ONLINE_LOCKSTEP_INTERVAL 30 // Number of frames to wait before attempting to time-sync
 #define SLIPPI_PING_DISPLAY_INTERVAL 60
 #define SLIPPI_REMOTE_PLAYER_MAX 3
 #define SLIPPI_REMOTE_PLAYER_COUNT 3
+#define SLIPPI_PLAYER_COUNT_MAX (SLIPPI_REMOTE_PLAYER_MAX + 1)
 
 struct SlippiRemotePadOutput
 {
@@ -37,6 +41,7 @@ struct SlippiRemotePadOutput
 	s32 checksumFrame;
 	u32 checksum;
 	u8 playerIdx;
+	bool isDisconnected = false;
 	std::vector<u8> data;
 };
 
@@ -168,6 +173,15 @@ class SlippiNetplayClient
 		NET_CONNECT_STATUS_DISCONNECTED,
 	};
 
+	// Reason carried over the wire alongside an intentional disconnect, via the ENet
+	// disconnect data field. Values are transmitted as u32; 0 (UNSPECIFIED) is what a
+	// normal/organic disconnect sends, so any non-zero value is a deliberate reason.
+	enum class SlippiDisconnectReason : u32
+	{
+		UNSPECIFIED = 0,
+		POOR_PERFORMANCE = 1,
+	};
+
 	bool IsDecider();
 	bool IsConnectionSelected();
 	u8 LocalPlayerPort();
@@ -183,11 +197,15 @@ class SlippiNetplayClient
 	std::unique_ptr<SlippiRemotePadOutput> GetFakePadOutput(int frame);
 	std::unique_ptr<SlippiRemotePadOutput> GetSlippiRemotePad(int index, int maxFrameCount);
 	void DropOldRemoteInputs(int32_t finalizedFrame);
+	std::unordered_map<u8, bool> GetActivePlayerIndices();
+	void ForceDisconnectPlayer(u8 playerIdx);
+	void ForceDisconnect(SlippiDisconnectReason reason = SlippiDisconnectReason::UNSPECIFIED);
+	SlippiDisconnectReason GetDisconnectReason();
 	SlippiMatchInfo *GetMatchInfo();
-	int32_t GetSlippiLatestRemoteFrame(int maxFrameCount);
 	SlippiPlayerSelections GetSlippiRemoteChatMessage(bool isChatEnabled);
 	u8 GetSlippiRemoteSentChatMessage(bool isChatEnabled);
 	s32 CalcTimeOffsetUs();
+	double GetAndResetAvgPingMs();
 	bool IsWaitingForDesyncRecovery();
 	SlippiDesyncRecoveryResp GetDesyncRecoveryState();
 
@@ -241,7 +259,23 @@ class SlippiNetplayClient
 	bool hasGameStarted = false;
 	u8 playerIdx = 0;
 
-	std::unordered_map<std::string, std::map<ENetPeer *, bool>> activeConnections;
+	struct ActiveConnectionInfo
+	{
+		u8 playerIdx;
+		bool isDisconnected = false;
+	};
+
+	// Owned by the network thread (constructor + ThreadFunc + Send/OnData which run on the
+	// network thread via the SendAsync queue). Do not read from other threads — use the
+	// playerActive atomics below for cross-thread checks of liveness.
+	std::unordered_map<std::string, std::map<ENetPeer *, ActiveConnectionInfo>> activeConnections;
+
+	// Lock-free view of which global player indices still have at least one live peer.
+	// Written by the network thread when activeConnections changes, and by the EXI
+	// thread via ForceDisconnectPlayer. Read from any thread (notably the main/EXI
+	// thread via GetActivePlayerIndices). The network thread also uses this to drive
+	// per-peer ENet disconnects for players force-dropped from the EXI side.
+	std::atomic<bool> playerActive[SLIPPI_PLAYER_COUNT_MAX] = {};
 
 	std::deque<std::unique_ptr<SlippiPad>> localPadQueue; // most recent inputs at start of deque
 	std::deque<std::unique_ptr<SlippiPad>>
@@ -255,12 +289,28 @@ class SlippiNetplayClient
 	std::deque<SlippiGamePrepStepResults> gamePrepStepQueue;
 
 	u64 pingUs[SLIPPI_REMOTE_PLAYER_MAX];
+
+	// Ping accumulator for the poor-performance check. The network thread adds every ack-derived
+	// ping measurement (all remote players pooled together), and the EXI/CPU thread drains it once
+	// per performance interval via GetAndResetAvgPingMs(). This is the only ping data meant to be
+	// read off the network thread, which is why these are atomic while pingUs above is not.
+	std::atomic<u64> pingSampleSumUs{0};
+	std::atomic<u64> pingSampleCount{0};
 	int32_t lastFrameAcked[SLIPPI_REMOTE_PLAYER_MAX];
 	FrameOffsetData frameOffsetData[SLIPPI_REMOTE_PLAYER_MAX];
 	FrameTiming lastFrameTiming[SLIPPI_REMOTE_PLAYER_MAX];
 	std::array<Common::FifoQueue<FrameTiming, false>, SLIPPI_REMOTE_PLAYER_MAX> ackTimers;
 
-	SlippiConnectStatus slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_UNSET;
+	std::atomic<SlippiConnectStatus> slippiConnectStatus{SlippiConnectStatus::NET_CONNECT_STATUS_UNSET};
+
+	// Disconnect reason plumbing (see SlippiDisconnectReason). m_pendingDisconnectReason is set by the
+	// EXI thread before flipping playerActive and is read by the network thread when it issues
+	// enet_peer_disconnect so the peer learns why. m_disconnectReason is the resolved reason for this
+	// client — set locally on the initiating side, or from the received disconnect data on the receiving
+	// side — and is read by the EXI thread to drive UI such as the poor-performance OSD.
+	std::atomic<u32> m_pendingDisconnectReason{static_cast<u32>(SlippiDisconnectReason::UNSPECIFIED)};
+	std::atomic<u32> m_disconnectReason{static_cast<u32>(SlippiDisconnectReason::UNSPECIFIED)};
+
 	std::vector<int> failedConnections;
 	SlippiMatchInfo matchInfo;
 
@@ -274,6 +324,9 @@ class SlippiNetplayClient
 	unsigned int OnData(sf::Packet &packet, ENetPeer *peer);
 	void Send(sf::Packet &packet);
 	void Disconnect();
+	// Network-thread only — call from inside ThreadFunc.
+	bool AreAllConnectionsDisconnected();
+	bool AreAllPeersDisconnectedForKey(const std::string &key);
 
 	bool m_is_connected = false;
 

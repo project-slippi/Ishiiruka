@@ -63,6 +63,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugFast|x64'">
     <LibraryPath>$(DXSDK_DIR)Lib\x64;$(LibraryPath)</LibraryPath>
+    <TargetName>Slippi $(ProjectName)$(TargetSuffix)</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <Link>
@@ -74,7 +75,7 @@
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/NODEFAULTLIB:libcmt /ignore:4281 %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/NODEFAULTLIB:libcmt /ignore:4281 %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='ReleasePlayback|x64'">/NODEFAULTLIB:libcmt /ignore:4281 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='DebugFast|x64'">/NODEFAULTLIB:libcmt /NODEFAULTLIB:msvcrt /ignore:4281 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='DebugFast|x64'">/NODEFAULTLIB:libcmt /NODEFAULTLIB:msvcrtd /ignore:4281 %(AdditionalOptions)</AdditionalOptions>
       <SubSystem>Windows</SubSystem>
     </Link>
     <ResourceCompile>

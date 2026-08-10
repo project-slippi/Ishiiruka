@@ -19,7 +19,6 @@
 #include "Core/Slippi/SlippiSpectate.h"
 #include "Core/Slippi/SlippiUser.h"
 
-#define ROLLBACK_MAX_FRAMES 7
 #define MAX_NAME_LENGTH 15
 #define MAX_MESSAGE_LENGTH 25
 #define CONNECT_CODE_LENGTH 8
@@ -121,6 +120,7 @@ class CEXISlippi : public IEXIDevice
 
 	// This is a mapping of u8s to status updates such that we dont have to send
 	// strings from the game
+	// clang-format off
 	std::unordered_map<u8, std::string> statusIdxMap = {
 		{1, "connecting"},
 		{10, "game_setup_1"},
@@ -141,6 +141,7 @@ class CEXISlippi : public IEXIDevice
 		{31, "abnormal_completion"},
 		{40, "abandoned"},
 	};
+	// clang-format on
 
 	std::unordered_map<u8, u32> payloadSizes = {
 	    // The actual size of this command will be sent in one byte
@@ -248,6 +249,7 @@ class CEXISlippi : public IEXIDevice
 	void prepareOnlineMatchState();
 	void setMatchSelections(u8 *payload);
 	bool shouldSkipOnlineFrame(s32 frame, s32 finalizedFrame);
+	void handlePoorMatchPerformance(s32 frame);
 	bool shouldAdvanceOnlineFrame(s32 frame);
 	bool opponentRunahead();
 	void handleLogInRequest();
@@ -300,8 +302,9 @@ class CEXISlippi : public IEXIDevice
 	std::vector<u8> playbackSavestatePayload;
 	std::vector<u8> geckoList;
 
-	u32 stallFrameCount = 0;
-	bool isConnectionStalled = false;
+	u32 stallFrameCounts[SLIPPI_REMOTE_PLAYER_MAX] = {};
+	u64 lastIntervalTimeUs = 0;
+	s32 perfDebt = 0; // Leaky accumulator of poor-performance intervals (see handlePoorMatchPerformance)
 
 	std::vector<u8> m_read_queue;
 	std::unique_ptr<Slippi::SlippiGame> m_current_game = nullptr;

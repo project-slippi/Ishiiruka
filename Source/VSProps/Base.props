@@ -104,7 +104,7 @@
       <Optimization>Disabled</Optimization>
     </ClCompile>
     <!--ClCompile Release-->
-    <ClCompile Condition="'$(Configuration)'=='Release'">
+    <ClCompile Condition="'$(Configuration)'=='Release' or '$(Configuration)'=='DebugFast'">
       <WholeProgramOptimization Condition="'$(DolphinRelease)'=='true'">true</WholeProgramOptimization>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
@@ -124,7 +124,7 @@
       <TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors>
     </Link>
     <!--Link Release-->
-    <Link Condition="'$(Configuration)'=='Release'">
+    <Link Condition="'$(Configuration)'=='Release' or '$(Configuration)'=='DebugFast'">
       <LinkTimeCodeGeneration Condition="'$(DolphinRelease)'=='true'">UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>

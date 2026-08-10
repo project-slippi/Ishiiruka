@@ -28,6 +28,7 @@ class SlippiMatchmaking
 		UNRANKED = 1,
 		DIRECT = 2,
 		TEAMS = 3,
+		PARTY = 4,
 	};
 
 	enum ProcessState
@@ -75,6 +76,7 @@ class SlippiMatchmaking
 		std::string id = "";
 		std::vector<SlippiUser::UserInfo> players;
 		std::vector<u16> stages;
+		u32 items;
 	};
 
 	void FindMatch(MatchSearchSettings settings);

@@ -30,7 +30,7 @@ void AdvancedConfigPane::InitializeGUI()
 {
 	m_clock_override_checkbox = new wxCheckBox(this, wxID_ANY, _("Enable CPU Clock Override"));
 	m_clock_override_slider =
-		new DolphinSlider(this, wxID_ANY, 100, 0, 150, wxDefaultPosition, FromDIP(wxSize(200, -1)));
+		new DolphinSlider(this, wxID_ANY, 100, 92, 107, wxDefaultPosition, FromDIP(wxSize(200, -1)));
 	m_clock_override_text = new wxStaticText(this, wxID_ANY, "");
 
 	m_qos_enabled = new wxCheckBox(this, wxID_ANY, _("Enable QoS (Quality of Service) bit on packets"));

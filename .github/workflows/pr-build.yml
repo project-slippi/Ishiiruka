@@ -4,13 +4,9 @@ on:
   push:
     branches:
         - "**"
-    paths-ignore:
-        - "**.md"
   pull_request:
     branches:
       - slippi
-    paths-ignore:
-      - "**.md"
 
 jobs:
 
@@ -319,7 +315,6 @@ jobs:
           rm '/usr/local/bin/2to3' || true
           echo "HOMEBREW_NO_AUTO_UPDATE=1" >> $GITHUB_ENV
           brew install \
-          ffmpeg@2.8 \
           libpng \
           pkgconfig \
           libao \
@@ -328,7 +323,7 @@ jobs:
           python@3.10
           brew uninstall cmake
           brew install performous/pinned_cmake3/cmake@3.31.7
-#         brew upgrade cmake
+          # brew upgrade cmake
       - id: rust_ver
         name: Grab Rust Version
         shell: bash

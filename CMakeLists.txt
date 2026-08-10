@@ -578,7 +578,7 @@ if(USE_X11)
 
 	pkg_check_modules(XINPUT2 REQUIRED xi>=1.5.0)
 endif()
-if(ENCODE_FRAMEDUMPS)
+if(ENCODE_FRAMEDUMPS AND NOT APPLE)
 	check_libav()
 	if(LIBAV_FOUND)
 		LIST(APPEND LIBS ${LIBAV_LDFLAGS})
