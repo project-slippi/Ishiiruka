@@ -66,7 +66,6 @@ namespace SystemTimers
 {
 static CoreTiming::EventType* et_Dec;
 static CoreTiming::EventType* et_VI;
-static CoreTiming::EventType* et_AudioDMA;
 static CoreTiming::EventType* et_DSP;
 static CoreTiming::EventType* et_IPC_HLE;
 // PatchEngine updates every 1/60th of a second by default
@@ -99,13 +98,6 @@ static void DSPCallback(u64 userdata, s64 cyclesLate)
 	// for hle, just gives all of the slice to hle
 	DSP::UpdateDSPSlice(static_cast<int>(DSP::GetDSPEmulator()->DSP_UpdateRate() - cyclesLate));
 	CoreTiming::ScheduleEvent(DSP::GetDSPEmulator()->DSP_UpdateRate() - cyclesLate, et_DSP);
-}
-
-static void AudioDMACallback(u64 userdata, s64 cyclesLate)
-{
-	int period = s_cpu_core_clock / (AudioInterface::GetAIDSampleRate() * 4 / 32);
-	DSP::UpdateAudioDMA();  // Push audio to speakers.
-	CoreTiming::ScheduleEvent(period - cyclesLate, et_AudioDMA);
 }
 
 static void IPC_HLE_UpdateCallback(u64 userdata, s64 cyclesLate)
@@ -244,14 +236,12 @@ void Init()
 	et_Dec = CoreTiming::RegisterEvent("DecCallback", DecrementerCallback);
 	et_VI = CoreTiming::RegisterEvent("VICallback", VICallback);
 	et_DSP = CoreTiming::RegisterEvent("DSPCallback", DSPCallback);
-	et_AudioDMA = CoreTiming::RegisterEvent("AudioDMACallback", AudioDMACallback);
 	et_IPC_HLE = CoreTiming::RegisterEvent("IPC_HLE_UpdateCallback", IPC_HLE_UpdateCallback);
 	//et_PatchEngine = CoreTiming::RegisterEvent("PatchEngine", PatchEngineCallback);
 	et_Throttle = CoreTiming::RegisterEvent("Throttle", ThrottleCallback);
 
 	CoreTiming::ScheduleEvent(VideoInterface::GetTicksPerHalfLine(), et_VI);
 	CoreTiming::ScheduleEvent(0, et_DSP);
-	CoreTiming::ScheduleEvent(s_audio_dma_period, et_AudioDMA);
 	CoreTiming::ScheduleEvent(0, et_Throttle, Common::Timer::GetTimeMs());
 
 	//CoreTiming::ScheduleEvent(VideoInterface::GetTicksPerField(), et_PatchEngine);
