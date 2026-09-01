@@ -2,7 +2,9 @@
 # linux-env.sh
 
 # Add /usr/lib/ to LD_LIBRARY_PATH cause Ubuntu is dumb
-export LD_LIBRARY_PATH="/usr/lib/:$LD_LIBRARY_PATH"
+if [[ $(cat /etc/*-release | grep -w ID | cut -d '=' -f2) != "nixos" ]]; then
+    export LD_LIBRARY_PATH="/usr/lib/:$LD_LIBRARY_PATH"
+fi
 
 if [[ $(env | grep -i wayland) ]]; then
     # wxWidgets 3.14 is GTK3, which seemingly has an issue or two when
