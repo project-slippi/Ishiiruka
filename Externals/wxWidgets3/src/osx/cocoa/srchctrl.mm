@@ -9,6 +9,7 @@
 
 // For compilers that support precompilation, includes "wx.h".
 #include "wx/wxprec.h"
+#import <objc/runtime.h>
 
 #ifdef __BORLANDC__
     #pragma hdrstop
@@ -31,6 +32,7 @@
 @interface wxNSSearchField : NSSearchField
 {
     BOOL m_withinTextDidChange;
+    NSEvent* lastKeyDownEvent;
 }
 
 @end
@@ -61,6 +63,50 @@
     m_withinTextDidChange = YES;
     [super textDidChange:aNotification];
     m_withinTextDidChange = NO;
+}
+
+- (BOOL)textView:(NSTextView *)aTextView
+    clickedOnLink:(id)link
+          atIndex:(NSUInteger)charIndex {
+  wxWidgetCocoaImpl *impl =
+      (wxWidgetCocoaImpl *)wxWidgetImpl::FindFromWXWidget(aTextView);
+  if (impl) {
+    wxWindow *wxpeer = (wxWindow *)impl->GetWXPeer();
+    if (wxpeer) {
+      wxMouseEvent evtMouse(wxEVT_LEFT_DOWN);
+      wxTextUrlEvent event(wxpeer->GetId(), evtMouse, (long int)charIndex,
+                           (long int)charIndex);
+      event.SetEventObject(wxpeer);
+      wxpeer->HandleWindowEvent(event);
+    }
+  }
+  return NO;
+}
+
+- (BOOL)_handleClipboardEvent:(wxEventType)type {
+  wxWidgetImpl *impl = wxWidgetImpl::FindFromWXWidget(self);
+  wxWindow *wxpeer = impl ? impl->GetWXPeer() : NULL;
+  if (wxpeer) {
+    wxClipboardTextEvent evt(type, wxpeer->GetId());
+    evt.SetEventObject(wxpeer);
+    return wxpeer->HandleWindowEvent(evt);
+  }
+  return false;
+}
+
+- (void)copy:(id)sender {
+  if (![self _handleClipboardEvent:wxEVT_TEXT_COPY])
+    [super copy:sender];
+}
+
+- (void)cut:(id)sender {
+  if (![self _handleClipboardEvent:wxEVT_TEXT_CUT])
+    [super cut:sender];
+}
+
+- (void)paste:(id)sender {
+  if (![self _handleClipboardEvent:wxEVT_TEXT_PASTE])
+    [super paste:sender];
 }
 
 - (void)controlTextDidChange:(NSNotification *)aNotification
@@ -98,6 +144,65 @@
 - (BOOL) isWithinTextDidChange
 {
     return m_withinTextDidChange;
+}
+
+- (BOOL)control:(NSControl *)control
+               textView:(NSTextView *)textView
+    doCommandBySelector:(SEL)commandSelector {
+  wxUnusedVar(textView);
+  wxUnusedVar(control);
+
+  BOOL handled = NO;
+
+  // send back key events wx' common code knows how to handle
+
+  wxWidgetCocoaImpl *impl =
+      (wxWidgetCocoaImpl *)wxWidgetImpl::FindFromWXWidget(self);
+  if (impl) {
+    wxWindow *wxpeer = (wxWindow *)impl->GetWXPeer();
+    if (wxpeer) {
+      if (commandSelector == @selector(insertNewline:)) {
+        [textView insertNewlineIgnoringFieldEditor:self];
+        handled = YES;
+      } else if (commandSelector == @selector(insertTab:)) {
+        [textView insertTabIgnoringFieldEditor:self];
+        handled = YES;
+      } else if (commandSelector == @selector(insertBacktab:)) {
+        [textView insertTabIgnoringFieldEditor:self];
+        handled = YES;
+      } else if (commandSelector == @selector(paste:)) {
+        [self paste:self];
+        handled = YES;
+      }
+    }
+  }
+
+  return handled;
+}
+
+- (void)keyDown:(NSEvent *)event {
+  wxWidgetCocoaImpl *impl =
+      (wxWidgetCocoaImpl *)wxWidgetImpl::FindFromWXWidget(self);
+  if (impl) {
+    wxWindow *wxpeer = (wxWindow *)impl->GetWXPeer();
+    if (wxpeer) {
+      if (impl == NULL || !impl->DoHandleKeyEvent(event))
+        [super keyDown:event];
+    }
+  }
+
+}
+
+- (void)keyUp:(NSEvent *)event {
+  wxWidgetCocoaImpl *impl =
+      (wxWidgetCocoaImpl *)wxWidgetImpl::FindFromWXWidget(self);
+  if (impl) {
+    wxWindow *wxpeer = (wxWindow *)impl->GetWXPeer();
+    if (wxpeer) {
+      if (impl == NULL || !impl->DoHandleKeyEvent(event))
+        [super keyUp:event];
+    }
+  }
 }
 
 @end

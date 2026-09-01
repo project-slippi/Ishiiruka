@@ -361,9 +361,23 @@ void wxTextCtrl::OnKeyDown(wxKeyEvent& event)
                 if ( CanCut() )
                     Cut() ;
                 return;
-            default:
+            case 'Z':
+              if ( GetTextPeer() && GetTextPeer()->CanUndo() )
+                GetTextPeer()->Undo() ;
+              return;
+              default:
                 break;
         }
+    } else if (event.GetModifiers() == wxMOD_CONTROL & wxMOD_SHIFT) {
+      switch( event.GetKeyCode() )
+      {
+      case 'Z':
+        if ( GetTextPeer() && GetTextPeer()->CanRedo() )
+          GetTextPeer()->Redo() ;
+        return;
+      default:
+        break;
+      }
     }
     // no, we didn't process it
     event.Skip();
@@ -672,7 +686,8 @@ void wxTextWidgetImpl::Clear()
 
 bool wxTextWidgetImpl::CanUndo() const
 {
-    return false ;
+//  printf("CAN UNDO\n");
+  return false ;
 }
 
 void wxTextWidgetImpl::Undo()
