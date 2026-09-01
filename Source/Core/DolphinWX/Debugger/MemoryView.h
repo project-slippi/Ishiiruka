@@ -15,6 +15,7 @@ enum class MemoryDataType
 	U16,
 	U32,
 	ASCII,
+	ShiftJIS,
 	FloatingPoint
 };
 
@@ -46,7 +47,7 @@ private:
 	int YToAddress(int y);
 	bool IsHexMode() const
 	{
-		return m_data_type != MemoryDataType::ASCII && m_data_type != MemoryDataType::FloatingPoint;
+		return m_data_type != MemoryDataType::ASCII && m_data_type != MemoryDataType::FloatingPoint && m_data_type != MemoryDataType::ShiftJIS;
 	}
 
 	void OnPaint(wxPaintEvent& event);

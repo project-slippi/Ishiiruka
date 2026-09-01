@@ -112,6 +112,7 @@ CMemoryWindow::CMemoryWindow(wxWindow* parent, wxWindowID id, const wxPoint& pos
 	data_type_options.Add("U16");
 	data_type_options.Add("U32");
 	data_type_options.Add("ASCII");
+	data_type_options.Add("Shift-JIS");
 	data_type_options.Add("Float32");
 	m_rbox_data_type = new wxRadioBox(this, IDM_DATA_TYPE_RBOX, _("Data Type"), wxDefaultPosition,
 		wxDefaultSize, data_type_options, 1);
@@ -249,9 +250,15 @@ void CMemoryWindow::OnDumpFakeVMEM(wxCommandEvent& event)
 
 void CMemoryWindow::OnDataTypeChanged(wxCommandEvent& ev)
 {
-	static constexpr std::array<MemoryDataType, 5> map{ {MemoryDataType::U8, MemoryDataType::U16,
-																											MemoryDataType::U32, MemoryDataType::ASCII,
-																											MemoryDataType::FloatingPoint} };
+	static constexpr std::array<MemoryDataType, 6> map{{
+		MemoryDataType::U8, 
+		MemoryDataType::U16,
+		MemoryDataType::U32, 
+		MemoryDataType::ASCII,
+		MemoryDataType::ShiftJIS,
+		MemoryDataType::FloatingPoint
+	}};
+
 	if (ev.GetId() == IDM_DATA_TYPE_RBOX)
 	{
 		memview->SetDataType(map.at(ev.GetSelection()));
