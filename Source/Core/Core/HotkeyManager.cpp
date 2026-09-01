@@ -20,6 +20,7 @@ const std::string hotkey_labels[] = {
         _trans("Toggle OSD chat"),
         _trans("Send OSD chat message"),
 		_trans("Take Screenshot"),
+		_trans("Refresh Input Configuration"),
 		_trans("Exit"),
 
 		_trans("Volume Down"),
