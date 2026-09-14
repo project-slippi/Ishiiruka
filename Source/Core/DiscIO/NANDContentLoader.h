@@ -106,12 +106,7 @@ public:
 
 private:
 	bool Initialize(const std::string& name);
-	void InitializeContentEntries(const std::vector<u8>& tmd,
-		const std::vector<u8>& decrypted_title_key,
-		const std::vector<u8>& data_app);
-
-	static std::vector<u8> AESDecode(const u8* key, u8* iv, const u8* src, u32 size);
-	static std::vector<u8> GetKeyFromTicket(const std::vector<u8>& ticket);
+	void InitializeContentEntries(const std::vector<u8>& tmd);
 
 	bool m_Valid;
 	bool m_IsWAD;
