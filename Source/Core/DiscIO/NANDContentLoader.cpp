@@ -3,18 +3,15 @@
 // Refer to the license.txt file included.
 
 #include <algorithm>
-#include <array>
 #include <cstddef>
 #include <cstdio>
 #include <cstring>
 #include <functional>
 #include <map>
-#include <mbedtls/aes.h>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "Common/Align.h"
 #include "Common/CommonFuncs.h"
 #include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
@@ -185,38 +182,31 @@ bool CNANDContentLoader::Initialize(const std::string& name)
 
 	m_Path = name;
 
-	WiiWAD wad(name);
-	std::vector<u8> data_app;
-	std::vector<u8> tmd;
-	std::vector<u8> decrypted_title_key;
-
-	if (wad.IsValid())
+	// WAD contents are encrypted with the Wii common key, which Slippi Dolphin does not ship.
+	// Refuse WADs here so nothing downstream ever treats one as a loadable title.
+	if (WiiWAD(name).IsValid())
 	{
-		m_IsWAD = true;
-		m_Ticket = wad.GetTicket();
-		decrypted_title_key = GetKeyFromTicket(m_Ticket);
-		tmd = wad.GetTMD();
-		data_app = wad.GetDataApp();
+		ERROR_LOG(DISCIO, "Refusing to load Wii WAD %s: Wii titles are not supported by Slippi Dolphin",
+			name.c_str());
+		return false;
 	}
+
+	std::string tmd_filename(m_Path);
+
+	if (tmd_filename.back() == '/')
+		tmd_filename += "title.tmd";
 	else
+		m_Path = tmd_filename.substr(0, tmd_filename.find("title.tmd"));
+
+	File::IOFile tmd_file(tmd_filename, "rb");
+	if (!tmd_file)
 	{
-		std::string tmd_filename(m_Path);
-
-		if (tmd_filename.back() == '/')
-			tmd_filename += "title.tmd";
-		else
-			m_Path = tmd_filename.substr(0, tmd_filename.find("title.tmd"));
-
-		File::IOFile tmd_file(tmd_filename, "rb");
-		if (!tmd_file)
-		{
-			WARN_LOG(DISCIO, "CreateFromDirectory: error opening %s", tmd_filename.c_str());
-			return false;
-		}
-
-		tmd.resize(static_cast<size_t>(File::GetSize(tmd_filename)));
-		tmd_file.ReadBytes(tmd.data(), tmd.size());
+		WARN_LOG(DISCIO, "CreateFromDirectory: error opening %s", tmd_filename.c_str());
+		return false;
 	}
+
+	std::vector<u8> tmd(static_cast<size_t>(File::GetSize(tmd_filename)));
+	tmd_file.ReadBytes(tmd.data(), tmd.size());
 
 	std::copy(&tmd[0], &tmd[TMD_HEADER_SIZE], m_TMDHeader);
 	std::copy(&tmd[0x180], &tmd[0x180 + TMD_VIEW_SIZE], m_TMDView);
@@ -231,18 +221,13 @@ bool CNANDContentLoader::Initialize(const std::string& name)
 	if (m_Country == 2)  // SYSMENU
 		m_Country = GetSysMenuRegion(m_TitleVersion);
 
-	InitializeContentEntries(tmd, decrypted_title_key, data_app);
+	InitializeContentEntries(tmd);
 	return true;
 }
 
-void CNANDContentLoader::InitializeContentEntries(const std::vector<u8>& tmd,
-	const std::vector<u8>& decrypted_title_key,
-	const std::vector<u8>& data_app)
+void CNANDContentLoader::InitializeContentEntries(const std::vector<u8>& tmd)
 {
 	m_Content.resize(m_NumEntries);
-
-	std::array<u8, 16> iv;
-	u32 data_app_offset = 0;
 
 	for (u32 i = 0; i < m_NumEntries; i++)
 	{
@@ -262,20 +247,6 @@ void CNANDContentLoader::InitializeContentEntries(const std::vector<u8>& tmd,
 		const auto hash_end = std::next(hash_begin, ArraySize(content.m_SHA1Hash));
 		std::copy(hash_begin, hash_end, content.m_SHA1Hash);
 
-		if (m_IsWAD)
-		{
-			u32 rounded_size = Common::AlignUpSizePow2(content.m_Size, 0x40);
-
-			iv.fill(0);
-			std::copy(&tmd[entry_offset + 0x01E8], &tmd[entry_offset + 0x01E8 + 2], iv.begin());
-
-			content.m_Data = std::make_unique<CNANDContentDataBuffer>(AESDecode(
-				decrypted_title_key.data(), iv.data(), &data_app[data_app_offset], rounded_size));
-
-			data_app_offset += rounded_size;
-			continue;
-		}
-
 		std::string filename;
 		if (content.m_Type & 0x8000)  // shared app
 			filename = CSharedContent::AccessInstance().GetFilenameFromSHA1(content.m_SHA1Hash);
@@ -288,27 +259,6 @@ void CNANDContentLoader::InitializeContentEntries(const std::vector<u8>& tmd,
 		if (File::Exists(filename))
 			content.m_Size = static_cast<u32>(File::GetSize(filename));
 	}
-}
-
-std::vector<u8> CNANDContentLoader::AESDecode(const u8* key, u8* iv, const u8* src, u32 size)
-{
-	mbedtls_aes_context aes_ctx;
-	std::vector<u8> buffer(size);
-
-	mbedtls_aes_setkey_dec(&aes_ctx, key, 128);
-	mbedtls_aes_crypt_cbc(&aes_ctx, MBEDTLS_AES_DECRYPT, size, iv, src, buffer.data());
-
-	return buffer;
-}
-
-std::vector<u8> CNANDContentLoader::GetKeyFromTicket(const std::vector<u8>& ticket)
-{
-	const u8 common_key[16] = { 0xeb, 0xe4, 0x2a, 0x22, 0x5e, 0x85, 0x93, 0xe4,
-		0x48, 0xd9, 0xc5, 0x45, 0x73, 0x81, 0xaa, 0xf7 };
-	u8 iv[16] = {};
-
-	std::copy(&ticket[0x01DC], &ticket[0x01DC + 8], iv);
-	return AESDecode(common_key, iv, &ticket[0x01BF], 16);
 }
 
 DiscIO::Country CNANDContentLoader::GetCountry() const
@@ -462,7 +412,11 @@ u64 CNANDContentManager::Install_WiiWAD(const std::string& filename)
 		return 0;
 	const CNANDContentLoader& content_loader = GetNANDLoader(filename);
 	if (content_loader.IsValid() == false)
+	{
+		// Always taken: WADs are refused in CNANDContentLoader::Initialize.
+		PanicAlertT("WAD installation failed: Wii titles are not supported by Slippi Dolphin.");
 		return 0;
+	}
 
 	u64 title_id = content_loader.GetTitleID();
 

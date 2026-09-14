@@ -245,6 +245,16 @@ bool BootCore(const std::string& _rFilename)
 	if (!StartUp.AutoSetup(SConfig::BOOT_DEFAULT))
 		return false;
 
+	// Block anything Wii: NAND titles such as the Wii Menu, Wii homebrew, Wii fifo logs.
+	// Slippi Dolphin does not ship the Wii keys, so none of it could run correctly anyway.
+	if (StartUp.bWii)
+	{
+		PanicAlertT("Wii software cannot be run with Slippi Dolphin. "
+		            "Please use regular Dolphin (https://dolphin-emu.org/) for running "
+		            "games other than Super Smash Bros. Melee.");
+		return false;
+	}
+
 	// Block running anything other than Melee and homebrew
 	if (!StartUp.GetGameID().empty() && !StartUp.GameHasDefaultGameIni())
 	{
