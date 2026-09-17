@@ -1777,31 +1777,34 @@ SlippiDesyncRecoveryResp SlippiNetplayClient::GetDesyncRecoveryState()
 
 		for (int j = 0; j < 4; j++)
 		{
-			auto &fighter = result.state.fighters[j];
-			auto &iFighter = s.fighters[j];
+			// mergedFighter starts as our own synced state for fighter j and ends up as the reconciled state that
+			// will be used for the recovery game. remoteFighter is what remote player i reported for that fighter
+			auto &mergedFighter = result.state.fighters[j];
+			auto &remoteFighter = s.fighters[j];
 
-			if (fighter.stocks_remaining != iFighter.stocks_remaining)
+			if (mergedFighter.stocks_remaining != remoteFighter.stocks_remaining)
 			{
 				// This might actually happen sometimes if a desync happens right as someone is KO'd... should be
 				// quite rare though in a 1v1 situation.
 				ERROR_LOG(SLIPPI_ONLINE, "Stocks remaining for desync recovery do not match: [Player %d] %d, %d", j + 1,
-				          fighter.stocks_remaining, iFighter.stocks_remaining);
+				          mergedFighter.stocks_remaining, remoteFighter.stocks_remaining);
 				result.is_error = true;
 				return result;
 			}
 
-			if (abs(static_cast<int>(fighter.current_health) - static_cast<int>(iFighter.current_health)) > 25)
+			if (abs(static_cast<int>(mergedFighter.current_health) - static_cast<int>(remoteFighter.current_health)) >
+			    25)
 			{
 				ERROR_LOG(SLIPPI_ONLINE, "Current health for desync recovery too different: [Player %d] %d, %d", j + 1,
-				          fighter.current_health, iFighter.current_health);
+				          mergedFighter.current_health, remoteFighter.current_health);
 				result.is_error = true;
 				return result;
 			}
 
 			// Use the lower health value
-			if (iFighter.current_health < fighter.current_health)
+			if (remoteFighter.current_health < mergedFighter.current_health)
 			{
-				fighter.current_health = iFighter.current_health;
+				mergedFighter.current_health = remoteFighter.current_health;
 			}
 		}
 	}
