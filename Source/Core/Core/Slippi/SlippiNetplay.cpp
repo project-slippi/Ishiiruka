@@ -1777,8 +1777,8 @@ SlippiDesyncRecoveryResp SlippiNetplayClient::GetDesyncRecoveryState()
 
 		for (int j = 0; j < 4; j++)
 		{
-			auto &fighter = result.state.fighters[i];
-			auto &iFighter = s.fighters[i];
+			auto &fighter = result.state.fighters[j];
+			auto &iFighter = s.fighters[j];
 
 			if (fighter.stocks_remaining != iFighter.stocks_remaining)
 			{
@@ -1801,7 +1801,7 @@ SlippiDesyncRecoveryResp SlippiNetplayClient::GetDesyncRecoveryState()
 			// Use the lower health value
 			if (iFighter.current_health < fighter.current_health)
 			{
-				result.state.fighters[i].current_health = iFighter.current_health;
+				fighter.current_health = iFighter.current_health;
 			}
 		}
 	}
