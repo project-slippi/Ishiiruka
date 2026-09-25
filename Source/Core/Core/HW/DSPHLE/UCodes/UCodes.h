@@ -62,6 +62,16 @@ inline void* HLEMemory_Get_Pointer(u32 address)
 		return &Memory::m_pRAM[address & Memory::RAM_MASK];
 }
 
+// Number of bytes that can be accessed through HLEMemory_Get_Pointer(address) before running off
+// the end of the backing buffer.
+inline u32 HLEMemory_Get_Pointer_Bytes_Left(u32 address)
+{
+	if (ExramRead(address))
+		return Memory::m_pEXRAM ? Memory::EXRAM_SIZE - (address & Memory::EXRAM_MASK) : 0;
+	else
+		return Memory::RAM_SIZE - (address & Memory::RAM_MASK);
+}
+
 class UCodeInterface
 {
 public:
