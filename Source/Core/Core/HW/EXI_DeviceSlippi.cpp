@@ -2381,7 +2381,6 @@ void CEXISlippi::prepareOnlineMatchState()
 		// Check if someone is picking dumb characters in non-direct
 		auto localCharOk = lps.characterId < 26;
 		auto remoteCharOk = true;
-		INFO_LOG(SLIPPI_ONLINE, "remotePlayerCount: %d", remotePlayerCount);
 		for (int i = 0; i < remotePlayerCount; i++)
 		{
 			if (rps[i].characterId >= 26)
@@ -2473,7 +2472,6 @@ void CEXISlippi::prepareOnlineMatchState()
 
 		// Set rng offset
 		rngOffset = isDecider ? lps.rngOffset : rps[0].rngOffset;
-		INFO_LOG(SLIPPI_ONLINE, "Rng Offset: 0x%x", rngOffset);
 
 		// Check if everyone is the same color
 		auto firstTeamId = orderedSelections[0]->teamId;
