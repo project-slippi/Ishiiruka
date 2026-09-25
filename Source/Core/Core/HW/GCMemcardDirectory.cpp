@@ -464,7 +464,7 @@ inline s32 GCMemcardDirectory::SaveAreaRW(u32 block, bool writing)
 			}
 
 			int idx = m_saves[i].UsesBlock(block);
-			if (idx != -1)
+			if (idx >= 0)
 			{
 				if (!m_saves[i].LoadSaveBlocks())
 				{
@@ -479,6 +479,13 @@ inline s32 GCMemcardDirectory::SaveAreaRW(u32 block, bool writing)
 				if (writing)
 				{
 					m_saves[i].m_dirty = true;
+				}
+
+				if (static_cast<size_t>(idx) >= m_saves[i].m_save_data.size())
+				{
+					PanicAlert("Block index (%d) is larger than the number of available blocks (%zu)",
+						idx, m_saves[i].m_save_data.size());
+					return -1;
 				}
 
 				m_LastBlock = block;
