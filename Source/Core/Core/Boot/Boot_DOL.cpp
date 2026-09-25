@@ -8,6 +8,7 @@
 
 #include "Common/CommonFuncs.h"
 #include "Common/FileUtil.h"
+#include "Common/Logging/Log.h"
 
 #include "Core/Boot/Boot_DOL.h"
 #include "Core/HW/Memmap.h"
@@ -56,11 +57,21 @@ bool CDolLoader::Initialize(const std::vector<u8>& buffer)
 	{
 		if (m_dolheader.textSize[i] != 0)
 		{
-			if (buffer.size() < m_dolheader.textOffset[i] + m_dolheader.textSize[i])
+			if ((m_dolheader.textAddress[i] & 31) != 0 || (m_dolheader.textSize[i] & 31) != 0)
+			{
+				ERROR_LOG(BOOT, "Text section %d is not 32-byte aligned: address = 0x%08x, size = 0x%x",
+					i, m_dolheader.textAddress[i], m_dolheader.textSize[i]);
+				return false;
+			}
+
+			const size_t section_offset = m_dolheader.textOffset[i];
+			const size_t section_size = m_dolheader.textSize[i];
+
+			if (buffer.size() < section_offset || (buffer.size() - section_offset) < section_size)
 				return false;
 
-			const u8* text_start = &buffer[m_dolheader.textOffset[i]];
-			m_text_sections.emplace_back(text_start, &text_start[m_dolheader.textSize[i]]);
+			const u8* text_start = &buffer[section_offset];
+			m_text_sections.emplace_back(text_start, &text_start[section_size]);
 
 			for (unsigned int j = 0; !m_is_wii && j < (m_dolheader.textSize[i] / sizeof(u32)); ++j)
 			{
@@ -81,11 +92,21 @@ bool CDolLoader::Initialize(const std::vector<u8>& buffer)
 	{
 		if (m_dolheader.dataSize[i] != 0)
 		{
-			if (buffer.size() < m_dolheader.dataOffset[i] + m_dolheader.dataSize[i])
+			if ((m_dolheader.dataAddress[i] & 31) != 0 || (m_dolheader.dataSize[i] & 31) != 0)
+			{
+				ERROR_LOG(BOOT, "Data section %d is not 32-byte aligned: address = 0x%08x, size = 0x%x",
+					i, m_dolheader.dataAddress[i], m_dolheader.dataSize[i]);
+				return false;
+			}
+
+			const size_t section_offset = m_dolheader.dataOffset[i];
+			const size_t section_size = m_dolheader.dataSize[i];
+
+			if (buffer.size() < section_offset || (buffer.size() - section_offset) < section_size)
 				return false;
 
-			const u8* data_start = &buffer[m_dolheader.dataOffset[i]];
-			m_data_sections.emplace_back(data_start, &data_start[m_dolheader.dataSize[i]]);
+			const u8* data_start = &buffer[section_offset];
+			m_data_sections.emplace_back(data_start, &data_start[section_size]);
 		}
 		else
 		{

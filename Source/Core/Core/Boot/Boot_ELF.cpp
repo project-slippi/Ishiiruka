@@ -33,7 +33,9 @@ bool CBoot::IsElfWii(const std::string& filename)
 	// Swap these once, instead of swapping every word in the file.
 	u32 HID4_pattern = Common::swap32(0x7c13fba6);
 	u32 HID4_mask = Common::swap32(0xfc1fffff);
-	ElfReader reader(elf.get());
+	ElfReader reader(elf.get(), filesize);
+	if (!reader.IsValid())
+		return false;
 
 	for (int i = 0; i < reader.GetNumSegments(); ++i)
 	{
@@ -63,8 +65,8 @@ bool CBoot::Boot_ELF(const std::string& filename)
 	}
 
 	// Load ELF into GameCube Memory
-	ElfReader reader(elf.get());
-	if (!reader.LoadIntoMemory())
+	ElfReader reader(elf.get(), filesize);
+	if (!reader.IsValid() || !reader.LoadIntoMemory())
 		return false;
 
 	// Set up MSR and the BAT SPR registers.
