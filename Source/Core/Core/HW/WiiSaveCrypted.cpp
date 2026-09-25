@@ -13,7 +13,6 @@
 #include <cstring>
 #include <mbedtls/aes.h>
 #include <mbedtls/md5.h>
-#include <mbedtls/sha1.h>
 #include <memory>
 #include <string>
 #include <vector>
@@ -21,7 +20,6 @@
 #include "Common/Align.h"
 #include "Common/CommonFuncs.h"
 #include "Common/CommonTypes.h"
-#include "Common/Crypto/ec.h"
 #include "Common/FileUtil.h"
 #include "Common/Logging/Log.h"
 #include "Common/MsgHandler.h"
@@ -30,108 +28,38 @@
 
 #include "Core/HW/WiiSaveCrypted.h"
 
-const u8 CWiiSaveCrypted::s_sd_key[16] = { 0xAB, 0x01, 0xB9, 0xD8, 0xE1, 0x62, 0x2B, 0x08,
-																					0xAF, 0xBA, 0xD8, 0x4D, 0xBF, 0xC2, 0xA5, 0x5D };
 const u8 CWiiSaveCrypted::s_md5_blanker[16] = { 0x0E, 0x65, 0x37, 0x81, 0x99, 0xBE, 0x45, 0x17,
 																							 0xAB, 0x06, 0xEC, 0x22, 0x45, 0x1A, 0x57, 0x93 };
 const u32 CWiiSaveCrypted::s_ng_id = 0x0403AC68;
 
-bool CWiiSaveCrypted::ImportWiiSave(const std::string& filename)
+// Wii saves are encrypted with the Wii SD key, which Slippi Dolphin does not ship, so every
+// import and export is refused up front and a CWiiSaveCrypted never becomes valid.
+static void AlertWiiSavesUnsupported()
 {
-	CWiiSaveCrypted save_file(filename);
-	return save_file.m_valid;
+	PanicAlertT("Wii save import and export are not supported by Slippi Dolphin.");
 }
 
-bool CWiiSaveCrypted::ExportWiiSave(u64 title_id)
+bool CWiiSaveCrypted::ImportWiiSave(const std::string& /*filename*/)
 {
-	CWiiSaveCrypted export_save("", title_id);
-	if (export_save.m_valid)
-	{
-		SuccessAlertT("Successfully exported file to %s", export_save.m_encrypted_save_path.c_str());
-	}
-	else
-	{
-		PanicAlertT("Export failed");
-	}
-	return export_save.m_valid;
+	AlertWiiSavesUnsupported();
+	return false;
+}
+
+bool CWiiSaveCrypted::ExportWiiSave(u64 /*title_id*/)
+{
+	AlertWiiSavesUnsupported();
+	return false;
 }
 
 void CWiiSaveCrypted::ExportAllSaves()
 {
-	std::string title_folder = File::GetUserPath(D_WIIROOT_IDX) + "/title";
-	std::vector<u64> titles;
-	const u32 path_mask = 0x00010000;
-	for (int i = 0; i < 8; ++i)
-	{
-		std::string folder = StringFromFormat("%s/%08x/", title_folder.c_str(), path_mask | i);
-		File::FSTEntry fst_tmp = File::ScanDirectoryTree(folder, false);
-
-		for (const File::FSTEntry& entry : fst_tmp.children)
-		{
-			if (entry.isDirectory)
-			{
-				u32 game_id;
-				if (AsciiToHex(entry.virtualName, game_id))
-				{
-					std::string banner_path =
-						StringFromFormat("%s%08x/data/banner.bin", folder.c_str(), game_id);
-					if (File::Exists(banner_path))
-					{
-						u64 title_id = (((u64)path_mask | i) << 32) | game_id;
-						titles.push_back(title_id);
-					}
-				}
-			}
-		}
-	}
-	SuccessAlertT("Found %zu save files", titles.size());
-	u32 success = 0;
-	for (const u64& title : titles)
-	{
-		CWiiSaveCrypted* export_save = new CWiiSaveCrypted("", title);
-		if (export_save->m_valid)
-			success++;
-		delete export_save;
-	}
-	SuccessAlertT("Successfully exported %u saves to %s", success,
-		(File::GetUserPath(D_USER_IDX) + "private/wii/title/").c_str());
+	AlertWiiSavesUnsupported();
 }
 
 CWiiSaveCrypted::CWiiSaveCrypted(const std::string& filename, u64 title_id)
-	: m_encrypted_save_path(filename), m_title_id(title_id)
+	: m_encrypted_save_path(filename), m_title_id(title_id), m_valid(false)
 {
-	memcpy(m_sd_iv, "\x21\x67\x12\xE6\xAA\x1F\x68\x9F\x95\xC5\xA2\x23\x24\xDC\x6A\x98", 0x10);
-
-	if (!title_id)  // Import
-	{
-		mbedtls_aes_setkey_dec(&m_aes_ctx, s_sd_key, 128);
-		m_valid = true;
-		ReadHDR();
-		ReadBKHDR();
-		ImportWiiSaveFiles();
-		// TODO: check_sig()
-		if (m_valid)
-		{
-			SuccessAlertT("Successfully imported save files");
-		}
-		else
-		{
-			PanicAlertT("Import failed");
-		}
-	}
-	else
-	{
-		mbedtls_aes_setkey_enc(&m_aes_ctx, s_sd_key, 128);
-
-		if (getPaths(true))
-		{
-			m_valid = true;
-			WriteHDR();
-			WriteBKHDR();
-			ExportWiiSaveFiles();
-			do_sig();
-		}
-	}
+	// Without the SD key the AES context cannot be set up, so nothing below can run.
 }
 
 void CWiiSaveCrypted::ReadHDR()
@@ -465,99 +393,6 @@ void CWiiSaveCrypted::ExportWiiSaveFiles()
 			}
 		}
 	}
-}
-
-void CWiiSaveCrypted::do_sig()
-{
-	if (!m_valid)
-		return;
-	u8 sig[0x40];
-	u8 ng_cert[0x180];
-	u8 ap_cert[0x180];
-	u8 hash[0x14];
-	u8 ap_priv[30];
-	u8 ap_sig[60];
-	char signer[64];
-	char name[64];
-	u32 data_size;
-
-	const u32 ng_key_id = 0x6AAB8C59;
-
-	const u8 ng_priv[30] = { 0,    0xAB, 0xEE, 0xC1, 0xDD, 0xB4, 0xA6, 0x16, 0x6B, 0x70,
-													0xFD, 0x7E, 0x56, 0x67, 0x70, 0x57, 0x55, 0x27, 0x38, 0xA3,
-													0x26, 0xC5, 0x46, 0x16, 0xF7, 0x62, 0xC9, 0xED, 0x73, 0xF2 };
-
-	const u8 ng_sig[0x3C] = { 0,    0xD8, 0x81, 0x63, 0xB2, 0x00, 0x6B, 0x0B, 0x54, 0x82, 0x88, 0x63,
-													 0x81, 0x1C, 0x00, 0x71, 0x12, 0xED, 0xB7, 0xFD, 0x21, 0xAB, 0x0E, 0x50,
-													 0x0E, 0x1F, 0xBF, 0x78, 0xAD, 0x37, 0x00, 0x71, 0x8D, 0x82, 0x41, 0xEE,
-													 0x45, 0x11, 0xC7, 0x3B, 0xAC, 0x08, 0xB6, 0x83, 0xDC, 0x05, 0xB8, 0xA8,
-													 0x90, 0x1F, 0xA8, 0x2A, 0x0E, 0x4E, 0x76, 0xEF, 0x44, 0x72, 0x99, 0xF8 };
-
-	sprintf(signer, "Root-CA00000001-MS00000002");
-	sprintf(name, "NG%08x", s_ng_id);
-	make_ec_cert(ng_cert, ng_sig, signer, name, ng_priv, ng_key_id);
-
-	memset(ap_priv, 0, sizeof ap_priv);
-	ap_priv[10] = 1;
-
-	memset(ap_sig, 81, sizeof ap_sig);  // temp
-
-	sprintf(signer, "Root-CA00000001-MS00000002-NG%08x", s_ng_id);
-	sprintf(name, "AP%08x%08x", 1, 2);
-	make_ec_cert(ap_cert, ap_sig, signer, name, ap_priv, 0);
-
-	mbedtls_sha1(ap_cert + 0x80, 0x100, hash);
-	generate_ecdsa(ap_sig, ap_sig + 30, ng_priv, hash);
-	make_ec_cert(ap_cert, ap_sig, signer, name, ap_priv, 0);
-
-	data_size = Common::swap32(m_bk_hdr.sizeOfFiles) + 0x80;
-
-	File::IOFile data_file(m_encrypted_save_path, "rb");
-	if (!data_file)
-	{
-		m_valid = false;
-		return;
-	}
-	auto data = std::make_unique<u8[]>(data_size);
-
-	data_file.Seek(0xf0c0, SEEK_SET);
-	if (!data_file.ReadBytes(data.get(), data_size))
-	{
-		m_valid = false;
-		return;
-	}
-
-	mbedtls_sha1(data.get(), data_size, hash);
-	mbedtls_sha1(hash, 20, hash);
-
-	data_file.Open(m_encrypted_save_path, "ab");
-	if (!data_file)
-	{
-		m_valid = false;
-		return;
-	}
-	generate_ecdsa(sig, sig + 30, ap_priv, hash);
-	*(u32*)(sig + 60) = Common::swap32(0x2f536969);
-
-	data_file.WriteArray(sig, sizeof(sig));
-	data_file.WriteArray(ng_cert, sizeof(ng_cert));
-	data_file.WriteArray(ap_cert, sizeof(ap_cert));
-
-	m_valid = data_file.IsGood();
-}
-
-void CWiiSaveCrypted::make_ec_cert(u8* cert, const u8* sig, const char* signer, const char* name,
-	const u8* priv, const u32 key_id)
-{
-	memset(cert, 0, 0x180);
-	*(u32*)cert = Common::swap32(0x10002);
-
-	memcpy(cert + 4, sig, 60);
-	strcpy((char*)cert + 0x80, signer);
-	*(u32*)(cert + 0xc0) = Common::swap32(2);
-	strcpy((char*)cert + 0xc4, name);
-	*(u32*)(cert + 0x104) = Common::swap32(key_id);
-	ec_priv_to_pub(priv, cert + 0x108);
 }
 
 bool CWiiSaveCrypted::getPaths(bool for_export)
