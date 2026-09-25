@@ -40,9 +40,14 @@ protected:
 	u16 m_last_main_volume;
 	u16 m_last_aux_volumes[3];
 
+	// Maximum number of (offset, value) update pairs copied out of a PB.
+	static constexpr u32 MAX_UPDATES = 512;
+
 	// If needed, extract the updates related fields from a PB. We need to
 	// reinject them afterwards so that the correct PB typs is written to RAM.
-	bool ExtractUpdatesFields(AXPBWii& pb, u16* num_updates, u16* updates, u32* updates_addr);
+	// updates must hold 2 * MAX_UPDATES u16s.
+	bool ExtractUpdatesFields(AXPBWii& pb, u16* num_updates, u16* updates, u32* updates_addr,
+		u32* updates_copied);
 	void ReinjectUpdatesFields(AXPBWii& pb, u16* num_updates, u32 updates_addr);
 
 	// Convert a mixer_control bitfield to our internal representation for that

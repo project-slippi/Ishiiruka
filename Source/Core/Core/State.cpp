@@ -470,7 +470,11 @@ static void LoadFileStateData(const std::string& filename, std::vector<u8>& ret_
 	}
 
 	StateHeader header;
-	f.ReadArray(&header, 1);
+	if (!f.ReadArray(&header, 1))
+	{
+		Core::DisplayMessage("State is truncated", 2000);
+		return;
+	}
 
 	if (strncmp(SConfig::GetInstance().GetGameID().c_str(), header.gameID, 6))
 	{
@@ -490,14 +494,19 @@ static void LoadFileStateData(const std::string& filename, std::vector<u8>& ret_
 		lzo_uint i = 0;
 		while (true)
 		{
-			lzo_uint32 cur_len = 0;  // number of bytes to read
-			lzo_uint new_len = 0;    // number of bytes to write
+			lzo_uint32 cur_len = 0;              // number of bytes to read
+			lzo_uint new_len = header.size - i;  // output buffer capacity
 
 			if (!f.ReadArray(&cur_len, 1))
 				break;
 
-			f.ReadBytes(out, cur_len);
-			const int res = lzo1x_decompress(out, cur_len, &buffer[i], &new_len, nullptr);
+			if (cur_len > OUT_LEN || !f.ReadBytes(out, cur_len))
+			{
+				PanicAlertT("Internal LZO Error - compressed block is invalid");
+				return;
+			}
+
+			const int res = lzo1x_decompress_safe(out, cur_len, buffer.data() + i, &new_len, nullptr);
 			if (res != LZO_E_OK)
 			{
 				// This doesn't seem to happen anymore.
@@ -509,10 +518,23 @@ static void LoadFileStateData(const std::string& filename, std::vector<u8>& ret_
 
 			i += new_len;
 		}
+
+		if (i != header.size)
+		{
+			PanicAlertT("Internal LZO Error - output size mismatch");
+			return;
+		}
 	}
 	else  // uncompressed
 	{
-		const size_t size = (size_t)(f.GetSize() - sizeof(StateHeader));
+		const u64 file_size = f.GetSize();
+		if (file_size <= sizeof(StateHeader))
+		{
+			Core::DisplayMessage("State is truncated", 2000);
+			return;
+		}
+
+		const size_t size = (size_t)(file_size - sizeof(StateHeader));
 		buffer.resize(size);
 
 		if (!f.ReadBytes(&buffer[0], size))

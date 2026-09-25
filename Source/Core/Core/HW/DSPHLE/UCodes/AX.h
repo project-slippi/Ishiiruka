@@ -104,7 +104,10 @@ protected:
 	AXMixControl ConvertMixerControl(u32 mixer_control);
 
 	// Apply updates to a PB. Generic, used in AX GC and AX Wii.
-	void ApplyUpdatesForMs(int curr_ms, u16* pb, u16* num_updates, u16* updates);
+	// pb_words is the size of the PB in u16s, updates_count is the number of
+	// (offset, value) pairs that can be read from updates.
+	void ApplyUpdatesForMs(int curr_ms, u16* pb, u32 pb_words, u16* num_updates, u16* updates,
+		u32 updates_count);
 
 	virtual void HandleCommandList();
 	void SignalWorkEnd();

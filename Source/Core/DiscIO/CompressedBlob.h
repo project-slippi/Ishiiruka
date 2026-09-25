@@ -56,15 +56,18 @@ public:
 
 private:
   CompressedBlobReader(File::IOFile file, const std::string& filename);
+  bool Initialize();
+  bool ValidateBlockPointers() const;
 
-  CompressedBlobHeader m_header;
+  CompressedBlobHeader m_header = {};
   std::vector<u64> m_block_pointers;
   std::vector<u32> m_hashes;
-  int m_data_offset;
+  u64 m_data_offset = 0;
   File::IOFile m_file;
-  u64 m_file_size;
+  u64 m_file_size = 0;
   std::vector<u8> m_zlib_buffer;
   std::string m_file_name;
+  bool m_valid = false;
 };
 
 }  // namespace
