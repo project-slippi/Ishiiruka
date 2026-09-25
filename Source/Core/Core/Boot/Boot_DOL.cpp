@@ -57,11 +57,11 @@ bool CDolLoader::Initialize(const std::vector<u8>& buffer)
 	{
 		if (m_dolheader.textSize[i] != 0)
 		{
-			if ((m_dolheader.textAddress[i] & 31) != 0 || (m_dolheader.textSize[i] & 31) != 0)
+			// Wii DOLs can have unaligned sections, IOS and apploaders just round the size up
+			if ((m_dolheader.textSize[i] & 31) != 0)
 			{
-				ERROR_LOG(BOOT, "Text section %d is not 32-byte aligned: address = 0x%08x, size = 0x%x",
-					i, m_dolheader.textAddress[i], m_dolheader.textSize[i]);
-				return false;
+				WARN_LOG(BOOT, "Text section %d size is not aligned to 32 bytes and can cause issues when "
+					"loaded", i);
 			}
 
 			const size_t section_offset = m_dolheader.textOffset[i];
@@ -92,11 +92,10 @@ bool CDolLoader::Initialize(const std::vector<u8>& buffer)
 	{
 		if (m_dolheader.dataSize[i] != 0)
 		{
-			if ((m_dolheader.dataAddress[i] & 31) != 0 || (m_dolheader.dataSize[i] & 31) != 0)
+			if ((m_dolheader.dataSize[i] & 31) != 0)
 			{
-				ERROR_LOG(BOOT, "Data section %d is not 32-byte aligned: address = 0x%08x, size = 0x%x",
-					i, m_dolheader.dataAddress[i], m_dolheader.dataSize[i]);
-				return false;
+				WARN_LOG(BOOT, "Data section %d size is not aligned to 32 bytes and can cause issues when "
+					"loaded", i);
 			}
 
 			const size_t section_offset = m_dolheader.dataOffset[i];
