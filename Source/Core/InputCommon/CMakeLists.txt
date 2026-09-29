@@ -2,6 +2,7 @@ set(SRCS	ControllerEmu.cpp
 			InputConfig.cpp
 			InputStabilizer.cpp
 			LibusbUtils.cpp
+			MeleeRectangle.cpp
 			ControllerInterface/ControllerInterface.cpp
 			ControllerInterface/Device.cpp
 			ControllerInterface/ExpressionParser.cpp)

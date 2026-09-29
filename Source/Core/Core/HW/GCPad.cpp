@@ -47,6 +47,15 @@ GCPadStatus GetStatus(int pad_num)
 	return static_cast<GCPad*>(s_config.GetController(pad_num))->GetInput();
 }
 
+void SampleRectangleInputs()
+{
+	if (s_config.ControllersNeedToBeCreated())
+		return;
+
+	for (int i = 0; i < 4; ++i)
+		static_cast<GCPad*>(s_config.GetController(i))->SampleRectangleInput();
+}
+
 ControllerEmu::ControlGroup* GetGroup(int pad_num, PadGroup group)
 {
 	return static_cast<GCPad*>(s_config.GetController(pad_num))->GetGroup(group);

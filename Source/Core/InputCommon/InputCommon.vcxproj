@@ -83,6 +83,7 @@
       -->
       <DisableSpecificWarnings>4200;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
+    <ClCompile Include="MeleeRectangle.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ControllerEmu.h" />
@@ -102,6 +103,7 @@
     <ClInclude Include="InputConfig.h" />
     <ClInclude Include="InputStabilizer.h" />
     <ClInclude Include="LibusbUtils.h" />
+    <ClInclude Include="MeleeRectangle.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="CMakeLists.txt" />

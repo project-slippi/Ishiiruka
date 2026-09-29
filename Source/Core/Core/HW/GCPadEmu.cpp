@@ -5,6 +5,8 @@
 #include "Core/HW/GCPadEmu.h"
 #include "Common/Common.h"
 #include "Common/CommonTypes.h"
+#include "Core/CoreTiming.h"
+#include "Core/HW/SystemTimers.h"
 #include "Core/Host.h"
 
 static const u16 button_bitmasks[] = {
@@ -35,6 +37,62 @@ static const char* const named_triggers[] = {
 	_trans("L-Analog"),
 	// i18n: The right trigger button (labeled R on real controllers) used as an analog input
 	_trans("R-Analog") };
+
+// Digital "rectangle" controller inputs. A/B/X/Y/Z/Start, L/R and the D-Pad come from their usual groups.
+static const char* const named_rectangle_inputs[] = {
+	_trans("Up"), _trans("Down"), _trans("Left"), _trans("Right"),
+	_trans("Mod X"), _trans("Mod Y"),
+	_trans("C-Up"), _trans("C-Down"), _trans("C-Left"), _trans("C-Right"),
+	_trans("Lightshield"), _trans("Midshield") };
+
+enum RectangleInput
+{
+	RECTANGLE_UP,
+	RECTANGLE_DOWN,
+	RECTANGLE_LEFT,
+	RECTANGLE_RIGHT,
+	RECTANGLE_MOD_X,
+	RECTANGLE_MOD_Y,
+	RECTANGLE_C_UP,
+	RECTANGLE_C_DOWN,
+	RECTANGLE_C_LEFT,
+	RECTANGLE_C_RIGHT,
+	RECTANGLE_LIGHTSHIELD,
+	RECTANGLE_MIDSHIELD,
+};
+
+enum RectangleSetting
+{
+	RECTANGLE_ENABLE,
+	RECTANGLE_RULESET_LIMITS,
+	RECTANGLE_CROUCH_WALK_OS,
+};
+
+// Key names for the default keyboard layout, which differ per input backend.
+struct DefaultKeys
+{
+	const char* left_bracket;
+	const char* right_bracket;
+	const char* space;
+	const char* comma;
+	const char* minus;
+	const char* equals;
+	const char* up;
+	const char* down;
+	const char* left;
+	const char* right;
+};
+
+#ifdef _WIN32
+static const DefaultKeys default_keys = { "LBRACKET", "RBRACKET", "SPACE", "COMMA", "MINUS", "EQUALS",
+	"UP", "DOWN", "LEFT", "RIGHT" };
+#elif __APPLE__
+static const DefaultKeys default_keys = { "[", "]", "Space", ",", "-", "=",
+	"Up Arrow", "Down Arrow", "Left Arrow", "Right Arrow" };
+#else
+static const DefaultKeys default_keys = { "bracketleft", "bracketright", "space", "comma", "minus", "equal",
+	"Up", "Down", "Left", "Right" };
+#endif
 
 GCPad::GCPad(const unsigned int index) : m_index(index)
 {
@@ -73,6 +131,17 @@ GCPad::GCPad(const unsigned int index) : m_index(index)
 		std::make_unique<ControlGroup::BackgroundInputSetting>(_trans("Background Input")));
 	m_options->boolean_settings.emplace_back(std::make_unique<ControlGroup::BooleanSetting>(
 		_trans("Iterative Input"), false, ControlGroup::SettingType::VIRTUAL));
+
+	// rectangle (digital buttons in place of the control stick and C-stick, for Melee)
+	groups.emplace_back(m_rectangle = new ControlGroup("Rectangle", _trans("Rectangle (Melee)")));
+	for (auto& named_input : named_rectangle_inputs)
+		m_rectangle->controls.emplace_back(new ControlGroup::Input(named_input));
+	m_rectangle->boolean_settings.emplace_back(
+		std::make_unique<ControlGroup::BooleanSetting>(_trans("Enable"), false));
+	m_rectangle->boolean_settings.emplace_back(
+		std::make_unique<ControlGroup::BooleanSetting>(_trans("Controller Ruleset Limits"), true));
+	m_rectangle->boolean_settings.emplace_back(
+		std::make_unique<ControlGroup::BooleanSetting>(_trans("Crouch Walk Option Select"), false));
 }
 
 std::string GCPad::GetName() const
@@ -100,6 +169,8 @@ ControllerEmu::ControlGroup* GCPad::GetGroup(PadGroup group)
 		return m_mic;
 	case PadGroup::Options:
 		return m_options;
+	case PadGroup::Rectangle:
+		return m_rectangle;
 	default:
 		return nullptr;
 	}
@@ -108,6 +179,10 @@ ControllerEmu::ControlGroup* GCPad::GetGroup(PadGroup group)
 GCPadStatus GCPad::GetInput() const
 {
 	auto lock = ControllerEmu::GetStateLock();
+
+	if (IsRectangleEnabled())
+		return GetRectangleInput();
+	m_rectangle_controller.Reset();
 
 	ControlState x, y, triggers[2];
 	GCPadStatus pad = {};
@@ -145,6 +220,69 @@ GCPadStatus GCPad::GetInput() const
 	return pad;
 }
 
+void GCPad::SampleRectangleInput() const
+{
+	auto lock = ControllerEmu::GetStateLock();
+
+	if (IsRectangleEnabled())
+		GetRectangleInput();
+}
+
+bool GCPad::IsRectangleEnabled() const
+{
+	return m_rectangle->boolean_settings[RECTANGLE_ENABLE]->GetValue();
+}
+
+GCPadStatus GCPad::GetRectangleInput() const
+{
+	u16 buttons = 0;
+	ControlState analog_triggers[2];
+	m_buttons->GetState(&buttons, button_bitmasks);
+	m_dpad->GetState(&buttons, dpad_bitmasks);
+	m_triggers->GetState(&buttons, trigger_bitmasks, analog_triggers);
+
+	const auto held = [this](RectangleInput input) {
+		return m_rectangle->controls[input]->control_ref->State() > 0.5;
+	};
+
+	MeleeRectangle::Inputs inputs;
+	inputs.up = held(RECTANGLE_UP);
+	inputs.down = held(RECTANGLE_DOWN);
+	inputs.left = held(RECTANGLE_LEFT);
+	inputs.right = held(RECTANGLE_RIGHT);
+	inputs.mod_x = held(RECTANGLE_MOD_X);
+	inputs.mod_y = held(RECTANGLE_MOD_Y);
+	inputs.c_up = held(RECTANGLE_C_UP);
+	inputs.c_down = held(RECTANGLE_C_DOWN);
+	inputs.c_left = held(RECTANGLE_C_LEFT);
+	inputs.c_right = held(RECTANGLE_C_RIGHT);
+	inputs.lightshield = held(RECTANGLE_LIGHTSHIELD);
+	inputs.midshield = held(RECTANGLE_MIDSHIELD);
+	inputs.a = (buttons & PAD_BUTTON_A) != 0;
+	inputs.b = (buttons & PAD_BUTTON_B) != 0;
+	inputs.x = (buttons & PAD_BUTTON_X) != 0;
+	inputs.y = (buttons & PAD_BUTTON_Y) != 0;
+	inputs.z = (buttons & PAD_TRIGGER_Z) != 0;
+	inputs.l = (buttons & PAD_TRIGGER_L) != 0;
+	inputs.r = (buttons & PAD_TRIGGER_R) != 0;
+	inputs.start = (buttons & PAD_BUTTON_START) != 0;
+	inputs.dpad_up = (buttons & PAD_BUTTON_UP) != 0;
+	inputs.dpad_down = (buttons & PAD_BUTTON_DOWN) != 0;
+	inputs.dpad_left = (buttons & PAD_BUTTON_LEFT) != 0;
+	inputs.dpad_right = (buttons & PAD_BUTTON_RIGHT) != 0;
+
+	MeleeRectangle::Settings settings;
+	settings.ruleset_limits = m_rectangle->boolean_settings[RECTANGLE_RULESET_LIMITS]->GetValue();
+	settings.crouch_walk_os = m_rectangle->boolean_settings[RECTANGLE_CROUCH_WALK_OS]->GetValue();
+
+	// Emulated time, so travel time and lockouts are relative to what the game sees regardless of
+	// emulation speed.
+	const s64 now_us = static_cast<s64>(static_cast<double>(CoreTiming::GetTicks()) * 1000000.0 /
+		SystemTimers::GetTicksPerSecond());
+
+	return m_rectangle_controller.Update(inputs, settings, now_us);
+}
+
 void GCPad::SetOutput(const ControlState strength)
 {
 	auto lock = ControllerEmu::GetStateLock();
@@ -155,69 +293,47 @@ void GCPad::LoadDefaults(const ControllerInterface& ciface)
 {
 	ControllerEmu::LoadDefaults(ciface);
 
-	// Buttons
-	m_buttons->SetControlExpression(0, "X");  // A
-	m_buttons->SetControlExpression(1, "Z");  // B
-	m_buttons->SetControlExpression(2, "C");  // X
-	m_buttons->SetControlExpression(3, "S");  // Y
-	m_buttons->SetControlExpression(4, "D");  // Z
-#ifdef _WIN32
-	m_buttons->SetControlExpression(5, "!LMENU & RETURN");  // Start
-#else
-																						// OS X/Linux
-	m_buttons->SetControlExpression(5, "!`Alt_L` & Return");  // Start
-#endif
+	// The keyboard defaults to the community B0XX keyboard layout (as used by b0xx-ahk), played as a
+	// rectangle controller. The Control Stick and C Stick groups are left unbound since the Rectangle
+	// group replaces them.
+	m_rectangle->boolean_settings[RECTANGLE_ENABLE]->SetValue(true);
 
-																														// stick modifiers to 50 %
+	// stick modifiers to 50 %
 	m_main_stick->controls[4]->control_ref->range = 0.5f;
 	m_c_stick->controls[4]->control_ref->range = 0.5f;
 
-	// D-Pad
-	m_dpad->SetControlExpression(0, "T");  // Up
-	m_dpad->SetControlExpression(1, "G");  // Down
-	m_dpad->SetControlExpression(2, "F");  // Left
-	m_dpad->SetControlExpression(3, "H");  // Right
-
-																				 // C Stick
-	m_c_stick->SetControlExpression(0, "I");  // Up
-	m_c_stick->SetControlExpression(1, "K");  // Down
-	m_c_stick->SetControlExpression(2, "J");  // Left
-	m_c_stick->SetControlExpression(3, "L");  // Right
-#ifdef _WIN32
-	m_c_stick->SetControlExpression(4, "LCONTROL");  // Modifier
-
-																									 // Control Stick
-	m_main_stick->SetControlExpression(0, "UP");      // Up
-	m_main_stick->SetControlExpression(1, "DOWN");    // Down
-	m_main_stick->SetControlExpression(2, "LEFT");    // Left
-	m_main_stick->SetControlExpression(3, "RIGHT");   // Right
-	m_main_stick->SetControlExpression(4, "LSHIFT");  // Modifier
-
-#elif __APPLE__
-	m_c_stick->SetControlExpression(4, "Left Control");  // Modifier
-
-																											 // Control Stick
-	m_main_stick->SetControlExpression(0, "Up Arrow");     // Up
-	m_main_stick->SetControlExpression(1, "Down Arrow");   // Down
-	m_main_stick->SetControlExpression(2, "Left Arrow");   // Left
-	m_main_stick->SetControlExpression(3, "Right Arrow");  // Right
-	m_main_stick->SetControlExpression(4, "Left Shift");   // Modifier
-#else
-																						// not sure if these are right
-
-	m_c_stick->SetControlExpression(4, "Control_L");  // Modifier
-
-																										// Control Stick
-	m_main_stick->SetControlExpression(0, "Up");       // Up
-	m_main_stick->SetControlExpression(1, "Down");     // Down
-	m_main_stick->SetControlExpression(2, "Left");     // Left
-	m_main_stick->SetControlExpression(3, "Right");    // Right
-	m_main_stick->SetControlExpression(4, "Shift_L");  // Modifier
-#endif
-
-																										 // Triggers
+	// Left hand: L, Left, Down, Right; thumb on Mod X and Mod Y
 	m_triggers->SetControlExpression(0, "Q");  // L
-	m_triggers->SetControlExpression(1, "W");  // R
+	m_rectangle->SetControlExpression(RECTANGLE_LEFT, "2");
+	m_rectangle->SetControlExpression(RECTANGLE_DOWN, "3");
+	m_rectangle->SetControlExpression(RECTANGLE_RIGHT, "4");
+	m_rectangle->SetControlExpression(RECTANGLE_MOD_X, "V");
+	m_rectangle->SetControlExpression(RECTANGLE_MOD_Y, "B");
+
+	m_buttons->SetControlExpression(5, "7");  // Start
+
+	// Right hand: R, Y, Lightshield, Midshield over B, X, Z, Up
+	m_triggers->SetControlExpression(1, "9");  // R
+	m_buttons->SetControlExpression(3, "0");   // Y
+	m_rectangle->SetControlExpression(RECTANGLE_LIGHTSHIELD, default_keys.minus);
+	m_rectangle->SetControlExpression(RECTANGLE_MIDSHIELD, default_keys.equals);
+	m_buttons->SetControlExpression(1, "O");   // B
+	m_buttons->SetControlExpression(2, "P");   // X
+	m_buttons->SetControlExpression(4, default_keys.left_bracket);  // Z
+	m_rectangle->SetControlExpression(RECTANGLE_UP, default_keys.right_bracket);
+
+	// Right thumb: A surrounded by the C buttons, with C-Down below them
+	m_buttons->SetControlExpression(0, "M");  // A
+	m_rectangle->SetControlExpression(RECTANGLE_C_LEFT, "N");
+	m_rectangle->SetControlExpression(RECTANGLE_C_RIGHT, default_keys.comma);
+	m_rectangle->SetControlExpression(RECTANGLE_C_UP, "K");
+	m_rectangle->SetControlExpression(RECTANGLE_C_DOWN, default_keys.space);
+
+	// D-Pad
+	m_dpad->SetControlExpression(0, default_keys.up);
+	m_dpad->SetControlExpression(1, default_keys.down);
+	m_dpad->SetControlExpression(2, default_keys.left);
+	m_dpad->SetControlExpression(3, default_keys.right);
 }
 
 bool GCPad::GetMicButton() const

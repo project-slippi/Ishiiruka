@@ -31,6 +31,8 @@ GCPadInputConfigDialog::GCPadInputConfigDialog(wxWindow* const parent, InputConf
 		new ControlGroupBox(Pad::GetGroup(port_num, PadGroup::Rumble), this, this);
 	auto* const group_box_options =
 		new ControlGroupBox(Pad::GetGroup(port_num, PadGroup::Options), this, this);
+	auto* const group_box_rectangle =
+		new ControlGroupBox(Pad::GetGroup(port_num, PadGroup::Rectangle), this, this);
 
 	auto* const triggers_rumble_sizer = new wxBoxSizer(wxVERTICAL);
 	triggers_rumble_sizer->Add(group_box_triggers, 0, wxEXPAND);
@@ -53,6 +55,8 @@ GCPadInputConfigDialog::GCPadInputConfigDialog(wxWindow* const parent, InputConf
 	controls_sizer->Add(triggers_rumble_sizer, 0, wxEXPAND | wxTOP, space5);
 	controls_sizer->AddSpacer(space5);
 	controls_sizer->Add(dpad_options_sizer, 0, wxEXPAND | wxTOP, space5);
+	controls_sizer->AddSpacer(space5);
+	controls_sizer->Add(group_box_rectangle, 0, wxEXPAND | wxTOP, space5);
 	controls_sizer->AddSpacer(space5);
 
 	auto* const dio = new wxBoxSizer(wxHORIZONTAL);

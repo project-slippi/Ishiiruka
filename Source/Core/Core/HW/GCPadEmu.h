@@ -7,6 +7,7 @@
 #include <string>
 
 #include "InputCommon/ControllerEmu.h"
+#include "InputCommon/MeleeRectangle.h"
 
 class ControlGroup;
 
@@ -19,7 +20,8 @@ enum class PadGroup
 	Triggers,
 	Rumble,
 	Mic,
-	Options
+	Options,
+	Rectangle
 };
 
 class GCPad : public ControllerEmu
@@ -27,6 +29,9 @@ class GCPad : public ControllerEmu
 public:
 	GCPad(const unsigned int index);
 	GCPadStatus GetInput() const;
+	// Feeds the rectangle controller logic a new input sample between console polls, so travel time and
+	// timing lockouts see presses when they happen rather than when the game next reads the pad.
+	void SampleRectangleInput() const;
 	void SetOutput(const ControlState strength);
 
 	bool GetMicButton() const;
@@ -38,6 +43,9 @@ public:
 	void LoadDefaults(const ControllerInterface& ciface) override;
 
 private:
+	bool IsRectangleEnabled() const;
+	GCPadStatus GetRectangleInput() const;
+
 	Buttons* m_buttons;
 	AnalogStick* m_main_stick;
 	AnalogStick* m_c_stick;
@@ -46,6 +54,9 @@ private:
 	ControlGroup* m_rumble;
 	Buttons* m_mic;
 	ControlGroup* m_options;
+	ControlGroup* m_rectangle;
+
+	mutable MeleeRectangle::Controller m_rectangle_controller;
 
 	const unsigned int m_index;
 

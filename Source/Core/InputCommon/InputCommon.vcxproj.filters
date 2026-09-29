@@ -23,6 +23,7 @@
     <ClCompile Include="InputConfig.cpp" />
     <ClCompile Include="InputStabilizer.cpp" />
     <ClCompile Include="LibusbUtils.cpp" />
+    <ClCompile Include="MeleeRectangle.cpp" />
     <ClCompile Include="ControllerInterface\DInput\DInput.cpp">
       <Filter>ControllerInterface\DInput</Filter>
     </ClCompile>
@@ -60,6 +61,7 @@
     <ClInclude Include="InputConfig.h" />
     <ClCompile Include="InputStabilizer.h" />
     <ClCompile Include="LibusbUtils.h" />
+    <ClInclude Include="MeleeRectangle.h" />
     <ClInclude Include="ControllerInterface\DInput\DInput.h">
       <Filter>ControllerInterface\DInput</Filter>
     </ClInclude>

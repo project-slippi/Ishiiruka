@@ -11,6 +11,7 @@
 #include "Common/CommonTypes.h"
 #include "Core/ConfigManager.h"
 #include "Core/CoreTiming.h"
+#include "Core/HW/GCPad.h"
 #include "Core/HW/MMIO.h"
 #include "Core/HW/ProcessorInterface.h"
 #include "Core/HW/SI.h"
@@ -629,6 +630,7 @@ void UpdateDevices()
 {
 	// Update inputs at 240 hz
 	g_controller_interface.UpdateInput();
+	Pad::SampleRectangleInputs();
 
 	if(SConfig::GetInstance().iPollingMethod == POLLING_ONSIREAD)
 	{
