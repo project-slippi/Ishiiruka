@@ -7,6 +7,7 @@
 #include <iostream>
 #include <fstream>
 #include <memory>
+#include <cstdint>
 
 namespace Slippi {
   const uint8_t EVENT_SPLIT_MESSAGE = 0x10;
