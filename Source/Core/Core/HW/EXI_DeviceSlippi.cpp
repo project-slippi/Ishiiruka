@@ -3431,6 +3431,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		switch (byte)
 		{
 		case CMD_RECEIVE_GAME_END:
+			std::cout << "[GAME_END]" << std::endl;
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "close");
 			m_slippiserver->write(&memPtr[bufLoc], payloadLen + 1);
 			m_slippiserver->endGame();
