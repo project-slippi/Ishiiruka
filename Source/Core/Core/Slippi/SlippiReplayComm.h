@@ -1,8 +1,12 @@
 #pragma once
 
 #include <SlippiLib/SlippiGame.h>
+#include <climits>
+#include <memory>
 #include <queue>
 #include <string>
+
+#include "Common/CommonTypes.h"
 
 class SlippiReplayComm
 {
@@ -24,9 +28,9 @@ class SlippiReplayComm
 		std::string replayPath;
 		int startFrame = Slippi::GAME_FIRST_FRAME;
 		int endFrame = INT_MAX;
-		bool outputOverlayFiles;
-		bool isRealTimeMode;
-		bool shouldResync;                 // If true, logic will attempt to resync games
+		bool outputOverlayFiles = false;
+		bool isRealTimeMode = false;
+		bool shouldResync = true;          // If true, logic will attempt to resync games
 		std::string rollbackDisplayMethod; // off, normal, visible
 		std::string commandId;
 		std::string gameStation;
@@ -34,6 +38,7 @@ class SlippiReplayComm
 	} CommSettings;
 
 	SlippiReplayComm();
+	explicit SlippiReplayComm(const std::string &config_file_path);
 	~SlippiReplayComm();
 
 	WatchSettings current;
@@ -50,12 +55,14 @@ class SlippiReplayComm
 	std::string configFilePath;
 	std::string previousReplayLoaded;
 	std::string previousCommandId;
-	int previousIndex;
+	int previousIndex = -1;
 
-	u64 configLastLoadModTime;
+	u64 configLastLoadModTime = 0;
 
 	// Queue stuff
 	bool queueWasEmpty = true;
 
 	CommSettings commFileSettings;
 };
+
+extern std::unique_ptr<SlippiReplayComm> g_replayComm;
