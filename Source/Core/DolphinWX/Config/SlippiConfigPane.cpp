@@ -105,6 +105,11 @@ void SlippiNetplayConfigPane::InitializeGUI()
 	    new wxCheckBox(this, wxID_ANY, _("Show your rank (Character Select and Ranked Setup Screen)"));
 	m_slippi_show_opponent_rank = new wxCheckBox(this, wxID_ANY, _("Show opponent's rank (Ranked Setup Screen)"));
 
+	m_slippi_discord_rich_presence_checkbox = new wxCheckBox(this, wxID_ANY, _("Enable Discord Rich Presence"));
+	m_slippi_discord_rich_presence_checkbox->SetToolTip(
+	    _("Show your current Slippi activity (menus, queue, and in-game status) on your "
+	      "Discord profile. Requires the Discord desktop app to be running."));
+
 	m_slippi_jukebox_enabled_checkbox = new wxCheckBox(this, wxID_ANY, _("Enable Music"));
 
 	// WASAPI does not work with this and we want a note for the user.
@@ -191,6 +196,8 @@ void SlippiNetplayConfigPane::InitializeGUI()
 	sbRankSettings->AddSpacer(space5);
 	sbRankSettings->Add(m_slippi_show_opponent_rank, 0, wxLEFT | wxRIGHT, space5);
 	sbRankSettings->AddSpacer(space5);
+	sbRankSettings->Add(m_slippi_discord_rich_presence_checkbox, 0, wxLEFT | wxRIGHT, space5);
+	sbRankSettings->AddSpacer(space5);
 
 	main_sizer->Add(sbRankSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	main_sizer->AddSpacer(space5);
@@ -250,6 +257,7 @@ void SlippiNetplayConfigPane::LoadGUIValues()
 
 	m_slippi_show_player_rank->SetValue(startup_params.bSlippiPlayerRankDisplay);
 	m_slippi_show_opponent_rank->SetValue(startup_params.bSlippiOpponentRankDisplay);
+	m_slippi_discord_rich_presence_checkbox->SetValue(startup_params.bSlippiEnableDiscordRpc);
 
 	m_slippi_jukebox_enabled_checkbox->SetValue(enableJukebox);
 	m_slippi_jukebox_volume_slider->SetValue(startup_params.iSlippiJukeboxVolume);
@@ -287,6 +295,8 @@ void SlippiNetplayConfigPane::BindEvents()
 
 	m_slippi_show_player_rank->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnToggleShowPlayerRank, this);
 	m_slippi_show_opponent_rank->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnToggleShowOpponentRank, this);
+	m_slippi_discord_rich_presence_checkbox->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnToggleDiscordRichPresence,
+	                                              this);
 
 	m_slippi_jukebox_enabled_checkbox->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnToggleJukeboxEnabled, this);
 	m_slippi_jukebox_volume_slider->Bind(wxEVT_SLIDER, &SlippiNetplayConfigPane::OnJukeboxVolumeUpdate, this);
@@ -382,6 +392,11 @@ void SlippiNetplayConfigPane::OnToggleShowPlayerRank(wxCommandEvent &event)
 void SlippiNetplayConfigPane::OnToggleShowOpponentRank(wxCommandEvent &event)
 {
 	SConfig::GetInstance().bSlippiOpponentRankDisplay = m_slippi_show_opponent_rank->GetValue();
+}
+
+void SlippiNetplayConfigPane::OnToggleDiscordRichPresence(wxCommandEvent &event)
+{
+	SConfig::GetInstance().bSlippiEnableDiscordRpc = m_slippi_discord_rich_presence_checkbox->GetValue();
 }
 
 void SlippiNetplayConfigPane::OnToggleJukeboxEnabled(wxCommandEvent &event)
