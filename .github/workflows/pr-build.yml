@@ -134,7 +134,9 @@ jobs:
           endpoint: https://eus.codesigning.azure.net/
           signing-account-name: slippi
           certificate-profile-name: slippi-release
-          files: ${{ github.workspace }}\Binary\x64\Slippi Dolphin.exe
+          files: |
+            ${{ github.workspace }}\Binary\x64\Slippi Dolphin.exe
+            ${{ github.workspace }}\Binary\x64\slippi_rust_extensions.dll
           file-digest: SHA256
           timestamp-rfc3161: http://timestamp.acs.microsoft.com
           timestamp-digest: SHA256
