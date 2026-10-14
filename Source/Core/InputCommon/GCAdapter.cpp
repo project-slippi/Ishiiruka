@@ -821,32 +821,31 @@ GCPadStatus Input(int chan, std::chrono::high_resolution_clock::time_point *tp)
 			u8 b1 = controller_payload_copy[1 + (9 * chan) + 1];
 			u8 b2 = controller_payload_copy[1 + (9 * chan) + 2];
 
-			if (b1 & (1 << 0))
-				pad.button |= PAD_BUTTON_A;
-			if (b1 & (1 << 1))
-				pad.button |= PAD_BUTTON_B;
-			if (b1 & (1 << 2))
-				pad.button |= PAD_BUTTON_X;
-			if (b1 & (1 << 3))
-				pad.button |= PAD_BUTTON_Y;
+			if (b1 & (1 << 0) && SConfig::GetInstance().m_AChoice[chan])
+				pad.button |= SConfig::GetInstance().m_AChoice[chan];
+			if (b1 & (1 << 1) && SConfig::GetInstance().m_BChoice[chan])
+				pad.button |= SConfig::GetInstance().m_BChoice[chan];
+			if (b1 & (1 << 2) && SConfig::GetInstance().m_XChoice[chan])
+				pad.button |= SConfig::GetInstance().m_XChoice[chan];
+			if (b1 & (1 << 3) && SConfig::GetInstance().m_YChoice[chan])
+				pad.button |= SConfig::GetInstance().m_YChoice[chan];
 
-			if (b1 & (1 << 4))
-				pad.button |= PAD_BUTTON_LEFT;
-			if (b1 & (1 << 5))
-				pad.button |= PAD_BUTTON_RIGHT;
-			if (b1 & (1 << 6))
-				pad.button |= PAD_BUTTON_DOWN;
-			if (b1 & (1 << 7))
-				pad.button |= PAD_BUTTON_UP;
-
+			if (b1 & (1 << 4) && SConfig::GetInstance().m_LeftChoice[chan])
+				pad.button |= SConfig::GetInstance().m_LeftChoice[chan];
+			if (b1 & (1 << 5) && SConfig::GetInstance().m_RightChoice[chan])
+				pad.button |= SConfig::GetInstance().m_RightChoice[chan];
+			if (b1 & (1 << 6) && SConfig::GetInstance().m_DownChoice[chan])
+				pad.button |= SConfig::GetInstance().m_DownChoice[chan];
+			if (b1 & (1 << 7) && SConfig::GetInstance().m_UpChoice[chan])
+				pad.button |= SConfig::GetInstance().m_UpChoice[chan];
 			if (b2 & (1 << 0))
 				pad.button |= PAD_BUTTON_START;
-			if (b2 & (1 << 1))
-				pad.button |= PAD_TRIGGER_Z;
-			if (b2 & (1 << 2))
-				pad.button |= PAD_TRIGGER_R;
-			if (b2 & (1 << 3))
-				pad.button |= PAD_TRIGGER_L;
+			if (b2 & (1 << 1) && SConfig::GetInstance().m_ZChoice[chan])
+				pad.button |= SConfig::GetInstance().m_ZChoice[chan];
+			if (b2 & (1 << 2) && SConfig::GetInstance().m_RChoice[chan])
+				pad.button |= SConfig::GetInstance().m_RChoice[chan];
+			if (b2 & (1 << 3) && SConfig::GetInstance().m_LChoice[chan])
+				pad.button |= SConfig::GetInstance().m_LChoice[chan];
 
 			if (get_origin)
 				pad.button |= PAD_GET_ORIGIN;
@@ -855,8 +854,22 @@ GCPadStatus Input(int chan, std::chrono::high_resolution_clock::time_point *tp)
 			pad.stickY = controller_payload_copy[1 + (9 * chan) + 4];
 			pad.substickX = controller_payload_copy[1 + (9 * chan) + 5];
 			pad.substickY = controller_payload_copy[1 + (9 * chan) + 6];
-			pad.triggerLeft = controller_payload_copy[1 + (9 * chan) + 7];
-			pad.triggerRight = controller_payload_copy[1 + (9 * chan) + 8];
+			if (SConfig::GetInstance().m_LChoice[chan] == PAD_TRIGGER_L)
+			{
+				pad.triggerLeft = controller_payload_copy[1 + (9 * chan) + 7];
+			}
+			else
+			{
+				pad.triggerLeft = 0;
+			}
+			if (SConfig::GetInstance().m_RChoice[chan] == PAD_TRIGGER_R)
+			{
+				pad.triggerRight = controller_payload_copy[1 + (9 * chan) + 8];
+			}
+			else
+			{
+				pad.triggerRight = 0;
+			}
 		}
 		else
 		{
