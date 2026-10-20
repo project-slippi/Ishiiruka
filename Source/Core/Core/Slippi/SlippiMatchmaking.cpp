@@ -659,102 +659,99 @@ SlippiMatchmaking::SlippiRank SlippiMatchmaking::GetPlayerRank(u8 port)
 		return SlippiRank::Unranked;
 	}
 
-	if (rating <= 765.42f)
-	{
-		return SlippiRank::Bronze1;
-	}
-
-	if (rating > 765.43f && rating <= 913.71f)
-	{
-		return SlippiRank::Bronze2;
-	}
-
-	if (rating > 913.72f && rating <= 1054.86f)
-	{
-		return SlippiRank::Bronze3;
-	}
-
-	if (rating > 1054.87f && rating <= 1188.87f)
-	{
-		return SlippiRank::Silver1;
-	}
-
-	if (rating > 1188.88f && rating <= 1315.74f)
-	{
-		return SlippiRank::Silver2;
-	}
-
-	if (rating > 1315.75f && rating <= 1435.47f)
-	{
-		return SlippiRank::Silver3;
-	}
-
-	if (rating > 1435.48f && rating <= 1548.06f)
-	{
-		return SlippiRank::Gold1;
-	}
-
-	if (rating > 1548.07f && rating <= 1653.51f)
-	{
-		return SlippiRank::Gold2;
-	}
-
-	if (rating > 1653.52f && rating <= 1751.82f)
-	{
-		return SlippiRank::Gold3;
-	}
-
-	if (rating > 1751.83f && rating <= 1842.99f)
-	{
-		return SlippiRank::Platinum1;
-	}
-
-	if (rating > 1843.0f && rating <= 1927.02f)
-	{
-		return SlippiRank::Platinum2;
-	}
-
-	if (rating > 1927.03f && rating <= 2003.91f)
-	{
-		return SlippiRank::Platinum3;
-	}
-
-	if (rating > 2003.92f && rating <= 2073.66f)
-	{
-		return SlippiRank::Diamond1;
-	}
-
-	if (rating > 2073.67f && rating <= 2136.27f)
-	{
-		return SlippiRank::Diamond2;
-	}
-
-	if (rating > 2136.28f && rating <= 2191.74f)
-	{
-		return SlippiRank::Diamond3;
-	}
-
+	// Each threshold is the minimum rating for that rank. Checking from the top down means every
+	// rating lands in exactly one rank. This must match the launcher and website.
 	if (rating >= 2191.75f && (global > 0 || regional > 0))
 	{
 		return SlippiRank::Grandmaster;
 	}
 
-	if (rating > 2191.75f && rating <= 2274.99f)
-	{
-		return SlippiRank::Master1;
-	}
-
-	if (rating > 2275.0f && rating <= 2350.0f)
-	{
-		return SlippiRank::Master2;
-	}
-
-	if (rating > 2350.0f)
+	if (rating >= 2350.0f)
 	{
 		return SlippiRank::Master3;
 	}
 
-	return SlippiRank::Unranked;
+	if (rating >= 2275.0f)
+	{
+		return SlippiRank::Master2;
+	}
+
+	if (rating >= 2191.75f)
+	{
+		return SlippiRank::Master1;
+	}
+
+	if (rating >= 2136.28f)
+	{
+		return SlippiRank::Diamond3;
+	}
+
+	if (rating >= 2073.67f)
+	{
+		return SlippiRank::Diamond2;
+	}
+
+	if (rating >= 2003.92f)
+	{
+		return SlippiRank::Diamond1;
+	}
+
+	if (rating >= 1927.03f)
+	{
+		return SlippiRank::Platinum3;
+	}
+
+	if (rating >= 1843.0f)
+	{
+		return SlippiRank::Platinum2;
+	}
+
+	if (rating >= 1751.83f)
+	{
+		return SlippiRank::Platinum1;
+	}
+
+	if (rating >= 1653.52f)
+	{
+		return SlippiRank::Gold3;
+	}
+
+	if (rating >= 1548.07f)
+	{
+		return SlippiRank::Gold2;
+	}
+
+	if (rating >= 1435.48f)
+	{
+		return SlippiRank::Gold1;
+	}
+
+	if (rating >= 1315.75f)
+	{
+		return SlippiRank::Silver3;
+	}
+
+	if (rating >= 1188.88f)
+	{
+		return SlippiRank::Silver2;
+	}
+
+	if (rating >= 1054.87f)
+	{
+		return SlippiRank::Silver1;
+	}
+
+	if (rating >= 913.72f)
+	{
+		return SlippiRank::Bronze3;
+	}
+
+	if (rating >= 765.43f)
+	{
+		return SlippiRank::Bronze2;
+	}
+
+	return SlippiRank::Bronze1;
 }
 
 SlippiMatchmaking::MatchmakeResult SlippiMatchmaking::GetMatchmakeResult()
