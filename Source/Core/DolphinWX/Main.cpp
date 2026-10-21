@@ -690,6 +690,13 @@ void Host_RequestRenderWindowSize(int width, int height)
 	main_frame->GetEventHandler()->AddPendingEvent(event);
 }
 
+void Host_ShowErrorDialog(const std::string &caption, const std::string &message)
+{
+	wxCommandEvent event(wxEVT_HOST_COMMAND, IDM_SHOW_ERROR_DIALOG);
+	event.SetClientData(new std::pair<std::string, std::string>(caption, message));
+	main_frame->GetEventHandler()->AddPendingEvent(event);
+}
+
 void Host_SetStartupDebuggingParameters()
 {
 	SConfig &StartUp = SConfig::GetInstance();

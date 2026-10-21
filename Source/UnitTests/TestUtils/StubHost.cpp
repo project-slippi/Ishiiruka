@@ -27,6 +27,9 @@ void* Host_GetRenderHandle()
 void Host_UpdateTitle(const std::string&)
 {
 }
+void Host_ShowErrorDialog(const std::string&, const std::string&)
+{
+}
 void Host_UpdateDisasmDialog()
 {
 }

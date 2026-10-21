@@ -33,6 +33,7 @@ void Host_RefreshDSPDebuggerWindow();
 void Host_RequestRenderWindowSize(int width, int height);
 void Host_SetStartupDebuggingParameters();
 void Host_SetWiiMoteConnectionState(int _State);
+void Host_ShowErrorDialog(const std::string& caption, const std::string& message);
 void Host_UpdateDisasmDialog();
 void Host_UpdateMainFrame();
 void Host_UpdateTitle(const std::string& title);

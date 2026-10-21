@@ -751,6 +751,17 @@ void CFrame::OnHostMessage(wxCommandEvent &event)
 	}
 	break;
 
+	case IDM_SHOW_ERROR_DIALOG:
+	{
+		auto *error = static_cast<std::pair<std::string, std::string> *>(event.GetClientData());
+		// Leave fullscreen like the hotkey does, or the dialog can open hidden behind the game
+		if (RendererIsFullscreen())
+			DoFullscreen(false);
+		wxMessageBox(StrToWxStr(error->second), StrToWxStr(error->first), wxOK | wxICON_ERROR, this);
+		delete error;
+	}
+	break;
+
 	case WM_USER_CREATE:
 		if (SConfig::GetInstance().bHideCursor)
 			m_RenderParent->SetCursor(wxCURSOR_BLANK);

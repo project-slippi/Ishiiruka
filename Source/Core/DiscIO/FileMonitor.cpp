@@ -188,6 +188,10 @@ void ReadFileWithName(std::string &fileName, std::vector<u8> &buf)
 
 	auto fileSize = s_filesystem->GetFileSize(fileName);
 
+	// A file the disc does not have, which game file links probe for
+	if (fileSize == 0)
+		return;
+
 	buf.resize(fileSize);
 	s_filesystem->ReadFile(fileName, &buf[0], fileSize);
 }
