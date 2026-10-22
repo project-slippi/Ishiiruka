@@ -1142,13 +1142,6 @@
    "Tags": ""
   },
   {
-   "InjectionAddress": "803A69C0",
-   "Name": "Required: Slippi Online",
-   "Codetype": "Auto",
-   "Annotation": "Online/Menus/InGame/ParseNumbersBetter.asm",
-   "Tags": ""
-  },
-  {
    "InjectionAddress": "80179378",
    "Name": "Required: Slippi Online",
    "Codetype": "Auto",

@@ -2748,7 +2748,8 @@ void CEXISlippi::prepareOnlineMatchState()
 	// Add alt stage mode to output
 	m_read_queue.push_back(static_cast<u8>(alt_stage_mode));
 
-	// Add the values used to determine each player's rank so the game can record them in the replay
+	// Add the values used to determine each player's rank, plus their ranked mmr, so the game can record
+	// them in the replay
 	for (int i = 0; i < 4; i++)
 	{
 		SlippiUser::UserInfo info = i < playerInfo.size() ? playerInfo[i] : SlippiUser::UserInfo();
@@ -2756,6 +2757,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		appendWordToBuffer(&m_read_queue, static_cast<u32>(info.rankedUpdateCount));
 		appendHalfToBuffer(&m_read_queue, static_cast<u16>(info.rankedGlobalPlacement));
 		appendHalfToBuffer(&m_read_queue, static_cast<u16>(info.rankedRegionalPlacement));
+		appendWordToBuffer(&m_read_queue, *(u32 *)(&info.rankedMmr));
 	}
 
 	// Add whether each player is a bot account so the game can record it in the replay

@@ -38,6 +38,7 @@ class SlippiUser
 		int rankedUpdateCount = 0;
 		int rankedGlobalPlacement = 0;
 		int rankedRegionalPlacement = 0;
+		float rankedMmr = 0;
 	};
 
 	SlippiUser(uintptr_t rs_exi_device_ptr);
