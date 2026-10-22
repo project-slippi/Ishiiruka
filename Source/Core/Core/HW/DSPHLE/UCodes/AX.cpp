@@ -258,18 +258,28 @@ void AXUCode::HandleCommandList()
 	}
 }
 
-void AXUCode::ApplyUpdatesForMs(int curr_ms, u16* pb, u16* num_updates, u16* updates)
+void AXUCode::ApplyUpdatesForMs(int curr_ms, u16* pb, u32 pb_words, u16* num_updates, u16* updates,
+	u32 updates_count)
 {
 	u32 start_idx = 0;
 	for (int i = 0; i < curr_ms; ++i)
 		start_idx += num_updates[i];
 
-	for (u32 i = start_idx; i < start_idx + num_updates[curr_ms]; ++i)
-	{
-		u16 update_off = Common::swap16(updates[2 * i]);
-		u16 update_val = Common::swap16(updates[2 * i + 1]);
+	if (start_idx >= updates_count)
+		return;
 
-		pb[update_off] = update_val;
+	const u16 count = num_updates[curr_ms];
+	if (count > updates_count - start_idx)
+		return;
+
+	const u32 end_idx = start_idx + count;
+	for (u32 i = start_idx; i < end_idx; ++i)
+	{
+		const u16 update_off = Common::swap16(updates[2 * i]);
+		const u16 update_val = Common::swap16(updates[2 * i + 1]);
+
+		if (update_off < pb_words)
+			pb[update_off] = update_val;
 	}
 }
 
@@ -421,10 +431,13 @@ void AXUCode::ProcessPBList(u32 pb_addr)
 
 		u32 updates_addr = HILO_TO_32(pb.updates.data);
 		u16* updates = (u16*)HLEMemory_Get_Pointer(updates_addr);
+		const u32 updates_count =
+			static_cast<u32>(HLEMemory_Get_Pointer_Bytes_Left(updates_addr) / (2 * sizeof(u16)));
 
 		for (int curr_ms = 0; curr_ms < 5; ++curr_ms)
 		{
-			ApplyUpdatesForMs(curr_ms, (u16*)&pb, pb.updates.num_updates, updates);
+			ApplyUpdatesForMs(curr_ms, (u16*)&pb, sizeof(pb) / sizeof(u16), pb.updates.num_updates,
+				updates, updates_count);
 
 			ProcessVoice(pb, buffers, spms, ConvertMixerControl(pb.mixer_control),
 				m_coeffs_available ? m_coeffs : nullptr);

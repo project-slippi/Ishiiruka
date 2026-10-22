@@ -19,20 +19,26 @@ typedef int SectionID;
 class ElfReader
 {
 private:
-	char* base;
-	u32* base32;
+	char* base = nullptr;
+	u32* base32 = nullptr;
 
-	Elf32_Ehdr* header;
-	Elf32_Phdr* segments;
-	Elf32_Shdr* sections;
+	Elf32_Ehdr* header = nullptr;
+	Elf32_Phdr* segments = nullptr;
+	Elf32_Shdr* sections = nullptr;
 
-	u32* sectionAddrs;
-	bool bRelocate;
-	u32 entryPoint;
+	u32* sectionAddrs = nullptr;
+	bool bRelocate = false;
+	u32 entryPoint = 0;
+
+	size_t m_size = 0;
+	bool m_is_valid = false;
+
+	bool Initialize();
 
 public:
-	ElfReader(void* ptr);
+	ElfReader(void* ptr, size_t size);
 	~ElfReader() {}
+	bool IsValid() const { return m_is_valid; }
 	u32 Read32(int off) const { return base32[off >> 2]; }
 	// Quick accessors
 	ElfType GetType() const { return (ElfType)(header->e_type); }

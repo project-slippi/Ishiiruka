@@ -773,7 +773,7 @@ IPCCommandResult CWII_IPC_HLE_Device_net_ip_top::IOCtl(u32 _CommandAddress)
 			"Socket: %08X, BufferIn: (%08x, %i), BufferOut: (%08x, %i)",
 			fd, BufferIn, BufferInSize, BufferOut, BufferOutSize);
 
-		sockaddr sa;
+		sockaddr sa{};
 		socklen_t sa_len;
 		sa_len = sizeof(sa);
 		int ret = getsockname(fd, &sa, &sa_len);
@@ -795,7 +795,7 @@ IPCCommandResult CWII_IPC_HLE_Device_net_ip_top::IOCtl(u32 _CommandAddress)
 	{
 		u32 fd = Memory::Read_U32(BufferIn);
 
-		sockaddr sa;
+		sockaddr sa{};
 		socklen_t sa_len;
 		sa_len = sizeof(sa);
 

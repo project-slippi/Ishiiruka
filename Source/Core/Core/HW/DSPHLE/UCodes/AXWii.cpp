@@ -4,6 +4,8 @@
 //
 #define AX_WII  // Used in AXVoice.
 
+#include <algorithm>
+
 #include "Core/HW/DSPHLE/UCodes/AXWii.h"
 #include "Common/ChunkFile.h"
 #include "Common/CommonFuncs.h"
@@ -377,7 +379,7 @@ void AXWiiUCode::GenerateVolumeRamp(u16* output, u16 vol1, u16 vol2, size_t nval
 }
 
 bool AXWiiUCode::ExtractUpdatesFields(AXPBWii& pb, u16* num_updates, u16* updates,
-	u32* updates_addr)
+	u32* updates_addr, u32* updates_copied)
 {
 	u16* pb_mem = (u16*)&pb;
 
@@ -397,7 +399,12 @@ bool AXWiiUCode::ExtractUpdatesFields(AXPBWii& pb, u16* num_updates, u16* update
 
 	// Copy the updates data and change the offset to match a PB without
 	// updates data.
+	// Never copy more pairs than the source memory or the caller's buffer can hold.
 	u32 updates_count = num_updates[0] + num_updates[1] + num_updates[2];
+	updates_count =
+		std::min<u32>(updates_count, HLEMemory_Get_Pointer_Bytes_Left(addr) / (2 * sizeof(u16)));
+	updates_count = std::min<u32>(updates_count, MAX_UPDATES);
+	*updates_copied = updates_count;
 	for (u32 i = 0; i < updates_count; ++i)
 	{
 		u16 update_off = Common::swap16(ptr[2 * i]);
@@ -453,13 +460,15 @@ void AXWiiUCode::ProcessPBList(u32 pb_addr)
 		ReadPB(pb_addr, pb);
 
 		u16 num_updates[3];
-		u16 updates[1024];
+		u16 updates[2 * MAX_UPDATES];
 		u32 updates_addr;
-		if (ExtractUpdatesFields(pb, num_updates, updates, &updates_addr))
+		u32 updates_copied;
+		if (ExtractUpdatesFields(pb, num_updates, updates, &updates_addr, &updates_copied))
 		{
 			for (int curr_ms = 0; curr_ms < 3; ++curr_ms)
 			{
-				ApplyUpdatesForMs(curr_ms, (u16*)&pb, num_updates, updates);
+				ApplyUpdatesForMs(curr_ms, (u16*)&pb, sizeof(pb) / sizeof(u16), num_updates, updates,
+					updates_copied);
 				ProcessVoice(pb, buffers, 32, ConvertMixerControl(HILO_TO_32(pb.mixer_control)),
 					m_coeffs_available ? m_coeffs : nullptr);
 
