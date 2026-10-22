@@ -44,6 +44,8 @@
 // The Rust library that houses a "shadow" EXI Device that we can call into.
 #include "SlippiRustExtensions.h"
 
+void doConnectionCleanup(std::unique_ptr<SlippiMatchmaking> mm, std::unique_ptr<SlippiNetplayClient> nc);
+
 #define FRAME_INTERVAL 900
 #define SLEEP_TIME_MS 8
 #define WRITE_FILE_SLEEP_TIME_MS 85
@@ -230,7 +232,13 @@ CEXISlippi::~CEXISlippi()
 
 		slprs_exi_device_report_match_status(slprs_exi_device_ptr, activeMatchId.c_str(), "abandoned", false);
 	}
-	handleConnectionCleanup();
+	// The matchmaking thread calls into the Rust device as it winds down, so it is torn down
+	// here, before the device is destroyed, rather than on the cleanup thread. This is bounded:
+	// the STUN and poll loops check the terminated flag and the Rust side cancels without
+	// waiting on its worker. Netplay teardown stays off this thread as before.
+	matchmaking.reset();
+	std::thread cleanup(doConnectionCleanup, std::unique_ptr<SlippiMatchmaking>(), std::move(slippi_netplay));
+	cleanup.detach();
 
 	localSelections.Reset();
 
