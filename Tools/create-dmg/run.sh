@@ -268,9 +268,23 @@ if [[ -n "$DISK_IMAGE_SIZE" ]]; then
 fi
 
 if [[ $SANDBOX_SAFE -eq 0 ]]; then
-	hdiutil create ${HDIUTIL_VERBOSITY} -srcfolder "$SRC_FOLDER" -volname "${VOLUME_NAME}" \
-		-fs HFS+ -fsargs "-c c=64,a=16,e=16" -format UDRW ${CUSTOM_SIZE} "${DMG_TEMP_NAME}"
-else	
+	# On GitHub runners this intermittently fails with "Resource busy" (XProtect/Spotlight
+	# holding the source files), so retry a few times before giving up.
+	for n in `seq 1 5`
+	do
+		hdiutil create ${HDIUTIL_VERBOSITY} -srcfolder "$SRC_FOLDER" -volname "${VOLUME_NAME}" \
+			-fs HFS+ -fsargs "-c c=64,a=16,e=16" -format UDRW ${CUSTOM_SIZE} "${DMG_TEMP_NAME}" && break
+
+		if [ $n = 5 ]; then
+			echo >&2 "hdiutil create failed after 5 attempts"
+			exit 1
+		fi
+
+		echo "hdiutil create failed, retrying in 10 seconds..."
+		rm -f "${DMG_TEMP_NAME}"
+		sleep 10
+	done
+else
 	hdiutil makehybrid ${HDIUTIL_VERBOSITY} -default-volume-name "${VOLUME_NAME}" -hfs -o "${DMG_TEMP_NAME}" "$SRC_FOLDER"
 	hdiutil convert -format UDRW -ov -o "${DMG_TEMP_NAME}" "${DMG_TEMP_NAME}"
 	DISK_IMAGE_SIZE_CUSTOM=$DISK_IMAGE_SIZE
