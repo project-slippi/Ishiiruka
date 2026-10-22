@@ -1033,6 +1033,14 @@ bool SConfig::AutoSetup(EBootBS2 _BootBS2)
 				bWii = ddfFile->GetIsWii();
 			}
 		}
+		else if (!strcasecmp(Extension.c_str(), ".wad"))
+		{
+			// Slippi Dolphin does not ship the Wii common key, so a WAD can never be decrypted.
+			PanicAlertT("Wii software cannot be run with Slippi Dolphin. "
+			            "Please use regular Dolphin (https://dolphin-emu.org/) for running "
+			            "games other than Super Smash Bros. Melee.");
+			return false;
+		}
 		else if (DiscIO::CNANDContentManager::Access().GetNANDLoader(m_strFilename).IsValid())
 		{
 			std::unique_ptr<DiscIO::IVolume> pVolume(DiscIO::CreateVolumeFromFilename(m_strFilename));
