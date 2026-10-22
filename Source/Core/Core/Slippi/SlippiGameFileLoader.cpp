@@ -6,6 +6,7 @@
 
 #include "Common/FileUtil.h"
 #include "Common/Timer.h"
+#include "Core/Host.h"
 #include "DiscIO/FileMonitor.h"
 
 std::string getFilePath(std::string fileName)
@@ -57,6 +58,12 @@ bool SlippiGameFileLoader::resolveLinks(const std::string &fileName, std::string
 		// Serve nothing rather than a file with dangling links. The reason was logged by Rust
 		ERROR_LOG(SLIPPI, "Serving nothing for %s because its links could not be resolved", fileName.c_str());
 		contents.clear();
+
+		// The game halts as soon as it finds the file missing, so the player only learns why from this
+		Host_ShowErrorDialog("Failed to load game file",
+		                     "Slippi could not load " + fileName +
+		                         ", so the game cannot continue.\n\nThis is most likely caused by your ISO: a game "
+		                         "file Slippi needs from it is missing or modified. Try an unmodified NTSC 1.02 ISO.");
 		return false;
 	}
 

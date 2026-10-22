@@ -140,11 +140,14 @@ if(wxWidgets_FOUND)
 	# (This doesn't feel perfect here, but truth be told I can't think offhand of
 	# a better location for it at the moment.)
 	set(RUST_FEATURES "")
-	if(DIS_PLAYBACK)
+	if(IS_PLAYBACK)
 		set(RUST_FEATURES "playback")
 	endif()
 
-	corrosion_import_crate(MANIFEST_PATH ${CMAKE_SOURCE_DIR}/Externals/SlippiRustExtensions/Cargo.toml ${RUST_FEATURES})
+	# Only import the ffi crate. Without CRATES, Corrosion builds every binary in
+	# the workspace (e.g. the slippi-hsd dev tool) into Binaries/, which then ends
+	# up unsigned in the macOS DMG and fails notarization.
+	corrosion_import_crate(MANIFEST_PATH ${CMAKE_SOURCE_DIR}/Externals/SlippiRustExtensions/Cargo.toml CRATES slippi_rust_extensions FEATURES ${RUST_FEATURES})
 	target_link_libraries("${DOLPHIN_EXE}" PUBLIC slippi_rust_extensions)
 
 	if(APPLE)

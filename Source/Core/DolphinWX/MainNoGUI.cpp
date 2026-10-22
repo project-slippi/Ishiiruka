@@ -101,6 +101,11 @@ void Host_UpdateTitle(const std::string& title)
 	platform->SetTitle(title);
 }
 
+void Host_ShowErrorDialog(const std::string& caption, const std::string& message)
+{
+	fprintf(stderr, "%s: %s\n", caption.c_str(), message.c_str());
+}
+
 void Host_UpdateDisasmDialog()
 {
 }
