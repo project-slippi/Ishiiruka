@@ -163,8 +163,9 @@ s32 PipeDevice::readFromPipe(PIPE_FD file_descriptor, char *in_buffer, size_t si
 void PipeDevice::UpdateInput()
 {
   bool finished = false;
+  bool wait_for_inputs = SConfig::GetInstance().m_blockingPipes && g_needInputForFrame;
   #ifndef _WIN32
-  if(SConfig::GetInstance().m_blockingPipes && g_needInputForFrame)
+  if(wait_for_inputs)
   {
     fd_set set;
     FD_ZERO (&set);
@@ -198,7 +199,7 @@ void PipeDevice::UpdateInput()
       m_buf.erase(0, newline + 1);
       newline = m_buf.find("\n");
     }
-  } while(!finished && g_needInputForFrame && SConfig::GetInstance().m_blockingPipes);
+  } while(!finished && wait_for_inputs);
 }
 
 void PipeDevice::AddAxis(const std::string& name, double value)
@@ -230,7 +231,9 @@ bool PipeDevice::ParseCommand(const std::string& command)
 {
   if(command == "FLUSH")
   {
-    g_needInputForFrame = false;
+    // Let ControllerInterface.cpp clear the flag after all PipeDevices
+    // have been queried.
+    // g_needInputForFrame = false;
     return true;
   }
   std::vector<std::string> tokens;
