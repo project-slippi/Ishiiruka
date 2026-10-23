@@ -278,7 +278,6 @@ void SConfig::SaveCoreSettings(IniFile &ini)
 	core->Set("TimeStretching", bTimeStretching);
 	core->Set("RSHACK", bRSHACK);
 	core->Set("Latency", iLatency);
-	core->Set("ReduceTimingDispersion", bReduceTimingDispersion);
 	core->Set("SlippiJukeboxEnabled", bSlippiJukeboxEnabled);
 	core->Set("SlippiJukeboxVolume", iSlippiJukeboxVolume);
 	core->Set("SlippiOnlineDelay", m_slippiOnlineDelay);
@@ -625,7 +624,6 @@ void SConfig::LoadCoreSettings(IniFile &ini)
 	core->Get("TimeStretching", &bTimeStretching, false);
 	core->Get("RSHACK", &bRSHACK, false);
 	core->Get("Latency", &iLatency, 0);
-	core->Get("ReduceTimingDispersion", &bReduceTimingDispersion, false);
 	core->Get("SlippiJukeboxEnabled", &bSlippiJukeboxEnabled, true);
 	core->Get("SlippiJukeboxVolume", &iSlippiJukeboxVolume, 100);
 	core->Get("SlippiEnableSpectator", &m_enableSpectator, true);

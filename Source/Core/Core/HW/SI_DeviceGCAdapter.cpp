@@ -23,17 +23,7 @@ CSIDevice_GCAdapter::CSIDevice_GCAdapter(SIDevices device, int _iDeviceNumber)
 		m_simulate_konga = SConfig::GetInstance().m_AdapterKonga[numPAD];
 }
 
-GCPadStatus CSIDevice_GCAdapter::GetPadStatus(std::chrono::high_resolution_clock::time_point tp)
-{
-	return GetPadStatusImpl(&tp);
-}
-
 GCPadStatus CSIDevice_GCAdapter::GetPadStatus()
-{
-	return GetPadStatusImpl(nullptr);
-}
-
-GCPadStatus CSIDevice_GCAdapter::GetPadStatusImpl(std::chrono::high_resolution_clock::time_point *tp)
 {
 	GCPadStatus pad_status = {0};
 	pad_status.stickX = pad_status.stickY = pad_status.substickX = pad_status.substickY =
@@ -43,7 +33,7 @@ GCPadStatus CSIDevice_GCAdapter::GetPadStatusImpl(std::chrono::high_resolution_c
 	// the remote controllers receive their status there as well
 	if (!NetPlay::IsNetPlayRunning())
 	{
-		pad_status = tp ? GCAdapter::Input(m_iDeviceNumber, tp) : GCAdapter::Input(m_iDeviceNumber);
+		pad_status = GCAdapter::Input(m_iDeviceNumber);
 	}
 
 	HandleMoviePadStatus(&pad_status);

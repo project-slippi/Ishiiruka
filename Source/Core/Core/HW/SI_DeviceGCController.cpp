@@ -153,11 +153,6 @@ GCPadStatus CSIDevice_GCController::GetPadStatus()
 	return pad_status;
 }
 
-GCPadStatus CSIDevice_GCController::GetPadStatus(std::chrono::high_resolution_clock::time_point)
-{
-	return GetPadStatus();
-}
-
 // GetData
 
 // Return true on new data (max 7 Bytes and 6 bits ;)
@@ -168,11 +163,6 @@ GCPadStatus CSIDevice_GCController::GetPadStatus(std::chrono::high_resolution_cl
 bool CSIDevice_GCController::GetData(u32 &_Hi, u32 &_Low)
 {
 	GCPadStatus PadStatus = GetPadStatus();
-	return GetDataFromPadStatus(_Hi, _Low, PadStatus);
-}
-bool CSIDevice_GCController::GetData(u32 &_Hi, u32 &_Low, std::chrono::high_resolution_clock::time_point when)
-{
-	GCPadStatus PadStatus = GetPadStatus(when);
 	return GetDataFromPadStatus(_Hi, _Low, PadStatus);
 }
 

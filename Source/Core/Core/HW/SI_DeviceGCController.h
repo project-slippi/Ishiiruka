@@ -90,7 +90,6 @@ public:
 
 	// Return true on new data
 	bool GetData(u32& _Hi, u32& _Low) override;
-	bool GetData(u32 &_Hi, u32 &_Low, std::chrono::high_resolution_clock::time_point when) override;
 
 	// Send a command directly
 	void SendCommand(u32 _Cmd, u8 _Poll) override;
@@ -99,7 +98,6 @@ public:
 	void DoState(PointerWrap& p) override;
 
 	virtual GCPadStatus GetPadStatus();
-	virtual GCPadStatus GetPadStatus(std::chrono::high_resolution_clock::time_point tp);
 	virtual u32 MapPadStatus(const GCPadStatus &pad_status);
 	virtual EButtonCombo HandleButtonCombos(const GCPadStatus& pad_status);
 

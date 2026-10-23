@@ -25,9 +25,6 @@
 #include "InputCommon/ControllerInterface/ControllerInterface.h"
 #include "InputCommon/GCAdapter.h"
 #include "InputCommon/GCPadStatus.h"
-#include "InputCommon/InputStabilizer.h"
-
-static std::vector<InputStabilizer> stabilizers(MAX_SI_CHANNELS, InputStabilizer());
 
 namespace SerialInterface
 {
@@ -371,28 +368,8 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 					    }
 				    }
 
-				    auto now = std::chrono::high_resolution_clock::now();
 				    // the HI register is read before the LO register (at least by Melee)
-				    if (SConfig::GetInstance().bReduceTimingDispersion)
-				    {
-					    if(!NetPlay::IsNetPlayRunning())
-					    {
-						    stabilizers[i].feedPollTiming(now);
-						    std::chrono::high_resolution_clock::time_point pollTiming =
-						        stabilizers[i].computeNextPollTiming();
-						    g_Channel[i].m_device->GetData(g_Channel[i].m_InHi.Hex, g_Channel[i].m_InLo.Hex,
-						                                   pollTiming);
-					    }
-					    else {
-						    g_Channel[i].m_device->GetData(g_Channel[i].m_InHi.Hex, g_Channel[i].m_InLo.Hex,
-						                                   now);
-						}
-				    }
-				    else
-				    {
-					    g_Channel[i].m_device->GetData(g_Channel[i].m_InHi.Hex, g_Channel[i].m_InLo.Hex,
-					                                   now); // Now added for measures
-					}
+				    g_Channel[i].m_device->GetData(g_Channel[i].m_InHi.Hex, g_Channel[i].m_InLo.Hex);
 			    }
 
 			g_StatusReg.Hex &= ~(1 << rdst_bit);
