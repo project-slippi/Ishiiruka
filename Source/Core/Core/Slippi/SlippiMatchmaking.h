@@ -86,7 +86,9 @@ class SlippiMatchmaking
 		std::string id = "";
 		std::vector<SlippiUser::UserInfo> players;
 		std::vector<u16> stages;
-		u32 items;
+		// Defaulted, since a result that is never filled in, such as a room watcher's, would otherwise
+		// turn items on
+		u32 items = 0;
 	};
 
 	void FindMatch(MatchSearchSettings settings);
@@ -96,6 +98,10 @@ class SlippiMatchmaking
 	std::unique_ptr<SlippiNetplayClient> GetNetplayClient();
 	std::string GetErrorMessage();
 	int LocalPlayerIndex();
+
+	// Where the matchmaking server saw this client, as "host:port". Watchers connect to it, since it's
+	// the socket the match runs on. Empty until a match is arranged
+	std::string LocalExternalAddress() { return m_localExternalAddr; }
 	std::vector<SlippiUser::UserInfo> GetPlayerInfo();
 	std::string GetPlayerName(u8 port);
 	SlippiRank GetPlayerRank(u8 port);
@@ -147,6 +153,7 @@ class SlippiMatchmaking
 
 	int m_hostPort;
 	int m_localPlayerIndex;
+	std::string m_localExternalAddr;
 	std::vector<std::string> m_remoteIps;
 	MatchmakeResult m_mmResult;
 	std::vector<SlippiUser::UserInfo> m_playerInfo;

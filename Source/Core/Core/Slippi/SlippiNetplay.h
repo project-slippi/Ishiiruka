@@ -35,6 +35,9 @@
 #define SLIPPI_REMOTE_PLAYER_COUNT 3
 #define SLIPPI_PLAYER_COUNT_MAX (SLIPPI_REMOTE_PLAYER_MAX + 1)
 
+// Connect data that marks a peer as a watcher rather than a player. Players connect with 0
+#define SLIPPI_CONNECT_SPECTATOR 0x50535043 // 'PSPC'
+
 struct SlippiRemotePadOutput
 {
 	s32 latestFrame;
@@ -159,6 +162,12 @@ class SlippiNetplayClient
 	void SendAsync(std::unique_ptr<sf::Packet> packet);
 
 	SlippiNetplayClient(bool isDecider); // Make a dummy client
+
+	// Turns a dummy client into a watcher's stand-in. The match is built from a netplay client's
+	// selections, which a watcher learns over its own connections. playerIdx is the watcher's port
+	void MakeWatcher(u8 playerIdx);
+	void SetRemoteSelections(u8 remoteIdx, const SlippiPlayerSelections &s);
+	void SetWatchSelections(const SlippiPlayerSelections &s);
 	SlippiNetplayClient(std::vector<std::string> addrs, std::vector<u16> ports, const u8 remotePlayerCount,
 	                    const u16 localPort, bool isDecider, u8 playerIdx);
 	~SlippiNetplayClient();
@@ -183,6 +192,10 @@ class SlippiNetplayClient
 	};
 
 	bool IsDecider();
+
+	// Opens this match's router toward addr ("host:port") so a watcher's connection gets in. It has to
+	// come from the match's own socket, so it's sent from the network thread
+	void PunchTo(const std::string &addr);
 	bool IsConnectionSelected();
 	u8 LocalPlayerPort();
 	SlippiConnectStatus GetSlippiConnectStatus();
@@ -229,6 +242,30 @@ class SlippiNetplayClient
 
 	ENetHost *m_client = nullptr;
 	std::vector<ENetPeer *> m_server;
+
+	// Watchers, kept apart from m_server since they aren't players and nothing about the match waits on
+	// them. Owned by the network thread
+	std::vector<ENetPeer *> m_spectators;
+
+	// Each watcher costs the players a send per frame
+	static const size_t MAX_SPECTATORS = 6;
+
+	// Our pads for the whole game, for watchers who join late or miss some. localPadQueue is trimmed
+	// once the opponent acks, and a game's worth is well under a megabyte. Written by the game thread
+	// and read by the network thread, so it's behind m_watchLock along with m_watchSelections
+	std::mutex m_watchLock;
+	std::vector<std::array<u8, SLIPPI_PAD_DATA_SIZE>> m_watchHistory;
+	s32 m_watchHistoryFirstFrame = 0;
+
+	void SendWatchHistoryFrom(ENetPeer *peer, s32 fromFrame);
+	void acceptSpectator(ENetPeer *peer);
+
+	// Our selections when this game started, for watchers. StartSlippiGame resets matchInfo
+	SlippiPlayerSelections m_watchSelections;
+
+	std::mutex m_punchLock;
+	std::vector<std::string> m_punches;
+
 	std::thread m_thread;
 	u8 m_remotePlayerCount = 0;
 
@@ -323,6 +360,7 @@ class SlippiNetplayClient
 	u8 PlayerIdxFromPort(u8 port);
 	unsigned int OnData(sf::Packet &packet, ENetPeer *peer);
 	void Send(sf::Packet &packet);
+	void SendToSpectators(sf::Packet &packet);
 	void Disconnect();
 	// Network-thread only — call from inside ThreadFunc.
 	bool AreAllConnectionsDisconnected();

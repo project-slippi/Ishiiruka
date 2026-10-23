@@ -539,6 +539,8 @@ void SlippiMatchmaking::handleMatchmaking()
 
 			if (isLocal)
 			{
+				m_localExternalAddr = el.value("ipAddress", "");
+
 				std::vector<std::string> localIpParts;
 				SplitString(el.value("ipAddress", "1.1.1.1:123"), ':', localIpParts);
 				localExternalIp = localIpParts[0];

@@ -6,6 +6,8 @@
 
 #include <SlippiLib/SlippiGame.h>
 
+#include <future>
+
 #include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
 #include "Core/HW/EXI_Device.h"
@@ -15,9 +17,11 @@
 #include "Core/Slippi/SlippiMatchmaking.h"
 #include "Core/Slippi/SlippiNetplay.h"
 #include "Core/Slippi/SlippiReplayComm.h"
+#include "Core/Slippi/SlippiRoomSession.h"
 #include "Core/Slippi/SlippiSavestate.h"
 #include "Core/Slippi/SlippiSpectate.h"
 #include "Core/Slippi/SlippiUser.h"
+#include "Core/Slippi/SlippiWatch.h"
 
 #define MAX_NAME_LENGTH 15
 #define MAX_MESSAGE_LENGTH 25
@@ -92,6 +96,14 @@ class CEXISlippi : public IEXIDevice
 		CMD_REPORT_SET_COMPLETE = 0xC2,
 		CMD_GET_PLAYER_SETTINGS = 0xC3,
 		CMD_REPORT_MATCH_STATUS_UPDATE = 0xC4,
+		CMD_CREATE_ROOM = 0xC5,
+		CMD_ROOM_ACTION = 0xC6,
+		CMD_GET_ROOM_STATE = 0xC7,
+		CMD_JOIN_ROOM = 0xC8,
+		CMD_FETCH_ROOM_LIST = 0xC9,
+		CMD_GET_ROOM_LIST = 0xCA,
+		CMD_ROOM_PRACTICE_OVER = 0xCB,
+		CMD_ROOM_WATCH = 0xCC,
 
 		// Misc
 		CMD_LOG_MESSAGE = 0xD0,
@@ -180,6 +192,14 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_REPORT_SET_COMPLETE, static_cast<u32>(sizeof(SlippiExiTypes::ReportSetCompletionQuery) - 1)},
 	    {CMD_GET_PLAYER_SETTINGS, 0},
 	    {CMD_REPORT_MATCH_STATUS_UPDATE, static_cast<u32>(sizeof(SlippiExiTypes::ReportMatchStatusUpdateQuery) - 1)},
+	    {CMD_CREATE_ROOM, static_cast<u32>(sizeof(SlippiExiTypes::CreateRoomQuery) - 1)},
+	    {CMD_ROOM_ACTION, static_cast<u32>(sizeof(SlippiExiTypes::RoomActionQuery) - 1)},
+	    {CMD_GET_ROOM_STATE, 0},
+	    {CMD_JOIN_ROOM, static_cast<u32>(sizeof(SlippiExiTypes::JoinRoomQuery) - 1)},
+	    {CMD_FETCH_ROOM_LIST, 0},
+	    {CMD_GET_ROOM_LIST, 0},
+	    {CMD_ROOM_PRACTICE_OVER, 0},
+	    {CMD_ROOM_WATCH, 0},
 
 	    // Misc
 	    {CMD_LOG_MESSAGE, 0xFFFF}, // Variable size... will only work if by itself
@@ -266,6 +286,19 @@ class CEXISlippi : public IEXIDevice
 	void handleMatchStatusUpdate(const SlippiExiTypes::ReportMatchStatusUpdateQuery &query);
 	void handleGetPlayerSettings();
 	void handleGetRank();
+	void handleCreateRoom(const SlippiExiTypes::CreateRoomQuery &query);
+	void handleRoomAction(const SlippiExiTypes::RoomActionQuery &query);
+	void prepareRoomState();
+	void handleJoinRoom(const SlippiExiTypes::JoinRoomQuery &query);
+	void handleFetchRoomList();
+	void prepareRoomList();
+	void preparePracticeOver();
+	void handleRoomWatch();
+	void punchAtWatchers();
+	void endWatch();
+	u8 watchStatus();
+	void saveLastRoom(const SlippiExiTypes::GetRoomStateResponse &state);
+	void initEnet();
 
 	// replay playback stuff
 	void prepareGameInfo(u8 *payload);
@@ -355,6 +388,65 @@ class CEXISlippi : public IEXIDevice
 	std::unique_ptr<SlippiMatchmaking> matchmaking;
 	std::unique_ptr<SlippiDirectCodes> directCodes;
 	std::unique_ptr<SlippiDirectCodes> teamsCodes;
+	std::unique_ptr<SlippiRoomSession> room;
+	std::string lastRoomCode; // The room saved for rejoining after a crash
+	s64 lastRoomSavedAt = 0;
+
+	// Watching the room's match, as a peer of both players. Null unless watching
+	enum WatchStatus : u8
+	{
+		WATCH_NONE = 0,
+		WATCH_CONNECTING = 1,
+		WATCH_READY = 2,
+		WATCH_FAILED = 3,
+	};
+	std::unique_ptr<SlippiWatchClient> watch_client;
+	bool isWatchAddressSent = false;
+	u64 lastPunchMs = 0;
+
+	// Once a watch has enough to show. Everything a watcher does differently hangs off this, so a
+	// player's match takes the paths it always did. Over still counts, since a watcher that's behind
+	// has the rest of the match to play out of what it already holds
+	bool isWatching() const
+	{
+		if (!watch_client || !watch_client->Ready())
+			return false;
+		SlippiWatchClient::Status st = watch_client->GetStatus();
+		return st == SlippiWatchClient::Status::WATCHING || st == SlippiWatchClient::Status::OVER;
+	}
+
+	// A watch that's over can't fill in anything past what it holds, such as when a player drops. Once
+	// the watcher reaches that point, its match ends the way a player's does when the opponent
+	// disconnects. Only asked while watching
+	bool isWatchCutOff(s32 frame) const
+	{
+		return watch_client->GetStatus() == SlippiWatchClient::Status::OVER && watch_client->LatestFrame() < frame;
+	}
+
+	// The public room list, fetched off the CPU thread
+	enum
+	{
+		ROOM_LIST_FETCHING = 0,
+		ROOM_LIST_FETCHED = 1,
+		ROOM_LIST_FAILED = 2,
+	};
+	struct RoomListFetch
+	{
+		bool ok = false;
+		std::vector<SlippiRoomDirectory::Listing> listings;
+
+		// The room left by a crash, and whether it's still up to rejoin
+		std::string rejoinCode;
+		std::string rejoinPassword;
+		bool isRejoinChecked = false;
+		bool isRejoinUp = false;
+	};
+	static RoomListFetch fetchRoomList(std::string rejoinCode, std::string rejoinPassword);
+	std::future<RoomListFetch> roomListFuture;
+	std::vector<SlippiRoomDirectory::Listing> roomList;
+	u8 roomListStatus = ROOM_LIST_FETCHING;
+	std::string rejoinCode; // Empty unless the last room can be rejoined
+	std::string rejoinPassword;
 
 	std::map<s32, std::unique_ptr<SlippiSavestate>> activeSavestates;
 	std::deque<std::unique_ptr<SlippiSavestate>> availableSavestates;

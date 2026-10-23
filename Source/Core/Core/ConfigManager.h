@@ -170,6 +170,8 @@ struct SConfig : NonCopyable
 	int m_slippiNetplayPort;
 	bool m_slippiForceLanIp = false;
 	std::string m_slippiLanIp = "";
+	std::string m_slippiRoomsDirectoryUrl = "";
+	std::string m_slippiRoomsDirectoryKey = "";
 	bool m_meleeUserIniBootstrapped = false;
 	bool m_blockingPipes = false;
 	bool m_coutEnabled = false;
