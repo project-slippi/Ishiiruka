@@ -11,6 +11,7 @@
 #include <sstream>
 #include <string>
 #include <sys/stat.h>
+#include <thread>
 #include <vector>
 
 #include "Common/FileUtil.h"
@@ -160,46 +161,74 @@ s32 PipeDevice::readFromPipe(PIPE_FD file_descriptor, char *in_buffer, size_t si
   #endif
 }
 
+// Returns false if there is no input to wait for because nothing is writing to the pipe.
+bool waitForInput(PIPE_FD file_descriptor)
+{
+  #ifdef _WIN32
+  // All 4 pipes always exist on Windows, so we must not block on those that no
+  // bot has connected to. Named pipes don't work with select, so we poll.
+  while (true)
+  {
+    DWORD bytes_available = 0;
+    // Fails if no client is connected, or if the client has gone away.
+    if (!PeekNamedPipe(file_descriptor, NULL, 0, NULL, &bytes_available, NULL))
+      return false;
+    if (bytes_available > 0)
+      return true;
+    std::this_thread::yield();
+  }
+  #else
+  fd_set set;
+  FD_ZERO(&set);
+  FD_SET(file_descriptor, &set);
+
+  // Wait for activity on the socket
+  // TODO: we should be using `poll` instead
+  select(file_descriptor + 1, &set, NULL, NULL, NULL);
+  return true;
+  #endif
+}
+
 void PipeDevice::UpdateInput()
 {
+  bool wait_for_input = SConfig::GetInstance().m_blockingPipes && g_needInputForFrame;
   bool finished = false;
-  bool wait_for_inputs = SConfig::GetInstance().m_blockingPipes && g_needInputForFrame;
-  #ifndef _WIN32
-  if(wait_for_inputs)
-  {
-    fd_set set;
-    FD_ZERO (&set);
-    FD_SET (m_fd, &set);
-
-    // Wait for activity on the socket
-    select(m_fd+1, &set, NULL, NULL, NULL);
-  }
-  #endif
   do
   {
     // Read any pending characters off the pipe. If we hit a newline,
     // then dequeue a command off the front of m_buf and parse it.
     char buf[32];
-    s32 bytes_read = readFromPipe(m_fd, buf, sizeof buf);
-    if (bytes_read == 0) {
-      // Pipe died, so just quit out
-      return;
-    }
-    while (bytes_read > 0)
+
+    // Avoids a busy loop if no data is present.
+    if (wait_for_input && !waitForInput(m_fd))
+      wait_for_input = false;
+
+    // Fill buffer with whatever data is present.
+    while (true)
     {
+      s32 bytes_read = readFromPipe(m_fd, buf, sizeof buf);
+
+      // -1 is technically an error, but can actually mean no data for
+      // non-blocking sockets; see https://man7.org/linux/man-pages/man2/read.2.html
+      // TODO: handle real errors
+      if (bytes_read <= 0)
+        break;
+
       m_buf.append(buf, bytes_read);
-      bytes_read = readFromPipe(m_fd, buf, sizeof buf);
     }
+
+    // Execute any commands given to us.
     std::size_t newline = m_buf.find("\n");
     while (newline != std::string::npos)
     {
       std::string command = m_buf.substr(0, newline);
       finished = ParseCommand(command);
-
       m_buf.erase(0, newline + 1);
       newline = m_buf.find("\n");
     }
-  } while(!finished && wait_for_inputs);
+
+    // In blocking mode, we continue until a FLUSH command is given.
+  } while (wait_for_input && !finished);
 }
 
 void PipeDevice::AddAxis(const std::string& name, double value)
