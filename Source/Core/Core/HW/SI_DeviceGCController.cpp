@@ -153,6 +153,26 @@ GCPadStatus CSIDevice_GCController::GetPadStatus()
 	return pad_status;
 }
 
+GCPadStatus CSIDevice_GCController::GetPadStatusForGamePoll()
+{
+	return GetPadStatus();
+}
+
+bool CSIDevice_GCController::GetReportedOrigin(u8 origin[6], u8 *analog_mode) const
+{
+	if (!m_Calibrated)
+		return false;
+
+	origin[0] = m_Origin.uOriginStickX;
+	origin[1] = m_Origin.uOriginStickY;
+	origin[2] = m_Origin.uSubStickStickX;
+	origin[3] = m_Origin.uSubStickStickY;
+	origin[4] = m_Origin.uTrigger_L;
+	origin[5] = m_Origin.uTrigger_R;
+	*analog_mode = m_Mode;
+	return true;
+}
+
 // GetData
 
 // Return true on new data (max 7 Bytes and 6 bits ;)
@@ -162,7 +182,7 @@ GCPadStatus CSIDevice_GCController::GetPadStatus()
 
 bool CSIDevice_GCController::GetData(u32 &_Hi, u32 &_Low)
 {
-	GCPadStatus PadStatus = GetPadStatus();
+	GCPadStatus PadStatus = GetPadStatusForGamePoll();
 	return GetDataFromPadStatus(_Hi, _Low, PadStatus);
 }
 

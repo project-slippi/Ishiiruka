@@ -9,7 +9,9 @@
 #include "Common/Timer.h"
 #include "Core/ConfigManager.h"
 #include "Core/Core.h"
+#include "InputCommon/GCAdapter.h"
 #include "SlippiPremadeText.h"
+#include "SlippiRustExtensions.h"
 #include "VideoCommon/OnScreenDisplay.h"
 #include "VideoCommon/VideoConfig.h"
 #include <algorithm>
@@ -38,9 +40,33 @@ static std::mutex ack_mutex;
 
 SlippiNetplayClient *SLIPPI_NETPLAY = nullptr;
 
+// The adapter read thread sends input suggestions through the live client. The pointer is set and
+// cleared under this mutex so the adapter thread never uses a client that has started tearing down.
+static std::mutex s_suggestion_sink_mutex;
+static SlippiNetplayClient *s_suggestion_sink = nullptr;
+
+// called from ---ADAPTER READ--- thread
+static void SendInputSuggestionForAdapterReport(const GCAdapter::AdapterReport &report)
+{
+	std::lock_guard<std::mutex> lk(s_suggestion_sink_mutex);
+	if (!s_suggestion_sink)
+		return;
+
+	SlippiInputSuggestion suggestion = slprs_input_suggestions_on_adapter_report(
+	    report.game_poll_counts, report.payload, sizeof(report.payload));
+	if (suggestion.is_valid)
+		s_suggestion_sink->SendSlippiPadSuggestion(suggestion.target_frame, suggestion.seq, suggestion.pad);
+}
+
 // called from ---GUI--- thread
 SlippiNetplayClient::~SlippiNetplayClient()
 {
+	{
+		std::lock_guard<std::mutex> lk(s_suggestion_sink_mutex);
+		if (s_suggestion_sink == this)
+			s_suggestion_sink = nullptr;
+	}
+
 	m_do_loop.Clear();
 	if (m_thread.joinable())
 		m_thread.join();
@@ -154,6 +180,12 @@ SlippiNetplayClient::SlippiNetplayClient(std::vector<std::string> addrs, std::ve
 	slippiConnectStatus.store(SlippiConnectStatus::NET_CONNECT_STATUS_INITIATED, std::memory_order_release);
 
 	m_thread = std::thread(&SlippiNetplayClient::ThreadFunc, this);
+
+	GCAdapter::SetReportCallback(SendInputSuggestionForAdapterReport);
+	{
+		std::lock_guard<std::mutex> lk(s_suggestion_sink_mutex);
+		s_suggestion_sink = this;
+	}
 }
 
 // Make a dummy client
@@ -364,6 +396,16 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 			remote_checksums[pIdx] = e;
 		}
 
+		// Let input suggestions check their predictions against the real inputs
+		{
+			auto packetData = (const u8 *)packet.getData();
+			for (s64 i = inputsToCopy - 1; i >= 0; i--)
+			{
+				slprs_input_suggestions_on_remote_input(pIdx, static_cast<s32>(static_cast<s64>(frame) - i),
+				                                        &packetData[padDataOffset + i * SLIPPI_PAD_DATA_SIZE]);
+			}
+		}
+
 		// Only ack if inputsToCopy is greater than 0. Otherwise we are receiving an old input and
 		// we should have already acked something in the future. This can also happen in the case
 		// where a new game starts quickly before the remote queue is reset and if we ack the early
@@ -445,6 +487,37 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 	}
 	break;
 
+	case NP_MSG_SLIPPI_PAD_SUGGESTION:
+	{
+		u8 packetPlayerPort;
+		s32 targetFrame;
+		u32 seq;
+		if (!(packet >> packetPlayerPort) || !(packet >> targetFrame) || !(packet >> seq))
+		{
+			ERROR_LOG(SLIPPI_ONLINE, "Input suggestion packet too small to read header");
+			break;
+		}
+
+		// Message id, port, target frame and seq come before the pad data
+		const size_t padDataOffset = 10;
+		if (packet.getDataSize() < padDataOffset + SLIPPI_PAD_DATA_SIZE)
+		{
+			ERROR_LOG(SLIPPI_ONLINE, "Input suggestion packet too small to read pad");
+			break;
+		}
+
+		u8 pIdx = PlayerIdxFromPort(packetPlayerPort);
+		if (pIdx >= m_remotePlayerCount)
+		{
+			ERROR_LOG(SLIPPI_ONLINE, "Got input suggestion with invalid player idx %d", pIdx);
+			break;
+		}
+
+		auto packetData = (const u8 *)packet.getData();
+		slprs_input_suggestions_on_remote_suggestion(pIdx, targetFrame, seq, &packetData[padDataOffset]);
+	}
+	break;
+
 	case NP_MSG_SLIPPI_MATCH_SELECTIONS:
 	{
 		auto s = readSelectionsFromPacket(packet);
@@ -465,6 +538,7 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 
 			// Reset remote pad queue such that next inputs that we get are not compared to inputs from last game
 			remotePadQueue[idx].clear();
+			slprs_input_suggestions_reset_remote(idx);
 		}
 	}
 	break;
@@ -688,7 +762,7 @@ void SlippiNetplayClient::Send(sf::Packet &packet)
 		}
 
 		MessageId mid = ((u8 *)packet.getData())[0];
-		if (mid == NP_MSG_SLIPPI_PAD || mid == NP_MSG_SLIPPI_PAD_ACK)
+		if (mid == NP_MSG_SLIPPI_PAD || mid == NP_MSG_SLIPPI_PAD_ACK || mid == NP_MSG_SLIPPI_PAD_SUGGESTION)
 		{
 			// Slippi communications do not need reliable connection and do not need to
 			// be received in order. Channel is changed so that other reliable communications
@@ -1313,6 +1387,19 @@ void SlippiNetplayClient::SendSlippiPad(std::unique_ptr<SlippiPad> pad)
 		sendTime.timeUs = time;
 		ackTimers[i].Push(sendTime);
 	}
+}
+
+// Sends the newest local input between frames so opponents can predict with it. Called from the CPU thread
+// and the adapter read thread.
+void SlippiNetplayClient::SendSlippiPadSuggestion(s32 targetFrame, u32 seq, const u8 *pad)
+{
+	auto spac = std::make_unique<sf::Packet>();
+	*spac << static_cast<MessageId>(NP_MSG_SLIPPI_PAD_SUGGESTION);
+	*spac << this->playerIdx;
+	*spac << targetFrame;
+	*spac << seq;
+	spac->append(pad, SLIPPI_PAD_DATA_SIZE);
+	SendAsync(std::move(spac));
 }
 
 void SlippiNetplayClient::SetMatchSelections(SlippiPlayerSelections &s)
