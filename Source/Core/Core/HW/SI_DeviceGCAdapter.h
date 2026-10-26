@@ -14,5 +14,9 @@ public:
 	CSIDevice_GCAdapter(SIDevices device, int _iDeviceNumber);
 
 	GCPadStatus GetPadStatus() override;
+	GCPadStatus GetPadStatusForGamePoll() override;
 	int RunBuffer(u8 *buffer, int length) override;
+
+  protected:
+	GCPadStatus GetPadStatusImpl(bool is_game_poll);
 };
