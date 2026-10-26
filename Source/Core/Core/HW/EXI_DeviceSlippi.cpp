@@ -1335,9 +1335,11 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 		handleSendInputs(frame, delay, finalizedFrame, finalizedFrameChecksum, inputs);
 	}
 
-	reportInputSuggestionsFrame(frame, shouldSkip, inputSourcePort, inputs);
+	// Input suggestions need to know whether the game is advancing a frame, which is decided while preparing
+	// the opponent inputs
+	bool isAdvancing = prepareOpponentInputs(frame, shouldSkip);
 
-	prepareOpponentInputs(frame, shouldSkip);
+	reportInputSuggestionsFrame(frame, shouldSkip, isAdvancing, inputSourcePort, inputs);
 }
 
 void CEXISlippi::startInputSuggestions(u8 delay, u8 inputSourcePort)
@@ -1353,13 +1355,15 @@ void CEXISlippi::startInputSuggestions(u8 delay, u8 inputSourcePort)
 	slprs_input_suggestions_start_game(game);
 }
 
-// Tells input suggestions how many times the game has polled the controller and what it sent for this frame.
-// This lets it work out which frame the next adapter reports belong to.
-void CEXISlippi::reportInputSuggestionsFrame(s32 frame, bool isSkip, u8 inputSourcePort, u8 *inputs)
+// Tells input suggestions how many times the game has polled the controller, what it sent for this frame and
+// whether it is advancing a frame. This lets it work out which frame the next adapter reports belong to.
+void CEXISlippi::reportInputSuggestionsFrame(s32 frame, bool isSkip, bool isAdvancing, u8 inputSourcePort,
+                                             u8 *inputs)
 {
 	SlippiInputSuggestionsLocalFrame info = {};
 	info.frame = frame;
 	info.is_skip = isSkip;
+	info.is_advancing = isAdvancing;
 
 	if (inputSourcePort < MAX_SI_CHANNELS)
 	{
@@ -1724,7 +1728,7 @@ bool CEXISlippi::opponentRunahead()
 	return true;
 }
 
-void CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)
+bool CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)
 {
 	m_read_queue.clear();
 
@@ -1903,6 +1907,9 @@ void CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)
 
 	// ERROR_LOG(SLIPPI_ONLINE, "EXI: [%d] %X %X %X %X %X %X %X %X", latestFrame, m_read_queue[5], m_read_queue[6],
 	// m_read_queue[7], m_read_queue[8], m_read_queue[9], m_read_queue[10], m_read_queue[11], m_read_queue[12]);
+
+	// Let the caller know whether the game is advancing a frame for time sync
+	return frameResult == 4;
 }
 
 void CEXISlippi::handleCaptureSavestate(u8 *payload)
