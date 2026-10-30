@@ -4,6 +4,9 @@
 #include "Common/CommonTypes.h"
 
 #define REPORT_PLAYER_COUNT 4
+#define ROOM_MAX_MEMBERS 32
+#define ROOM_STAGE_COUNT 6
+#define ROOM_LIST_MAX 50 // As many as the directory lists
 
 namespace SlippiExiTypes
 {
@@ -106,6 +109,93 @@ struct ChangeMusicVolumeQuery
 {
 	u8 command;
 	u8 volume;
+};
+
+struct CreateRoomQuery
+{
+	u8 command;
+	u8 visibility;
+	u8 mode;
+	u8 capacity;
+	u8 stage_mode;
+	u8 last_char;
+	u8 last_color;
+};
+
+struct RoomActionQuery
+{
+	u8 command;
+	u8 action;
+	u8 value[2];
+};
+
+struct RoomMember
+{
+	char name[31];
+	char connect_code[10];
+	u8 char_id;
+	u8 char_color;
+	u8 crowns;
+};
+
+struct GetRoomStateResponse
+{
+	u8 is_active;
+	u8 connection_status;
+	u8 connection_error;
+	u8 visibility;
+	u8 mode;
+	u8 capacity;
+	u8 stage_mode;
+	char code[5];     // Empty until the room is registered
+	char password[5]; // Empty for public rooms
+	u8 local_member;
+	u8 member_count;
+	RoomMember members[ROOM_MAX_MEMBERS];
+	u8 queue_count;
+	u8 queue[ROOM_MAX_MEMBERS];
+	s8 sides[2];
+	u8 streak;
+	s8 crowned;
+	u8 phase;
+	u8 struck[ROOM_STAGE_COUNT];
+	u8 stage_idx;
+	u8 has_picked[2];
+	u8 play_char[2];
+	u8 play_color[2];
+	u8 turn_seconds; // 0xFF when it's nobody's turn
+	u8 host_member;  // 0xFF while nobody is hosting
+	u8 watch_status; // Watching the room's match, see CEXISlippi::WatchStatus
+	u8 match_over;   // The match ended without a result, and the room replays it shortly
+};
+
+struct JoinRoomQuery
+{
+	u8 command;
+	char code[5];
+	char password[5]; // Empty when joining a public room
+	u8 last_char;
+	u8 last_color;
+};
+
+struct RoomListing
+{
+	char code[5];
+	char host_name[31];
+	u8 mode;
+	u8 stage_mode;
+	u8 capacity;
+	u8 member_count;
+	u8 region; // 0xFF when unknown
+};
+
+struct GetRoomListResponse
+{
+	u8 status;
+	u8 count;
+	RoomListing rooms[ROOM_LIST_MAX];
+	char rejoin_code[5]; // The last room, after a crash. Empty when there's nothing to rejoin
+	char rejoin_password[5];
 };
 
 // Not sure if resetting is strictly needed, might be contained to the file

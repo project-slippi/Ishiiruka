@@ -763,10 +763,22 @@
     <ClCompile Include="Slippi\SlippiPad.cpp">
       <Filter>Slippi</Filter>
     </ClCompile>
+    <ClCompile Include="Slippi\SlippiRoom.cpp">
+      <Filter>Slippi</Filter>
+    </ClCompile>
+    <ClCompile Include="Slippi\SlippiRoomDirectory.cpp">
+      <Filter>Slippi</Filter>
+    </ClCompile>
+    <ClCompile Include="Slippi\SlippiRoomSession.cpp">
+      <Filter>Slippi</Filter>
+    </ClCompile>
     <ClCompile Include="Slippi\SlippiSavestate.cpp">
       <Filter>Slippi</Filter>
     </ClCompile>
     <ClCompile Include="Slippi\SlippiSpectate.cpp">
+      <Filter>Slippi</Filter>
+    </ClCompile>
+    <ClCompile Include="Slippi\SlippiStun.cpp">
       <Filter>Slippi</Filter>
     </ClCompile>
     <ClCompile Include="Slippi\SlippiMatchmaking.cpp">
@@ -779,6 +791,9 @@
       <Filter>Slippi</Filter>
     </ClCompile>
     <ClCompile Include="Slippi\SlippiUser.cpp">
+      <Filter>Slippi</Filter>
+    </ClCompile>
+    <ClCompile Include="Slippi\SlippiWatch.cpp">
       <Filter>Slippi</Filter>
     </ClCompile>
     <ClCompile Include="Slippi\SlippiPlayback.cpp">
@@ -1334,10 +1349,22 @@
     <ClInclude Include="Slippi\SlippiPad.h">
       <Filter>Slippi</Filter>
     </ClInclude>
+    <ClInclude Include="Slippi\SlippiRoom.h">
+      <Filter>Slippi</Filter>
+    </ClInclude>
+    <ClInclude Include="Slippi\SlippiRoomDirectory.h">
+      <Filter>Slippi</Filter>
+    </ClInclude>
+    <ClInclude Include="Slippi\SlippiRoomSession.h">
+      <Filter>Slippi</Filter>
+    </ClInclude>
     <ClInclude Include="Slippi\SlippiSavestate.h">
       <Filter>Slippi</Filter>
     </ClInclude>
     <ClInclude Include="Slippi\SlippiSpectate.h">
+      <Filter>Slippi</Filter>
+    </ClInclude>
+    <ClInclude Include="Slippi\SlippiStun.h">
       <Filter>Slippi</Filter>
     </ClInclude>
     <ClInclude Include="Slippi\SlippiMatchmaking.h">
@@ -1350,6 +1377,9 @@
       <Filter>Slippi</Filter>
     </ClInclude>
     <ClInclude Include="Slippi\SlippiUser.h">
+      <Filter>Slippi</Filter>
+    </ClInclude>
+    <ClInclude Include="Slippi\SlippiWatch.h">
       <Filter>Slippi</Filter>
     </ClInclude>
     <ClInclude Include="Slippi\SlippiTimer.h">

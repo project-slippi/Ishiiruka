@@ -65,6 +65,9 @@ enum
 	NP_MSG_SLIPPI_COMPLETE_STEP = 0x85,
 	NP_MSG_SLIPPI_SYNCED_STATE = 0x86,
 
+	// A watcher asking for every frame from the one given, to catch up or fill a gap
+	NP_MSG_SLIPPI_WATCH_FROM = 0x87,
+
 	NP_MSG_START_GAME = 0xA0,
 	NP_MSG_CHANGE_GAME = 0xA1,
 	NP_MSG_STOP_GAME = 0xA2,

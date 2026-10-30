@@ -333,9 +333,14 @@
     <ClCompile Include="Slippi\SlippiNetplay.cpp" />
     <ClCompile Include="Slippi\SlippiPad.cpp" />
     <ClCompile Include="Slippi\SlippiReplayComm.cpp" />
+    <ClCompile Include="Slippi\SlippiRoom.cpp" />
+    <ClCompile Include="Slippi\SlippiRoomDirectory.cpp" />
+    <ClCompile Include="Slippi\SlippiRoomSession.cpp" />
     <ClCompile Include="Slippi\SlippiSavestate.cpp" />
     <ClCompile Include="Slippi\SlippiSpectate.cpp" />
+    <ClCompile Include="Slippi\SlippiStun.cpp" />
     <ClCompile Include="Slippi\SlippiUser.cpp" />
+    <ClCompile Include="Slippi\SlippiWatch.cpp" />
     <ClCompile Include="State.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -538,9 +543,14 @@
     <ClInclude Include="Slippi\SlippiNetplay.h" />
     <ClInclude Include="Slippi\SlippiPad.h" />
     <ClInclude Include="Slippi\SlippiReplayComm.h" />
+    <ClInclude Include="Slippi\SlippiRoom.h" />
+    <ClInclude Include="Slippi\SlippiRoomDirectory.h" />
+    <ClInclude Include="Slippi\SlippiRoomSession.h" />
     <ClInclude Include="Slippi\SlippiSavestate.h" />
     <ClInclude Include="Slippi\SlippiSpectate.h" />
+    <ClInclude Include="Slippi\SlippiStun.h" />
     <ClInclude Include="Slippi\SlippiUser.h" />
+    <ClInclude Include="Slippi\SlippiWatch.h" />
     <ClInclude Include="State.h" />
   </ItemGroup>
   <ItemGroup>

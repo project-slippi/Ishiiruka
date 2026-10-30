@@ -9,6 +9,7 @@
 #include "Core/Slippi/SlippiReplayComm.h"
 #include <SlippiLib/SlippiGame.h>
 
+#include <ctime>
 #include <semver/include/semver200.h>
 #include <utility> // std::move
 
@@ -24,6 +25,7 @@
 
 #include "AudioCommon/AudioCommon.h"
 #include "VideoCommon/OnScreenDisplay.h"
+#include "VideoCommon/VideoCommon.h"
 
 #include "Core/Core.h"
 #include "Core/CoreTiming.h"
@@ -49,6 +51,12 @@ void doConnectionCleanup(std::unique_ptr<SlippiMatchmaking> mm, std::unique_ptr<
 #define FRAME_INTERVAL 900
 #define SLEEP_TIME_MS 8
 #define WRITE_FILE_SLEEP_TIME_MS 85
+
+// Melee's scene controller, and the online major's match scene
+#define SCENE_CONTROLLER_MAJOR 0x80479D30
+#define SCENE_CONTROLLER_MINOR 0x80479D33
+#define SCENE_ONLINE_MAJOR 0x08
+#define SCENE_ONLINE_IN_GAME_MINOR 0x02
 
 // #define LOCAL_TESTING
 
@@ -1245,8 +1253,61 @@ bool CEXISlippi::isDisconnected()
 	return status != SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED;
 }
 
+// Unthrottled and muted while a watcher catches up to a match under way. The frame limiter is the
+// lever rather than the CPU clock, which only gives Melee headroom inside each frame. The viewer's
+// own mute setting is put back afterwards
+static void setCatchUpSpeed(bool fast)
+{
+	static bool applied = false;
+	static bool prevMuted = false;
+
+	if (fast == applied)
+		return;
+
+	if (fast)
+	{
+		prevMuted = SConfig::GetInstance().m_IsMuted;
+		SConfig::GetInstance().m_IsMuted = true;
+	}
+	else
+	{
+		SConfig::GetInstance().m_IsMuted = prevMuted;
+	}
+	AudioCommon::UpdateSoundStream();
+	Core::SetIsThrottlerTempDisabled(fast);
+
+	applied = fast;
+	INFO_LOG(SLIPPI_ONLINE, "[Watch] Catch-up %s", fast ? "on" : "off");
+}
+
+// A watcher's opponent pads, out of its timeline rather than off a connection, in the shape Slippi
+// expects: newest frame first, back through the rollback window. The latest frame is never past what
+// both players have sent, so Melee never reaches a frame it only has half of
+static std::unique_ptr<SlippiRemotePadOutput> watchRemotePad(SlippiWatchClient *watch, s32 frame, u8 port)
+{
+	auto out = std::make_unique<SlippiRemotePadOutput>();
+	out->isDisconnected = false;
+	out->checksumFrame = 0;
+	out->checksum = 0;
+
+	s32 latest = watch->LatestFrame();
+	if (latest > frame)
+		latest = frame;
+	out->latestFrame = latest;
+
+	for (s32 f = latest; f > latest - ROLLBACK_MAX_FRAMES && f >= Slippi::GAME_FIRST_FRAME; f--)
+	{
+		u8 buf[SLIPPI_PAD_FULL_SIZE] = {};
+		watch->GetPad(f, port, buf);
+		out->data.insert(out->data.end(), buf, buf + SLIPPI_PAD_FULL_SIZE);
+	}
+	return out;
+}
+
 void CEXISlippi::handleOnlineInputs(u8 *payload)
 {
+	punchAtWatchers();
+
 	m_read_queue.clear();
 
 	s32 frame = Common::swap32(&payload[0]);
@@ -1307,6 +1368,13 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 		}
 
 		m_read_queue.push_back(3); // Indicate we disconnected
+		return;
+	}
+
+	// A watcher only consumes, so everything about the frame comes from its timeline
+	if (isWatching())
+	{
+		prepareOpponentInputs(frame, watch_client->LatestFrame() < frame && !isWatchCutOff(frame));
 		return;
 	}
 
@@ -1532,6 +1600,21 @@ bool CEXISlippi::shouldSkipOnlineFrame(s32 frame, s32 finalizedFrame)
 
 bool CEXISlippi::shouldAdvanceOnlineFrame(s32 frame)
 {
+	// A watcher chases its timeline, starting behind by however long the match has been going. It
+	// needs both the throttler off and an advance, which loops Melee's engine so two frames are
+	// simulated and one drawn. The advance is rationed to every other frame: returned on every poll,
+	// the frame counter races ahead of a state that was never simulated. The catch-up isn't shown, so
+	// the first frame drawn is the live one
+	if (isWatching())
+	{
+		s32 behind = watch_client->LatestFrame() - frame;
+		setCatchUpSpeed(behind > 10);
+		g_slippi_hide_frames = behind > 10;
+		return behind > 10 && (frame % 2) == 0;
+	}
+	setCatchUpSpeed(false);
+	g_slippi_hide_frames = false;
+
 	// If the opponent is a bot running ahead to give us more inputs, we should
 	// just keep going at our own pace rather than trying to catch up.
 	if (opponentRunahead())
@@ -1685,7 +1768,12 @@ void CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)
 
 	u8 frameResult = 1; // Indicates to continue frame
 
+	// A watcher's stand-in client has no peers. What keeps it going is its timeline, which shouldSkip
+	// already reflects, until the watch runs out
 	auto state = slippi_netplay->GetSlippiConnectStatus();
+	if (isWatching())
+		state = isWatchCutOff(frame) ? SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_DISCONNECTED
+		                             : SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED;
 	if (shouldSkip)
 	{
 		// Event though we are skipping an input, we still want to prepare the opponent inputs because
@@ -1704,7 +1792,9 @@ void CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)
 
 	m_read_queue.push_back(frameResult); // Write out the control message value
 
-	u8 remotePlayerCount = matchmaking->RemotePlayerCount();
+	// For a watcher both players are remote
+	bool watching = isWatching();
+	u8 remotePlayerCount = watching ? 2 : matchmaking->RemotePlayerCount();
 	m_read_queue.push_back(remotePlayerCount); // Indicate the number of remote players
 
 	std::unique_ptr<SlippiRemotePadOutput> results[SLIPPI_REMOTE_PLAYER_MAX];
@@ -1714,7 +1804,9 @@ void CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)
 	u32 lastChecksum = 0;
 	for (int i = 0; i < remotePlayerCount; i++)
 	{
-		results[i] = slippi_netplay->GetSlippiRemotePad(i, ROLLBACK_MAX_FRAMES);
+		// Remote i is port i for a watcher, which sits at port 2
+		results[i] = watching ? watchRemotePad(watch_client.get(), frame, static_cast<u8>(i))
+		                      : slippi_netplay->GetSlippiRemotePad(i, ROLLBACK_MAX_FRAMES);
 		if (results[i]->isDisconnected)
 		{
 			continue;
@@ -1983,16 +2075,7 @@ void CEXISlippi::startFindMatch(u8 *payload)
 	}
 
 #ifndef LOCAL_TESTING
-	if (!isEnetInitialized)
-	{
-		// Initialize enet
-		auto res = enet_initialize();
-		if (res < 0)
-			ERROR_LOG(SLIPPI_ONLINE, "Failed to initialize enet res: %d", res);
-
-		isEnetInitialized = true;
-	}
-
+	initEnet();
 	matchmaking->FindMatch(search);
 #endif
 }
@@ -2153,6 +2236,60 @@ void CEXISlippi::prepareOnlineMatchState()
 	}
 #endif
 
+	// Watching: everything about the match came over the watch connections rather than being
+	// negotiated, so build what the code below expects to find
+	if (isWatching())
+	{
+		SlippiWatchClient::Picks picks = watch_client->GetPicks();
+
+		// Once the match scene starts, its frames are hidden from the first one, so the splash stays up
+		// until the match has caught up rather than a frozen "Ready". The per-frame poll takes it from
+		// here
+		if (Memory::Read_U8(SCENE_CONTROLLER_MAJOR) == SCENE_ONLINE_MAJOR &&
+		    Memory::Read_U8(SCENE_CONTROLLER_MINOR) == SCENE_ONLINE_IN_GAME_MINOR)
+			g_slippi_hide_frames = true;
+
+		if (!slippi_netplay)
+		{
+			slippi_netplay = std::make_unique<SlippiNetplayClient>(true);
+			slippi_netplay->MakeWatcher(SlippiWatchClient::WATCHER_PORT);
+
+			// Nothing from a match this client played earlier belongs here. Its items setting in
+			// particular would turn items on for the watcher alone
+			recentMmResult = SlippiMatchmaking::MatchmakeResult();
+			INFO_LOG(SLIPPI_ONLINE, "[Watch] Starting %d vs %d on stage %d", picks.character[0], picks.character[1],
+			         picks.stage);
+		}
+
+		for (u8 i = 0; i < 2; i++)
+		{
+			SlippiPlayerSelections sel;
+			sel.playerIdx = i;
+			sel.characterId = picks.character[i];
+			sel.characterColor = picks.color[i];
+			sel.isCharacterSelected = true;
+			sel.stageId = picks.stage;
+			sel.isStageSelected = true;
+			// The players' seed, or everything random happens differently
+			sel.rngOffset = picks.seed;
+			slippi_netplay->SetRemoteSelections(i, sel);
+		}
+
+		// Ours, for a port that isn't in the match. It has to look chosen for the match to start, and
+		// the match block marks the port empty
+		localSelections.playerIdx = SlippiWatchClient::WATCHER_PORT;
+		localSelections.isCharacterSelected = true;
+		localSelections.isStageSelected = true;
+		localSelections.stageId = picks.stage;
+		localSelections.rngOffset = picks.seed;
+
+		// The code below reads selections from the netplay client, not from localSelections
+		slippi_netplay->SetWatchSelections(localSelections);
+
+		localPlayerIndex = SlippiWatchClient::WATCHER_PORT;
+		mmState = SlippiMatchmaking::ProcessState::CONNECTION_SUCCESS;
+	}
+
 	m_read_queue.push_back(mmState); // Matchmaking State
 
 	u8 localPlayerReady = localSelections.isCharacterSelected;
@@ -2163,7 +2300,9 @@ void CEXISlippi::prepareOnlineMatchState()
 
 	if (mmState == SlippiMatchmaking::ProcessState::CONNECTION_SUCCESS)
 	{
-		localPlayerIndex = matchmaking->LocalPlayerIndex();
+		// A watcher was never matchmade, and this would put it on a port that's in the match
+		if (!isWatching())
+			localPlayerIndex = matchmaking->LocalPlayerIndex();
 
 		if (!slippi_netplay)
 		{
@@ -2178,6 +2317,11 @@ void CEXISlippi::prepareOnlineMatchState()
 			// who we were connected to after they disconnect from us, for example in the case of reporting
 			// a match. So let's copy the results.
 			recentMmResult = matchmaking->GetMatchmakeResult();
+
+			// Tell the room where watchers can reach this match: the address Slippi's server saw for
+			// the socket it runs on
+			if (room)
+				room->SetMatchAddress(matchmaking->LocalExternalAddress());
 
 			// Use allowed stages from the matchmaking service and pick a new random stage before sending
 			// the selections to the opponent
@@ -2208,7 +2352,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		// If any players are disconnected and the match state is being requested (we are in a lobby),
 		// we should just disconnect. This allows for games to finish with a disconnected player but
 		// after that the "lobby" is terminated.
-		if (slippi_netplay->GetActivePlayerIndices().size() != matchmaking->RemotePlayerCount())
+		if (!isWatching() && slippi_netplay->GetActivePlayerIndices().size() != matchmaking->RemotePlayerCount())
 		{
 			isConnected = false;
 		}
@@ -2219,7 +2363,7 @@ void CEXISlippi::prepareOnlineMatchState()
 			auto matchInfo = slippi_netplay->GetMatchInfo();
 			remotePlayersReady = 1;
 #ifndef LOCAL_TESTING
-			u8 remotePlayerCount = matchmaking->RemotePlayerCount();
+			u8 remotePlayerCount = isWatching() ? 2 : matchmaking->RemotePlayerCount();
 			for (int i = 0; i < remotePlayerCount; i++)
 			{
 				if (!matchInfo->remotePlayerSelections[i].isCharacterSelected)
@@ -2246,8 +2390,9 @@ void CEXISlippi::prepareOnlineMatchState()
 #endif
 		}
 
-		// Here we are connected, check to see if we should init play session
-		if (!isPlaySessionActive)
+		// Here we are connected, check to see if we should init play session. Not for a watcher, which
+		// isn't playing the game it would report
+		if (!isPlaySessionActive && !isWatching())
 		{
 			slprs_exi_device_start_new_reporter_session(slprs_exi_device_ptr);
 			isPlaySessionActive = true;
@@ -2344,7 +2489,7 @@ void CEXISlippi::prepareOnlineMatchState()
 	if (localPlayerReady && remotePlayersReady)
 	{
 		auto isDecider = slippi_netplay->IsDecider();
-		u8 remotePlayerCount = matchmaking->RemotePlayerCount();
+		u8 remotePlayerCount = isWatching() ? 2 : matchmaking->RemotePlayerCount();
 		auto matchInfo = slippi_netplay->GetMatchInfo();
 		SlippiPlayerSelections lps = matchInfo->localPlayerSelections;
 		auto rps = matchInfo->remotePlayerSelections;
@@ -2551,14 +2696,16 @@ void CEXISlippi::prepareOnlineMatchState()
 		// sometimes
 
 		// Set p3/p4 player type to human or none depending on the amount of players
-		onlineMatchBlock[0x61 + 2 * 0x24] = remotePlayerCount >= 2 ? 0 : 3;
+		// A watcher has two remote players but sits on port 2 because it isn't in the match
+		onlineMatchBlock[0x61 + 2 * 0x24] = (remotePlayerCount >= 2 && !isWatching()) ? 0 : 3;
 		onlineMatchBlock[0x61 + 3 * 0x24] = remotePlayerCount >= 3 ? 0 : 3;
 
 		u16 *stage = (u16 *)&onlineMatchBlock[0xE];
 		*stage = Common::swap16(stageId);
 
-		// Turn pause off in unranked/ranked, on in other modes
-		auto pauseAllowed = lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::DIRECT;
+		// Turn pause off in unranked/ranked, on in other modes. Rooms play through Direct but without
+		// pause, since the queue is waiting on the match
+		auto pauseAllowed = lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::DIRECT && !room;
 		u8 *gameBitField3 = (u8 *)&onlineMatchBlock[2];
 		*gameBitField3 = pauseAllowed ? *gameBitField3 & 0xF7 : *gameBitField3 | 0x8;
 		//*gameBitField3 = *gameBitField3 | 0x8;
@@ -2662,9 +2809,20 @@ void CEXISlippi::prepareOnlineMatchState()
 	std::string defaultNames[] = {"Player 1", "Player 2", "Player 3", "Player 4"};
 #endif
 
+	// A watcher was never matchmade, so names come from the room. Only the watch connection knows which
+	// of the two Slippi made player 0
+	std::string watchNames[2];
+	if (isWatching() && room)
+	{
+		SlippiWatchClient::Picks picks = watch_client->GetPicks();
+		SlippiRoom copy = room->CopyRoom();
+		for (int i = 0; i < 2; i++)
+			watchNames[i] = copy.SideName(static_cast<SlippiRoom::Side>(picks.slot[i]));
+	}
+
 	for (int i = 0; i < 4; i++)
 	{
-		std::string name = matchmaking->GetPlayerName(i);
+		std::string name = isWatching() && i < 2 ? watchNames[i] : matchmaking->GetPlayerName(i);
 #ifdef LOCAL_TESTING
 		name = defaultNames[i];
 #endif
@@ -2683,7 +2841,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		if (localPlayerIndex == i || !playerIsHuman || (isSameTeam && isTeams))
 			continue;
 
-		auto name = matchmaking->GetPlayerName(i);
+		auto name = isWatching() && i < 2 ? watchNames[i] : matchmaking->GetPlayerName(i);
 		if (name != "")
 			opponentNames.push_back(name);
 	}
@@ -3088,6 +3246,11 @@ void CEXISlippi::handleConnectionCleanup()
 {
 	ERROR_LOG(SLIPPI_ONLINE, "Connection cleanup started...");
 
+	// Always draw again, in case a watch ended during its catch-up. A watch belongs to the match
+	// being cleaned up
+	g_slippi_hide_frames = false;
+	endWatch();
+
 	// Handle destructors in a separate thread to not block the main thread
 	std::thread cleanup(doConnectionCleanup, std::move(matchmaking), std::move(slippi_netplay));
 	cleanup.detach();
@@ -3131,6 +3294,14 @@ void CEXISlippi::prepareNewSeed()
 
 void CEXISlippi::handleReportGame(const SlippiExiTypes::ReportGameQuery &query)
 {
+	// A watcher reports nothing about a match it wasn't in. Its match ending is the end of the watch
+	if (isWatching())
+	{
+		INFO_LOG(SLIPPI_ONLINE, "[Watch] The match ended");
+		endWatch();
+		return;
+	}
+
 	std::string matchId = recentMmResult.id;
 	SlippiMatchmakingOnlinePlayMode onlineMode = static_cast<SlippiMatchmakingOnlinePlayMode>(query.onlineMode);
 	u32 durationFrames = query.frameLength;
@@ -3201,6 +3372,22 @@ void CEXISlippi::handleReportGame(const SlippiExiTypes::ReportGameQuery &query)
 #ifndef LOCAL_TESTING
 	slprs_exi_device_log_game_report(slprs_exi_device_ptr, gameReport);
 #endif
+
+	// A room match moves the room's queue with its result. Room matches can't be quit, so one that
+	// ended as an L R A START was ended by Slippi after a player dropped, and it names the player who
+	// stayed. The room settles that instead: whoever dropped forfeits
+	if (room && gameEndMethod != 7)
+	{
+		SlippiRoom::MatchResult result = SlippiRoom::RESULT_DRAW;
+		if (winnerIdx >= 0)
+			result = winnerIdx == localPlayerIndex ? SlippiRoom::RESULT_WON : SlippiRoom::RESULT_LOST;
+
+		// Nobody won: -1 for a tie, -2 when this side saw a desync, -3 when it saw the opponent disconnect
+		if (winnerIdx < 0)
+			WARN_LOG(SLIPPI_ONLINE, "[Rooms] The match ended without a winner (%d), the room replays it", winnerIdx);
+
+		room->ReportMatchResult(result);
+	}
 }
 
 void CEXISlippi::prepareDelayResponse()
@@ -3396,6 +3583,338 @@ void CEXISlippi::handleGetRank()
 	m_read_queue.push_back(static_cast<u8>(rank_info.rank_change));
 }
 
+void CEXISlippi::handleCreateRoom(const SlippiExiTypes::CreateRoomQuery &query)
+{
+	initEnet();
+	auto userInfo = user->GetUserInfo();
+	room = std::make_unique<SlippiRoomHost>(SlippiRoomSession::Identity{userInfo.displayName, userInfo.connectCode},
+	                                        query);
+}
+
+void CEXISlippi::handleJoinRoom(const SlippiExiTypes::JoinRoomQuery &query)
+{
+	initEnet();
+	auto userInfo = user->GetUserInfo();
+	room = std::make_unique<SlippiRoomMember>(SlippiRoomSession::Identity{userInfo.displayName, userInfo.connectCode},
+	                                          query);
+}
+
+// The room we're in is saved so it can be rejoined after a crash. Leaving on purpose forgets it. It's
+// saved again every few minutes, since rejoining is only offered for an hour after it was last saved
+static const s64 LAST_ROOM_RESAVE_SECONDS = 5 * 60;
+
+static std::string lastRoomPath()
+{
+	std::string folder = File::GetSlippiUserConfigFolder();
+	if (!folder.empty() && folder.back() != '/' && folder.back() != '\\')
+		folder += DIR_SEP;
+	return folder + "last-room.json";
+}
+
+void CEXISlippi::saveLastRoom(const SlippiExiTypes::GetRoomStateResponse &state)
+{
+	bool isInRoom = state.connection_status == SlippiRoomSession::STATUS_HOSTING ||
+	                state.connection_status == SlippiRoomSession::STATUS_JOINED;
+	std::string code(state.code, strnlen(state.code, sizeof(state.code)));
+	s64 now = static_cast<s64>(std::time(nullptr));
+	if (!isInRoom || code.empty() || (code == lastRoomCode && now - lastRoomSavedAt < LAST_ROOM_RESAVE_SECONDS))
+		return;
+
+	lastRoomCode = code;
+	lastRoomSavedAt = now;
+	nlohmann::json j = {{"code", code},
+	                    {"password", std::string(state.password, strnlen(state.password, sizeof(state.password)))},
+	                    {"savedAt", now}};
+	File::WriteStringToFile(j.dump(), lastRoomPath());
+}
+
+// Watches the match the room is playing. Both players' addresses come from the room, and both are
+// needed, since each player only sends their own inputs
+void CEXISlippi::handleRoomWatch()
+{
+	if (!room)
+		return;
+
+	if (watch_client)
+	{
+		// A watch that ended is let go of, so it can be tried again
+		SlippiWatchClient::Status st = watch_client->GetStatus();
+		if (st != SlippiWatchClient::Status::FAILED && st != SlippiWatchClient::Status::OVER)
+			return;
+		endWatch();
+	}
+
+	SlippiRoom copy = room->CopyRoom();
+	std::vector<std::string> addrs;
+	std::vector<u16> ports;
+	for (int side = 0; side < 2; side++)
+	{
+		std::vector<std::string> parts;
+		SplitString(copy.SideMatchAddress(static_cast<SlippiRoom::Side>(side)), ':', parts);
+		u16 port = parts.size() == 2 ? static_cast<u16>(std::atoi(parts[1].c_str())) : 0;
+		if (port == 0)
+		{
+			WARN_LOG(SLIPPI_ONLINE, "[Watch] Both players haven't said where their match is yet");
+			return;
+		}
+		addrs.push_back(parts[0]);
+		ports.push_back(port);
+	}
+
+	watch_client = std::make_unique<SlippiWatchClient>(addrs, ports);
+	isWatchAddressSent = false;
+
+	// The match's rules follow the search mode, and a watcher never searches. The players found each
+	// other with Direct, so the watcher has to play by Direct's rules too, or its copy of the match
+	// could play differently from theirs
+	lastSearch.mode = SlippiMatchmaking::OnlinePlayMode::DIRECT;
+}
+
+// Opens this player's router toward everyone watching their match. Every second rather than once,
+// since the router forgets and a watcher can arrive at any point in the match
+void CEXISlippi::punchAtWatchers()
+{
+	if (!room || !slippi_netplay || isWatching())
+		return;
+
+	u64 now = Common::Timer::GetTimeMs();
+	if (now - lastPunchMs < 1000)
+		return;
+	lastPunchMs = now;
+
+	for (const std::string &address : room->CopyRoom().WatchAddresses())
+		slippi_netplay->PunchTo(address);
+}
+
+void CEXISlippi::endWatch()
+{
+	if (!watch_client)
+		return;
+
+	// Closing the watch's connections waits on the network, which the CPU thread shouldn't
+	setCatchUpSpeed(false);
+	std::thread([](std::unique_ptr<SlippiWatchClient> watch) { watch.reset(); }, std::move(watch_client)).detach();
+	if (room && isWatchAddressSent)
+		room->SetWatchAddress("");
+	isWatchAddressSent = false;
+}
+
+u8 CEXISlippi::watchStatus()
+{
+	if (!watch_client)
+		return WATCH_NONE;
+	if (isWatching())
+		return WATCH_READY;
+
+	SlippiWatchClient::Status st = watch_client->GetStatus();
+	if (st == SlippiWatchClient::Status::FAILED || st == SlippiWatchClient::Status::OVER)
+		return WATCH_FAILED;
+	return WATCH_CONNECTING;
+}
+
+void CEXISlippi::initEnet()
+{
+	if (isEnetInitialized)
+		return;
+
+	auto res = enet_initialize();
+	if (res < 0)
+		ERROR_LOG(SLIPPI_ONLINE, "Failed to initialize enet res: %d", res);
+
+	isEnetInitialized = true;
+}
+
+void CEXISlippi::handleRoomAction(const SlippiExiTypes::RoomActionQuery &query)
+{
+	if (!room)
+		return;
+
+	if (query.action == SlippiRoom::ACTION_LEAVE_ROOM)
+	{
+		endWatch();
+		room->Leave();
+		room = nullptr;
+		lastRoomCode.clear();
+		File::Delete(lastRoomPath());
+		return;
+	}
+
+	if (query.action == SlippiRoom::ACTION_ADD_TEST_PLAYER)
+	{
+		room->AddTestPlayer();
+		return;
+	}
+
+	room->HandleLocalAction(query.action, query.value[0], query.value[1]);
+}
+
+void CEXISlippi::prepareRoomState()
+{
+	m_read_queue.clear();
+
+	SlippiExiTypes::GetRoomStateResponse resp = {};
+	if (room)
+	{
+		// The session changes when this player takes over as host or hands the room back
+		if (auto next = room->TakeNext())
+			room = std::move(next);
+
+		resp = room->GetState();
+		saveLastRoom(resp);
+
+		// A watch that failed is let go of once its match is over, so the failure isn't shown again
+		if (watch_client && !isWatching() && resp.phase != SlippiRoom::PHASE_PLAYING &&
+		    watch_client->GetStatus() == SlippiWatchClient::Status::FAILED)
+			endWatch();
+
+		// The players punch through to where the watcher is, once STUN has found it
+		if (watch_client && !isWatchAddressSent)
+		{
+			std::string address = watch_client->PublicAddress();
+			if (!address.empty())
+			{
+				room->SetWatchAddress(address);
+				isWatchAddressSent = true;
+			}
+		}
+	}
+	resp.watch_status = watchStatus();
+
+	u8 *data = reinterpret_cast<u8 *>(&resp);
+	m_read_queue.insert(m_read_queue.end(), data, data + sizeof(resp));
+}
+
+// Asked every frame while a player practices in a room, and by the practice scenes on their way out.
+// Practice ends once the room calls them up for a set, meaning they're on a side and have someone to
+// play, or when there's no room to go back to. A winner nobody has challenged practices until someone
+// does
+void CEXISlippi::preparePracticeOver()
+{
+	m_read_queue.clear();
+
+	bool isOver = true;
+	if (room)
+	{
+		// The room carries on while its player practices, host changes included
+		if (auto next = room->TakeNext())
+			room = std::move(next);
+
+		SlippiExiTypes::GetRoomStateResponse state = room->GetState();
+		int side = state.sides[0] == state.local_member ? 0 : state.sides[1] == state.local_member ? 1 : -1;
+		bool isCalledUp = side >= 0 && state.sides[1 - side] >= 0;
+		isOver = isCalledUp || state.connection_status == SlippiRoomSession::STATUS_FAILED;
+	}
+	m_read_queue.push_back(isOver);
+}
+
+// The last room, when it was left by a crash rather than on purpose. Rooms with no activity for an
+// hour are gone anyway
+static bool readLastRoom(std::string &code, std::string &password)
+{
+	std::string contents;
+	if (!File::ReadFileToString(lastRoomPath(), contents))
+		return false;
+
+	nlohmann::json j = nlohmann::json::parse(contents, nullptr, false);
+	if (!j.is_object())
+		return false;
+
+	// Anything but what this build writes is ignored
+	try
+	{
+		if (std::time(nullptr) - j.value("savedAt", static_cast<s64>(0)) >= 60 * 60)
+			return false;
+
+		code = j.value("code", "");
+		password = j.value("password", "");
+	}
+	catch (const nlohmann::json::exception &)
+	{
+		return false;
+	}
+	return !code.empty();
+}
+
+CEXISlippi::RoomListFetch CEXISlippi::fetchRoomList(std::string rejoinCode, std::string rejoinPassword)
+{
+	RoomListFetch fetch;
+	auto directory = SlippiRoomDirectory::Create();
+	fetch.ok = directory->List(fetch.listings);
+
+	fetch.rejoinCode = rejoinCode;
+	fetch.rejoinPassword = rejoinPassword;
+	if (!rejoinCode.empty())
+		fetch.isRejoinChecked = directory->Exists(rejoinCode, fetch.isRejoinUp);
+	return fetch;
+}
+
+void CEXISlippi::handleFetchRoomList()
+{
+	// Only one fetch at a time
+	if (roomListFuture.valid() && roomListFuture.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
+		return;
+
+	std::string code, password;
+	if (room || !readLastRoom(code, password))
+		code.clear();
+
+	roomListStatus = ROOM_LIST_FETCHING;
+	roomListFuture = std::async(std::launch::async, fetchRoomList, code, password);
+}
+
+void CEXISlippi::prepareRoomList()
+{
+	m_read_queue.clear();
+
+	if (roomListFuture.valid() && roomListFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
+	{
+		RoomListFetch fetch = roomListFuture.get();
+		roomListStatus = fetch.ok ? ROOM_LIST_FETCHED : ROOM_LIST_FAILED;
+		roomList = fetch.listings;
+
+		// Rejoin is only offered for a room that's still up. One that's gone is forgotten, unless a
+		// newer room was saved since the fetch started
+		rejoinCode.clear();
+		rejoinPassword.clear();
+		if (fetch.isRejoinChecked && fetch.isRejoinUp)
+		{
+			rejoinCode = fetch.rejoinCode;
+			rejoinPassword = fetch.rejoinPassword;
+		}
+		else if (fetch.isRejoinChecked)
+		{
+			std::string code, password;
+			if (readLastRoom(code, password) && code == fetch.rejoinCode)
+				File::Delete(lastRoomPath());
+		}
+	}
+
+	SlippiExiTypes::GetRoomListResponse resp = {};
+	resp.status = roomListStatus;
+	resp.count = static_cast<u8>(std::min<size_t>(roomList.size(), ROOM_LIST_MAX));
+	for (int i = 0; i < resp.count; i++)
+	{
+		SlippiExiTypes::RoomListing &rl = resp.rooms[i];
+		std::string hostName = ConvertStringForGame(roomList[i].hostName, MAX_NAME_LENGTH);
+		strncpy(rl.code, roomList[i].code.c_str(), sizeof(rl.code) - 1);
+		memcpy(rl.host_name, hostName.c_str(), std::min(hostName.size(), sizeof(rl.host_name) - 1));
+		rl.mode = roomList[i].mode;
+		rl.stage_mode = roomList[i].stageMode;
+		rl.capacity = roomList[i].capacity;
+		rl.member_count = roomList[i].memberCount;
+		rl.region = roomList[i].region;
+	}
+
+	if (!room && !rejoinCode.empty())
+	{
+		strncpy(resp.rejoin_code, rejoinCode.c_str(), sizeof(resp.rejoin_code) - 1);
+		strncpy(resp.rejoin_password, rejoinPassword.c_str(), sizeof(resp.rejoin_password) - 1);
+	}
+
+	u8 *data = reinterpret_cast<u8 *>(&resp);
+	m_read_queue.insert(m_read_queue.end(), data, data + sizeof(resp));
+}
+
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 {
 	u8 *memPtr = Memory::GetPointer(_uAddr);
@@ -3572,6 +4091,30 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_GET_PLAYER_SETTINGS:
 			handleGetPlayerSettings();
+			break;
+		case CMD_CREATE_ROOM:
+			handleCreateRoom(SlippiExiTypes::Convert<SlippiExiTypes::CreateRoomQuery>(&memPtr[bufLoc]));
+			break;
+		case CMD_ROOM_ACTION:
+			handleRoomAction(SlippiExiTypes::Convert<SlippiExiTypes::RoomActionQuery>(&memPtr[bufLoc]));
+			break;
+		case CMD_GET_ROOM_STATE:
+			prepareRoomState();
+			break;
+		case CMD_JOIN_ROOM:
+			handleJoinRoom(SlippiExiTypes::Convert<SlippiExiTypes::JoinRoomQuery>(&memPtr[bufLoc]));
+			break;
+		case CMD_FETCH_ROOM_LIST:
+			handleFetchRoomList();
+			break;
+		case CMD_GET_ROOM_LIST:
+			prepareRoomList();
+			break;
+		case CMD_ROOM_PRACTICE_OVER:
+			preparePracticeOver();
+			break;
+		case CMD_ROOM_WATCH:
+			handleRoomWatch();
 			break;
 		case CMD_PLAY_MUSIC:
 		{

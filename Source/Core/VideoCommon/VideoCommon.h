@@ -4,12 +4,19 @@
 
 #pragma once
 
+#include <atomic>
+
 #include "Common/Common.h"
 #include "Common/MathUtil.h"
 #include "VideoCommon/VideoBackendBase.h"
 
 // Global flag to signal if FifoRecorder is active.
 extern bool g_bRecordFifoData;
+
+// Set while a Slippi spectator catches up to a match in progress, so the catch-up isn't shown. Set on
+// the CPU thread and read on the video thread
+extern std::atomic<bool> g_slippi_hide_frames;
+
 // These are accurate (disregarding AA modes).
 enum
 {

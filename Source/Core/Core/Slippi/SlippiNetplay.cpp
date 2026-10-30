@@ -9,6 +9,7 @@
 #include "Common/Timer.h"
 #include "Core/ConfigManager.h"
 #include "Core/Core.h"
+#include "Core/Slippi/SlippiStun.h"
 #include "SlippiPremadeText.h"
 #include "VideoCommon/OnScreenDisplay.h"
 #include "VideoCommon/VideoConfig.h"
@@ -191,6 +192,21 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 
 	switch (mid)
 	{
+	case NP_MSG_SLIPPI_WATCH_FROM:
+	{
+		// Only answered for a peer that connected as a watcher
+		if (std::find(m_spectators.begin(), m_spectators.end(), peer) == m_spectators.end())
+			break;
+
+		s32 from;
+		if (!(packet >> from))
+		{
+			ERROR_LOG(SLIPPI_ONLINE, "[Netplay] Watch request with no frame in it");
+			break;
+		}
+		SendWatchHistoryFrom(peer, from);
+		break;
+	}
 	case NP_MSG_SLIPPI_PAD:
 	{
 		// Fetch current time immediately for the most accurate timing calculations
@@ -700,14 +716,126 @@ void SlippiNetplayClient::Send(sf::Packet &packet)
 		ENetPacket *epac = enet_packet_create(packet.getData(), packet.getDataSize(), flags);
 		int sendResult = enet_peer_send(m_server[i], channelId, epac);
 	}
+
+	SendToSpectators(packet);
+}
+
+// Sends a watcher everything it has missed, as pad packets like the live ones: the header frame is the
+// newest and the pads run backwards from it. Chunks stay under OnData's limit of 128 frames and go
+// reliably, so they arrive in order
+void SlippiNetplayClient::SendWatchHistoryFrom(ENetPeer *peer, s32 fromFrame)
+{
+	if (!peer)
+		return;
+
+	// Copied out so the game thread isn't held up while the packets are built
+	std::vector<std::array<u8, SLIPPI_PAD_DATA_SIZE>> history;
+	{
+		std::lock_guard<std::mutex> lk(m_watchLock);
+		if (fromFrame < m_watchHistoryFirstFrame)
+			fromFrame = m_watchHistoryFirstFrame;
+		s32 offset = fromFrame - m_watchHistoryFirstFrame;
+		if (offset >= (s32)m_watchHistory.size())
+			return;
+		history.assign(m_watchHistory.begin() + offset, m_watchHistory.end());
+	}
+	const s32 last = fromFrame + (s32)history.size() - 1;
+
+	const s32 kPerChunk = 120;
+	for (s32 f = fromFrame; f <= last; f += kPerChunk)
+	{
+		const s32 count = std::min(kPerChunk, last - f + 1);
+		const s32 newest = f + count - 1;
+
+		sf::Packet pac;
+		pac << static_cast<MessageId>(NP_MSG_SLIPPI_PAD);
+		pac << newest;
+		pac << this->playerIdx;
+		pac << (s32)0; // checksumFrame
+		pac << (u32)0; // checksum
+		for (s32 i = 0; i < count; i++)
+			pac.append(history[newest - fromFrame - i].data(), SLIPPI_PAD_DATA_SIZE);
+
+		ENetPacket *epac = enet_packet_create(pac.getData(), pac.getDataSize(), ENET_PACKET_FLAG_RELIABLE);
+		enet_peer_send(peer, 0, epac);
+	}
+
+	INFO_LOG(SLIPPI_ONLINE, "[Netplay] Sent a watcher frames %d to %d", fromFrame, last);
+}
+
+// Copies the packets that describe the match to anyone watching. Never acks: watchers send none, and
+// the pad queue is trimmed by the slowest acker
+void SlippiNetplayClient::SendToSpectators(sf::Packet &packet)
+{
+	if (m_spectators.empty())
+		return;
+
+	MessageId mid = ((u8 *)packet.getData())[0];
+	if (mid != NP_MSG_SLIPPI_PAD && mid != NP_MSG_SLIPPI_MATCH_SELECTIONS)
+		return;
+
+	enet_uint32 flags = mid == NP_MSG_SLIPPI_PAD ? ENET_PACKET_FLAG_UNSEQUENCED : ENET_PACKET_FLAG_RELIABLE;
+	u8 channelId = mid == NP_MSG_SLIPPI_PAD ? 1 : 0;
+
+	for (auto *peer : m_spectators)
+	{
+		if (!peer)
+			continue;
+		ENetPacket *epac = enet_packet_create(packet.getData(), packet.getDataSize(), flags);
+		enet_peer_send(peer, channelId, epac);
+	}
+}
+
+// Watchers get the pad stream and nothing else: no player index, no entry in m_server and no part in
+// whether the match is connected. Selections only go out before a game starts, so they're sent again
+// here, from the snapshot once a game is under way
+void SlippiNetplayClient::acceptSpectator(ENetPeer *peer)
+{
+	if (std::find(m_spectators.begin(), m_spectators.end(), peer) == m_spectators.end())
+	{
+		if (m_spectators.size() >= MAX_SPECTATORS)
+		{
+			INFO_LOG(SLIPPI_ONLINE, "[Netplay] Turning a watcher away, %d already", (int)m_spectators.size());
+			enet_peer_disconnect(peer, 0);
+			return;
+		}
+		m_spectators.push_back(peer);
+	}
+	INFO_LOG(SLIPPI_ONLINE, "[Netplay] Someone is watching from %x:%d, %d now", peer->address.host, peer->address.port,
+	         (int)m_spectators.size());
+
+	SlippiPlayerSelections sel = matchInfo.localPlayerSelections;
+	if (!sel.isCharacterSelected)
+	{
+		std::lock_guard<std::mutex> lk(m_watchLock);
+		sel = m_watchSelections;
+	}
+	sf::Packet pac;
+	writeToPacket(pac, sel);
+	ENetPacket *epac = enet_packet_create(pac.getData(), pac.getDataSize(), ENET_PACKET_FLAG_RELIABLE);
+	enet_peer_send(peer, 0, epac);
 }
 
 void SlippiNetplayClient::Disconnect()
 {
 	ENetEvent netEvent;
 	slippiConnectStatus.store(SlippiConnectStatus::NET_CONNECT_STATUS_DISCONNECTED, std::memory_order_release);
+
+	// Watchers aren't in activeConnections, so they're told before the early return below
+	for (auto *peer : m_spectators)
+	{
+		if (peer)
+			enet_peer_disconnect(peer, 0);
+	}
+
 	if (activeConnections.empty())
 	{
+		for (auto *peer : m_spectators)
+		{
+			if (peer)
+				enet_peer_reset(peer);
+		}
+		m_spectators.clear();
 		return;
 	}
 
@@ -748,6 +876,13 @@ void SlippiNetplayClient::Disconnect()
 			enet_peer_reset(peer.first);
 		}
 	}
+	for (auto *peer : m_spectators)
+	{
+		if (peer)
+			enet_peer_reset(peer);
+	}
+	m_spectators.clear();
+
 	activeConnections.clear();
 	for (auto &active : playerActive)
 		active.store(false, std::memory_order_release);
@@ -827,6 +962,13 @@ void SlippiNetplayClient::ThreadFunc()
 				{
 					INFO_LOG(SLIPPI_ONLINE, "[Netplay] got connect event with nil peer");
 					continue;
+				}
+
+				// A watcher gets the pad stream and nothing else, and has no part in whether the match is connected
+				if (netEvent.data == SLIPPI_CONNECT_SPECTATOR)
+				{
+					acceptSpectator(netEvent.peer);
+					break; // Breaks out of case
 				}
 
 				std::stringstream keyStrm;
@@ -1035,6 +1177,14 @@ void SlippiNetplayClient::ThreadFunc()
 		ENetEvent netEvent;
 		int net;
 		net = enet_host_service(m_client, &netEvent, 250);
+
+		// Punches asked for by the EXI thread go out here, since this thread owns the socket
+		{
+			std::lock_guard<std::mutex> lk(m_punchLock);
+			for (const std::string &addr : m_punches)
+				SlippiStun::Punch(m_client, addr);
+			m_punches.clear();
+		}
 		while (!m_async_queue.Empty())
 		{
 			Send(*(m_async_queue.Front().get()));
@@ -1056,6 +1206,15 @@ void SlippiNetplayClient::ThreadFunc()
 			}
 			case ENET_EVENT_TYPE_DISCONNECT:
 			{
+				// A watcher leaving doesn't affect the match
+				auto watcher = std::find(m_spectators.begin(), m_spectators.end(), netEvent.peer);
+				if (watcher != m_spectators.end())
+				{
+					m_spectators.erase(watcher);
+					INFO_LOG(SLIPPI_ONLINE, "[Netplay] A watcher left, %d now", (int)m_spectators.size());
+					break;
+				}
+
 				std::stringstream keyStrm;
 				keyStrm << netEvent.peer->address.host << "-" << netEvent.peer->address.port;
 				auto key = keyStrm.str();
@@ -1116,6 +1275,13 @@ void SlippiNetplayClient::ThreadFunc()
 			}
 			case ENET_EVENT_TYPE_CONNECT:
 			{
+				// A watcher gets the pad stream and nothing else, and has no part in whether the match is connected
+				if (netEvent.peer && netEvent.data == SLIPPI_CONNECT_SPECTATOR)
+				{
+					acceptSpectator(netEvent.peer);
+					break; // Breaks out of case
+				}
+
 				std::stringstream keyStrm;
 				keyStrm << netEvent.peer->address.host << "-" << netEvent.peer->address.port;
 				int lateConnRemoteIdx = 0;
@@ -1182,6 +1348,16 @@ std::vector<int> SlippiNetplayClient::GetFailedConnections()
 
 void SlippiNetplayClient::StartSlippiGame()
 {
+	// Frames count from the start again, and the history is read by offset from its first frame. The
+	// selections are kept for watchers who connect once the game is under way, since the reset below
+	// clears them
+	{
+		std::lock_guard<std::mutex> lk(m_watchLock);
+		m_watchHistory.clear();
+		m_watchHistoryFirstFrame = 0;
+		m_watchSelections = matchInfo.localPlayerSelections;
+	}
+
 	// Reset variables to start a new game
 	hasGameStarted = false;
 
@@ -1277,6 +1453,27 @@ void SlippiNetplayClient::SendSlippiPad(std::unique_ptr<SlippiPad> pad)
 
 	auto frame = localPadQueue.front()->frame;
 
+	// Every frame is kept for watchers, since localPadQueue only holds what the opponent hasn't acked.
+	// front() is the newest frame, so this walks backwards to append in order
+	{
+		std::lock_guard<std::mutex> lk(m_watchLock);
+		if (m_watchHistory.empty())
+			m_watchHistoryFirstFrame = localPadQueue.back()->frame;
+
+		s32 haveTo = m_watchHistoryFirstFrame + (s32)m_watchHistory.size() - 1;
+		for (auto it = localPadQueue.rbegin(); it != localPadQueue.rend(); ++it)
+		{
+			if (!m_watchHistory.empty() && (*it)->frame <= haveTo)
+				continue;
+			// A gap would put every later frame at the wrong offset
+			if ((*it)->frame != m_watchHistoryFirstFrame + (s32)m_watchHistory.size())
+				break;
+			std::array<u8, SLIPPI_PAD_DATA_SIZE> one{};
+			memcpy(one.data(), (*it)->padBuf, SLIPPI_PAD_DATA_SIZE);
+			m_watchHistory.push_back(one);
+		}
+	}
+
 	auto spac = std::make_unique<sf::Packet>();
 	*spac << static_cast<MessageId>(NP_MSG_SLIPPI_PAD);
 	*spac << frame;
@@ -1315,6 +1512,42 @@ void SlippiNetplayClient::SendSlippiPad(std::unique_ptr<SlippiPad> pad)
 	}
 }
 
+void SlippiNetplayClient::MakeWatcher(u8 idx)
+{
+	this->playerIdx = idx;
+	this->m_remotePlayerCount = 2;
+
+	// Remote i is the i-th port that isn't ours, as the real constructor maps them
+	int j = 0;
+	for (int i = 0; i < SLIPPI_REMOTE_PLAYER_MAX; i++, j++)
+	{
+		if (j == idx)
+			j++;
+		matchInfo.remotePlayerSelections[i] = SlippiPlayerSelections();
+		matchInfo.remotePlayerSelections[i].playerIdx = j;
+	}
+
+	// Connected, since a watcher's health is its timeline rather than this client
+	slippiConnectStatus.store(SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED, std::memory_order_release);
+}
+
+void SlippiNetplayClient::SetRemoteSelections(u8 remoteIdx, const SlippiPlayerSelections &s)
+{
+	if (remoteIdx >= SLIPPI_REMOTE_PLAYER_MAX)
+		return;
+	u8 keepIdx = matchInfo.remotePlayerSelections[remoteIdx].playerIdx;
+	matchInfo.remotePlayerSelections[remoteIdx] = s;
+	matchInfo.remotePlayerSelections[remoteIdx].playerIdx = keepIdx;
+}
+
+// A watcher's own selections, kept locally and never sent. Its port and the players' seed have to be
+// in place for the match to be built
+void SlippiNetplayClient::SetWatchSelections(const SlippiPlayerSelections &s)
+{
+	matchInfo.localPlayerSelections = s;
+	matchInfo.localPlayerSelections.playerIdx = playerIdx;
+}
+
 void SlippiNetplayClient::SetMatchSelections(SlippiPlayerSelections &s)
 {
 	matchInfo.localPlayerSelections.Merge(s);
@@ -1325,6 +1558,12 @@ void SlippiNetplayClient::SetMatchSelections(SlippiPlayerSelections &s)
 	INFO_LOG(SLIPPI_ONLINE, "Setting match selections for %d", playerIdx);
 	writeToPacket(*spac, matchInfo.localPlayerSelections);
 	SendAsync(std::move(spac));
+}
+
+void SlippiNetplayClient::PunchTo(const std::string &addr)
+{
+	std::lock_guard<std::mutex> lk(m_punchLock);
+	m_punches.push_back(addr);
 }
 
 void SlippiNetplayClient::SendGamePrepStep(SlippiGamePrepStepResults &s)
