@@ -190,6 +190,7 @@ class SlippiNetplayClient
 	void StartSlippiGame();
 	void SendConnectionSelected();
 	void SendSlippiPad(std::unique_ptr<SlippiPad> pad);
+	void SendSlippiPadSuggestion(s32 targetFrame, u32 seq, const u8 *pad);
 	void SetMatchSelections(SlippiPlayerSelections &s);
 	void SendGamePrepStep(SlippiGamePrepStepResults &s);
 	void SendSyncedGameState(SlippiSyncedGameState &s);

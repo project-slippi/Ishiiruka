@@ -15,6 +15,7 @@
 #include "Core/HW/ProcessorInterface.h"
 #include "Core/HW/SI.h"
 #include "Core/HW/SI_DeviceGBA.h"
+#include "Core/HW/SI_DeviceGCController.h"
 #include "Core/HW/SystemTimers.h"
 #include "Core/Movie.h"
 #include "Core/NetPlayProto.h"
@@ -683,6 +684,15 @@ static void SendNetplayInputs(u64 userdata, s64 cyclesLate)
 		for(int i = 0; i < 4; i++)
 			netplay_client->SendNetPad(i);
 	}
+}
+
+bool GetGCControllerOrigin(int channel, u8 origin[6], u8 *analog_mode)
+{
+	if (channel < 0 || channel >= MAX_SI_CHANNELS || !SIDevice_IsGCController(GetDeviceType(channel)))
+		return false;
+
+	auto *device = static_cast<CSIDevice_GCController *>(g_Channel[channel].m_device.get());
+	return device->GetReportedOrigin(origin, analog_mode);
 }
 
 u32 GetPollXLines()

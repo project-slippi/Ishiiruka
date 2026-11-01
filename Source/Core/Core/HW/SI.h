@@ -41,6 +41,10 @@ void ChangeDeviceDeterministic(SIDevices device, int channel);
 
 SIDevices GetDeviceType(int channel);
 
+// The origin and analog mode the game was given by the GameCube controller on a channel. Returns false
+// if that device is not a GameCube controller or the game has not asked for its origin yet.
+bool GetGCControllerOrigin(int channel, u8 origin[6], u8 *analog_mode);
+
 u32 GetPollXLines();
 
 extern std::chrono::time_point<std::chrono::high_resolution_clock> last_si_read;

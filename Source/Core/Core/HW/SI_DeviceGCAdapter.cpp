@@ -25,6 +25,16 @@ CSIDevice_GCAdapter::CSIDevice_GCAdapter(SIDevices device, int _iDeviceNumber)
 
 GCPadStatus CSIDevice_GCAdapter::GetPadStatus()
 {
+	return GetPadStatusImpl(false);
+}
+
+GCPadStatus CSIDevice_GCAdapter::GetPadStatusForGamePoll()
+{
+	return GetPadStatusImpl(true);
+}
+
+GCPadStatus CSIDevice_GCAdapter::GetPadStatusImpl(bool is_game_poll)
+{
 	GCPadStatus pad_status = {0};
 	pad_status.stickX = pad_status.stickY = pad_status.substickX = pad_status.substickY =
 	    /* these are all the same */ GCPadStatus::MAIN_STICK_CENTER_X;
@@ -33,7 +43,7 @@ GCPadStatus CSIDevice_GCAdapter::GetPadStatus()
 	// the remote controllers receive their status there as well
 	if (!NetPlay::IsNetPlayRunning())
 	{
-		pad_status = GCAdapter::Input(m_iDeviceNumber);
+		pad_status = GCAdapter::Input(m_iDeviceNumber, is_game_poll);
 	}
 
 	HandleMoviePadStatus(&pad_status);

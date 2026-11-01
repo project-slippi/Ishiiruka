@@ -3,6 +3,7 @@
 // Refer to the license.txt file included.
 
 #include <algorithm>
+#include <atomic>
 #include <libusb.h>
 #include <mutex>
 #include <iostream>
@@ -38,11 +39,9 @@ static u8 s_controller_type[MAX_SI_CHANNELS] = {
 		ControllerTypes::CONTROLLER_NONE, ControllerTypes::CONTROLLER_NONE };
 static u8 s_controller_rumble[4];
 
-static const int adapter_payload_size = 37;
-
 static std::mutex s_mutex;
-static u8 s_controller_payload[adapter_payload_size];
-static u8 s_controller_payload_swap[adapter_payload_size];
+static u8 s_controller_payload[ADAPTER_PAYLOAD_SIZE];
+static u8 s_controller_payload_swap[ADAPTER_PAYLOAD_SIZE];
 
 static std::atomic<int> s_controller_payload_size = { 0 };
 
@@ -87,6 +86,23 @@ bool AdapterError()
 	return adapter_error && s_adapter_thread_running.IsSet();
 }
 
+// The reads the game itself makes of each port. Each stored report is stamped with these, so callers can
+// tell whether a game poll came before or after it. Protected by s_mutex.
+static u64 s_game_poll_counts[MAX_SI_CHANNELS] = {};
+
+static std::atomic<ReportCallback> s_report_callback{nullptr};
+
+void SetReportCallback(ReportCallback callback)
+{
+	s_report_callback.store(callback);
+}
+
+u64 GetGamePollCount(int chan)
+{
+	std::lock_guard<std::mutex> lk(s_mutex);
+	return s_game_poll_counts[chan];
+}
+
 void ResetAdapterIfNecessary()
 {
 	if (external_thread_should_reset_polling_threads)
@@ -115,7 +131,7 @@ static void Read()
 	s_consecutive_slow_transfers = 0;
 	adapter_error = false;
 
-	u8 bkp_payload_swap[adapter_payload_size];
+	u8 bkp_payload_swap[ADAPTER_PAYLOAD_SIZE];
 	int bkp_payload_size = 0;
 	bool has_prev_input = false;
 	s_read_rate = 0.0;
@@ -149,13 +165,13 @@ static void Read()
 		{
 			if (!adapter_error)
 			{
-				memcpy(bkp_payload_swap, s_controller_payload_swap, adapter_payload_size);
+				memcpy(bkp_payload_swap, s_controller_payload_swap, ADAPTER_PAYLOAD_SIZE);
 				bkp_payload_size = payload_size;
 				has_prev_input = true;
 			}
 			else if (has_prev_input)
 			{
-				memcpy(s_controller_payload_swap, bkp_payload_swap, adapter_payload_size);
+				memcpy(s_controller_payload_swap, bkp_payload_swap, ADAPTER_PAYLOAD_SIZE);
 				payload_size = bkp_payload_size;
 			}
 		}
@@ -167,10 +183,28 @@ static void Read()
 
 		s_read_rate = elapsed;
 
+		AdapterReport report;
+		bool should_report = false;
 		{
 			std::lock_guard<std::mutex> lk(s_mutex);
 			std::copy(std::begin(s_controller_payload_swap), std::end(s_controller_payload_swap), s_controller_payload);
 			s_controller_payload_size.store(payload_size);
+
+			should_report = !adapter_error && payload_size == ADAPTER_PAYLOAD_SIZE &&
+			                s_controller_payload[0] == LIBUSB_DT_HID && s_report_callback.load() != nullptr;
+			if (should_report)
+			{
+				std::copy(std::begin(s_game_poll_counts), std::end(s_game_poll_counts), report.game_poll_counts);
+				std::copy(std::begin(s_controller_payload), std::end(s_controller_payload), report.payload);
+			}
+		}
+
+		// Called outside the lock so the game's reads are never held up by the callback
+		if (should_report)
+		{
+			ReportCallback callback = s_report_callback.load();
+			if (callback)
+				callback(report);
 		}
 
 		Common::YieldCPU();
@@ -476,7 +510,7 @@ static void Reset()
 	NOTICE_LOG(SERIALINTERFACE, "GC Adapter detached");
 }
 
-GCPadStatus Input(int chan)
+GCPadStatus Input(int chan, bool is_game_poll)
 {
 	if (!UseAdapter())
 		return{};
@@ -491,12 +525,15 @@ GCPadStatus Input(int chan)
 	}
 
 	int payload_size = 0;
-	u8 controller_payload_copy[adapter_payload_size];
+	u8 controller_payload_copy[ADAPTER_PAYLOAD_SIZE];
 
 	{
 		std::lock_guard<std::mutex> lk(s_mutex);
 		std::copy(std::begin(s_controller_payload), std::end(s_controller_payload), controller_payload_copy);
 		payload_size = s_controller_payload_size.load();
+
+		if (is_game_poll)
+			s_game_poll_counts[chan]++;
 	}
 
 	GCPadStatus pad = {};

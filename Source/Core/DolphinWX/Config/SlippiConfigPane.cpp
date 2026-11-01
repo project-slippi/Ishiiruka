@@ -95,6 +95,12 @@ void SlippiNetplayConfigPane::InitializeGUI()
 	ipTextValidator.SetIncludes(charsToFilter);
 	m_slippi_netplay_lan_ip_ctrl->SetValidator(ipTextValidator);
 
+	// Input settings
+	m_slippi_input_suggestions_checkbox = new wxCheckBox(this, wxID_ANY, _("Use Input Suggestions (Experimental)"));
+	m_slippi_input_suggestions_checkbox->SetToolTip(
+	    _("Send your newest GameCube adapter inputs to your opponent between frames, and use theirs to predict "
+	      "their inputs while waiting for them. Only predictions change; the game always runs on the real inputs."));
+
 	m_slippi_show_player_rank =
 	    new wxCheckBox(this, wxID_ANY, _("Show your rank (Character Select and Ranked Setup Screen)"));
 	m_slippi_show_opponent_rank = new wxCheckBox(this, wxID_ANY, _("Show opponent's rank (Ranked Setup Screen)"));
@@ -163,12 +169,19 @@ void SlippiNetplayConfigPane::InitializeGUI()
 	sbSlippiOnlineSettings->Add(sSlippiOnlineSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	sbSlippiOnlineSettings->AddSpacer(space5);
 
+	wxStaticBoxSizer *const sbSlippiInputSettings = new wxStaticBoxSizer(wxVERTICAL, this, _("Slippi Input Settings"));
+	sbSlippiInputSettings->AddSpacer(space5);
+	sbSlippiInputSettings->Add(m_slippi_input_suggestions_checkbox, 0, wxLEFT | wxRIGHT, space5);
+	sbSlippiInputSettings->AddSpacer(space5);
+
 	wxBoxSizer *const main_sizer = new wxBoxSizer(wxVERTICAL);
 
 	main_sizer->AddSpacer(space5);
 	main_sizer->Add(sbSlippiReplaySettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	main_sizer->AddSpacer(space5);
 	main_sizer->Add(sbSlippiOnlineSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
+	main_sizer->AddSpacer(space5);
+	main_sizer->Add(sbSlippiInputSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	main_sizer->AddSpacer(space5);
 
 	wxStaticBoxSizer *const sbRankSettings =
@@ -233,6 +246,8 @@ void SlippiNetplayConfigPane::LoadGUIValues()
 		m_slippi_netplay_lan_ip_ctrl->Hide();
 	}
 
+	m_slippi_input_suggestions_checkbox->SetValue(startup_params.bSlippiInputSuggestions);
+
 	m_slippi_show_player_rank->SetValue(startup_params.bSlippiPlayerRankDisplay);
 	m_slippi_show_opponent_rank->SetValue(startup_params.bSlippiOpponentRankDisplay);
 
@@ -266,6 +281,8 @@ void SlippiNetplayConfigPane::BindEvents()
 	m_slippi_force_netplay_lan_ip_checkbox->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnForceNetplayLanIpToggle,
 	                                             this);
 	m_slippi_netplay_lan_ip_ctrl->Bind(wxEVT_TEXT, &SlippiNetplayConfigPane::OnNetplayLanIpChanged, this);
+
+	m_slippi_input_suggestions_checkbox->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnInputSuggestionsToggle, this);
 
 	m_slippi_show_player_rank->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnToggleShowPlayerRank, this);
 	m_slippi_show_opponent_rank->Bind(wxEVT_CHECKBOX, &SlippiNetplayConfigPane::OnToggleShowOpponentRank, this);
@@ -349,6 +366,11 @@ void SlippiNetplayConfigPane::OnForceNetplayLanIpToggle(wxCommandEvent &event)
 void SlippiNetplayConfigPane::OnNetplayLanIpChanged(wxCommandEvent &event)
 {
 	SConfig::GetInstance().m_slippiLanIp = m_slippi_netplay_lan_ip_ctrl->GetValue().c_str();
+}
+
+void SlippiNetplayConfigPane::OnInputSuggestionsToggle(wxCommandEvent &event)
+{
+	SConfig::GetInstance().bSlippiInputSuggestions = m_slippi_input_suggestions_checkbox->GetValue();
 }
 
 void SlippiNetplayConfigPane::OnToggleShowPlayerRank(wxCommandEvent &event)
