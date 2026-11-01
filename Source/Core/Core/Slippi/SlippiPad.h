@@ -2,8 +2,12 @@
 
 #include "Common/CommonTypes.h"
 
+// The full pad report in the game's format
 #define SLIPPI_PAD_FULL_SIZE 0xC
-#define SLIPPI_PAD_DATA_SIZE 0x8
+// Buttons, sticks and triggers. Input suggestions only have this part
+#define SLIPPI_PAD_INPUT_SIZE 0x8
+// The inputs and the RNG bits, what gets sent over the network for each frame
+#define SLIPPI_PAD_WIRE_SIZE (SLIPPI_PAD_INPUT_SIZE + 1)
 
 class SlippiPad
 {

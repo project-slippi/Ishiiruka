@@ -1380,7 +1380,8 @@ void CEXISlippi::reportInputSuggestionsFrame(s32 frame, bool isSkip, bool isAdva
 		info.has_origin = SerialInterface::GetGCControllerOrigin(inputSourcePort, info.origin, &info.analog_mode);
 	}
 
-	std::copy(inputs, inputs + SLIPPI_PAD_DATA_SIZE, info.sent_pad);
+	static_assert(sizeof(info.sent_pad) == SLIPPI_PAD_INPUT_SIZE, "sent_pad should hold the inputs");
+	std::copy(inputs, inputs + SLIPPI_PAD_INPUT_SIZE, info.sent_pad);
 
 	SlippiInputSuggestion suggestion = slprs_input_suggestions_on_local_frame(info);
 	if (suggestion.is_valid && slippi_netplay)
@@ -1846,6 +1847,10 @@ bool CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)
 
 		m_read_queue.insert(m_read_queue.end(), std::begin(predictions), std::end(predictions));
 	}
+
+	// Random bits for the ASM to send with the next pad, it mixes them into the RNG seed. These are not
+	// from generator because the opponent sees them and could work out that generator's state from them.
+	m_read_queue.push_back(static_cast<u8>(padRngBitsSource() & 0xFF));
 
 	// ERROR_LOG(SLIPPI_ONLINE, "EXI: [%d] %X %X %X %X %X %X %X %X", latestFrame, m_read_queue[5], m_read_queue[6],
 	// m_read_queue[7], m_read_queue[8], m_read_queue[9], m_read_queue[10], m_read_queue[11], m_read_queue[12]);

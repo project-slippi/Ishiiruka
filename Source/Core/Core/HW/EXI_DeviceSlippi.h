@@ -330,6 +330,7 @@ class CEXISlippi : public IEXIDevice
 	bool isEnetInitialized = false;
 
 	std::default_random_engine generator;
+	std::random_device padRngBitsSource;
 
 	// Frame skipping variables
 	int framesToSkip = 0;
