@@ -250,8 +250,16 @@ class CEXISlippi : public IEXIDevice
 	void startFindMatch(u8 *payload);
 	void prepareOnlineMatchState();
 	void setMatchSelections(u8 *payload);
-	bool shouldSkipOnlineFrame(s32 frame, s32 finalizedFrame);
-	void handlePoorMatchPerformance(s32 frame);
+
+	// Why a frame is being held back instead of sent
+	enum class OnlineFrameSkip
+	{
+		NONE,
+		STALL,     // The opponent's inputs are past the rollback limit
+		TIME_SYNC, // We are running ahead of the opponent
+	};
+	OnlineFrameSkip shouldSkipOnlineFrame(s32 frame, s32 finalizedFrame);
+	void handleMatchQuality(s32 frame, bool isStall);
 	bool shouldAdvanceOnlineFrame(s32 frame);
 	bool opponentRunahead();
 	void handleLogInRequest();
@@ -305,8 +313,6 @@ class CEXISlippi : public IEXIDevice
 	std::vector<u8> geckoList;
 
 	u32 stallFrameCounts[SLIPPI_REMOTE_PLAYER_MAX] = {};
-	u64 lastIntervalTimeUs = 0;
-	s32 perfDebt = 0; // Leaky accumulator of poor-performance intervals (see handlePoorMatchPerformance)
 
 	std::vector<u8> m_read_queue;
 	std::unique_ptr<Slippi::SlippiGame> m_current_game = nullptr;

@@ -471,8 +471,6 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 		ackTimers[pIdx].Pop();
 
 		pingUs[pIdx] = Common::Timer::GetTimeUs() - sendTime;
-		pingSampleSumUs.fetch_add(pingUs[pIdx], std::memory_order_relaxed);
-		pingSampleCount.fetch_add(1, std::memory_order_relaxed);
 		if (g_ActiveConfig.bShowNetPlayPing && frame % SLIPPI_PING_DISPLAY_INTERVAL == 0 && pIdx == 0)
 		{
 			std::stringstream pingDisplay;
@@ -776,6 +774,15 @@ void SlippiNetplayClient::Send(sf::Packet &packet)
 	}
 }
 
+// By default ENet deliberately drops unreliable packets while round trip time is rising, and our pads and acks are all
+// unreliable. Those drops turn a latency increase into gaps in the opponent's inputs, which causes stalls. Our traffic
+// is far too small for backing off to relieve any congestion. A deceleration of 0 keeps the throttle at full, and ENet
+// also sends this setting to the peer, so it stops throttling the packets it sends us too.
+static void disablePacketThrottleDrops(ENetPeer *peer)
+{
+	enet_peer_throttle_configure(peer, ENET_PEER_PACKET_THROTTLE_INTERVAL, ENET_PEER_PACKET_THROTTLE_ACCELERATION, 0);
+}
+
 void SlippiNetplayClient::Disconnect()
 {
 	ENetEvent netEvent;
@@ -902,6 +909,8 @@ void SlippiNetplayClient::ThreadFunc()
 					INFO_LOG(SLIPPI_ONLINE, "[Netplay] got connect event with nil peer");
 					continue;
 				}
+
+				disablePacketThrottleDrops(netEvent.peer);
 
 				std::stringstream keyStrm;
 				keyStrm << netEvent.peer->address.host << "-" << netEvent.peer->address.port;
@@ -1190,6 +1199,8 @@ void SlippiNetplayClient::ThreadFunc()
 			}
 			case ENET_EVENT_TYPE_CONNECT:
 			{
+				disablePacketThrottleDrops(netEvent.peer);
+
 				std::stringstream keyStrm;
 				keyStrm << netEvent.peer->address.host << "-" << netEvent.peer->address.port;
 				int lateConnRemoteIdx = 0;
@@ -1721,20 +1732,10 @@ SlippiMatchInfo *SlippiNetplayClient::GetMatchInfo()
 	return &matchInfo;
 }
 
-// Drains the ping accumulator and returns the average ping (in ms) across all measurements taken
-// since the last call. Returns 0 if there were no measurements (e.g. a full stall), which callers
-// should treat as "no signal" rather than a great connection — the speed ratio check covers that
-// case. The two exchanges aren't atomic as a pair, so a sample landing between them can be
-// attributed to the wrong interval; at one sample per frame that skews an interval average by a
-// negligible amount and is not worth a lock.
-double SlippiNetplayClient::GetAndResetAvgPingMs()
+// The most recent ping measurement in microseconds, or 0 if there hasn't been one yet
+u64 SlippiNetplayClient::GetPingUs(int index)
 {
-	u64 sumUs = pingSampleSumUs.exchange(0, std::memory_order_relaxed);
-	u64 count = pingSampleCount.exchange(0, std::memory_order_relaxed);
-	if (count == 0)
-		return 0.0;
-
-	return static_cast<double>(sumUs) / static_cast<double>(count) / 1000.0;
+	return pingUs[index].load(std::memory_order_relaxed);
 }
 
 // return the smallest time offset among all remote players
