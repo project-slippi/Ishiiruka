@@ -3,7 +3,8 @@
 #include "Common/CommonTypes.h"
 
 #define SLIPPI_PAD_FULL_SIZE 0xC
-#define SLIPPI_PAD_DATA_SIZE 0x8
+#define SLIPPI_PAD_DATA_SIZE 0x9
+#define SLIPPI_PAD_SUGGESTION_SIZE 0x8
 
 class SlippiPad
 {
