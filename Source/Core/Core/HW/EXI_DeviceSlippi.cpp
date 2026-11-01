@@ -1380,7 +1380,8 @@ void CEXISlippi::reportInputSuggestionsFrame(s32 frame, bool isSkip, bool isAdva
 		info.has_origin = SerialInterface::GetGCControllerOrigin(inputSourcePort, info.origin, &info.analog_mode);
 	}
 
-	std::copy(inputs, inputs + SLIPPI_PAD_DATA_SIZE, info.sent_pad);
+	static_assert(sizeof(info.sent_pad) == SLIPPI_PAD_INPUT_SIZE, "sent_pad should hold the inputs");
+	std::copy(inputs, inputs + SLIPPI_PAD_INPUT_SIZE, info.sent_pad);
 
 	SlippiInputSuggestion suggestion = slprs_input_suggestions_on_local_frame(info);
 	if (suggestion.is_valid && slippi_netplay)

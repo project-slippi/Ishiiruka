@@ -363,11 +363,11 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 			inputsToCopy = frame64 - static_cast<s64>(headFrame);
 
 			// Check that the packet actually contains the data it claims to
-			if ((padDataOffset + inputsToCopy * SLIPPI_PAD_DATA_SIZE) > static_cast<s64>(packet.getDataSize()))
+			if ((padDataOffset + inputsToCopy * SLIPPI_PAD_WIRE_SIZE) > static_cast<s64>(packet.getDataSize()))
 			{
 				ERROR_LOG(SLIPPI_ONLINE,
 				          "Netplay packet too small to read pad buffer. Size: %d, Inputs: %d, MinSize: %d",
-				          (int)packet.getDataSize(), inputsToCopy, padDataOffset + inputsToCopy * SLIPPI_PAD_DATA_SIZE);
+				          (int)packet.getDataSize(), inputsToCopy, padDataOffset + inputsToCopy * SLIPPI_PAD_WIRE_SIZE);
 				break;
 			}
 
@@ -381,7 +381,7 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 			for (s64 i = inputsToCopy - 1; i >= 0; i--)
 			{
 				auto pad = std::make_unique<SlippiPad>(static_cast<s32>(frame64 - i),
-				                                       &packetData[padDataOffset + i * SLIPPI_PAD_DATA_SIZE]);
+				                                       &packetData[padDataOffset + i * SLIPPI_PAD_WIRE_SIZE]);
 				// INFO_LOG(SLIPPI_ONLINE, "Rcv [%d] -> %02X %02X %02X %02X %02X %02X %02X %02X", pad->frame,
 				//         pad->padBuf[0], pad->padBuf[1], pad->padBuf[2], pad->padBuf[3], pad->padBuf[4],
 				//         pad->padBuf[5], pad->padBuf[6], pad->padBuf[7]);
@@ -402,7 +402,7 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 			for (s64 i = inputsToCopy - 1; i >= 0; i--)
 			{
 				slprs_input_suggestions_on_remote_input(pIdx, static_cast<s32>(static_cast<s64>(frame) - i),
-				                                        &packetData[padDataOffset + i * SLIPPI_PAD_DATA_SIZE]);
+				                                        &packetData[padDataOffset + i * SLIPPI_PAD_WIRE_SIZE]);
 			}
 		}
 
@@ -498,7 +498,7 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 
 		// Message id, port, target frame and seq come before the pad data
 		const size_t padDataOffset = 10;
-		if (packet.getDataSize() < padDataOffset + SLIPPI_PAD_SUGGESTION_SIZE)
+		if (packet.getDataSize() < padDataOffset + SLIPPI_PAD_INPUT_SIZE)
 		{
 			ERROR_LOG(SLIPPI_ONLINE, "Input suggestion packet too small to read pad");
 			break;
@@ -1376,7 +1376,7 @@ void SlippiNetplayClient::SendSlippiPad(std::unique_ptr<SlippiPad> pad)
 		// (*it)->padBuf[0],
 		//         (*it)->padBuf[1], (*it)->padBuf[2], (*it)->padBuf[3], (*it)->padBuf[4], (*it)->padBuf[5],
 		//         (*it)->padBuf[6], (*it)->padBuf[7]);
-		spac->append((*it)->padBuf, SLIPPI_PAD_DATA_SIZE); // only transfer the data portion
+		spac->append((*it)->padBuf, SLIPPI_PAD_WIRE_SIZE); // only transfer what goes over the network
 	}
 
 	SendAsync(std::move(spac));
@@ -1409,7 +1409,7 @@ void SlippiNetplayClient::SendSlippiPadSuggestion(s32 targetFrame, u32 seq, cons
 	*spac << this->playerIdx;
 	*spac << targetFrame;
 	*spac << seq;
-	spac->append(pad, SLIPPI_PAD_SUGGESTION_SIZE);
+	spac->append(pad, SLIPPI_PAD_INPUT_SIZE);
 	SendAsync(std::move(spac));
 }
 
