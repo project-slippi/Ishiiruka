@@ -25,6 +25,11 @@
 
 extern bool g_needInputForFrame;
 
+namespace CoreTiming
+{
+struct EventType;
+}
+
 // Emulated Slippi device used to receive and respond to in-game messages
 class CEXISlippi : public IEXIDevice
 {
@@ -207,6 +212,19 @@ class CEXISlippi : public IEXIDevice
 	// A pointer to a "shadow" EXI Device that lives on the Rust side of things.
 	// This should be cleaned up in any destructor!
 	uintptr_t slprs_exi_device_ptr;
+
+	// Discord RPC is configured once, on the first DMAWrite, since the config
+	// isn't readable when this device is constructed. Latch so we only do it once.
+	bool m_discord_rpc_configured = false;
+	// Cached enable flag, so the per-frame matchmaking push is skipped entirely
+	// when Discord RPC is disabled and the feature costs nothing.
+	bool m_discord_rpc_enabled = false;
+
+	// Per-frame poll that drives character-select / stage / offline-scene presence.
+	// Registered on the first DMAWrite when Discord RPC is enabled, and removed in
+	// the destructor before the Rust device is torn down.
+	CoreTiming::EventType *m_discord_scene_event = nullptr;
+	static void DiscordSceneUpdate(u64 userdata, s64 cyclesLate);
 
 	// .slp File creation stuff
 	u32 writtenByteCount = 0;
