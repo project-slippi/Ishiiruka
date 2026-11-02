@@ -365,6 +365,20 @@
    "Tags": "[affects-gameplay]"
   },
   {
+   "InjectionAddress": "801CD37C",
+   "Name": "Slippi Recording",
+   "Codetype": "Auto",
+   "Annotation": "Common/Initialize Stage Data/Reset Castle Wind.asm",
+   "Tags": "[affects-gameplay]"
+  },
+  {
+   "InjectionAddress": "801D69B0",
+   "Name": "Slippi Recording",
+   "Codetype": "Auto",
+   "Annotation": "Common/Initialize Stage Data/Reset Kongo Log Bridge.asm",
+   "Tags": "[affects-gameplay]"
+  },
+  {
    "InjectionAddress": "80068EEC",
    "Name": "Slippi Recording",
    "Codetype": "Auto",

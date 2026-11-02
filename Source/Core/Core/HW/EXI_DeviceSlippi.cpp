@@ -1260,6 +1260,7 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 	u8 delay = payload[12];
 	u8 *inputs = &payload[13];
 	u8 inputSourcePort = payload[25];
+	bool isLeaving = payload[26] != 0;
 
 	if (frame == 1)
 	{
@@ -1301,6 +1302,11 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 
 		startInputSuggestions(delay, inputSourcePort);
 	}
+
+	// The local player chose to leave, which ends the game for us the same way as losing the connection. The other
+	// players treat it as a disconnect too
+	if (isLeaving && !isDisconnected())
+		slippi_netplay->ForceDisconnect();
 
 	if (isDisconnected())
 	{
@@ -1437,7 +1443,10 @@ CEXISlippi::OnlineFrameSkip CEXISlippi::shouldSkipOnlineFrame(s32 frame, s32 fin
 	for (u8 i = 0; i < remotePlayerCount; i++)
 	{
 		auto pad = slippi_netplay->GetSlippiRemotePad(i, ROLLBACK_MAX_FRAMES);
-		if (pad->isDisconnected)
+
+		// A dropped player has all the inputs they need once we settle on their last one. Until then they might still
+		// change, so this player's inputs count as late just like anyone else's
+		if (pad->isDisconnected && pad->despawnFrame != 0)
 		{
 			stallFrameCounts[i] = 0;
 			continue;
@@ -1699,6 +1708,8 @@ bool CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)
 	u8 remotePlayerCount = matchmaking->RemotePlayerCount();
 	m_read_queue.push_back(remotePlayerCount); // Indicate the number of remote players
 
+	slippi_netplay->FillDroppedPlayerInputs(frame);
+
 	std::unique_ptr<SlippiRemotePadOutput> results[SLIPPI_REMOTE_PLAYER_MAX];
 
 	s32 latestFrameFromOpps = Slippi::GAME_FIRST_FRAME - 1;
@@ -1721,31 +1732,6 @@ bool CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)
 		}
 	}
 
-	// Determine whether each remote fighter should be despawned due to disconnect. This needs
-	// to be computed before the loop below overwrites the disconnected players' latestFrame.
-	// We want the signal to be synchronized across clients, so we wait until
-	// (2*ROLLBACK_MAX_FRAMES + 2) frames have passed since the last input we received from the
-	// disconnected player, then advance to the next frame that is a multiple of
-	// SLIPPI_DESPAWN_FRAME_INTERVAL. This gives us a window where slightly different last
-	// received frames might still work out to the same despawn frame
-	constexpr s32 SLIPPI_DESPAWN_FRAME_INTERVAL = 30;
-	u8 shouldDespawn[SLIPPI_REMOTE_PLAYER_MAX] = {0, 0, 0};
-	for (int i = 0; i < remotePlayerCount; i++)
-	{
-		if (!results[i]->isDisconnected)
-			continue;
-
-		s32 lastInputFrame = results[i]->latestFrame;
-		s32 thresholdFrame = lastInputFrame + 2 * ROLLBACK_MAX_FRAMES + 2;
-
-		// Round up to the next frame that is a multiple of the despawn interval
-		s32 despawnFrame = ((thresholdFrame + SLIPPI_DESPAWN_FRAME_INTERVAL - 1) / SLIPPI_DESPAWN_FRAME_INTERVAL) *
-		                   SLIPPI_DESPAWN_FRAME_INTERVAL;
-
-		if (frame >= despawnFrame)
-			shouldDespawn[i] = 1;
-	}
-
 	for (int i = 0; i < remotePlayerCount; i++)
 	{
 		if (!results[i]->isDisconnected)
@@ -1757,10 +1743,8 @@ bool CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)
 			continue;
 		}
 
-		// This is sorta jank but we loop again to overwrite values on any disconnected pads to prevent checksum
-		// issues and prevent stalling due to old pad data. We are essentially "tricking" the ASM side here
-		// and likely a better solution would be for the ASM side to know who is disconnected and handle it accordingly
-		results[i]->latestFrame = latestFrameFromOpps;
+		// A disconnected player's checksums stop updating, give the ASM someone else's so that it has an up to date
+		// one to compare. Their frames don't need the same trick, FillDroppedPlayerInputs keeps those up to date
 		appendWordToBuffer(&m_read_queue, lastChecksumFrame);
 		appendWordToBuffer(&m_read_queue, lastChecksum);
 	}
@@ -1824,10 +1808,11 @@ bool CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)
 		m_read_queue.insert(m_read_queue.end(), tx.begin(), tx.end());
 	}
 
-	// Append the per-remote-player should-despawn flags
+	// Append the frame each remote player's fighter despawns on, or 0 if it doesn't. The ASM compares this to the
+	// frame it is processing, which is what makes it land on the same frame for everyone even during a rollback
 	for (int i = 0; i < SLIPPI_REMOTE_PLAYER_MAX; i++)
 	{
-		m_read_queue.push_back(shouldDespawn[i]);
+		appendWordToBuffer(&m_read_queue, i < remotePlayerCount ? static_cast<u32>(results[i]->despawnFrame) : 0);
 	}
 
 	// Append the inputs to use for each of the frames after each player's latest frame, should the ASM need
@@ -2605,22 +2590,12 @@ void CEXISlippi::prepareOnlineMatchState()
 	}
 
 	// Configure mode, timer, stocks, etc
-	if (lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::PARTY)
-	{
-		onlineMatchBlock[0x0] = 0x12; // Time mode, 4 char players in UI, count down timer
-		onlineMatchBlock[0x3] = 0xCC; // Show score UI
-		u32 *match_timer = reinterpret_cast<u32 *>(&onlineMatchBlock[0x10]);
-		*match_timer = Common::swap32(5 * 60); // 5 Minute timer
-	}
-	else
-	{
-		// Reset everything. I still feel like maybe the onlineMatchBlock should not be static so we don't have to reset
-		// states like this but I'm a bit worried about making that change and causing weird bugs.
-		onlineMatchBlock[0x0] = 0x32; // Stock mode, 4 char players in UI, count down timer
-		onlineMatchBlock[0x3] = 0x4C; // Hide score UI
-		u32 *match_timer = reinterpret_cast<u32 *>(&onlineMatchBlock[0x10]);
-		*match_timer = Common::swap32(8 * 60); // 8 Minute timer
-	}
+	// Reset everything. I still feel like maybe the onlineMatchBlock should not be static so we don't have to reset
+	// states like this but I'm a bit worried about making that change and causing weird bugs.
+	onlineMatchBlock[0x0] = 0x32; // Stock mode, 4 char players in UI, count down timer
+	onlineMatchBlock[0x3] = 0x4C; // Hide score UI
+	u32 *match_timer = reinterpret_cast<u32 *>(&onlineMatchBlock[0x10]);
+	*match_timer = Common::swap32(8 * 60); // 8 Minute timer
 
 	// Restore the timer if recovering from a desync. This must happen after the mode configuration above, which
 	// sets the default timer and would otherwise reset the clock on every desync

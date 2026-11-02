@@ -159,7 +159,7 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_GET_GECKO_CODES, 0},
 
 	    // The following are used for Slippi online and also have fixed sizes
-	    {CMD_ONLINE_INPUTS, 26},
+	    {CMD_ONLINE_INPUTS, 27},
 	    {CMD_CAPTURE_SAVESTATE, 32},
 	    {CMD_LOAD_SAVESTATE, 32},
 	    {CMD_GET_MATCH_STATE, 0},
