@@ -760,6 +760,9 @@
     <ClCompile Include="Slippi\SlippiReplayComm.cpp">
       <Filter>Slippi</Filter>
     </ClCompile>
+    <ClCompile Include="Slippi\SlippiReplayCommConfig.cpp">
+      <Filter>Slippi</Filter>
+    </ClCompile>
     <ClCompile Include="Slippi\SlippiPad.cpp">
       <Filter>Slippi</Filter>
     </ClCompile>

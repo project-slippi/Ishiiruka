@@ -126,7 +126,7 @@ bool DeleteDirRecursively(const std::string &directory);
 // Returns the current directory
 std::string GetCurrentDir();
 
-// Gets the mod time of a file
+// Gets the high-resolution mod time of a file in nanoseconds since the Unix epoch.
 u64 GetFileModTime(const std::string &path);
 
 // Create directory and copy contents (does not overwrite existing files)
