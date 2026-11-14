@@ -6,6 +6,8 @@
 
 #include <wx/dialog.h>
 #include <wx/timer.h>
+#include <wx/choice.h>
+#include "InputCommon/GCPadStatus.h"
 
 class wxStaticText;
 
@@ -24,6 +26,22 @@ private:
 	
 	int m_pad_id;
 
-	void OnAdapterRumble(wxCommandEvent& event);
+	PadButton SelectionToPadButton[12] = {PAD_BUTTON_A,     PAD_BUTTON_B,    PAD_BUTTON_X,   PAD_BUTTON_Y,
+	                                      PAD_TRIGGER_Z,    PAD_TRIGGER_L,   PAD_TRIGGER_R,  PAD_BUTTON_UP,
+	                                      PAD_BUTTON_RIGHT, PAD_BUTTON_DOWN, PAD_BUTTON_LEFT, PAD_BUTTON_NONE};
+	int PadButtonToSelection(PadButton button);
+
+	void OnAdapterRumble(wxCommandEvent &event);
+	void OnAChoice(wxCommandEvent &event);
+	void OnBChoice(wxCommandEvent &event);
+	void OnXChoice(wxCommandEvent &event);
+	void OnYChoice(wxCommandEvent &event);
+	void OnZChoice(wxCommandEvent &event);
+	void OnLChoice(wxCommandEvent &event);
+	void OnRChoice(wxCommandEvent &event);
+	void OnUpChoice(wxCommandEvent &event);
+	void OnRightChoice(wxCommandEvent &event);
+	void OnDownChoice(wxCommandEvent &event);
+	void OnLeftChoice(wxCommandEvent &event);
 	void OnUpdateRate(wxTimerEvent& ev);
 };
