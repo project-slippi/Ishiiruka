@@ -38,6 +38,10 @@
 static std::mutex pad_mutex;
 static std::mutex ack_mutex;
 
+// The opponent sends one of these per game prep step and the game takes them off as it asks for them, so only a few
+// are ever waiting. This keeps a peer flooding complete step packets from growing the queue forever.
+static constexpr size_t SLIPPI_GAME_PREP_STEP_QUEUE_MAX = 32;
+
 SlippiNetplayClient *SLIPPI_NETPLAY = nullptr;
 
 // The adapter read thread sends input suggestions through the live client. The pointer is set and
@@ -611,8 +615,10 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 
 		if (!playerSelection->error)
 		{
-			// set message id to netplay instance
-			remoteChatMessageSelection = std::move(playerSelection);
+			// The CPU thread takes this in GetSlippiRemoteChatMessage
+			std::lock_guard<std::mutex> lk(m_chatMutex);
+			m_remoteChatMessage.messageId = playerSelection->messageId;
+			m_remoteChatMessage.playerIdx = playerSelection->playerIdx;
 		}
 	}
 	break;
@@ -627,13 +633,20 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 	case NP_MSG_SLIPPI_COMPLETE_STEP:
 	{
 		SlippiGamePrepStepResults results;
+		if (!(packet >> results.step_idx) || !(packet >> results.char_selection) ||
+		    !(packet >> results.char_color_selection) || !(packet >> results.stage_selections[0]) ||
+		    !(packet >> results.stage_selections[1]))
+		{
+			ERROR_LOG(SLIPPI_ONLINE, "Complete step packet too small to read step results");
+			break;
+		}
 
-		packet >> results.step_idx;
-		packet >> results.char_selection;
-		packet >> results.char_color_selection;
-		packet >> results.stage_selections[0];
-		packet >> results.stage_selections[1];
-
+		std::lock_guard<std::mutex> lk(m_gamePrepMutex);
+		if (gamePrepStepQueue.size() >= SLIPPI_GAME_PREP_STEP_QUEUE_MAX)
+		{
+			WARN_LOG(SLIPPI_ONLINE, "Game prep step queue is full, dropping the oldest step");
+			gamePrepStepQueue.pop_front();
+		}
 		gamePrepStepQueue.push_back(results);
 	}
 	break;
@@ -712,6 +725,13 @@ std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::ReadChatMessageFrom
 	if (!(packet >> s->playerIdx))
 	{
 		ERROR_LOG(SLIPPI_ONLINE, "Chat packet too small to read player index");
+		s->error = true;
+		return std::move(s);
+	}
+	// The game uses this port as is to show who sent the message, so it has to be one of the remote players
+	if (s->playerIdx == playerIdx || PlayerIdxFromPort(s->playerIdx) >= m_remotePlayerCount)
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Received chat message with invalid player port: %d", s->playerIdx);
 		s->error = true;
 		return std::move(s);
 	}
@@ -1361,7 +1381,10 @@ void SlippiNetplayClient::StartSlippiGame()
 	is_desync_recovery = false;
 
 	// Clear game prep queue in case anything is still lingering
-	gamePrepStepQueue.clear();
+	{
+		std::lock_guard<std::mutex> lk(m_gamePrepMutex);
+		gamePrepStepQueue.clear();
+	}
 
 	// Reset match info for next game
 	matchInfo.Reset();
@@ -1537,6 +1560,8 @@ void SlippiNetplayClient::SendSyncedGameState(SlippiSyncedGameState &s)
 
 bool SlippiNetplayClient::GetGamePrepResults(u8 stepIdx, SlippiGamePrepStepResults &res)
 {
+	std::lock_guard<std::mutex> lk(m_gamePrepMutex);
+
 	// Just pull stuff off until we find something for the right step. I think that should be fine
 	while (!gamePrepStepQueue.empty())
 	{
@@ -1556,33 +1581,36 @@ bool SlippiNetplayClient::GetGamePrepResults(u8 stepIdx, SlippiGamePrepStepResul
 SlippiPlayerSelections SlippiNetplayClient::GetSlippiRemoteChatMessage(bool isChatEnabled)
 {
 	SlippiPlayerSelections copiedSelection = SlippiPlayerSelections();
+	bool shouldReplyChatDisabled = false;
 
-	if (remoteChatMessageSelection != nullptr && isChatEnabled)
 	{
-		copiedSelection.messageId = remoteChatMessageSelection->messageId;
-		copiedSelection.playerIdx = remoteChatMessageSelection->playerIdx;
-
-		// Clear it out
-		remoteChatMessageSelection->messageId = 0;
-		remoteChatMessageSelection->playerIdx = 0;
-	}
-	else
-	{
-		copiedSelection.messageId = 0;
-		copiedSelection.playerIdx = 0;
-
-		// if chat is not enabled, automatically send back a message saying so.
-		if (remoteChatMessageSelection != nullptr && !isChatEnabled &&
-		    (remoteChatMessageSelection->messageId > 0 &&
-		     remoteChatMessageSelection->messageId != SlippiPremadeText::CHAT_MSG_CHAT_DISABLED))
+		std::lock_guard<std::mutex> lk(m_chatMutex);
+		if (isChatEnabled)
 		{
-			auto packet = std::make_unique<sf::Packet>();
-			remoteSentChatMessageId = SlippiPremadeText::CHAT_MSG_CHAT_DISABLED;
-			WriteChatMessageToPacket(*packet, remoteSentChatMessageId, LocalPlayerPort());
-			SendAsync(std::move(packet));
-			remoteSentChatMessageId = 0;
-			remoteChatMessageSelection = nullptr;
+			copiedSelection.messageId = m_remoteChatMessage.messageId;
+			copiedSelection.playerIdx = m_remoteChatMessage.playerIdx;
+
+			// Clear it out
+			m_remoteChatMessage.messageId = 0;
+			m_remoteChatMessage.playerIdx = 0;
 		}
+		else if (m_remoteChatMessage.messageId > 0 &&
+		         m_remoteChatMessage.messageId != SlippiPremadeText::CHAT_MSG_CHAT_DISABLED)
+		{
+			shouldReplyChatDisabled = true;
+			m_remoteChatMessage.messageId = 0;
+			m_remoteChatMessage.playerIdx = 0;
+		}
+	}
+
+	// if chat is not enabled, automatically send back a message saying so.
+	if (shouldReplyChatDisabled)
+	{
+		auto packet = std::make_unique<sf::Packet>();
+		remoteSentChatMessageId = SlippiPremadeText::CHAT_MSG_CHAT_DISABLED;
+		WriteChatMessageToPacket(*packet, remoteSentChatMessageId, LocalPlayerPort());
+		SendAsync(std::move(packet));
+		remoteSentChatMessageId = 0;
 	}
 
 	return copiedSelection;

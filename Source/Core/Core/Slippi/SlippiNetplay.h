@@ -225,8 +225,6 @@ class SlippiNetplayClient
 	void WriteChatMessageToPacket(sf::Packet &packet, int messageId, u8 playerIdx);
 	std::unique_ptr<SlippiPlayerSelections> ReadChatMessageFromPacket(sf::Packet &packet);
 
-	std::unique_ptr<SlippiPlayerSelections> remoteChatMessageSelection =
-	    nullptr;                    // most recent chat message player selection (message + player index)
 	u8 remoteSentChatMessageId = 0; // most recent chat message id that current player sent
 
   protected:
@@ -302,7 +300,14 @@ class SlippiNetplayClient
 	SlippiSyncedGameState remote_sync_states[SLIPPI_REMOTE_PLAYER_MAX];
 	SlippiSyncedGameState local_sync_state;
 
+	// Filled by the network thread and drained by the CPU thread, only touch it while holding m_gamePrepMutex
+	std::mutex m_gamePrepMutex;
 	std::deque<SlippiGamePrepStepResults> gamePrepStepQueue;
+
+	// The most recent chat message from a remote player (message id + player port), with a message id of 0 when
+	// there is none. Set by the network thread and taken by the CPU thread, only touch it while holding m_chatMutex
+	std::mutex m_chatMutex;
+	SlippiPlayerSelections m_remoteChatMessage;
 
 	// Written by the network thread and read by the CPU thread through GetPingUs()
 	std::atomic<u64> pingUs[SLIPPI_REMOTE_PLAYER_MAX];
