@@ -1279,9 +1279,13 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 			stallFrameCounts[i] = 0;
 		}
 
-		// Only ranked matches get terminated for poor quality. In other modes players can just manually leave
+		startBotRules();
+
+		// Only ranked matches get terminated for poor quality. In other modes players can just manually leave. A bot
+		// never terminates. Against a human only the human's side decides, and bot vs bot plays on, so a losing bot
+		// can't end a set to deny its opponent the win
 		SlippiMatchQualityGameConfig matchQuality = {};
-		matchQuality.can_terminate = lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::RANKED;
+		matchQuality.can_terminate = lastSearch.mode == SlippiMatchmaking::OnlinePlayMode::RANKED && !localIsBot;
 		matchQuality.delay = delay;
 		slprs_match_quality_start_game(matchQuality);
 
@@ -1358,7 +1362,10 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 void CEXISlippi::startInputSuggestions(u8 delay, u8 inputSourcePort)
 {
 	SlippiInputSuggestionsGameConfig game = {};
-	game.enabled = SConfig::GetInstance().bSlippiInputSuggestions;
+	// Suggestions smooth the connection between two humans. A bot is expected to make the connection feel good for the
+	// human on its own, for example by running ahead, so they are off whenever a bot is in the game, on our side or
+	// theirs
+	game.enabled = SConfig::GetInstance().bSlippiInputSuggestions && !localIsBot && !anyRemoteIsBot;
 	game.local_player_idx = matchmaking->LocalPlayerIndex();
 	game.remote_player_count = matchmaking->RemotePlayerCount();
 	game.delay = delay;
@@ -1664,20 +1671,37 @@ void CEXISlippi::handleSendInputs(s32 frame, u8 delay, s32 checksumFrame, u32 ch
 
 bool CEXISlippi::opponentRunahead()
 {
-	// Bot players might be running ahead to "donate" their delay frames to us.
+	// Bot players might be running ahead to "donate" their delay frames to us. Only registered bot accounts are
+	// allowed to do this. A bot keeps the normal time sync whoever it plays, so in bot vs bot both sides sync like
+	// humans do rather than neither of them syncing at all
+	return opponentsAreAllBots && !localIsBot;
+}
 
-	// Only registered bot accounts are allowed to do this.
-	auto player_info = matchmaking->GetPlayerInfo();
-	for (int i = 0; i < player_info.size(); i++)
+// Works out who the bots are for a game, from the players the server matched us with. Bots are registered bot accounts
+void CEXISlippi::startBotRules()
+{
+	auto players = matchmaking->GetPlayerInfo();
+	int localIndex = matchmaking->LocalPlayerIndex();
+
+	localIsBot = false;
+	int opponentCount = 0;
+	int botOpponentCount = 0;
+	for (int i = 0; i < players.size(); i++)
 	{
-		if (i == matchmaking->LocalPlayerIndex())
+		if (i == localIndex)
+		{
+			localIsBot = players[i].isBot;
 			continue;
+		}
 
-		if (!player_info[i].isBot)
-			return false;
+		opponentCount++;
+		botOpponentCount += players[i].isBot ? 1 : 0;
 	}
+	opponentsAreAllBots = opponentCount > 0 && botOpponentCount == opponentCount;
+	anyRemoteIsBot = botOpponentCount > 0;
 
-	return true;
+	INFO_LOG(SLIPPI_ONLINE, "[Bots] Local is bot: %d | Bot opponents: %d of %d", localIsBot, botOpponentCount,
+	         opponentCount);
 }
 
 bool CEXISlippi::prepareOpponentInputs(s32 frame, bool shouldSkip)

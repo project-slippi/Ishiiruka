@@ -262,6 +262,7 @@ class CEXISlippi : public IEXIDevice
 	void handleMatchQuality(s32 frame, bool isStall);
 	bool shouldAdvanceOnlineFrame(s32 frame);
 	bool opponentRunahead();
+	void startBotRules();
 	void handleLogInRequest();
 	void handleLogOutRequest();
 	void handleUpdateAppRequest();
@@ -341,6 +342,11 @@ class CEXISlippi : public IEXIDevice
 	bool isCurrentlyAdvancing = false;
 	int fallBehindCounter = 0;
 	int fallFarBehindCounter = 0;
+
+	// Who the bots are in the current game, set when it starts. See startBotRules
+	bool localIsBot = false;
+	bool opponentsAreAllBots = false;
+	bool anyRemoteIsBot = false;
 
 	std::string forcedError = "";
 
