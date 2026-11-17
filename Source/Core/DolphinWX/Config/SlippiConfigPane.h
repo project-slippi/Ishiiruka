@@ -44,6 +44,7 @@ class SlippiNetplayConfigPane final : public wxPanel
 	void PopulateEnableChatChoiceBox();
 	void OnToggleJukeboxEnabled(wxCommandEvent &event);
 	void OnJukeboxVolumeUpdate(wxCommandEvent &event);
+	void OnToggleDiscordRichPresence(wxCommandEvent &event);
 	void OnToggleShowPlayerRank(wxCommandEvent &event);
 	void OnToggleShowOpponentRank(wxCommandEvent &event);
 
@@ -67,6 +68,7 @@ class SlippiNetplayConfigPane final : public wxPanel
 	wxCheckBox *m_slippi_show_opponent_rank;
 
 	wxCheckBox *m_slippi_jukebox_enabled_checkbox;
+	wxCheckBox *m_slippi_discord_rich_presence_checkbox;
 	DolphinSlider *m_slippi_jukebox_volume_slider;
 	wxStaticText *m_jukebox_volume_text;
 };
