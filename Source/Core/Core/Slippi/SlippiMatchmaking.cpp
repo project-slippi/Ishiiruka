@@ -305,6 +305,15 @@ void SlippiMatchmaking::startMatchmaking()
 	{
 		bool customPort = SConfig::GetInstance().m_slippiForceNetplayPort;
 
+		// A forced port can still be held by the previous session, which is torn down in the
+		// background and keeps it for about three seconds after a set while it disconnects. Spread
+		// the attempts over that long instead of failing all of them at once.
+		if (customPort && retryCount > 0)
+			Common::SleepCurrentThread(225);
+
+		if (isMmTerminated)
+			return;
+
 		if (customPort)
 			m_hostPort = SConfig::GetInstance().m_slippiNetplayPort;
 		else
