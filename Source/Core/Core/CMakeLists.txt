@@ -196,6 +196,7 @@ set(SRCS	ActionReplay.cpp
 			Slippi/SlippiPad.cpp
 			Slippi/SlippiPlayback.cpp
 			Slippi/SlippiReplayComm.cpp
+			Slippi/SlippiReplayCommConfig.cpp
 			Slippi/SlippiSavestate.cpp
 			Slippi/SlippiSpectate.cpp
 			Slippi/SlippiTimer.cpp

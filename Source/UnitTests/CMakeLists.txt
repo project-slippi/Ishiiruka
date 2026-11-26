@@ -5,7 +5,7 @@ endif()
 if(ANDROID)
 	set(LIBS ${LIBS} android log)
 endif()
-macro(add_dolphin_test target srcs)
+macro(add_dolphin_test_with_libraries target srcs)
 	# Since this is a Core dependency, it can't be linked as a library and has
 	# to be linked as an object file. Otherwise CMake inserts the library after
 	# core, but before other core dependencies like videocommon which also use
@@ -16,9 +16,13 @@ macro(add_dolphin_test target srcs)
 	add_custom_command(TARGET Test_${target}
 	                   PRE_LINK
 	                   COMMAND mkdir -p ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Tests)
-	target_link_libraries(Test_${target} ${LIBS})
+	target_link_libraries(Test_${target} ${ARGN})
 	add_dependencies(unittests Test_${target})
 	add_test(NAME ${target} COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Tests/${target})
+endmacro(add_dolphin_test_with_libraries)
+
+macro(add_dolphin_test target srcs)
+	add_dolphin_test_with_libraries(${target} "${srcs}" ${LIBS})
 endmacro(add_dolphin_test)
 
 add_subdirectory(TestUtils)

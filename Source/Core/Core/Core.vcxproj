@@ -333,6 +333,7 @@
     <ClCompile Include="Slippi\SlippiNetplay.cpp" />
     <ClCompile Include="Slippi\SlippiPad.cpp" />
     <ClCompile Include="Slippi\SlippiReplayComm.cpp" />
+    <ClCompile Include="Slippi\SlippiReplayCommConfig.cpp" />
     <ClCompile Include="Slippi\SlippiSavestate.cpp" />
     <ClCompile Include="Slippi\SlippiSpectate.cpp" />
     <ClCompile Include="Slippi\SlippiUser.cpp" />

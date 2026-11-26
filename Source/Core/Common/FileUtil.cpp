@@ -571,23 +571,43 @@ bool DeleteDirRecursively(const std::string &directory)
 
 u64 GetFileModTime(const std::string &filename)
 {
-	struct stat file_info;
-
 	std::string copy(filename);
 	StripTailDirSlashes(copy);
 
 #ifdef _WIN32
-	int result = _tstat64(UTF8ToTStr(copy).c_str(), &file_info);
+	WIN32_FILE_ATTRIBUTE_DATA file_info;
+	if (!GetFileAttributesEx(UTF8ToTStr(copy).c_str(), GetFileExInfoStandard, &file_info))
+		return 0;
+
+	ULARGE_INTEGER mod_time;
+	mod_time.LowPart = file_info.ftLastWriteTime.dwLowDateTime;
+	mod_time.HighPart = file_info.ftLastWriteTime.dwHighDateTime;
+
+	const u64 windows_ticks_per_second = 10000000ULL;
+	const u64 windows_unix_epoch_delta_seconds = 11644473600ULL;
+	const u64 windows_unix_epoch_delta_ticks =
+	    windows_unix_epoch_delta_seconds * windows_ticks_per_second;
+	if (mod_time.QuadPart < windows_unix_epoch_delta_ticks)
+		return 0;
+
+	return (mod_time.QuadPart - windows_unix_epoch_delta_ticks) * 100ULL;
 #else
+	struct stat file_info;
 	int result = stat(copy.c_str(), &file_info);
-#endif
 
 	if (result < 0)
 	{
 		return 0;
 	}
 
-	return file_info.st_mtime;
+#if defined(__APPLE__)
+	return static_cast<u64>(file_info.st_mtimespec.tv_sec) * 1000000000ULL +
+	       static_cast<u64>(file_info.st_mtimespec.tv_nsec);
+#else
+	return static_cast<u64>(file_info.st_mtim.tv_sec) * 1000000000ULL +
+	       static_cast<u64>(file_info.st_mtim.tv_nsec);
+#endif
+#endif
 }
 
 // Create directory and copy contents (does not overwrite existing files)
