@@ -56,6 +56,7 @@ private:
 	bool m_hide_seekbar = false;
 	bool m_prev_seekbar = false;
 	bool m_enable_cout = false;
+	bool m_embed_render = false;
 	wxString m_confirm_setting;
 	wxString m_video_backend_name;
 	wxString m_audio_emulation_name;

@@ -291,7 +291,7 @@ bool DolphinApp::OnInit()
 	                       SConfig::GetInstance().iHeight);
 
 	main_frame = new CFrame(nullptr, wxID_ANY, StrToWxStr(scm_rev_str), window_geometry, m_use_debugger, m_batch_mode,
-	                        m_use_logger);
+	                        m_use_logger, m_embed_render);
 	SetTopWindow(main_frame);
 
 	AfterInit();
@@ -331,6 +331,10 @@ void DolphinApp::OnInitCmdLine(wxCmdLineParser &parser)
 	     wxCMD_LINE_PARAM_OPTIONAL},
 	    {wxCMD_LINE_SWITCH, nullptr, "cout", "Enable cout during playback", wxCMD_LINE_VAL_NONE,
 	     wxCMD_LINE_PARAM_OPTIONAL},
+#ifdef _WIN32
+	    {wxCMD_LINE_SWITCH, nullptr, "embed-render", "Wait for a host application to attach the hidden render window",
+	     wxCMD_LINE_VAL_NONE, wxCMD_LINE_PARAM_OPTIONAL},
+#endif
 #endif
 	    {wxCMD_LINE_OPTION, "m", "movie", "Play a movie file", wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
 	    {wxCMD_LINE_OPTION, "u", "user", "User folder path", wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
@@ -398,6 +402,14 @@ bool DolphinApp::OnCmdLineParsed(wxCmdLineParser &parser)
 	m_select_slippi_input = parser.Found("slippi-input", &m_slippi_input_name);
 	m_hide_seekbar = parser.Found("hide-seekbar");
 	m_enable_cout = parser.Found("cout");
+#ifdef _WIN32
+	m_embed_render = parser.Found("embed-render");
+	if (m_embed_render && (!m_batch_mode || !m_load_file || m_file_to_load.empty() || m_use_debugger || m_use_logger))
+	{
+		std::fprintf(stderr, "--embed-render requires --batch and --exec, with debugger and logger disabled.\n");
+		return false;
+	}
+#endif
 #endif
 	m_select_output_directory = parser.Found("output-directory", &m_output_directory);
 	m_select_output_filename_base = parser.Found("output-filename-base", &m_output_filename_base);
@@ -419,12 +431,14 @@ void DolphinApp::MacOpenFile(const wxString &fileName)
 void DolphinApp::AfterInit()
 {
 	// always raise the frame so that it is in the foreground on launch
-	main_frame->Raise();
+	if (!m_embed_render)
+		main_frame->Raise();
 
 	if (!m_batch_mode)
 		main_frame->UpdateGameList();
 
-	if (SConfig::GetInstance().m_analytics_will_prompt && !SConfig::GetInstance().m_analytics_permission_asked)
+	if (!m_embed_render && SConfig::GetInstance().m_analytics_will_prompt &&
+	    !SConfig::GetInstance().m_analytics_permission_asked)
 	{
 		int answer = wxMessageBox(_("If authorized, Dolphin can collect data on its performance, "
 		                            "feature usage, and configuration, as well as data on your system's "

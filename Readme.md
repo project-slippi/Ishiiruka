@@ -50,6 +50,20 @@ Installer directory. This will require the Nullsoft Scriptable Install System
 (NSIS) to be installed. Creating an installer is not necessary to run Dolphin
 since the Binary directory contains a working Dolphin distribution.
 
+### Embedding Windows Playback
+
+Launch the Windows Playback executable with `--batch --exec <game image>
+--slippi-input <replay command file> --embed-render`. Use a profile with
+`RenderToMain=False`. Playback keeps its control and render windows hidden and
+writes `EMBED_RENDER_WINDOW <decimal HWND>` to standard output.
+
+The host should verify that the render HWND belongs to the Playback process it
+launched. Give the render window the `WS_CHILD` style, clear its top-level
+frame styles, parent it to a window owned by the host, size it, and show it.
+Playback starts the game once the render HWND is visible as a child of the
+host. Playback closes after ten seconds if the host has not attached and
+shown the window. The host controls layout and visibility after attachment.
+
 ## Building for Linux and macOS
 Dolphin requires [CMake](http://www.cmake.org/) for systems other than Windows. Many libraries are
 bundled with Dolphin and used if they're not installed on your system. CMake
