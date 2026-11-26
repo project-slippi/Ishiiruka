@@ -4,9 +4,11 @@
 
 #include <array>
 #include <cstdarg>
+#include <cstdint>
 #include <cstdio>
 #include <mutex>
 #include <string>
+#include <utility>
 #include <vector>
 #include <wx/app.h>
 #include <wx/aui/framemanager.h>
@@ -556,7 +558,7 @@ void CFrame::OnRenderParentClose(wxCloseEvent& event)
 
 void CFrame::OnRenderParentMove(wxMoveEvent& event)
 {
-	if (Core::GetState() != Core::CORE_UNINITIALIZED && !RendererIsFullscreen() &&
+	if (!m_embed_render && Core::GetState() != Core::CORE_UNINITIALIZED && !RendererIsFullscreen() &&
 		!m_RenderFrame->IsMaximized() && !m_RenderFrame->IsIconized())
 	{
 		SConfig::GetInstance().iRenderWindowXPos = m_RenderFrame->GetPosition().x;
@@ -570,7 +572,7 @@ void CFrame::OnRenderParentResize(wxSizeEvent& event)
 	if (Core::GetState() != Core::CORE_UNINITIALIZED)
 	{
 		int width, height;
-		if (!SConfig::GetInstance().bRenderToMain && !RendererIsFullscreen() &&
+		if (!m_embed_render && !SConfig::GetInstance().bRenderToMain && !RendererIsFullscreen() &&
 			!m_RenderFrame->IsMaximized() && !m_RenderFrame->IsIconized())
 		{
 			m_RenderFrame->GetClientSize(&width, &height);
@@ -647,6 +649,12 @@ void CFrame::StartGame(const std::string& filename)
 {
 	if (m_bGameLoading)
 		return;
+	if (m_embed_render && SConfig::GetInstance().bRenderToMain)
+	{
+		std::fprintf(stderr, "--embed-render requires RenderToMain=False.\n");
+		CallAfter([this] { Close(true); });
+		return;
+	}
 	m_bGameLoading = true;
 
 	GetToolBar()->EnableTool(IDM_PLAY, false);
@@ -707,9 +715,60 @@ void CFrame::StartGame(const std::string& filename)
 		m_RenderParent = new wxPanel(m_RenderFrame, IDM_MPANEL, wxDefaultPosition, wxDefaultSize, 0);
 #endif
 
+#if defined(_WIN32) && defined(IS_PLAYBACK)
+		if (m_embed_render)
+		{
+			// The host owns visibility. Wait on the GUI loop so it can resize
+			// and reparent the HWND while our window continues to handle messages.
+			m_embed_filename = filename;
+			m_embed_deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+			m_embed_startup = EmbedStartup::WaitingForHost;
+			if (!m_embed_timer.Start(16))
+			{
+				std::fprintf(stderr, "Could not start the render attachment timer.\n");
+				CallAfter([this] { Close(true); });
+				return;
+			}
+			std::printf("EMBED_RENDER_WINDOW %llu\n",
+			            static_cast<unsigned long long>(reinterpret_cast<std::uintptr_t>(m_RenderFrame->GetHandle())));
+			std::fflush(stdout);
+			return;
+		}
+#endif
 		m_RenderFrame->Show();
 	}
 
+	BootPreparedGame(filename);
+}
+
+#if defined(_WIN32) && defined(IS_PLAYBACK)
+void CFrame::PollEmbedHost(wxTimerEvent&)
+{
+	if (m_embed_startup != EmbedStartup::WaitingForHost)
+		return;
+
+	const HWND render = m_RenderFrame ? reinterpret_cast<HWND>(m_RenderFrame->GetHandle()) : nullptr;
+	const HWND parent = render ? GetAncestor(render, GA_PARENT) : nullptr;
+	DWORD parent_pid = 0;
+	if (parent && parent != GetDesktopWindow() && GetWindowThreadProcessId(parent, &parent_pid) &&
+	    parent_pid != GetCurrentProcessId() && (GetWindowLongPtr(render, GWL_STYLE) & WS_CHILD) &&
+	    IsWindowVisible(render))
+	{
+		m_embed_timer.Stop();
+		m_embed_startup = EmbedStartup::Idle;
+		const std::string filename = std::move(m_embed_filename);
+		BootPreparedGame(filename);
+	}
+	else if (std::chrono::steady_clock::now() >= m_embed_deadline)
+	{
+		std::fprintf(stderr, "Timed out waiting for a host to attach and show the render window.\n");
+		Close(true);
+	}
+}
+#endif
+
+void CFrame::BootPreparedGame(const std::string& filename)
+{
 #if defined(__APPLE__)
 	m_RenderFrame->EnableFullScreenView(true);
 #endif
@@ -729,6 +788,8 @@ void CFrame::StartGame(const std::string& filename)
 		m_RenderParent = nullptr;
 		m_bGameLoading = false;
 		UpdateGUI();
+		if (m_embed_render)
+			CallAfter([this] { Close(true); });
 	}
 	else
 	{
@@ -747,13 +808,12 @@ void CFrame::StartGame(const std::string& filename)
 
 		// We need this specifically to support setting the focus properly when using
 		// the 'render to main window' feature on Windows
-		if (auto panel = wxDynamicCast(m_RenderParent, wxPanel))
+		if (!m_embed_render)
 		{
-			panel->SetFocusIgnoringChildren();
-		}
-		else
-		{
-			m_RenderParent->SetFocus();
+			if (auto panel = wxDynamicCast(m_RenderParent, wxPanel))
+				panel->SetFocusIgnoringChildren();
+			else
+				m_RenderParent->SetFocus();
 		}
 
 		wxTheApp->Bind(wxEVT_KEY_DOWN, &CFrame::OnKeyDown, this);
@@ -908,7 +968,7 @@ void CFrame::DoExit()
 
 void CFrame::RaiseRenderWindow()
 {
-	if (SConfig::GetInstance().bRenderToMain)
+	if (m_embed_render || SConfig::GetInstance().bRenderToMain)
 		return;
 
 	m_RenderFrame->Raise();
@@ -916,7 +976,7 @@ void CFrame::RaiseRenderWindow()
 
 void CFrame::LowerRenderWindow()
 {
-	if (SConfig::GetInstance().bRenderToMain)
+	if (m_embed_render || SConfig::GetInstance().bRenderToMain)
 		return;
 
 	m_RenderFrame->Lower();

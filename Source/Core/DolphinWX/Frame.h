@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <chrono>
 #include <cstddef>
 #include <mutex>
 #include <string>
@@ -72,7 +73,7 @@ class CFrame : public CRenderFrame
 public:
 	CFrame(wxFrame* parent, wxWindowID id = wxID_ANY, const wxString& title = "Dolphin",
 		wxRect geometry = wxDefaultSize, bool use_debugger = false, bool batch_mode = false,
-		bool show_log_window = false,
+		bool show_log_window = false, bool embed_render = false,
 		long style = wxDEFAULT_FRAME_STYLE | wxNO_FULL_REPAINT_ON_RESIZE);
 
 	virtual ~CFrame();
@@ -162,6 +163,7 @@ private:
 	FifoPlayerDlg* m_FifoPlayerDlg = nullptr;
 	bool UseDebugger = false;
 	bool m_bBatchMode = false;
+	const bool m_embed_render;
 	bool m_bEdit = false;
 	bool m_bTabSplit = false;
 	bool m_bNoDocking = false;
@@ -328,6 +330,15 @@ private:
 	void OnGameListCtrlItemActivated(wxListEvent& event);
 	void OnRenderParentResize(wxSizeEvent& event);
 	void StartGame(const std::string& filename);
+	void BootPreparedGame(const std::string& filename);
+#if defined(_WIN32) && defined(IS_PLAYBACK)
+	enum class EmbedStartup { Idle, WaitingForHost };
+	EmbedStartup m_embed_startup = EmbedStartup::Idle;
+	wxTimer m_embed_timer;
+	std::chrono::steady_clock::time_point m_embed_deadline;
+	std::string m_embed_filename;
+	void PollEmbedHost(wxTimerEvent& event);
+#endif
 	void OnChangeColumnsVisible(wxCommandEvent& event);
 
 	void OnSelectSlot(wxCommandEvent& event);

@@ -313,10 +313,11 @@ static void SignalHandler(int)
 #endif
 
 CFrame::CFrame(wxFrame *parent, wxWindowID id, const wxString &title, wxRect geometry, bool use_debugger,
-               bool batch_mode, bool show_log_window, long style)
+               bool batch_mode, bool show_log_window, bool embed_render, long style)
     : CRenderFrame(parent, id, title, wxDefaultPosition, wxSize(800, 600), style)
     , UseDebugger(use_debugger)
     , m_bBatchMode(batch_mode)
+    , m_embed_render(embed_render)
 {
 	BindEvents();
 
@@ -441,7 +442,7 @@ CFrame::CFrame(wxFrame *parent, wxWindowID id, const wxString &title, wxRect geo
 		// Load perspective
 		DoLoadPerspective();
 	}
-	else
+	else if (!m_embed_render)
 	{
 		if (SConfig::GetInstance().m_InterfaceLogWindow)
 			ToggleLogWindow(true);
@@ -463,7 +464,16 @@ CFrame::CFrame(wxFrame *parent, wxWindowID id, const wxString &title, wxRect geo
 
 	// The window must be shown for m_XRRConfig to be created (wxGTK will not allocate X11
 	// resources until the window is shown for the first time).
-	Show();
+	if (!m_embed_render)
+		Show();
+
+#if defined(_WIN32) && defined(IS_PLAYBACK)
+	if (m_embed_render)
+	{
+		m_embed_timer.SetOwner(this);
+		Bind(wxEVT_TIMER, &CFrame::PollEmbedHost, this, m_embed_timer.GetId());
+	}
+#endif
 
 #ifdef _WIN32
 	SetToolTip("");
@@ -587,6 +597,10 @@ void CFrame::OnActive(wxActivateEvent &event)
 
 void CFrame::OnClose(wxCloseEvent &event)
 {
+#if defined(_WIN32) && defined(IS_PLAYBACK)
+	m_embed_timer.Stop();
+	m_embed_startup = EmbedStartup::Idle;
+#endif
 	// Before closing the window we need to shut down the emulation core.
 	// We'll try to close this window again once that is done.
 	if (Core::GetState() != Core::CORE_UNINITIALIZED)
@@ -806,7 +820,7 @@ void CFrame::OnHostMessage(wxCommandEvent &event)
 
 void CFrame::OnRenderWindowSizeRequest(int width, int height)
 {
-	if (!SConfig::GetInstance().bRenderWindowAutoSize || !Core::IsRunning() || RendererIsFullscreen() ||
+	if (m_embed_render || !SConfig::GetInstance().bRenderWindowAutoSize || !Core::IsRunning() || RendererIsFullscreen() ||
 	    m_RenderFrame->IsMaximized())
 		return;
 
@@ -1171,6 +1185,9 @@ void CFrame::OnMouse(wxMouseEvent &event)
 
 void CFrame::DoFullscreen(bool enable_fullscreen)
 {
+	if (m_embed_render)
+		return;
+
 	ToggleDisplayMode(enable_fullscreen);
 
 	if (SConfig::GetInstance().bRenderToMain)
@@ -1253,6 +1270,10 @@ const CGameListCtrl *CFrame::GetGameListCtrl() const
 
 void CFrame::PollHotkeys(wxTimerEvent &event)
 {
+#if defined(_WIN32) && defined(IS_PLAYBACK)
+	if (m_embed_startup == EmbedStartup::WaitingForHost)
+		return;
+#endif
 	if (!HotkeyManagerEmu::IsEnabled())
 		return;
 
