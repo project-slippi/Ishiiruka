@@ -222,7 +222,7 @@ void SlippiReplayComm::loadFile()
 			{
 				json el = *it;
 				WatchSettings w = {};
-				w.path = el.value("path", "");
+				w.path = File::GetAbsolutePathFromRelativePath(el.value("path", ""), configFilePath.substr(0, configFilePath.find_last_of("\\/")));
 				w.startFrame = el.value("startFrame", Slippi::GAME_FIRST_FRAME);
 				w.endFrame = el.value("endFrame", INT_MAX);
 				w.gameStartAt = el.value("gameStartAt", "");
