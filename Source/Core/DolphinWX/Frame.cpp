@@ -1266,6 +1266,17 @@ void CFrame::PollHotkeys(wxTimerEvent &event)
 	}
 }
 
+static void RefreshInputConfig() {
+	bool was_unpaused = Core::PauseAndLock(true);
+
+	Wiimote::LoadConfig();
+	Keyboard::LoadConfig();
+	Pad::LoadConfig();
+	HotkeyManagerEmu::LoadConfig();
+
+	Core::PauseAndLock(false, was_unpaused);
+}
+
 void CFrame::ParseHotkeys()
 {
 	bool isSlippiOnline = IsOnline();
@@ -1345,6 +1356,8 @@ void CFrame::ParseHotkeys()
 		Core::SaveScreenShot();
 	if (IsHotkey(HK_EXIT))
 		wxPostEvent(this, wxCommandEvent(wxEVT_MENU, wxID_EXIT));
+	if (IsHotkey(HK_REFRESH_INPUT_CONFIG))
+		RefreshInputConfig();
 	if (IsHotkey(HK_VOLUME_DOWN))
 		AudioCommon::DecreaseVolume(3);
 	if (IsHotkey(HK_VOLUME_UP))
