@@ -92,6 +92,9 @@ rm ./AppDir/usr/lib/libgmodule*
 # Remove librsvg2, which causes a crash on fedora 41+ systems
 rm ./AppDir/usr/lib/librsvg-2.so.2
 
+# Remove libpulse, which causes a crash on fedora 45+ systems
+rm ./AppDir/usr/lib/libpulse.so.0
+
 # Bake appimage
 UPDATE_INFORMATION="${UPDATE_INFORMATION}" OUTPUT="${OUTPUT}" ./Tools/linuxdeploy-update-plugin --appdir=./AppDir/
 
